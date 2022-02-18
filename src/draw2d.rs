@@ -1,4 +1,4 @@
-use crate::terrain::Heightmap;
+use crate::terrain::Earth;
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension};
 use bevy::render::texture::BevyDefault;
@@ -16,12 +16,8 @@ pub fn new_tex(width: usize, height: usize) -> Image {
     )
 }
 
-fn create_tex(
-    heightmap: Res<Heightmap>,
-    mut commands: Commands,
-    mut textures: ResMut<Assets<Image>>,
-) {
-    let tex = new_tex(heightmap.size as usize, heightmap.size as usize);
+fn create_tex(earth: Res<Earth>, mut commands: Commands, mut textures: ResMut<Assets<Image>>) {
+    let tex = new_tex(earth.size as usize, earth.size as usize);
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(SpriteBundle {
         texture: textures.add(tex),
@@ -29,8 +25,8 @@ fn create_tex(
     });
 }
 
-pub fn update_tex(tex_data: &mut [u8], heightmap: &Heightmap) {
-    for (i, v) in heightmap.data.iter().enumerate() {
+pub fn update_tex(tex_data: &mut [u8], earth: &Earth) {
+    for (i, v) in earth.elevation.iter().enumerate() {
         tex_data[i * 4 + 3] = 255;
         if *v < -0.4 {
             tex_data[i * 4] = 60;
@@ -44,11 +40,11 @@ pub fn update_tex(tex_data: &mut [u8], heightmap: &Heightmap) {
             tex_data[i * 4] = 200;
             tex_data[i * 4 + 1] = 100;
             tex_data[i * 4 + 2] = 40;
-        } else if *v < 0.05 {
+        } else if *v < 0.02 {
             tex_data[i * 4] = 120;
             tex_data[i * 4 + 1] = 180;
             tex_data[i * 4 + 2] = 200;
-        } else if *v < 0.13 {
+        } else if *v < 0.15 {
             let vu = ((*v + 0.1).sqrt() * 255.) as u8;
             tex_data[i * 4] = vu / 2;
             tex_data[i * 4 + 1] = vu;
@@ -62,14 +58,10 @@ pub fn update_tex(tex_data: &mut [u8], heightmap: &Heightmap) {
     }
 }
 
-fn draw2d(
-    query: Query<&Handle<Image>>,
-    heightmap: Res<Heightmap>,
-    mut textures: ResMut<Assets<Image>>,
-) {
+fn draw2d(query: Query<&Handle<Image>>, earth: Res<Earth>, mut textures: ResMut<Assets<Image>>) {
     if let Ok(im_handle) = query.get_single() {
         let data = &mut *textures.get_mut(im_handle.id).unwrap().data;
-        update_tex(data, &heightmap);
+        update_tex(data, &earth);
     }
 }
 

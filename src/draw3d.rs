@@ -1,5 +1,5 @@
 use crate::draw2d::{new_tex, update_tex};
-use crate::terrain::{Heightmap, Zoom};
+use crate::terrain::{Earth, Zoom};
 use bevy::math::f32;
 use bevy::{
     prelude::*,
@@ -10,14 +10,14 @@ use std::ops::Rem;
 const HEIGHTMULT: f32 = 80.;
 
 fn create_mesh(
-    heightmap: Res<Heightmap>,
+    earth: Res<Earth>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut textures: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // Create the mesh
-    let size = heightmap.size;
+    let size = earth.size;
     let v_pos = iproduct!(0..size, 0..size)
         .map(|(x, y)| [x as f32, 0.0, y as f32])
         .collect::<Vec<[f32; 3]>>();
@@ -46,7 +46,7 @@ fn create_mesh(
             .collect::<Vec<[f32; 2]>>(),
     );
     let mut tex = new_tex(size as usize, size as usize);
-    update_tex(&mut tex.data, &heightmap);
+    update_tex(&mut tex.data, &earth);
     // this material renders the texture normally
     let material_handle = materials.add(StandardMaterial {
         base_color_texture: Some(textures.add(tex)),
@@ -65,19 +65,19 @@ fn create_mesh(
 }
 
 fn draw3d(
-    heightmap: ResMut<Heightmap>,
+    earth: ResMut<Earth>,
     zoom: Res<Zoom>,
     query_mesh: Query<&Handle<Mesh>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    if heightmap.is_changed() {
+    if earth.is_changed() {
         if let Ok(mesh_handle) = query_mesh.get_single() {
             let mesh = &mut *meshes.get_mut(mesh_handle.id).unwrap();
-            let v_pos = iproduct!(0..heightmap.size, 0..heightmap.size)
+            let v_pos = iproduct!(0..earth.size, 0..earth.size)
                 .map(|(x, y)| {
                     [
                         x as f32,
-                        heightmap.data[(y + x * heightmap.size) as usize].max(0.)
+                        earth.elevation[(y + x * earth.size) as usize].max(0.)
                             * HEIGHTMULT
                             * zoom.0,
                         y as f32,
@@ -89,13 +89,9 @@ fn draw3d(
     }
 }
 
-fn rotate_cam(
-    mut query: Query<&mut Transform, With<Camera>>,
-    heightmap: Res<Heightmap>,
-    time: Res<Time>,
-) {
+fn rotate_cam(mut query: Query<&mut Transform, With<Camera>>, earth: Res<Earth>, time: Res<Time>) {
     if let Ok(mut transform) = query.get_single_mut() {
-        let hsize = (heightmap.size / 2) as f32;
+        let hsize = (earth.size / 2) as f32;
         let alpha = (time.seconds_since_startup() as f32 / 10.).rem(2. * std::f32::consts::PI);
         *transform = Transform::from_xyz(
             hsize + alpha.cos() * hsize,
