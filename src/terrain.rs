@@ -1,31 +1,10 @@
+use crate::range_index::FuzzyIndex;
 use bevy::prelude::*;
 use itertools::{iproduct, zip};
 use noise::{NoiseFn, Seedable, SuperSimplex};
 use std::usize;
 const LS_NOISES: usize = 4;
 const C_NOISES: usize = 2;
-
-struct DomainWarp2d {
-    noises: [SuperSimplex; 2],
-}
-
-impl DomainWarp2d {
-    pub fn new(seed: u32) -> Self {
-        Self {
-            noises: [
-                SuperSimplex::new().set_seed(seed),
-                SuperSimplex::new().set_seed(seed + 1),
-            ],
-        }
-    }
-
-    pub fn get(&self, point: [f64; 2]) -> [f64; 2] {
-        [
-            point[0] + self.noises[0].get(point) * 0.5,
-            point[1] + self.noises[1].get(point) * 0.5,
-        ]
-    }
-}
 
 struct PieceWiseRemap {
     min_h: f64,
@@ -77,7 +56,7 @@ impl LandShape {
         }
         Self {
             noises: sources,
-            remap: PieceWiseRemap::new(0.05, vec![(0.9, |x| x.powi(3))]),
+            remap: PieceWiseRemap::new(0.05, vec![(0.9, |x| x.powi(4))]),
             a: (1. - 2. * landratio).clamp(-1., 0.99) as f64,
         }
     }
@@ -95,13 +74,12 @@ impl NoiseFn<[f64; 2]> for LandShape {
         // continental noise, `a` controls the land/ocean ratio while keeping the range [-1, 1]
         let mut h =
             ((self.noises[0].get(LandShape::mul2(point, 0.4)) - self.a) / (1. - self.a)).max(-1.);
-        // finer ground noise
-        h += self.noises[1].get(LandShape::mul2(point, 1.5)) * 0.4;
         // mountain noise
-        h += (self.noises[2].get(LandShape::mul2(point, 3)).abs()) * 0.3
-            + (1.0 - self.noises[3].get(LandShape::mul2(point, 6)).abs()) * 0.1;
+        h += (1.0 - self.noises[1].get(LandShape::mul2(point, 1)).abs()) * 0.4
+            + (self.noises[2].get(LandShape::mul2(point, 2)).abs()) * 0.2
+            + (1.0 - self.noises[3].get(LandShape::mul2(point, 4)).abs()) * 0.05;
         // rescaling to stay in [-1, 1]
-        h = h / 1.8;
+        h = h / 1.65;
         // smoothen the surface and sharpen the mountain
         self.remap.apply(h)
     }
@@ -124,9 +102,9 @@ impl ClimateShape {
 impl NoiseFn<[f64; 2]> for ClimateShape {
     fn get(&self, point: [f64; 2]) -> f64 {
         // base noise
-        let c = self.noises[0].get(LandShape::mul2(point, 0.6)) + self.noises[1].get(point) * 0.4;
-        // rescale in [-1, 1]
-        c / 1.4
+        let c = self.noises[0].get(LandShape::mul2(point, 0.5)) + self.noises[1].get(point) * 0.2;
+        // rescale in [0, 1]
+        0.5 + 0.5 * c / 1.2
     }
 }
 
@@ -174,7 +152,8 @@ pub struct Earth {
 impl Earth {
     fn new(size: u32, zoom: f32, seed: u32, landratio: f32) -> Self {
         let s_elevation = Sampler::new(size, LandShape::new(seed, landratio), zoom);
-        let s_temperature = Sampler::new(size, ClimateShape::new(seed + LS_NOISES as u32), zoom);
+        let s_temperature =
+            Sampler::new(size, ClimateShape::new(seed + LS_NOISES as u32), zoom * 4.);
         let s_humidity = Sampler::new(
             size,
             ClimateShape::new(seed + LS_NOISES as u32 + C_NOISES as u32),
@@ -200,10 +179,12 @@ impl Earth {
         self.s_humidity.resample(zoom);
         self.elevation.clone_from(&self.s_elevation.data);
         for (i, (y, t)) in zip(&self.s_elevation.data, &self.s_temperature.data).enumerate() {
-            self.temperature[i] = y.max(0.) * 0.3 + t * 0.7;
+            // high altitude -> colder temp
+            self.temperature[i] = (1. - y.max(0.)).max(0.1) * t;
         }
         for (i, (t, h)) in zip(&self.temperature, &self.s_humidity.data).enumerate() {
-            self.humidity[i] = h * (1. - t.powi(2)) / 2. + 0.5;
+            // hot temp -> less humid, cold temp -> not humid
+            self.humidity[i] = h * (1. - (t - 0.7).powi(2) * 2.);
         }
     }
 }
@@ -212,8 +193,29 @@ pub struct Terrain;
 
 impl Plugin for Terrain {
     fn build(&self, app: &mut App) {
+        // (color, [temp, hum])
+        let mut soils = FuzzyIndex::<[u8; 3], 2>::new();
+        // polar
+        soils.insert([250, 240, 230], [0.0..0.3, 0.0..0.2]);
+        // steppe
+        soils.insert([100, 150, 200], [0.3..0.6, 0.0..0.2]);
+        // desert
+        soils.insert([120, 180, 200], [0.6..1., 0.0..0.2]);
+        // tundra
+        soils.insert([150, 200, 100], [0.0..0.3, 0.2..0.5]);
+        // grassy plains
+        soils.insert([100, 200, 50], [0.3..0.7, 0.2..0.5]);
+        // savannah
+        soils.insert([50, 200, 150], [0.7..1., 0.2..0.5]);
+        // snow forest
+        soils.insert([60, 100, 20], [0.0..0.3, 0.5..1.]);
+        // forest
+        soils.insert([80, 150, 50], [0.3..0.7, 0.5..1.]);
+        // tropical forest
+        soils.insert([100, 200, 150], [0.7..1., 0.5..1.]);
         let initial_zoom = 0.25;
-        app.insert_resource(Zoom(initial_zoom))
-            .insert_resource(Earth::new(300, initial_zoom, 3, 0.35));
+        app.insert_resource(soils)
+            .insert_resource(Zoom(initial_zoom))
+            .insert_resource(Earth::new(400, initial_zoom, 1, 0.4));
     }
 }

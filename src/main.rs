@@ -1,5 +1,6 @@
 mod draw2d;
 mod draw3d;
+mod range_index;
 mod terrain;
 use bevy::prelude::*;
 use draw3d::Draw3d;

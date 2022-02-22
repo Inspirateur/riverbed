@@ -1,4 +1,5 @@
 use crate::draw2d::{new_tex, update_tex};
+use crate::range_index::FuzzyIndex;
 use crate::terrain::{Earth, Zoom};
 use bevy::math::f32;
 use bevy::{
@@ -7,11 +8,12 @@ use bevy::{
 };
 use itertools::iproduct;
 use std::ops::Rem;
-const HEIGHTMULT: f32 = 80.;
+const HEIGHTMULT: f32 = 100.;
 
 fn create_mesh(
     earth: Res<Earth>,
     mut commands: Commands,
+    soils: Res<FuzzyIndex<[u8; 3], 2>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut textures: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -46,7 +48,7 @@ fn create_mesh(
             .collect::<Vec<[f32; 2]>>(),
     );
     let mut tex = new_tex(size as usize, size as usize);
-    update_tex(&mut tex.data, &earth);
+    update_tex(&mut tex.data, &earth, &soils);
     // this material renders the texture normally
     let material_handle = materials.add(StandardMaterial {
         base_color_texture: Some(textures.add(tex)),

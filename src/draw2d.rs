@@ -1,7 +1,9 @@
+use crate::range_index::FuzzyIndex;
 use crate::terrain::Earth;
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension};
 use bevy::render::texture::BevyDefault;
+use itertools::*;
 
 pub fn new_tex(width: usize, height: usize) -> Image {
     Image::new(
@@ -25,32 +27,32 @@ fn create_tex(earth: Res<Earth>, mut commands: Commands, mut textures: ResMut<As
     });
 }
 
-pub fn update_tex(tex_data: &mut [u8], earth: &Earth) {
-    for (i, v) in earth.elevation.iter().enumerate() {
+pub fn update_tex(tex_data: &mut [u8], earth: &Earth, soils: &FuzzyIndex<[u8; 3], 2>) {
+    for (i, (y, t, h)) in izip!(&earth.elevation, &earth.temperature, &earth.humidity).enumerate() {
         tex_data[i * 4 + 3] = 255;
-        if *v < -0.4 {
+        if *y < -0.4 {
             tex_data[i * 4] = 60;
             tex_data[i * 4 + 1] = 30;
             tex_data[i * 4 + 2] = 10;
-        } else if *v < -0.1 {
+        } else if *y < -0.1 {
             tex_data[i * 4] = 120;
             tex_data[i * 4 + 1] = 60;
             tex_data[i * 4 + 2] = 20;
-        } else if *v < 0.0 {
+        } else if *y < 0.0 {
             tex_data[i * 4] = 200;
             tex_data[i * 4 + 1] = 100;
             tex_data[i * 4 + 2] = 40;
-        } else if *v < 0.02 {
+        } else if *y < 0.02 {
             tex_data[i * 4] = 120;
             tex_data[i * 4 + 1] = 180;
             tex_data[i * 4 + 2] = 200;
-        } else if *v < 0.15 {
-            let vu = ((*v + 0.1).sqrt() * 255.) as u8;
-            tex_data[i * 4] = vu / 2;
-            tex_data[i * 4 + 1] = vu;
-            tex_data[i * 4 + 2] = vu / 3;
+        } else if *y < 0.2 {
+            let color = soils.closest(&[*t, *h]).unwrap();
+            tex_data[i * 4] = color[0];
+            tex_data[i * 4 + 1] = color[1];
+            tex_data[i * 4 + 2] = color[2];
         } else {
-            let vu = ((*v).sqrt() * 255.) as u8;
+            let vu = ((*y).sqrt() * 255.) as u8;
             tex_data[i * 4] = vu;
             tex_data[i * 4 + 1] = vu;
             tex_data[i * 4 + 2] = vu;
@@ -58,10 +60,15 @@ pub fn update_tex(tex_data: &mut [u8], earth: &Earth) {
     }
 }
 
-fn draw2d(query: Query<&Handle<Image>>, earth: Res<Earth>, mut textures: ResMut<Assets<Image>>) {
+fn draw2d(
+    query: Query<&Handle<Image>>,
+    earth: Res<Earth>,
+    soils: Res<FuzzyIndex<[u8; 3], 2>>,
+    mut textures: ResMut<Assets<Image>>,
+) {
     if let Ok(im_handle) = query.get_single() {
         let data = &mut *textures.get_mut(im_handle.id).unwrap().data;
-        update_tex(data, &earth);
+        update_tex(data, &earth, &soils);
     }
 }
 
