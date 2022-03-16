@@ -1,46 +1,10 @@
-use crate::range_index::FuzzyIndex;
+use crate::{piecewise_remap::PieceWiseRemap, range_index::FuzzyIndex, sampler::Sampler};
 use bevy::prelude::*;
-use itertools::{iproduct, zip};
+use itertools::zip;
 use noise::{NoiseFn, Seedable, SuperSimplex};
 use std::usize;
 const LS_NOISES: usize = 4;
 const C_NOISES: usize = 2;
-
-struct PieceWiseRemap {
-    min_h: f64,
-    h_fns: Vec<(f64, fn(f64) -> f64)>,
-    coefs: Vec<(f64, f64)>,
-}
-
-impl PieceWiseRemap {
-    pub fn new(min_h: f64, h_fns: Vec<(f64, fn(f64) -> f64)>) -> Self {
-        let mut coefs = Vec::new();
-        let mut a = min_h;
-        for (b, h_fn) in &h_fns {
-            let fa = h_fn(a);
-            let fb = h_fn(*b);
-            coefs.push(((fb * a - b * fa) / (fb - fa), (b - a) / (fb - fa)));
-            a = *b;
-        }
-        Self {
-            min_h: min_h,
-            h_fns: h_fns,
-            coefs: coefs,
-        }
-    }
-
-    pub fn apply(&self, x: f64) -> f64 {
-        if x <= self.min_h {
-            return x;
-        }
-        for ((h, h_fn), (a, b)) in zip(&self.h_fns, &self.coefs) {
-            if x < *h {
-                return a + b * h_fn(x);
-            }
-        }
-        x
-    }
-}
 
 struct LandShape {
     noises: [SuperSimplex; LS_NOISES],
@@ -108,35 +72,6 @@ impl NoiseFn<[f64; 2]> for ClimateShape {
     }
 }
 
-pub struct Sampler {
-    pub data: Vec<f32>,
-    noise: Box<dyn NoiseFn<[f64; 2]> + Send + Sync>,
-    pub size: u32,
-}
-
-impl Sampler {
-    fn new(size: u32, noise: impl NoiseFn<[f64; 2]> + Send + Sync + 'static, zoom: f32) -> Self {
-        let mut sampler = Sampler {
-            data: vec![0.; (size * size) as usize],
-            noise: Box::new(noise),
-            size: size,
-        };
-        sampler.resample(zoom);
-        sampler
-    }
-
-    fn resample(&mut self, zoom: f32) {
-        let sizef = self.size as f32;
-        let scale = 1. / zoom;
-        for (i, (x, y)) in iproduct!(0..self.size, 0..self.size).enumerate() {
-            self.data[i] = self.noise.get([
-                (scale * x as f32 / sizef) as f64,
-                (scale * y as f32 / sizef) as f64,
-            ]) as f32;
-        }
-    }
-}
-
 pub struct Zoom(pub f32);
 
 pub struct Earth {
@@ -150,10 +85,10 @@ pub struct Earth {
 }
 
 impl Earth {
-    fn new(size: u32, zoom: f32, seed: u32, landratio: f32) -> Self {
+    pub fn new(size: u32, zoom: f32, seed: u32, landratio: f32) -> Self {
         let s_elevation = Sampler::new(size, LandShape::new(seed, landratio), zoom);
         let s_temperature =
-            Sampler::new(size, ClimateShape::new(seed + LS_NOISES as u32), zoom * 4.);
+            Sampler::new(size, ClimateShape::new(seed + LS_NOISES as u32), zoom * 2.);
         let s_humidity = Sampler::new(
             size,
             ClimateShape::new(seed + LS_NOISES as u32 + C_NOISES as u32),
@@ -173,10 +108,12 @@ impl Earth {
         earth
     }
 
-    fn resample(&mut self, zoom: f32) {
+    pub fn resample(&mut self, zoom: f32) {
+        let zoom_r = zoom / self.s_elevation.zoom;
         self.s_elevation.resample(zoom);
-        self.s_temperature.resample(zoom);
-        self.s_humidity.resample(zoom);
+        self.s_temperature
+            .resample(self.s_temperature.zoom * zoom_r);
+        self.s_humidity.resample(self.s_humidity.zoom * zoom_r);
         self.elevation.clone_from(&self.s_elevation.data);
         for (i, (y, t)) in zip(&self.s_elevation.data, &self.s_temperature.data).enumerate() {
             // high altitude -> colder temp
@@ -196,9 +133,9 @@ impl Plugin for Terrain {
         // (color, [temp, hum])
         let mut soils = FuzzyIndex::<[u8; 3], 2>::new();
         // polar
-        soils.insert([250, 240, 230], [0.0..0.3, 0.0..0.2]);
+        soils.insert([250, 240, 230], [0.0..0.4, 0.0..0.2]);
         // steppe
-        soils.insert([100, 150, 200], [0.3..0.6, 0.0..0.2]);
+        soils.insert([100, 150, 200], [0.4..0.6, 0.0..0.2]);
         // desert
         soils.insert([120, 180, 200], [0.6..1., 0.0..0.2]);
         // tundra
@@ -208,14 +145,14 @@ impl Plugin for Terrain {
         // savannah
         soils.insert([50, 200, 150], [0.7..1., 0.2..0.5]);
         // snow forest
-        soils.insert([60, 100, 20], [0.0..0.3, 0.5..1.]);
+        soils.insert([60, 100, 20], [0.0..0.4, 0.5..1.]);
         // forest
-        soils.insert([80, 150, 50], [0.3..0.7, 0.5..1.]);
+        soils.insert([80, 150, 50], [0.4..0.7, 0.5..1.]);
         // tropical forest
         soils.insert([100, 200, 150], [0.7..1., 0.5..1.]);
         let initial_zoom = 0.25;
         app.insert_resource(soils)
             .insert_resource(Zoom(initial_zoom))
-            .insert_resource(Earth::new(400, initial_zoom, 1, 0.4));
+            .insert_resource(Earth::new(400, initial_zoom, 1, 0.35));
     }
 }
