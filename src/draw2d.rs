@@ -44,13 +44,16 @@ pub fn update_tex(tex_data: &mut [u8], earth: &Earth, soils: &FuzzyIndex<[u8; 3]
             tex_data[i * 4 + 2] = 40;
         } else if *y < 0.02 {
             tex_data[i * 4] = 120;
-            tex_data[i * 4 + 1] = 180;
-            tex_data[i * 4 + 2] = 200;
+            tex_data[i * 4 + 1] = 200;
+            tex_data[i * 4 + 2] = 220;
         } else if *y < 0.2 {
-            let color = soils.closest(&[*t, *h]).unwrap();
-            tex_data[i * 4] = color[0];
-            tex_data[i * 4 + 1] = color[1];
-            tex_data[i * 4 + 2] = color[2];
+            if let Some(color) = soils.closest(&[*t, *h]) {
+                tex_data[i * 4] = color[0];
+                tex_data[i * 4 + 1] = color[1];
+                tex_data[i * 4 + 2] = color[2];
+            } else {
+                panic!("Got no color for t, h = ({}, {})", t, h);
+            }
         } else {
             let vu = ((*y).sqrt() * 255.) as u8;
             tex_data[i * 4] = vu;

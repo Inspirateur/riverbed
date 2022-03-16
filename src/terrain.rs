@@ -88,7 +88,7 @@ impl Earth {
     pub fn new(size: u32, zoom: f32, seed: u32, landratio: f32) -> Self {
         let s_elevation = Sampler::new(size, LandShape::new(seed, landratio), zoom);
         let s_temperature =
-            Sampler::new(size, ClimateShape::new(seed + LS_NOISES as u32), zoom * 2.);
+            Sampler::new(size, ClimateShape::new(seed + LS_NOISES as u32), zoom * 3.);
         let s_humidity = Sampler::new(
             size,
             ClimateShape::new(seed + LS_NOISES as u32 + C_NOISES as u32),
@@ -133,24 +133,28 @@ impl Plugin for Terrain {
         // (color, [temp, hum])
         let mut soils = FuzzyIndex::<[u8; 3], 2>::new();
         // polar
-        soils.insert([250, 240, 230], [0.0..0.4, 0.0..0.2]);
+        soils.insert([250, 230, 210], [0.0..0.2, 0.0..0.2]);
         // steppe
-        soils.insert([100, 150, 200], [0.4..0.6, 0.0..0.2]);
+        soils.insert([100, 150, 150], [0.2..0.6, 0.0..0.1]);
         // desert
-        soils.insert([120, 180, 200], [0.6..1., 0.0..0.2]);
+        soils.insert([120, 200, 220], [0.6..1., 0.0..0.2]);
         // tundra
-        soils.insert([150, 200, 100], [0.0..0.3, 0.2..0.5]);
+        soils.insert([200, 200, 250], [0.0..0.2, 0.2..0.4]);
         // grassy plains
-        soils.insert([100, 200, 50], [0.3..0.7, 0.2..0.5]);
-        // savannah
-        soils.insert([50, 200, 150], [0.7..1., 0.2..0.5]);
+        soils.insert([150, 200, 100], [0.2..0.7, 0.1..0.3]);
+        // dry plains
+        soils.insert([50, 150, 120], [0.7..1., 0.2..0.3]);
         // snow forest
-        soils.insert([60, 100, 20], [0.0..0.4, 0.5..1.]);
+        soils.insert([240, 240, 240], [0.0..0.3, 0.3..1.]);
         // forest
-        soils.insert([80, 150, 50], [0.4..0.7, 0.5..1.]);
+        soils.insert([80, 150, 50], [0.3..0.7, 0.3..8.]);
+        // savannah
+        soils.insert([100, 200, 220], [0.7..1., 0.3..7.]);
+        // marsh
+        soils.insert([80, 150, 150], [0.4..0.7, 0.8..1.]);
         // tropical forest
-        soils.insert([100, 200, 150], [0.7..1., 0.5..1.]);
-        let initial_zoom = 0.25;
+        soils.insert([100, 200, 150], [0.7..1., 0.7..1.]);
+        let initial_zoom = 0.1;
         app.insert_resource(soils)
             .insert_resource(Zoom(initial_zoom))
             .insert_resource(Earth::new(400, initial_zoom, 1, 0.35));

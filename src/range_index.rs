@@ -18,15 +18,15 @@ impl<E: Copy, const D: usize> FuzzyIndex<E, D> {
                     // center of the range
                     (range.end + range.start) / 2.,
                     // normalisation factor
-                    1.9 / (range.end - range.start),
+                    2. / (range.end - range.start),
                 )
             }),
         ));
     }
 
-    pub fn closest(&self, point: &[f32; D]) -> Result<E, String> {
+    pub fn closest(&self, point: &[f32; D]) -> Option<E> {
         if self.data.len() == 0 {
-            return Err("No elements in the Index".to_string());
+            return None;
         }
         let mut max_score = f32::MIN;
         let mut max_e = &self.data[0].0;
@@ -40,8 +40,10 @@ impl<E: Copy, const D: usize> FuzzyIndex<E, D> {
                 max_e = elem;
             }
         }
-        assert!(max_score > 0.);
-        Ok(*max_e)
+        if max_score <= 0. {
+            return None;
+        }
+        Some(*max_e)
     }
 
     pub fn sample(&self, point: [f32; D]) -> Option<E> {
