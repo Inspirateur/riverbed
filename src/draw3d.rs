@@ -1,23 +1,28 @@
+use crate::conditionned_index::ConditionnedIndex;
 use crate::draw2d::{new_tex, update_tex};
-use crate::range_index::FuzzyIndex;
 use crate::terrain::{Earth, Zoom};
 use bevy::math::f32;
 use bevy::{
     prelude::*,
-    render::{camera::Camera, mesh::Indices, render_resource::PrimitiveTopology},
+    render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
 use itertools::iproduct;
-use std::ops::Rem;
-const HEIGHTMULT: f32 = 100.;
+pub const HEIGHTMULT: f32 = 1000.;
 
 fn create_mesh(
     earth: Res<Earth>,
     mut commands: Commands,
-    soils: Res<FuzzyIndex<[u8; 3], 2>>,
+    soils: Res<ConditionnedIndex<[u8; 3], 2>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut textures: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let hsize = (earth.size / 2) as f32;
+    commands.spawn_bundle(PerspectiveCameraBundle {
+        transform: Transform::from_xyz(2.4 * hsize, 1.5 * hsize, hsize)
+            .looking_at(Vec3::new(1.3 * hsize, 0., hsize), Vec3::Y),
+        ..Default::default()
+    });
     // Create the mesh
     let size = earth.size;
     let v_pos = iproduct!(0..size, 0..size)
@@ -61,9 +66,6 @@ fn create_mesh(
         material: material_handle,
         ..Default::default()
     });
-    commands.spawn_bundle(PerspectiveCameraBundle {
-        ..Default::default()
-    });
 }
 
 fn draw3d(
@@ -91,24 +93,10 @@ fn draw3d(
     }
 }
 
-fn rotate_cam(mut query: Query<&mut Transform, With<Camera>>, earth: Res<Earth>, time: Res<Time>) {
-    if let Ok(mut transform) = query.get_single_mut() {
-        let hsize = (earth.size / 2) as f32;
-        let alpha = (time.seconds_since_startup() as f32 / 10.).rem(2. * std::f32::consts::PI);
-        *transform = Transform::from_xyz(
-            hsize + alpha.cos() * hsize,
-            hsize,
-            hsize + alpha.sin() * hsize,
-        )
-        .looking_at(Vec3::new(hsize, 0., hsize), Vec3::Y);
-    }
-}
 pub struct Draw3d;
 
 impl Plugin for Draw3d {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(create_mesh)
-            .add_system(draw3d)
-            .add_system(rotate_cam);
+        app.add_startup_system(create_mesh).add_system(draw3d);
     }
 }

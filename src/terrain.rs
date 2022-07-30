@@ -1,10 +1,14 @@
-use crate::{piecewise_remap::PieceWiseRemap, range_index::FuzzyIndex, sampler::Sampler};
+use crate::{
+    conditionned_index::ConditionnedIndex,
+    noise_utils::{get_warped_fn, mul2, PieceWiseRemap, Sampler},
+};
 use bevy::prelude::*;
 use itertools::zip;
 use noise::{NoiseFn, Seedable, SuperSimplex};
 use std::usize;
 const LS_NOISES: usize = 4;
 const C_NOISES: usize = 2;
+const CONT_S: f64 = 0.2;
 
 struct LandShape {
     noises: [SuperSimplex; LS_NOISES],
@@ -20,30 +24,27 @@ impl LandShape {
         }
         Self {
             noises: sources,
-            remap: PieceWiseRemap::new(0.05, vec![(0.9, |x| x.powi(4))]),
+            remap: PieceWiseRemap::new(0., vec![(0.9, |x| x.powi(2))]),
             a: (1. - 2. * landratio).clamp(-1., 0.99) as f64,
         }
-    }
-
-    fn mul2<T>(point: [f64; 2], s: T) -> [f64; 2]
-    where
-        T: Into<f64> + Copy,
-    {
-        [point[0] * s.into(), point[1] * s.into()]
     }
 }
 
 impl NoiseFn<[f64; 2]> for LandShape {
     fn get(&self, point: [f64; 2]) -> f64 {
-        // continental noise, `a` controls the land/ocean ratio while keeping the range [-1, 1]
-        let mut h =
-            ((self.noises[0].get(LandShape::mul2(point, 0.4)) - self.a) / (1. - self.a)).max(-1.);
-        // mountain noise
-        h += (1.0 - self.noises[1].get(LandShape::mul2(point, 1)).abs()) * 0.4
-            + (self.noises[2].get(LandShape::mul2(point, 2)).abs()) * 0.2
-            + (1.0 - self.noises[3].get(LandShape::mul2(point, 4)).abs()) * 0.05;
-        // rescaling to stay in [-1, 1]
-        h = h / 1.65;
+        // continental noise
+        let mut h = get_warped_fn(
+            mul2(point, CONT_S),
+            self.noises[0],
+            |p| self.noises[0].get(p).powi(2),
+            1.,
+        );
+        h += (1. - self.noises[1].get(mul2(point, 0.8))) * h * 0.2;
+        h /= 1.2;
+        h += (1. - self.noises[2].get(mul2(point, 2.)).powi(2)) * h * 0.2;
+        h /= 1.2;
+        // `a` controls the land/ocean ratio while keeping the range [-1, 1]
+        h = ((h - self.a) / (1. - self.a)).max(-1.);
         // smoothen the surface and sharpen the mountain
         self.remap.apply(h)
     }
@@ -66,7 +67,7 @@ impl ClimateShape {
 impl NoiseFn<[f64; 2]> for ClimateShape {
     fn get(&self, point: [f64; 2]) -> f64 {
         // base noise
-        let c = self.noises[0].get(LandShape::mul2(point, 0.5)) + self.noises[1].get(point) * 0.2;
+        let c = self.noises[0].get(mul2(point, 0.5)) + self.noises[1].get(point) * 0.2;
         // rescale in [0, 1]
         0.5 + 0.5 * c / 1.2
     }
@@ -79,6 +80,7 @@ pub struct Earth {
     s_temperature: Sampler,
     s_humidity: Sampler,
     pub elevation: Vec<f32>,
+    pub slope: Vec<f32>,
     pub temperature: Vec<f32>,
     pub humidity: Vec<f32>,
     pub size: u32,
@@ -100,12 +102,23 @@ impl Earth {
             s_temperature: s_temperature,
             s_humidity: s_humidity,
             elevation: vec![0.; (size * size) as usize],
+            slope: vec![0.; (size * size) as usize],
             temperature: vec![0.; (size * size) as usize],
             humidity: vec![0.; (size * size) as usize],
             size: size,
         };
         earth.resample(zoom);
         earth
+    }
+
+    fn slope(&self, i: usize) -> f32 {
+        let size = self.s_elevation.size as usize;
+        let dxl = &self.elevation[i] - self.elevation[if i % size > 0 { i - 1 } else { i }];
+        let dxr = self.elevation[if i % size < size - 1 { i + 1 } else { i }] - &self.elevation[i];
+        let dyl = &self.elevation[i] - self.elevation[if i / size > 0 { i - size } else { i }];
+        let dyr =
+            self.elevation[if i / size < size - 1 { i + size } else { i }] - &self.elevation[i];
+        (dxl + dxr + dyl + dyr) / (4. * self.s_elevation.zoom)
     }
 
     pub fn resample(&mut self, zoom: f32) {
@@ -123,6 +136,9 @@ impl Earth {
             // hot temp -> less humid, cold temp -> not humid
             self.humidity[i] = h * (1. - (t - 0.7).powi(2) * 2.);
         }
+        for (i, y) in self.elevation.iter().enumerate() {
+            self.slope[i] = if *y <= 0. { 0. } else { self.slope(i) };
+        }
     }
 }
 
@@ -131,29 +147,32 @@ pub struct Terrain;
 impl Plugin for Terrain {
     fn build(&self, app: &mut App) {
         // (color, [temp, hum])
-        let mut soils = FuzzyIndex::<[u8; 3], 2>::new();
-        // polar
-        soils.insert([250, 230, 210], [0.0..0.2, 0.0..0.2]);
-        // steppe
-        soils.insert([100, 150, 150], [0.2..0.6, 0.0..0.1]);
-        // desert
-        soils.insert([120, 200, 220], [0.6..1., 0.0..0.2]);
-        // tundra
-        soils.insert([200, 200, 250], [0.0..0.2, 0.2..0.4]);
-        // grassy plains
-        soils.insert([150, 200, 100], [0.2..0.7, 0.1..0.3]);
-        // dry plains
-        soils.insert([50, 150, 120], [0.7..1., 0.2..0.3]);
-        // snow forest
-        soils.insert([240, 240, 240], [0.0..0.3, 0.3..1.]);
-        // forest
-        soils.insert([80, 150, 50], [0.3..0.7, 0.3..8.]);
-        // savannah
-        soils.insert([100, 200, 220], [0.7..1., 0.3..7.]);
-        // marsh
-        soils.insert([80, 150, 150], [0.4..0.7, 0.8..1.]);
-        // tropical forest
-        soils.insert([100, 200, 150], [0.7..1., 0.7..1.]);
+        let data: Vec<([u8; 3], [f32; 2])> = vec![
+            // polar
+            ([250, 230, 210], [0., 0.]),
+            // steppe
+            ([100, 150, 150], [0.5, 0.]),
+            // desert
+            ([120, 200, 220], [1., 0.]),
+            // tundra
+            ([200, 200, 250], [0., 0.3]),
+            // grassy plains
+            ([150, 200, 100], [0.3, 0.3]),
+            // dry plains
+            ([50, 150, 120], [0.8, 0.3]),
+            // snow forest
+            ([240, 240, 240], [0.1, 0.5]),
+            // forest
+            ([80, 150, 50], [0.5, 0.5]),
+            // savannah
+            ([100, 200, 220], [1., 0.5]),
+            // marsh
+            ([80, 150, 150], [0.5, 1.]),
+            // tropical forest
+            ([100, 200, 150], [1., 1.]),
+        ];
+        let soils = ConditionnedIndex::with_default_pickiness(data);
+
         let initial_zoom = 0.1;
         app.insert_resource(soils)
             .insert_resource(Zoom(initial_zoom))

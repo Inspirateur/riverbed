@@ -1,8 +1,7 @@
+mod conditionned_index;
 mod draw2d;
 mod draw3d;
-mod piecewise_remap;
-mod range_index;
-mod sampler;
+mod noise_utils;
 mod terrain;
 use bevy::prelude::*;
 use draw3d::Draw3d;

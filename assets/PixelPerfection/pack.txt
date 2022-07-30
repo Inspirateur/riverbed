@@ -1,0 +1,15 @@
+XSSheep's Pixel Perfection.
+Pure pixely goodness.
+(https://www.minecraftforum.net/members/XSSheep)
+
+Edited by Nova_Wostra to continiue use for 1.15 and 1.16
+(https://www.minecraftforum.net/members/Nova_Wostra)
+
+Using textures (for 1.14 and 1.13) and code from:
+freejusticehere (https://www.minecraftforum.net/members/freejusticehere)
+
+Inspiration for Emissive Netherplants from Skaliber and his Caelesti Resourcepack
+
+Contribution by HexaBlu (Jigsaw blocks, spectator_widgets, stats_icons, checkbox, toast, achivements, Ancient Debriss)
+
+Patreons:
