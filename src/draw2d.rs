@@ -1,6 +1,6 @@
-use crate::conditionned_index::ConditionnedIndex;
 use crate::draw3d::HEIGHTMULT;
 use crate::terrain::Earth;
+use crate::weighted_dist::WeightedPoints;
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension};
 use bevy::render::texture::BevyDefault;
@@ -28,7 +28,7 @@ fn create_tex(earth: Res<Earth>, mut commands: Commands, mut textures: ResMut<As
     });
 }
 
-pub fn update_tex(tex_data: &mut [u8], earth: &Earth, soils: &ConditionnedIndex<[u8; 3], 2>) {
+pub fn update_tex(tex_data: &mut [u8], earth: &Earth, soils: &WeightedPoints<[u8; 3]>) {
     for (i, (y, d, t, h)) in izip!(
         &earth.elevation,
         &earth.slope,
@@ -73,7 +73,7 @@ pub fn update_tex(tex_data: &mut [u8], earth: &Earth, soils: &ConditionnedIndex<
 fn draw2d(
     query: Query<&Handle<Image>>,
     earth: Res<Earth>,
-    soils: Res<ConditionnedIndex<[u8; 3], 2>>,
+    soils: Res<WeightedPoints<[u8; 3]>>,
     mut textures: ResMut<Assets<Image>>,
 ) {
     if let Ok(im_handle) = query.get_single() {

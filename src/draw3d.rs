@@ -1,6 +1,6 @@
-use crate::conditionned_index::ConditionnedIndex;
 use crate::draw2d::{new_tex, update_tex};
 use crate::terrain::{Earth, Zoom};
+use crate::weighted_dist::WeightedPoints;
 use bevy::math::f32;
 use bevy::{
     prelude::*,
@@ -12,7 +12,7 @@ pub const HEIGHTMULT: f32 = 1000.;
 fn create_mesh(
     earth: Res<Earth>,
     mut commands: Commands,
-    soils: Res<ConditionnedIndex<[u8; 3], 2>>,
+    soils: Res<WeightedPoints<[u8; 3]>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut textures: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,

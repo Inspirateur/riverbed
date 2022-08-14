@@ -1,6 +1,6 @@
 use crate::{
-    conditionned_index::ConditionnedIndex,
     noise_utils::{get_warped_fn, mul2, PieceWiseRemap, Sampler},
+    weighted_dist::WeightedPoints,
 };
 use bevy::prelude::*;
 use itertools::zip;
@@ -146,36 +146,15 @@ pub struct Terrain;
 
 impl Plugin for Terrain {
     fn build(&self, app: &mut App) {
-        // (color, [temp, hum])
-        let data: Vec<([u8; 3], [f32; 2])> = vec![
-            // polar
-            ([250, 230, 210], [0., 0.]),
-            // steppe
-            ([100, 150, 150], [0.5, 0.]),
-            // desert
-            ([120, 200, 220], [1., 0.]),
-            // tundra
-            ([200, 200, 250], [0., 0.3]),
-            // grassy plains
-            ([150, 200, 100], [0.3, 0.3]),
-            // dry plains
-            ([50, 150, 120], [0.8, 0.3]),
-            // snow forest
-            ([240, 240, 240], [0.1, 0.5]),
-            // forest
-            ([80, 150, 50], [0.5, 0.5]),
-            // savannah
-            ([100, 200, 220], [1., 0.5]),
-            // marsh
-            ([80, 150, 150], [0.5, 1.]),
-            // tropical forest
-            ([100, 200, 150], [1., 1.]),
-        ];
-        let soils = ConditionnedIndex::with_default_pickiness(data);
+        let soils = WeightedPoints::<String>::from_csv("assets/data/soils_conditions.csv");
 
         let initial_zoom = 0.1;
         app.insert_resource(soils)
             .insert_resource(Zoom(initial_zoom))
             .insert_resource(Earth::new(400, initial_zoom, 1, 0.35));
+    }
+
+    fn name(&self) -> &str {
+        std::any::type_name::<Self>()
     }
 }
