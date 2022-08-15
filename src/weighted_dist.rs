@@ -40,7 +40,7 @@ impl<E> WeightedPoints<E> {
             let mut values: Vec<f32> = record
                 .into_iter()
                 .skip(1)
-                .map(|s| s.parse::<f32>().unwrap())
+                .map(|s| s.trim().parse::<f32>().unwrap())
                 .collect();
             if is_weighted {
                 let weight = values.pop().unwrap();

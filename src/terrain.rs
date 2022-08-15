@@ -146,12 +146,12 @@ pub struct Terrain;
 
 impl Plugin for Terrain {
     fn build(&self, app: &mut App) {
-        let soils = WeightedPoints::<String>::from_csv("assets/data/soils_conditions.csv");
+        let soils = WeightedPoints::<String>::from_csv("assets/data/soils_condition.csv").unwrap();
 
         let initial_zoom = 0.1;
         app.insert_resource(soils)
             .insert_resource(Zoom(initial_zoom))
-            .insert_resource(Earth::new(400, initial_zoom, 1, 0.35));
+            .insert_resource(Earth::new(600, initial_zoom, 1, 0.35));
     }
 
     fn name(&self) -> &str {

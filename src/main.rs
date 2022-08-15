@@ -1,5 +1,4 @@
 mod draw2d;
-mod draw3d;
 mod noise_utils;
 mod terrain;
 mod weighted_dist;
