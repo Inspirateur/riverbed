@@ -1,6 +1,9 @@
+mod bloc;
+mod chunk_loader;
 mod draw2d;
 mod noise_utils;
 mod terrain;
+mod packed_ints;
 mod weighted_dist;
 use bevy::prelude::*;
 use draw2d::Draw2d;
