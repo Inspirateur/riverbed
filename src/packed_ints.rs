@@ -55,7 +55,7 @@ impl PackedUsizes {
 
     pub fn set(&mut self, i: usize, value: usize) {
         if value >= 2_usize.pow(self.bitsize) {
-            self.reallocate(self.bitsize * 2);
+            self.reallocate(self.bitsize + 2);
         }
         let start_bit = self.bitsize * i as u32;
         let (index_u, start_u) = (start_bit / usize::BITS, start_bit % usize::BITS);
@@ -91,8 +91,7 @@ mod tests {
         // EASY: All values are within one cell
         // holds 8 integers of 5 bits (40 bits total, max = 2^5-1 = 31)
         let mut usizes = PackedUsizes::new(8, 5);
-        let values = [2, 31, 18, 0, 21, 11, 7, 14];
-        roundtrip(&mut usizes, &values);
+        roundtrip(&mut usizes, &[2, 31, 18, 0, 21, 11, 7, 14]);
     }
 
     #[test]
@@ -100,8 +99,7 @@ mod tests {
         // MEDIUM: Some values are split between 2 cells
         // holds 8 integers of 10 bits (80 bits total, max = 2^10-1 = 1023)
         let mut usizes = PackedUsizes::new(8, 10);
-        let values = [541, 26, 999, 4, 0, 263, 1022, 477];
-        roundtrip(&mut usizes, &values);
+        roundtrip(&mut usizes, &[541, 26, 999, 4, 0, 263, 1022, 477]);
     }
 
     #[test]
@@ -109,7 +107,6 @@ mod tests {
         // HARD: some values exceed the capacity of 2^bitsize-1, need to reallocate
         // holds 8 integers of 10 bits (80 bits total, max = 2^10-1 = 1023)
         let mut usizes = PackedUsizes::new(8, 10);
-        let values = [541, 26, 999, 4, 0, 263, 1024, 477];
-        roundtrip(&mut usizes, &values);
+        roundtrip(&mut usizes, &[541, 26, 999, 4, 0, 263, 1024, 477]);
     }
 }
