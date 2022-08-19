@@ -15,3 +15,7 @@ csv = "*"
 colorsys = "*"
 anyhow = "*"
 intbits = "*"
+serde = "*"
+
+[profile.test]
+opt-level = 3

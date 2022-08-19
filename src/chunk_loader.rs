@@ -1,18 +1,26 @@
 use crate::bloc::Bloc;
 use crate::packed_ints::PackedUsizes;
 use crate::terrain::Earth;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 const CHUNK_S1: usize = 16;
 const CHUNK_S2: usize = CHUNK_S1.pow(2);
 const CHUNK_S3: usize = CHUNK_S2.pow(3);
 
+#[derive(Serialize, Deserialize)]
 struct Chunk {
-    ptrsize: usize,
     data: PackedUsizes,
     palette: Vec<Bloc>,
 }
 
 impl Chunk {
+    pub fn new() -> Self {
+        Chunk {
+            data: PackedUsizes::new(CHUNK_S3, 4),
+            palette: vec![Bloc::Air],
+        }
+    }
+
     fn index(x: usize, y: usize, z: usize) -> usize {
         x + y * CHUNK_S2 + z * CHUNK_S3
     }
