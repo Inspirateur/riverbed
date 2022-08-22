@@ -11,7 +11,33 @@ fn div_ceil(a: u32, b: u32) -> u32 {
 pub struct PackedUsizes {
     pub len: usize,
     bitsize: u32,
+    max: usize,
     data: Vec<usize>,
+}
+
+fn set_bits(data: &mut Vec<usize>, i: usize, start: u32, end: u32, value: usize) {
+    if end <= usize::BITS {
+        // the value is in 1 cell
+        data[i].set_bits(start..end, value);
+    } else {
+        // the value is split in 2 cells
+        let end = end - usize::BITS;
+        data[i].set_bits(start..usize::BITS, value.bits(..(usize::BITS - start)));
+        data[1 + i].set_bits(..end, value.bits((usize::BITS - start)..));
+    }
+}
+
+fn get_bits(data: &Vec<usize>, i: usize, start: u32, end: u32) -> usize {
+    if end <= usize::BITS {
+        // the value is in 1 cell
+        data[i].bits(start..end)
+    } else {
+        // the value is split in 2 cells
+        let end = end - usize::BITS;
+        data[i]
+            .bits(start..usize::BITS)
+            .with_bits((usize::BITS - start).., data[1 + i].bits(..end))
+    }
 }
 
 impl PackedUsizes {
@@ -20,23 +46,37 @@ impl PackedUsizes {
         PackedUsizes {
             len,
             bitsize,
+            max: 2_usize.pow(bitsize),
             data: vec![0; div_ceil(bitsize * len as u32, usize::BITS) as usize],
         }
     }
 
-    pub fn from_usizes(data: Vec<usize>, bitsize: u32) -> Self {
+    pub fn from_iter<I>(data: I, len: usize, bitsize: u32) -> Self
+    where
+        I: IntoIterator<Item = usize>,
+    {
         let mut index_u = 0;
         let mut start_u = 0;
-        let mut packed = PackedUsizes::new(data.len(), bitsize);
+        let mut new_data = vec![0; div_ceil(bitsize * len as u32, usize::BITS) as usize];
         for value in data.into_iter() {
-            packed._set(index_u, start_u, value);
+            set_bits(&mut new_data, index_u, start_u, start_u + bitsize, value);
             start_u += bitsize;
             if start_u >= usize::BITS {
                 start_u -= usize::BITS;
                 index_u += 1;
             }
         }
-        packed
+        PackedUsizes {
+            len,
+            bitsize,
+            max: 2_usize.pow(bitsize),
+            data: new_data,
+        }
+    }
+
+    pub fn from_usizes(data: Vec<usize>, bitsize: u32) -> Self {
+        let len = data.len();
+        PackedUsizes::from_iter(data, len, bitsize)
     }
 
     fn reallocate(&mut self, bitsize: u32) {
@@ -48,48 +88,75 @@ impl PackedUsizes {
         self.data = new.data;
     }
 
-    fn _get(&self, index_u: usize, start_u: u32) -> usize {
-        let end_u = start_u + self.bitsize;
-        if end_u <= usize::BITS {
-            // the value is in 1 cell
-            self.data[index_u].bits(start_u..end_u)
-        } else {
-            // the value is split in 2 cells
-            let end_u = end_u - usize::BITS;
-            self.data[index_u].bits(start_u..usize::BITS).with_bits(
-                (self.bitsize - end_u)..,
-                self.data[1 + index_u].bits(..end_u),
-            )
-        }
-    }
-
     pub fn get(&self, i: usize) -> usize {
         let start_bit = self.bitsize * i as u32;
         let (index_u, start_u) = ((start_bit / usize::BITS) as usize, start_bit % usize::BITS);
-        self._get(index_u, start_u)
-    }
-
-    fn _set(&mut self, index_u: usize, start_u: u32, value: usize) {
-        let end_u = start_u + self.bitsize;
-        if end_u <= usize::BITS {
-            // the value is in 1 cell
-            self.data[index_u].set_bits(start_u..end_u, value);
-        } else {
-            // the value is split in 2 cells
-            let end_u = end_u - usize::BITS;
-            self.data[index_u].set_bits(start_u..usize::BITS, value.bits(..(self.bitsize - end_u)));
-            self.data[1 + index_u].set_bits(..end_u, value.bits((self.bitsize - end_u)..));
-        }
+        get_bits(&self.data, index_u, start_u, start_u + self.bitsize)
     }
 
     pub fn set(&mut self, i: usize, value: usize) {
-        if value >= 2_usize.pow(self.bitsize) {
+        if value >= self.max {
             // adding 2 to bitsize multiplies max value by 4
             self.reallocate(self.bitsize + 2);
         }
         let start_bit = self.bitsize * i as u32;
         let (index_u, start_u) = ((start_bit / usize::BITS) as usize, start_bit % usize::BITS);
-        self._set(index_u, start_u, value);
+        set_bits(
+            &mut self.data,
+            index_u,
+            start_u,
+            start_u + self.bitsize,
+            value,
+        );
+    }
+}
+
+pub struct PackedUsizesIter {
+    len: usize,
+    count: usize,
+    index_u: usize,
+    start_u: u32,
+    bitsize: u32,
+    data: Vec<usize>,
+}
+
+impl Iterator for PackedUsizesIter {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count >= self.len {
+            None
+        } else {
+            let value = get_bits(
+                &mut self.data,
+                self.index_u,
+                self.start_u,
+                self.start_u + self.bitsize,
+            );
+            self.start_u += self.bitsize;
+            if self.start_u >= usize::BITS {
+                self.start_u -= usize::BITS;
+                self.index_u += 1;
+            }
+            self.count += 1;
+            Some(value)
+        }
+    }
+}
+
+impl IntoIterator for PackedUsizes {
+    type Item = usize;
+    type IntoIter = PackedUsizesIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        PackedUsizesIter {
+            len: self.len,
+            count: 0,
+            index_u: 0,
+            start_u: 0,
+            bitsize: self.bitsize,
+            data: self.data,
+        }
     }
 }
 

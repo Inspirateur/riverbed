@@ -3,7 +3,7 @@ use crate::packed_ints::PackedUsizes;
 use crate::terrain::Earth;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-const CHUNK_S1: usize = 16;
+pub const CHUNK_S1: usize = 16;
 const CHUNK_S2: usize = CHUNK_S1.pow(2);
 const CHUNK_S3: usize = CHUNK_S2.pow(3);
 
@@ -37,19 +37,5 @@ impl Chunk {
             self.palette.len() - 1
         });
         self.data.set(idx, value);
-    }
-}
-
-struct ChunkLoader {
-    worldgen: Earth,
-    chunks: HashMap<(i32, i32, i32), Chunk>,
-}
-
-impl ChunkLoader {
-    pub fn new(worldgen: Earth) -> Self {
-        ChunkLoader {
-            worldgen,
-            chunks: HashMap::new(),
-        }
     }
 }
