@@ -16,6 +16,7 @@ colorsys = "*"
 anyhow = "*"
 intbits = "*"
 serde = "*"
+leafwing-input-manager = "*"
 
 [profile.test]
 opt-level = 3

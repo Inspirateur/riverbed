@@ -1,7 +1,6 @@
 use csv::Error;
 use itertools::zip;
 use std::cmp::Ordering;
-use std::ops::{Add, Div};
 
 #[derive(Clone)]
 struct WeightedPoint {
@@ -52,6 +51,7 @@ impl<E> WeightedPoints<E> {
         Ok(WeightedPoints { elems, index })
     }
 
+    // turn this into a interval tree if it's too slow
     pub fn closest<const D: usize>(&self, point: &[f32; D]) -> (E, f32)
     where
         E: Clone,

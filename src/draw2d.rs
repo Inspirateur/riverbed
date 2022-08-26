@@ -23,7 +23,7 @@ pub fn new_tex(width: usize, height: usize) -> Image {
 
 fn create_tex(earth: Res<Earth>, mut commands: Commands, mut textures: ResMut<Assets<Image>>) {
     let tex = new_tex(earth.size as usize, earth.size as usize);
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn_bundle(Camera2dBundle::default());
     commands.spawn_bundle(SpriteBundle {
         texture: textures.add(tex),
         ..Default::default()
@@ -87,7 +87,7 @@ fn draw2d(
 ) {
     if earth.is_changed() {
         if let Ok(im_handle) = query.get_single() {
-            let data = &mut *textures.get_mut(im_handle.id).unwrap().data;
+            let data = &mut *textures.get_mut(im_handle).unwrap().data;
             update_tex(data, &earth, &soils, &colors.0);
         }
     }

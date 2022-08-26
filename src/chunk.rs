@@ -8,7 +8,7 @@ const CHUNK_S2: usize = CHUNK_S1.pow(2);
 const CHUNK_S3: usize = CHUNK_S2.pow(3);
 
 #[derive(Serialize, Deserialize)]
-struct Chunk {
+pub struct Chunk {
     data: PackedUsizes,
     palette: Vec<Bloc>,
 }
