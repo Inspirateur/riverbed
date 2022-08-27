@@ -1,5 +1,6 @@
 use intbits::Bits;
 use serde::{Deserialize, Serialize};
+use std::iter;
 // Inspiration from:
 // https://github.com/adrianwong/packed-integers/blob/master/src/lib.rs
 
@@ -41,13 +42,28 @@ fn get_bits(data: &Vec<usize>, i: usize, start: u32, end: u32) -> usize {
 }
 
 impl PackedUsizes {
-    pub fn new(len: usize, bitsize: u32) -> Self {
+    fn with_brick(len: usize, bitsize: u32, brick: usize) -> Self {
         debug_assert!(bitsize < usize::BITS);
         PackedUsizes {
             len,
             bitsize,
             max: 2_usize.pow(bitsize),
-            data: vec![0; div_ceil(bitsize * len as u32, usize::BITS) as usize],
+            data: vec![brick; div_ceil(bitsize * len as u32, usize::BITS) as usize],
+        }
+    }
+    pub fn new(len: usize, bitsize: u32) -> Self {
+        PackedUsizes::with_brick(len, bitsize, 0)
+    }
+
+    pub fn filled(len: usize, bitsize: u32, value: usize) -> Self {
+        if usize::BITS % bitsize == 0 {
+            let mut brick = 0;
+            for i in (0..usize::BITS).step_by(bitsize as usize) {
+                brick.set_bits(i..(i + bitsize), value);
+            }
+            PackedUsizes::with_brick(len, bitsize, brick)
+        } else {
+            PackedUsizes::from_iter(iter::repeat(value).take(len), len, bitsize)
         }
     }
 
@@ -80,12 +96,8 @@ impl PackedUsizes {
     }
 
     fn reallocate(&mut self, bitsize: u32) {
-        let mut new = PackedUsizes::new(self.len, bitsize);
-        for i in 0..self.len {
-            new.set(i, self.get(i));
-        }
-        self.bitsize = new.bitsize;
-        self.data = new.data;
+        let len = self.len;
+        *self = PackedUsizes::from_iter(self.into_iter(), len, bitsize);
     }
 
     pub fn get(&self, i: usize) -> usize {
@@ -108,6 +120,17 @@ impl PackedUsizes {
             start_u + self.bitsize,
             value,
         );
+    }
+
+    pub fn into_iter(&self) -> PackedUsizesIter {
+        PackedUsizesIter {
+            len: self.len,
+            count: 0,
+            index_u: 0,
+            start_u: 0,
+            bitsize: self.bitsize,
+            data: self.data.clone(),
+        }
     }
 }
 
@@ -140,22 +163,6 @@ impl Iterator for PackedUsizesIter {
             }
             self.count += 1;
             Some(value)
-        }
-    }
-}
-
-impl IntoIterator for PackedUsizes {
-    type Item = usize;
-    type IntoIter = PackedUsizesIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        PackedUsizesIter {
-            len: self.len,
-            count: 0,
-            index_u: 0,
-            start_u: 0,
-            bitsize: self.bitsize,
-            data: self.data,
         }
     }
 }

@@ -3,7 +3,9 @@ use std::collections::{HashMap, HashSet};
 use crate::bloc::Bloc;
 use crate::chunk;
 use crate::chunk::Chunk;
+use crate::earth_gen::Earth;
 use crate::realm::Realm;
+use crate::terrain_gen::TerrainGen;
 // i32 is a more convenient format here
 const CHUNK_S1: i32 = chunk::CHUNK_S1 as i32;
 pub struct WorldData {
@@ -13,15 +15,20 @@ pub struct WorldData {
     chunks: HashMap<(Realm, i32, i32, i32), Chunk>,
     pub load_orders: HashSet<(Realm, i32, i32)>,
     pub unload_orders: HashSet<(Realm, i32, i32)>,
+    // the generators
+    gens: HashMap<Realm, Box<dyn TerrainGen>>,
 }
 
 impl WorldData {
-    pub fn new() -> Self {
+    pub fn new(seed: u32) -> Self {
+        let mut gens: HashMap<Realm, Box<dyn TerrainGen>> = HashMap::new();
+        gens.insert(Realm::Earth, Box::new(Earth::new(seed, HashMap::new())));
         WorldData {
             cols: HashMap::new(),
             chunks: HashMap::new(),
             load_orders: HashSet::new(),
             unload_orders: HashSet::new(),
+            gens,
         }
     }
     pub fn register_load(&mut self, to_load: Vec<(i32, i32)>, realm: Realm, player: u32) {
@@ -67,9 +74,13 @@ impl WorldData {
         let (qx, qy, qz) = (x / CHUNK_S1, y / CHUNK_S1, z / CHUNK_S1);
         let (rx, ry, rz) = (x % CHUNK_S1, y % CHUNK_S1, z % CHUNK_S1);
         let chunk_pos = (realm, qx, qy, qz);
-        // The chunk has to be loaded at this point !
         if let Some(chunk) = self.chunks.get_mut(&chunk_pos) {
             chunk.set(rx as usize, ry as usize, rz as usize, bloc);
+        } else {
+            // if the chunk is not loaded it means it was full of Air
+            let mut chunk = Chunk::new();
+            chunk.set(rx as usize, ry as usize, rz as usize, bloc);
+            self.chunks.insert(chunk_pos, chunk);
         }
     }
 }

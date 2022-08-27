@@ -1,26 +1,28 @@
 mod bloc;
 mod chunk;
 mod draw2d;
+mod earth_gen;
 mod load_area;
+mod load_cols;
 mod noise_utils;
 mod packed_ints;
 mod player;
 mod pos;
 mod realm;
-mod terrain;
+mod terrain_gen;
 mod weighted_dist;
 mod world_data;
 use bevy::prelude::*;
 use draw2d::Draw2d;
+use earth_gen::Terrain;
 use leafwing_input_manager::plugin::InputManagerPlugin;
-use terrain::Terrain;
 use world_data::WorldData;
 
 struct GameLogic;
 
 impl Plugin for GameLogic {
     fn build(&self, app: &mut App) {
-        app.insert_resource(WorldData::new())
+        app.insert_resource(WorldData::new(0))
             .add_startup_system(player::spawn_player)
             .add_system(player::move_player)
             .add_system(load_area::update_load_area)

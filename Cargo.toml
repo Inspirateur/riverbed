@@ -17,6 +17,8 @@ anyhow = "*"
 intbits = "*"
 serde = "*"
 leafwing-input-manager = "*"
+strum = "*"
+strum_macros = "*"
 
 [profile.test]
 opt-level = 3

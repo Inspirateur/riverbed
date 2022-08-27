@@ -1,6 +1,6 @@
 use csv::Error;
 use itertools::zip;
-use std::cmp::Ordering;
+use std::{cmp::Ordering, str::FromStr};
 
 #[derive(Clone)]
 struct WeightedPoint {
@@ -26,7 +26,8 @@ pub struct WeightedPoints<E> {
 impl<E> WeightedPoints<E> {
     pub fn from_csv(path: &str) -> Result<Self, Error>
     where
-        E: From<String>,
+        E: FromStr,
+        <E as FromStr>::Err: std::fmt::Debug,
     {
         let mut reader = csv::Reader::from_path(path)?;
         let header = reader.headers()?;
@@ -35,7 +36,7 @@ impl<E> WeightedPoints<E> {
         let mut index = Vec::new();
         for record in reader.records() {
             let record = record?;
-            elems.push(E::from(record[0].to_string()));
+            elems.push(E::from_str(&record[0]).unwrap());
             let mut values: Vec<f32> = record
                 .into_iter()
                 .skip(1)
