@@ -1,8 +1,7 @@
 use crate::bloc::Bloc;
-use crate::earth_gen::Earth;
+use crate::get_set::GetSet;
 use crate::packed_ints::PackedUsizes;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 pub const CHUNK_S1: usize = 16;
 const CHUNK_S2: usize = CHUNK_S1.pow(2);
 const CHUNK_S3: usize = CHUNK_S2.pow(3);
@@ -11,33 +10,39 @@ fn index(x: usize, y: usize, z: usize) -> usize {
     x + y * CHUNK_S2 + z * CHUNK_S3
 }
 
-pub struct RawChunk {
-    data: Vec<Bloc>,
+trait Palette<E> {
+    fn index(&mut self, elem: E) -> usize;
 }
 
-impl RawChunk {
-    pub fn new() -> Self {
-        RawChunk {
-            data: vec![Bloc::Air; CHUNK_S3],
-        }
-    }
-
-    pub fn get(&self, x: usize, y: usize, z: usize) -> &Bloc {
-        &self.data[index(x, y, z)]
-    }
-
-    pub fn set(&mut self, x: usize, y: usize, z: usize, bloc: Bloc) {
-        self.data[index(x, y, z)] = bloc
+impl<E: Eq> Palette<E> for Vec<E> {
+    fn index(&mut self, elem: E) -> usize {
+        self.iter().position(|other| *other == elem).unwrap_or({
+            // bloc is not present in the palette
+            self.push(elem);
+            self.len() - 1
+        })
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Chunk {
-    data: PackedUsizes,
+pub struct Chunk<L: GetSet<usize> = PackedUsizes> {
+    data: L,
     palette: Vec<Bloc>,
 }
 
-impl Chunk {
+impl<L: GetSet<usize>> Chunk<L> {
+    pub fn get(&self, x: usize, y: usize, z: usize) -> &Bloc {
+        &self.palette[self.data.get(index(x, y, z))]
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, z: usize, bloc: Bloc) {
+        let idx = index(x, y, z);
+        let value = self.palette.index(bloc);
+        self.data.set(idx, value);
+    }
+}
+
+impl Chunk<PackedUsizes> {
     pub fn new() -> Self {
         Chunk {
             data: PackedUsizes::new(CHUNK_S3, 4),
@@ -47,7 +52,7 @@ impl Chunk {
 
     pub fn filled(bloc: Bloc) -> Self {
         if bloc == Bloc::Air {
-            Chunk::new()
+            Chunk::<PackedUsizes>::new()
         } else {
             Chunk {
                 data: PackedUsizes::filled(CHUNK_S3, 4, 1),
@@ -55,24 +60,41 @@ impl Chunk {
             }
         }
     }
+}
 
-    pub fn get(&self, x: usize, y: usize, z: usize) -> &Bloc {
-        &self.palette[self.data.get(index(x, y, z))]
+impl Chunk<Vec<usize>> {
+    pub fn new() -> Self {
+        Chunk {
+            data: vec![0; CHUNK_S3],
+            palette: vec![Bloc::Air],
+        }
     }
 
-    pub fn set(&mut self, x: usize, y: usize, z: usize, bloc: Bloc) {
-        let idx = index(x, y, z);
-        let value = self.palette.iter().position(|b| *b == bloc).unwrap_or({
-            // bloc is not present in the palette
-            self.palette.push(bloc);
-            self.palette.len() - 1
-        });
-        self.data.set(idx, value);
+    pub fn filled(bloc: Bloc) -> Self {
+        if bloc == Bloc::Air {
+            Chunk::<Vec<usize>>::new()
+        } else {
+            Chunk {
+                data: vec![1; CHUNK_S3],
+                palette: vec![Bloc::Air, bloc],
+            }
+        }
     }
 }
 
-impl From<RawChunk> for Chunk {
-    fn from(_: RawChunk) -> Self {
-        todo!()
+fn find_bitsize(len: usize) -> u32 {
+    let mut bitsize = 4;
+    while 2_u32.pow(bitsize) < len as u32 {
+        bitsize += 2;
+    }
+    bitsize
+}
+
+impl From<Chunk<Vec<usize>>> for Chunk<PackedUsizes> {
+    fn from(chunk: Chunk<Vec<usize>>) -> Self {
+        Chunk {
+            data: PackedUsizes::from_usizes(chunk.data, find_bitsize(chunk.palette.len())),
+            palette: chunk.palette,
+        }
     }
 }

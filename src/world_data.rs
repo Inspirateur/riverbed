@@ -1,11 +1,11 @@
-use std::collections::{HashMap, HashSet};
-
 use crate::bloc::Bloc;
 use crate::chunk;
 use crate::chunk::Chunk;
 use crate::earth_gen::Earth;
+use crate::packed_ints::PackedUsizes;
 use crate::realm::Realm;
 use crate::terrain_gen::TerrainGen;
+use std::collections::{HashMap, HashSet};
 // i32 is a more convenient format here
 const CHUNK_S1: i32 = chunk::CHUNK_S1 as i32;
 pub struct WorldData {
@@ -78,7 +78,7 @@ impl WorldData {
             chunk.set(rx as usize, ry as usize, rz as usize, bloc);
         } else {
             // if the chunk is not loaded it means it was full of Air
-            let mut chunk = Chunk::new();
+            let mut chunk = Chunk::<PackedUsizes>::new();
             chunk.set(rx as usize, ry as usize, rz as usize, bloc);
             self.chunks.insert(chunk_pos, chunk);
         }

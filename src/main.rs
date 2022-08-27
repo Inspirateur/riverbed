@@ -2,6 +2,7 @@ mod bloc;
 mod chunk;
 mod draw2d;
 mod earth_gen;
+mod get_set;
 mod load_area;
 mod load_cols;
 mod noise_utils;

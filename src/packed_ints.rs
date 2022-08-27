@@ -1,6 +1,8 @@
 use intbits::Bits;
 use serde::{Deserialize, Serialize};
 use std::iter;
+
+use crate::get_set::GetSet;
 // Inspiration from:
 // https://github.com/adrianwong/packed-integers/blob/master/src/lib.rs
 
@@ -100,13 +102,26 @@ impl PackedUsizes {
         *self = PackedUsizes::from_iter(self.into_iter(), len, bitsize);
     }
 
-    pub fn get(&self, i: usize) -> usize {
+    pub fn into_iter(&self) -> PackedUsizesIter {
+        PackedUsizesIter {
+            len: self.len,
+            count: 0,
+            index_u: 0,
+            start_u: 0,
+            bitsize: self.bitsize,
+            data: self.data.clone(),
+        }
+    }
+}
+
+impl GetSet<usize> for PackedUsizes {
+    fn get(&self, i: usize) -> usize {
         let start_bit = self.bitsize * i as u32;
         let (index_u, start_u) = ((start_bit / usize::BITS) as usize, start_bit % usize::BITS);
         get_bits(&self.data, index_u, start_u, start_u + self.bitsize)
     }
 
-    pub fn set(&mut self, i: usize, value: usize) {
+    fn set(&mut self, i: usize, value: usize) {
         if value >= self.max {
             // adding 2 to bitsize multiplies max value by 4
             self.reallocate(self.bitsize + 2);
@@ -121,19 +136,7 @@ impl PackedUsizes {
             value,
         );
     }
-
-    pub fn into_iter(&self) -> PackedUsizesIter {
-        PackedUsizesIter {
-            len: self.len,
-            count: 0,
-            index_u: 0,
-            start_u: 0,
-            bitsize: self.bitsize,
-            data: self.data.clone(),
-        }
-    }
 }
-
 pub struct PackedUsizesIter {
     len: usize,
     count: usize,
@@ -168,6 +171,7 @@ impl Iterator for PackedUsizesIter {
 }
 
 mod tests {
+    use crate::get_set::GetSet;
     use rand::prelude::*;
     use std::time;
 

@@ -1,7 +1,7 @@
 use crate::{
     bloc::Bloc,
     chunk,
-    chunk::{Chunk, RawChunk},
+    chunk::Chunk,
     noise_utils::{get_warped_fn, mul2, PieceWiseRemap},
     terrain_gen::TerrainGen,
     weighted_dist::WeightedPoints,
@@ -123,7 +123,7 @@ impl TerrainGen for Earth {
             let y = (y * 255.) as i32;
             let (cy, dy) = (y / CHUNK_S1, y % CHUNK_S1);
             if !res.contains_key(&cy) {
-                res.insert(cy, RawChunk::new());
+                res.insert(cy, Chunk::<Vec<usize>>::new());
             }
             if let Some(chunk) = res.get_mut(&cy) {
                 chunk.set(
