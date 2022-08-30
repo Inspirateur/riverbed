@@ -14,7 +14,6 @@ mod terrain_gen;
 mod weighted_dist;
 mod world_data;
 use std::collections::HashMap;
-
 use bevy::prelude::*;
 use draw2d::Draw2d;
 use earth_gen::Terrain;

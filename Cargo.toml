@@ -19,6 +19,7 @@ serde = "*"
 leafwing-input-manager = "*"
 strum = "*"
 strum_macros = "*"
+dashmap = "*"
 
 [profile.test]
 opt-level = 3

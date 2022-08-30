@@ -85,6 +85,8 @@ pub struct Earth {
     temperature: Box<dyn NoiseFn<[f64; 2]> + Sync + Send>,
     humidity: Box<dyn NoiseFn<[f64; 2]> + Sync + Send>,
     soils: WeightedPoints<Bloc>,
+    seed: u32,
+    config: HashMap<String, f32>
 }
 
 impl Earth {
@@ -94,6 +96,12 @@ impl Earth {
         let t = (1. - y.max(0.)).max(0.1) * self.temperature.get(point);
         let h = (1. - (t - 0.7).powi(2) * 2.) * self.humidity.get(point);
         (y, t, h)
+    }
+}
+
+impl Clone for Earth {
+    fn clone(&self) -> Self {
+        Earth::new(self.seed, self.config.clone())
     }
 }
 
@@ -111,6 +119,8 @@ impl TerrainGen for Earth {
             temperature,
             humidity,
             soils: WeightedPoints::from_csv("assets/data/soils_condition.csv").unwrap(),
+            seed, 
+            config
         }
     }
 
