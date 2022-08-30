@@ -15,20 +15,15 @@ pub struct WorldData {
     chunks: HashMap<(Realm, i32, i32, i32), Chunk>,
     pub load_orders: HashSet<(Realm, i32, i32)>,
     pub unload_orders: HashSet<(Realm, i32, i32)>,
-    // the generators
-    gens: HashMap<Realm, Box<dyn TerrainGen>>,
 }
 
 impl WorldData {
-    pub fn new(seed: u32) -> Self {
-        let mut gens: HashMap<Realm, Box<dyn TerrainGen>> = HashMap::new();
-        gens.insert(Realm::Earth, Box::new(Earth::new(seed, HashMap::new())));
+    pub fn new() -> Self {
         WorldData {
             cols: HashMap::new(),
             chunks: HashMap::new(),
             load_orders: HashSet::new(),
             unload_orders: HashSet::new(),
-            gens,
         }
     }
     pub fn register_load(&mut self, to_load: Vec<(i32, i32)>, realm: Realm, player: u32) {
