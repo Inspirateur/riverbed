@@ -51,7 +51,9 @@ impl NoiseFn<[f64; 2]> for LandShape {
         // `a` controls the land/ocean ratio while keeping the range [-1, 1]
         h = ((h - self.a) / (1. - self.a)).max(-1.);
         // smoothen the surface and sharpen the mountain
-        self.remap.apply(h)
+        h = self.remap.apply(h);
+        // set the noise between [0, 1]
+        h * 0.5 + 0.5
     }
 }
 
@@ -131,11 +133,11 @@ impl TerrainGen for Earth {
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (y, t, h) = self.get(cx + dx, cz + dz, 1.);
             let y = (y * 255.) as i32;
-            let (cy, dy) = (y / CHUNK_S1, y % CHUNK_S1);
-            if !res.contains_key(&cy) {
-                res.insert(cy, Chunk::<Vec<usize>>::new());
+            let (qy, dy) = (y / CHUNK_S1, y % CHUNK_S1);
+            if !res.contains_key(&qy) {
+                res.insert(qy, Chunk::<Vec<usize>>::new());
             }
-            if let Some(chunk) = res.get_mut(&cy) {
+            if let Some(chunk) = res.get_mut(&qy) {
                 chunk.set(
                     dx as usize,
                     dy as usize,

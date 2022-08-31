@@ -13,7 +13,7 @@ mod realm;
 mod terrain_gen;
 mod weighted_dist;
 mod world_data;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use bevy::prelude::*;
 use draw2d::Draw2d;
 use earth_gen::Terrain;
@@ -25,11 +25,14 @@ struct GameLogic;
 impl Plugin for GameLogic {
     fn build(&self, app: &mut App) {
         app.insert_resource(WorldData::new())
-            .insert_resource(terrain_gen::generators(0))
+            .insert_resource(Arc::new(terrain_gen::generators(0)))
             .add_startup_system(player::spawn_player)
             .add_system(player::move_player)
             .add_system(load_area::update_load_area)
-            .add_system(load_area::load_order);
+            .add_system(load_area::load_order)
+            .add_system(load_cols::pull_orders)
+            .add_system(load_cols::poll_gen)
+            ;
     }
 }
 

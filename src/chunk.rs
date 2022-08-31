@@ -7,7 +7,7 @@ const CHUNK_S2: usize = CHUNK_S1.pow(2);
 const CHUNK_S3: usize = CHUNK_S2.pow(3);
 
 fn index(x: usize, y: usize, z: usize) -> usize {
-    x + y * CHUNK_S2 + z * CHUNK_S3
+    x + y * CHUNK_S1 + z * CHUNK_S2
 }
 
 trait Palette<E> {

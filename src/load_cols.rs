@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use futures_lite::future;
 use std::sync::Arc;
 use crate::chunk::Chunk;
 use crate::realm::Realm;
@@ -6,6 +7,7 @@ use crate::terrain_gen::TerrainGen;
 use crate::world_data::WorldData;
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
+use bevy::ui::entity;
 use dashmap::DashMap;
 
 #[derive(Component)]
@@ -32,6 +34,11 @@ pub fn pull_orders(
      commands.spawn().insert(LoadChunks(task));
 }
 
-pub fn poll_gen(query: Query<&LoadChunks>) {
-    
+pub fn poll_gen(mut commands: Commands, mut load_tasks: Query<(Entity, &mut LoadChunks)>, mut world: ResMut<WorldData>) {
+    for (entity, mut task) in &mut load_tasks {
+        if let Some(chunks) = future::block_on(future::poll_once(&mut task.0)) {
+            world.chunks.extend(chunks);
+            commands.entity(entity).remove::<LoadChunks>();
+        }
+    } 
 }

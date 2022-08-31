@@ -20,6 +20,7 @@ leafwing-input-manager = "*"
 strum = "*"
 strum_macros = "*"
 dashmap = "*"
+futures-lite = "*"
 
 [profile.test]
 opt-level = 3

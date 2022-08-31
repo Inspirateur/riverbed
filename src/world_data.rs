@@ -12,7 +12,7 @@ pub struct WorldData {
     // a hashmap of chunk columns and their players
     cols: HashMap<(Realm, i32, i32), HashSet<u32>>,
     // the Chunk data
-    chunks: HashMap<(Realm, i32, i32, i32), Chunk>,
+    pub chunks: HashMap<(Realm, i32, i32, i32), Chunk>,
     pub load_orders: HashSet<(Realm, i32, i32)>,
     pub unload_orders: HashSet<(Realm, i32, i32)>,
 }
@@ -68,14 +68,13 @@ impl WorldData {
     pub fn set(&mut self, realm: Realm, x: i32, y: i32, z: i32, bloc: Bloc) {
         let (qx, qy, qz) = (x / CHUNK_S1, y / CHUNK_S1, z / CHUNK_S1);
         let (rx, ry, rz) = (x % CHUNK_S1, y % CHUNK_S1, z % CHUNK_S1);
-        let chunk_pos = (realm, qx, qy, qz);
-        if let Some(chunk) = self.chunks.get_mut(&chunk_pos) {
+        if let Some(chunk) = self.chunks.get_mut(&(realm, qx, qy, qz)) {
             chunk.set(rx as usize, ry as usize, rz as usize, bloc);
         } else {
             // if the chunk is not loaded it means it was full of Air
             let mut chunk = Chunk::<PackedUsizes>::new();
             chunk.set(rx as usize, ry as usize, rz as usize, bloc);
-            self.chunks.insert(chunk_pos, chunk);
+            self.chunks.insert((realm, qx, qy, qz), chunk);
         }
     }
 }
