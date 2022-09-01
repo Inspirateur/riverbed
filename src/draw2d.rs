@@ -1,15 +1,25 @@
+use crate::bloc::Bloc;
+use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
+use crate::world_data::WorldData;
 use anyhow::Result;
 use bevy::prelude::*;
 use colorsys::Rgb;
 use std::collections::HashMap;
 use std::str::FromStr;
-use crate::bloc::Bloc;
-use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
-use crate::world_data::WorldData;
 
-pub fn on_col_load(mut commands: Commands, ev_load: EventReader<ColLoadEvent>, world: Res<WorldData>) {}
+pub fn on_col_load(
+    mut commands: Commands,
+    ev_load: EventReader<ColLoadEvent>,
+    world: Res<WorldData>,
+) {
+}
 
-pub fn on_col_unload(mut commands: Commands, ev_unload: EventReader<ColUnloadEvent>, world: Res<WorldData>) {}
+pub fn on_col_unload(
+    mut commands: Commands,
+    ev_unload: EventReader<ColUnloadEvent>,
+    world: Res<WorldData>,
+) {
+}
 
 pub struct SoilColor(HashMap<Bloc, Rgb>);
 
@@ -29,6 +39,8 @@ pub struct Draw2d;
 
 impl Plugin for Draw2d {
     fn build(&self, app: &mut App) {
-        app.insert_resource(SoilColor::from_csv("assets/data/soils_color.csv").unwrap());
+        app.insert_resource(SoilColor::from_csv("assets/data/soils_color.csv").unwrap())
+            .add_system(on_col_load)
+            .add_system(on_col_unload);
     }
 }
