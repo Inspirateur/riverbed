@@ -16,7 +16,6 @@ mod weighted_dist;
 mod world_data;
 use bevy::prelude::*;
 use draw2d::Draw2d;
-use earth_gen::Terrain;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 use load_cols::{ColLoadEvent, ColUnloadEvent};
 use std::sync::Arc;
