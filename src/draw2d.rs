@@ -1,7 +1,9 @@
 use crate::bloc::Bloc;
+use crate::chunk::Chunk;
 use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
 use crate::player::Action;
 use crate::pos::Pos;
+use crate::realm::Realm;
 use crate::world_data::WorldData;
 use anyhow::Result;
 use bevy::prelude::*;
@@ -9,6 +11,7 @@ use colorsys::Rgb;
 use leafwing_input_manager::prelude::ActionState;
 use std::collections::HashMap;
 use std::str::FromStr;
+const IM_SIZE: f32 = 64.;
 
 pub fn setup(mut commands: Commands) {
     commands.spawn_bundle(Camera2dBundle::default());
@@ -25,18 +28,37 @@ pub fn update_cam(
     }
 }
 
+pub fn render(col: &[Option<Chunk>]) -> Image {
+    todo!()
+}
+
 pub fn on_col_load(
     mut commands: Commands,
-    ev_load: EventReader<ColLoadEvent>,
+    mut ev_load: EventReader<ColLoadEvent>,
     world: Res<WorldData>,
+    mut images: ResMut<Assets<Image>>,
+    mut col_ents: ResMut<HashMap<(Realm, i32, i32), Entity>>,
 ) {
+    for ColLoadEvent((realm, x, z)) in ev_load.iter() {
+        let ent = commands.spawn_bundle(SpriteBundle {
+            texture: images.add(render(world.chunks.col(*realm, *x, *z))),
+            transform: Transform::from_translation(Vec3::new(*x as f32, 0., *z as f32) * IM_SIZE),
+            ..default()
+        });
+        col_ents.insert((*realm, *x, *z), ent.id());
+    }
 }
 
 pub fn on_col_unload(
     mut commands: Commands,
-    ev_unload: EventReader<ColUnloadEvent>,
-    world: Res<WorldData>,
+    mut ev_unload: EventReader<ColUnloadEvent>,
+    mut col_ents: ResMut<HashMap<(Realm, i32, i32), Entity>>,
 ) {
+    for col_ev in ev_unload.iter() {
+        if let Some(ent) = col_ents.remove(&col_ev.0) {
+            commands.entity(ent).despawn();
+        }
+    }
 }
 
 pub struct SoilColor(HashMap<Bloc, Rgb>);
@@ -58,6 +80,7 @@ pub struct Draw2d;
 impl Plugin for Draw2d {
     fn build(&self, app: &mut App) {
         app.insert_resource(SoilColor::from_csv("assets/data/soils_color.csv").unwrap())
+            .insert_resource(HashMap::<(Realm, i32, i32), Entity>::new())
             .add_startup_system(setup)
             .add_system(update_cam)
             .add_system(on_col_load)
