@@ -2,8 +2,16 @@ use anyhow::Result;
 use bevy::prelude::*;
 use colorsys::Rgb;
 use std::collections::HashMap;
+use std::str::FromStr;
+use crate::bloc::Bloc;
+use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
+use crate::world_data::WorldData;
 
-pub struct SoilColor(HashMap<String, Rgb>);
+pub fn on_col_load(mut commands: Commands, ev_load: EventReader<ColLoadEvent>, world: Res<WorldData>) {}
+
+pub fn on_col_unload(mut commands: Commands, ev_unload: EventReader<ColUnloadEvent>, world: Res<WorldData>) {}
+
+pub struct SoilColor(HashMap<Bloc, Rgb>);
 
 impl SoilColor {
     pub fn from_csv(path: &str) -> Result<Self> {
@@ -12,7 +20,7 @@ impl SoilColor {
         for record in reader.records() {
             let record = record?;
             let color = Rgb::from_hex_str(&record[1])?;
-            data.insert(record[0].to_string(), color);
+            data.insert(Bloc::from_str(&record[0]).unwrap(), color);
         }
         Ok(SoilColor(data))
     }

@@ -21,6 +21,7 @@ strum = "*"
 strum_macros = "*"
 dashmap = "*"
 futures-lite = "*"
+array-macro = "*"
 
 [profile.test]
 opt-level = 3

@@ -24,7 +24,7 @@ impl<E: Eq> Palette<E> for Vec<E> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Chunk<L: GetSet<usize> = PackedUsizes> {
     data: L,
     palette: Vec<Bloc>,
@@ -96,5 +96,17 @@ impl From<Chunk<Vec<usize>>> for Chunk<PackedUsizes> {
             data: PackedUsizes::from_usizes(chunk.data, find_bitsize(chunk.palette.len())),
             palette: chunk.palette,
         }
+    }
+}
+
+impl Default for Chunk<Vec<usize>> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for Chunk<PackedUsizes> {
+    fn default() -> Self {
+        Self::new()
     }
 }
