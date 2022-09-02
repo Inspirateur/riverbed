@@ -10,7 +10,6 @@ use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use bevy::render::texture::BevyDefault;
 use colorsys::{Rgb, ColorTransform};
-use itertools::iproduct;
 use leafwing_input_manager::prelude::ActionState;
 use std::cmp::Ordering;
 use std::collections::HashMap;
