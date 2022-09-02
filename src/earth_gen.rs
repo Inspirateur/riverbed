@@ -5,6 +5,7 @@ use crate::{
     noise_utils::{get_warped_fn, mul2, PieceWiseRemap},
     terrain_gen::TerrainGen,
     weighted_dist::WeightedPoints,
+    world_data::WORLD_H,
 };
 use bevy::prelude::*;
 use itertools::iproduct;
@@ -88,7 +89,7 @@ pub struct Earth {
     humidity: Box<dyn NoiseFn<[f64; 2]> + Sync + Send>,
     soils: WeightedPoints<Bloc>,
     seed: u32,
-    config: HashMap<String, f32>
+    config: HashMap<String, f32>,
 }
 
 impl Earth {
@@ -121,8 +122,8 @@ impl TerrainGen for Earth {
             temperature,
             humidity,
             soils: WeightedPoints::from_csv("assets/data/soils_condition.csv").unwrap(),
-            seed, 
-            config
+            seed,
+            config,
         }
     }
 
@@ -132,7 +133,7 @@ impl TerrainGen for Earth {
         let cz = col.1 * CHUNK_S1;
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (y, t, h) = self.get(cx + dx, cz + dz, 1.);
-            let y = (y * 255.) as i32;
+            let y = (y * WORLD_H as f64) as i32;
             let (qy, dy) = (y / CHUNK_S1, y % CHUNK_S1);
             if !res.contains_key(&qy) {
                 res.insert(qy, Chunk::<Vec<usize>>::new());

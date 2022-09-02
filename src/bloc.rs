@@ -14,4 +14,5 @@ pub enum Bloc {
     Ice,
     Snow,
     Mud,
+    Bedrock,
 }

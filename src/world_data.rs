@@ -1,11 +1,14 @@
-use crate::{bloc::Bloc, chunk_map::ChunkMap};
 use crate::chunk;
 use crate::chunk::Chunk;
 use crate::packed_ints::PackedUsizes;
 use crate::realm::Realm;
+use crate::{bloc::Bloc, chunk_map::ChunkMap};
 use std::collections::{HashMap, HashSet};
 // i32 is a more convenient format here
 const CHUNK_S1: i32 = chunk::CHUNK_S1 as i32;
+pub const WATER_H: i32 = 100;
+pub const WORLD_H: i32 = 255;
+
 pub struct WorldData {
     // a hashmap of chunk columns and their players
     cols: HashMap<(Realm, i32, i32), HashSet<u32>>,
@@ -34,7 +37,6 @@ impl WorldData {
                 let mut players = HashSet::new();
                 players.insert(player);
                 self.cols.insert(key, players);
-                println!("loading {:?}", key);
                 self.load_orders.insert(key);
             }
         }

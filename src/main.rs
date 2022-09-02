@@ -40,6 +40,12 @@ impl Plugin for GameLogic {
 
 fn main() {
     App::new()
+        .insert_resource(WindowDescriptor {
+            title: "OurCraft".to_string(),
+            width: 512.,
+            height: 512.,
+            ..default()
+        })
         .add_plugins(DefaultPlugins)
         .add_plugin(InputManagerPlugin::<player::Action>::default())
         .add_plugin(GameLogic)

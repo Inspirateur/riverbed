@@ -18,25 +18,30 @@ pub fn pull_orders(
     gens: Res<Arc<DashMap<Realm, Box<dyn TerrainGen>>>>,
     mut ev_unload: EventWriter<ColUnloadEvent>,
 ) {
-    let thread_pool = AsyncComputeTaskPool::get();
+    // UNLOAD ORDERS
     let unload_orders: Vec<_> = world.unload_orders.drain().collect();
-    for (realm, x, z) in unload_orders.iter() {
-        world.chunks.remove_col(*realm, *x, *z);
-    }
-    ev_unload.send_batch(unload_orders.into_iter().map(|k| ColUnloadEvent(k)));
-
-    let gens = gens.clone();
-    let load_orders: Vec<_> = world.load_orders.drain().collect();
-    let task = thread_pool.spawn(async move {
-        let mut res = ChunkMap::new();
-        for (realm, x, z) in load_orders {
-            for (y, chunk) in gens.get(&realm).unwrap().gen((x, z)) {
-                res.insert(realm, x, y, z, chunk);
-            }
+    if unload_orders.len() > 0 {
+        for (realm, x, z) in unload_orders.iter() {
+            world.chunks.remove_col(*realm, *x, *z);
         }
-        res
-    });
-    commands.spawn().insert(LoadChunks(task));
+        ev_unload.send_batch(unload_orders.into_iter().map(|k| ColUnloadEvent(k)));
+    }
+    // LOAD ORDERS
+    let load_orders: Vec<_> = world.load_orders.drain().collect();
+    if load_orders.len() > 0 {
+        let thread_pool = AsyncComputeTaskPool::get();
+        let gens = gens.clone();
+        let task = thread_pool.spawn(async move {
+            let mut res = ChunkMap::new();
+            for (realm, x, z) in load_orders {
+                for (y, chunk) in gens.get(&realm).unwrap().gen((x, z)) {
+                    res.insert(realm, x, y, z, chunk);
+                }
+            }
+            res
+        });
+        commands.spawn().insert(LoadChunks(task));
+    }
 }
 
 pub struct ColLoadEvent(pub (Realm, i32, i32));

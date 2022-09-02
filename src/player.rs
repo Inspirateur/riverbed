@@ -33,7 +33,7 @@ pub fn spawn_player(mut commands: Commands) {
             LoadArea {
                 realm: crate::realm::Realm::Earth,
                 col: (0, 0),
-                dist: 6,
+                dist: 2,
             },
         ))
         .insert_bundle(InputManagerBundle::<Action> {
