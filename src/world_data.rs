@@ -58,7 +58,7 @@ impl WorldData {
 
     pub fn get(&self, realm: Realm, x: i32, y: i32, z: i32) -> Bloc {
         let (qx, qy, qz) = (x / CHUNK_S1, y / CHUNK_S1, z / CHUNK_S1);
-        let (rx, ry, rz) = (x % CHUNK_S1, y % CHUNK_S1, z % CHUNK_S1);
+        let (rx, ry, rz) = (x.rem_euclid(CHUNK_S1), y.rem_euclid(CHUNK_S1), z.rem_euclid(CHUNK_S1));
         if let Some(chunk) = self.chunks.get(realm, qx, qy, qz) {
             *chunk.get(rx as usize, ry as usize, rz as usize)
         } else {
@@ -68,7 +68,7 @@ impl WorldData {
 
     pub fn set(&mut self, realm: Realm, x: i32, y: i32, z: i32, bloc: Bloc) {
         let (qx, qy, qz) = (x / CHUNK_S1, y / CHUNK_S1, z / CHUNK_S1);
-        let (rx, ry, rz) = (x % CHUNK_S1, y % CHUNK_S1, z % CHUNK_S1);
+        let (rx, ry, rz) = (x.rem_euclid(CHUNK_S1), y.rem_euclid(CHUNK_S1), z.rem_euclid(CHUNK_S1));
         if let Some(chunk) = self.chunks.get_mut(realm, qx, qy, qz) {
             chunk.set(rx as usize, ry as usize, rz as usize, bloc);
         } else {
