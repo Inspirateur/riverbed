@@ -5,7 +5,7 @@ use crate::{
 use array_macro::array;
 use std::{collections::HashMap, fmt::Debug, iter, ops::IndexMut};
 use strum::{EnumCount, IntoEnumIterator};
-const MAX_HEIGHT: usize = 256;
+pub const MAX_HEIGHT: usize = 256;
 
 pub struct ChunkMap<V = Chunk> {
     chunks: [HashMap<(i32, i32), [Option<V>; MAX_HEIGHT / CHUNK_S1]>; Realm::COUNT],
@@ -34,6 +34,10 @@ impl<V: Debug> ChunkMap<V> {
             .entry((x, z))
             .or_insert(array![_ => None; MAX_HEIGHT/CHUNK_S1])
             .as_mut()[y as usize] = Some(v);
+    }
+
+    pub fn insert_col(&mut self, realm: Realm, x: i32, z: i32, col: [Option<V>; MAX_HEIGHT / CHUNK_S1]) {
+        self.chunks[realm as usize].insert((x, z), col);
     }
 
     pub fn remove_col(&mut self, realm: Realm, x: i32, z: i32) {

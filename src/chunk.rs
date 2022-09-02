@@ -1,4 +1,4 @@
-use crate::bloc::Bloc;
+use crate::{bloc::Bloc, packed_ints::find_bitsize};
 use crate::get_set::GetSet;
 use crate::packed_ints::PackedUsizes;
 use serde::{Deserialize, Serialize};
@@ -80,14 +80,6 @@ impl Chunk<Vec<usize>> {
             }
         }
     }
-}
-
-fn find_bitsize(len: usize) -> u32 {
-    let mut bitsize = 4;
-    while 2_u32.pow(bitsize) < len as u32 {
-        bitsize += 2;
-    }
-    bitsize
 }
 
 impl From<Chunk<Vec<usize>>> for Chunk<PackedUsizes> {

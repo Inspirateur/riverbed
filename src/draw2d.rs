@@ -66,10 +66,9 @@ fn bloc_y_cmp(world: &WorldData, realm: Realm, x: i32, y: i32, z: i32, dir: Dir)
 
 fn bloc_shade(world: &WorldData, realm: Realm, x: i32, y: i32, z: i32) -> f64 {
     let up_cmp = bloc_y_cmp(world, realm, x, y, z, Dir::Up);
-    let down_cmp = bloc_y_cmp(world, realm, x, y, z, Dir::Down);
-    if up_cmp == Ordering::Greater && down_cmp == Ordering::Less {
+    if up_cmp == Ordering::Greater {
         10.
-    } else if up_cmp == Ordering::Less && down_cmp == Ordering::Greater {
+    } else if up_cmp == Ordering::Less {
         -10.
     } else {
         0.
@@ -84,8 +83,8 @@ pub fn render(realm: Realm, cx: i32, cz: i32, world: &WorldData, soil_color: &So
         let (dx, dz) = ((i/4) % CHUNK_S1, CHUNK_S1-1-(i/4) / CHUNK_S1);
         let (bloc, y) = top_bloc(col, dx, dz);
         let color = if y > WATER_H {
-            let (x, z) = (cx*CHUNK_S1 as i32+dx as i32, cz*CHUNK_S1 as i32+dz as i32);
             let mut color = soil_color.0.get(&bloc).unwrap_or(&def_color).clone();
+            let (x, z) = (cx*CHUNK_S1 as i32+dx as i32, cz*CHUNK_S1 as i32+dz as i32);
             color.lighten(bloc_shade(world, realm, x, y, z));
             color
         } else {

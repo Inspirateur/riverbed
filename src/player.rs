@@ -33,7 +33,7 @@ pub fn spawn_player(mut commands: Commands) {
             LoadArea {
                 realm: crate::realm::Realm::Earth,
                 col: (0, 0),
-                dist: 3,
+                dist: 5,
             },
         ))
         .insert_bundle(InputManagerBundle::<Dir> {
@@ -56,7 +56,7 @@ pub fn move_player(mut query: Query<(&mut Pos, &ActionState<Dir>)>, time: Res<Ti
         movement += Vec2::from(action);
     }
     if movement.length_squared() > 0. {
-        movement = movement.normalize() * 30. * time.delta_seconds();
+        movement = movement.normalize() * 40. * time.delta_seconds();
         **pos = **pos + Vec3::new(movement.x, 0., movement.y);
     }
 }

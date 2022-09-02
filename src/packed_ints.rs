@@ -10,6 +10,14 @@ fn div_ceil(a: u32, b: u32) -> u32 {
     (a as f32 / b as f32).ceil() as u32
 }
 
+pub fn find_bitsize(value: usize) -> u32 {
+    let mut bitsize = 4;
+    while 2_u32.pow(bitsize) <= value as u32 {
+        bitsize += 1;
+    }
+    bitsize
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackedUsizes {
     pub len: usize,
@@ -53,6 +61,7 @@ impl PackedUsizes {
             data: vec![brick; div_ceil(bitsize * len as u32, usize::BITS) as usize],
         }
     }
+
     pub fn new(len: usize, bitsize: u32) -> Self {
         PackedUsizes::with_brick(len, bitsize, 0)
     }
@@ -124,7 +133,7 @@ impl GetSet<usize> for PackedUsizes {
     fn set(&mut self, i: usize, value: usize) {
         if value >= self.max {
             // adding 2 to bitsize multiplies max value by 4
-            self.reallocate(self.bitsize + 2);
+            self.reallocate(find_bitsize(value));
         }
         let start_bit = self.bitsize * i as u32;
         let (index_u, start_u) = ((start_bit / usize::BITS) as usize, start_bit % usize::BITS);
@@ -193,6 +202,14 @@ mod tests {
         // holds 8 integers of 5 bits (40 bits total, max = 2^5-1 = 31)
         let mut usizes = PackedUsizes::new(8, 5);
         roundtrip(&mut usizes, &[2, 31, 18, 0, 21, 11, 7, 14]);
+    }
+
+    #[test]
+    pub fn test_fill() {
+        // EASY: Every bit up to the last is used
+        // holds 8 integers of 8 bits (64 bits total, max = 2^8-1 = 255)
+        let mut usizes = PackedUsizes::new(8, 8);
+        roundtrip(&mut usizes, &[2, 222, 18, 0, 140, 11, 7, 255]);
     }
 
     #[test]

@@ -34,9 +34,7 @@ pub fn pull_orders(
         let task = thread_pool.spawn(async move {
             let mut res = ChunkMap::new();
             for (realm, x, z) in load_orders {
-                for (y, chunk) in gens.get(&realm).unwrap().gen((x, z)) {
-                    res.insert(realm, x, y, z, chunk);
-                }
+                res.insert_col(realm, x, z, gens.get(&realm).unwrap().gen((x, z)));
             }
             res
         });

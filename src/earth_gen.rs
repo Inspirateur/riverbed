@@ -5,12 +5,13 @@ use crate::{
     noise_utils::{get_warped_fn, mul2, PieceWiseRemap},
     terrain_gen::TerrainGen,
     weighted_dist::WeightedPoints,
-    world_data::WORLD_H,
+    chunk_map::MAX_HEIGHT, packed_ints::PackedUsizes,
 };
+use array_macro::array;
 use bevy::prelude::*;
 use itertools::iproduct;
 use noise::{NoiseFn, Seedable, SuperSimplex};
-use std::{collections::HashMap, usize};
+use std::{collections::HashMap, usize, ops::IndexMut};
 const LS_NOISES: usize = 4;
 const C_NOISES: usize = 2;
 const CONT_S: f64 = 0.2;
@@ -127,18 +128,19 @@ impl TerrainGen for Earth {
         }
     }
 
-    fn gen(&self, col: (i32, i32)) -> HashMap<i32, Chunk> {
-        let mut res = HashMap::new();
+    fn gen(&self, col: (i32, i32)) -> [Option<Chunk>; MAX_HEIGHT / chunk::CHUNK_S1] {
+        let mut res = array![_ => None; MAX_HEIGHT / chunk::CHUNK_S1];
         let cx = col.0 * CHUNK_S1;
         let cz = col.1 * CHUNK_S1;
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (y, t, h) = self.get(cx + dx, cz + dz, 1.);
-            let y = (y * WORLD_H as f64) as i32;
+            let y = (y * MAX_HEIGHT as f64 * 0.8 ) as i32;
+            assert!(y >= 0);
             let (qy, dy) = (y / CHUNK_S1, y % CHUNK_S1);
-            if !res.contains_key(&qy) {
-                res.insert(qy, Chunk::<Vec<usize>>::new());
+            if res[qy as usize].is_none() {
+                res[qy as usize] = Some(Chunk::<PackedUsizes>::new());
             }
-            if let Some(chunk) = res.get_mut(&qy) {
+            if let Some(chunk) = res.index_mut(qy as usize) {
                 chunk.set(
                     dx as usize,
                     dy as usize,
@@ -150,10 +152,12 @@ impl TerrainGen for Earth {
                 }
             }
         }
-        res.drain()
-            .into_iter()
-            .map(|(k, v)| (k, Chunk::from(v)))
-            .collect()
+        let mut qy = 0;
+        while res[qy].is_none() {
+            res[qy] = Some(Chunk::<PackedUsizes>::filled(Bloc::Stone));
+            qy += 1;
+        }
+        res
     }
 }
 pub struct Terrain;

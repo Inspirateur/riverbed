@@ -7,7 +7,6 @@ use std::collections::{HashMap, HashSet};
 // i32 is a more convenient format here
 const CHUNK_S1: i32 = chunk::CHUNK_S1 as i32;
 pub const WATER_H: i32 = 100;
-pub const WORLD_H: i32 = 255;
 
 pub struct WorldData {
     // a hashmap of chunk columns and their players
