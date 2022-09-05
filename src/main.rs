@@ -1,6 +1,6 @@
 mod bloc;
 mod chunk;
-mod chunk_map;
+mod blocs;
 mod draw2d;
 mod earth_gen;
 mod get_set;
@@ -13,19 +13,21 @@ mod pos;
 mod realm;
 mod terrain_gen;
 mod weighted_dist;
-mod world_data;
+mod col_commands;
 use bevy::prelude::*;
+use blocs::Blocs;
 use draw2d::Draw2d;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 use load_cols::{ColLoadEvent, ColUnloadEvent};
 use std::sync::Arc;
-use world_data::WorldData;
+use col_commands::ColCommands;
 
 struct GameLogic;
 
 impl Plugin for GameLogic {
     fn build(&self, app: &mut App) {
-        app.insert_resource(WorldData::new())
+        app.insert_resource(ColCommands::new())
+            .insert_resource(Blocs::new())
             .insert_resource(Arc::new(terrain_gen::generators(0)))
             .add_event::<ColLoadEvent>()
             .add_event::<ColUnloadEvent>()

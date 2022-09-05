@@ -5,7 +5,7 @@ use crate::{
     noise_utils::{get_warped_fn, mul2, PieceWiseRemap},
     terrain_gen::TerrainGen,
     weighted_dist::WeightedPoints,
-    chunk_map::MAX_HEIGHT, packed_ints::PackedUsizes,
+    blocs::MAX_HEIGHT, packed_ints::PackedUsizes,
 };
 use array_macro::array;
 use bevy::prelude::*;

@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{chunk::{Chunk, CHUNK_S1}, earth_gen::Earth, realm::Realm, chunk_map::MAX_HEIGHT};
+use crate::{chunk::{Chunk, CHUNK_S1}, earth_gen::Earth, realm::Realm, blocs::MAX_HEIGHT};
 use dashmap::DashMap;
 
 pub trait TerrainGen: Send + Sync {

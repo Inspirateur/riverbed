@@ -1,4 +1,4 @@
-use crate::{chunk::CHUNK_S1, pos::Pos, realm::Realm, world_data::WorldData};
+use crate::{chunk::CHUNK_S1, pos::Pos, realm::Realm, col_commands::ColCommands};
 use bevy::prelude::Query;
 use bevy::prelude::*;
 use itertools::iproduct;
@@ -70,7 +70,7 @@ impl Deref for LoadAreaOld {
 pub fn load_order(
     mut commands: Commands,
     mut query: Query<(&LoadArea, Option<&mut LoadAreaOld>, Entity), Changed<LoadArea>>,
-    mut world: ResMut<WorldData>,
+    mut world: ResMut<ColCommands>,
 ) {
     for (load_area, load_area_old_opt, entity) in query.iter_mut() {
         // compute the columns to load and unload & update old load area
@@ -78,8 +78,8 @@ pub fn load_order(
         if let Some(mut load_area_old) = load_area_old_opt {
             let mut load_area_ext = load_area.clone();
             load_area_ext.dist += 1;
-            world.register_load(*load_area - **load_area_old, load_area.realm, entity.id());
-            world.register_unload(
+            world.load(*load_area - **load_area_old, load_area.realm, entity.id());
+            world.unload(
                 **load_area_old - load_area_ext,
                 load_area_old.realm,
                 entity.id(),
@@ -87,7 +87,7 @@ pub fn load_order(
             *load_area_old = new_load_area_old;
         } else {
             commands.entity(entity).insert(new_load_area_old);
-            world.register_load(load_area.iter().collect(), load_area.realm, entity.id());
+            world.load(load_area.iter().collect(), load_area.realm, entity.id());
         }
     }
 }

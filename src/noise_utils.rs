@@ -1,4 +1,3 @@
-use itertools::iproduct;
 use itertools::zip;
 use noise::NoiseFn;
 
@@ -12,15 +11,6 @@ where
     F: Fn([f64; 2]) -> f64,
 {
     noise.get([point[0], point[1], warp(mul2(point, strength))])
-}
-
-pub fn get_warped(
-    point: [f64; 2],
-    noise: impl NoiseFn<[f64; 3]>,
-    warp: impl NoiseFn<[f64; 2]>,
-    strength: f64,
-) -> f64 {
-    get_warped_fn(point, noise, |p| warp.get(p), strength)
 }
 
 pub fn mul2<T>(point: [f64; 2], s: T) -> [f64; 2]
