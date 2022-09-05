@@ -1,9 +1,9 @@
-use crate::realm::Realm;
 use crate::chunk::CHUNK_S1;
+use crate::realm::Realm;
 use bevy::{ecs::component::Component, math::Vec3};
-use std::ops::{Add, AddAssign, Mul};
+use std::ops::{Add, AddAssign};
 
-trait Fromf32 {
+pub trait Fromf32 {
     fn from_f32(v: f32) -> Self;
 }
 
@@ -19,17 +19,19 @@ impl Fromf32 for f32 {
     }
 }
 
-trait Number: Add + Mul + Fromf32 + Sized {}
+pub trait Number: Add<Output = Self> + Fromf32 + Sized {}
+
+impl<T> Number for T where T: Add<Output = T> + Fromf32 {}
 
 #[derive(Component, Clone, Copy, Eq, PartialEq, Default, Debug, Hash)]
-pub struct Pos<N: Add + Mul + Fromf32 + Sized=f32, const U: usize=1> {
+pub struct Pos<N: Number = f32, const U: usize = 1> {
     pub realm: Realm,
     pub x: N,
     pub y: N,
     pub z: N,
 }
 
-impl<N: Add + Mul + Fromf32 + Sized, V: Into<Vec3>, const U: usize> Add<V> for Pos<N, U> {
+impl<N: Number, V: Into<Vec3>, const U: usize> Add<V> for Pos<N, U> {
     type Output = Pos<N, U>;
 
     fn add(self, rhs: V) -> Self::Output {
@@ -50,7 +52,7 @@ impl<N: Number, V: Into<Vec3>, const U: usize> AddAssign<V> for Pos<N, U> {
 }
 
 #[derive(Component, Clone, Copy, Eq, PartialEq, Hash, Default, Debug)]
-pub struct Pos2D<N, const U: usize=1> {
+pub struct Pos2D<N, const U: usize = 1> {
     pub realm: Realm,
     pub x: N,
     pub z: N,
