@@ -46,12 +46,12 @@ impl Blocs {
         self.chunks[pos.realm as usize].get(&(pos.x, pos.z))?[pos.y as usize].as_ref()
     }
 
-    pub fn insert_col(&mut self, realm: Realm, x: i32, z: i32, col: [Option<Chunk>; MAX_HEIGHT / CHUNK_S1]) {
-        self.chunks[realm as usize].insert((x, z), col);
+    pub fn insert_col(&mut self, pos: ChunkPos2D, col: [Option<Chunk>; MAX_HEIGHT / CHUNK_S1]) {
+        self.chunks[pos.realm as usize].insert((pos.x, pos.z), col);
     }
 
-    pub fn remove_col(&mut self, realm: Realm, x: i32, z: i32) {
-        self.chunks[realm as usize].remove(&(x, z));
+    pub fn remove_col(&mut self, pos: ChunkPos2D) -> bool {
+        self.chunks[pos.realm as usize].remove(&(pos.x, pos.z)).is_some()
     }
 
     pub fn extend(&mut self, other: Blocs) {

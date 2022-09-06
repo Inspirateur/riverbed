@@ -19,6 +19,7 @@ use blocs::Blocs;
 use draw2d::Draw2d;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 use load_cols::{ColLoadEvent, ColUnloadEvent};
+use terrain_gen::Generators;
 use std::sync::Arc;
 use col_commands::ColCommands;
 
@@ -28,7 +29,7 @@ impl Plugin for GameLogic {
     fn build(&self, app: &mut App) {
         app.insert_resource(ColCommands::new())
             .insert_resource(Blocs::new())
-            .insert_resource(Arc::new(terrain_gen::generators(0)))
+            .insert_resource(Arc::new(Generators::new(0)))
             .add_event::<ColLoadEvent>()
             .add_event::<ColUnloadEvent>()
             .add_startup_system(player::spawn_player)

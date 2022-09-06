@@ -4,9 +4,9 @@ use crate::chunk::{CHUNK_S1, CHUNK_S2};
 use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
 use crate::player::Dir;
 use crate::pos::{Pos, ChunkPos2D, BlocPos2D, BlocPosChunked2D, BlocPos};
-use crate::realm::Realm;
 use crate::col_commands::WATER_H;
 use anyhow::Result;
+use itertools::zip;
 use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use bevy::render::texture::BevyDefault;
@@ -41,7 +41,9 @@ pub fn update_cam(
 trait Render2D {
     fn bloc_y_cmp(&self, pos: BlocPos, dir: Dir) -> Ordering;
     fn bloc_shade(&self, pos: BlocPos) -> f64;
-    fn render(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image;
+    fn bloc_color(&self, pos: BlocPos2D, soil_color: &SoilColor) -> Rgb;
+    fn update_side(&self, image: &mut Image, col: ChunkPos2D, soil_color: &SoilColor);
+    fn render_col(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image;
 }
 
 impl Render2D for Blocs {
@@ -57,7 +59,7 @@ impl Render2D for Blocs {
     }
 
     fn bloc_shade(&self, pos: BlocPos) -> f64 {
-        let up_cmp = self.bloc_y_cmp(pos, Dir::Up);
+        let up_cmp = self.bloc_y_cmp(pos, Dir::Front);
         if up_cmp == Ordering::Greater {
             10.
         } else if up_cmp == Ordering::Less {
@@ -67,21 +69,23 @@ impl Render2D for Blocs {
         }
     }
 
-    fn render(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image {
+    fn bloc_color(&self, pos: BlocPos2D, soil_color: &SoilColor) -> Rgb {
+        let (bloc, y) = self.top(pos);
+        if y > WATER_H {
+            let mut color = soil_color.0.get(&bloc).unwrap().clone();
+            let blocpos = BlocPos {realm: pos.realm, x: pos.x, y, z: pos.z};
+            color.lighten(self.bloc_shade(blocpos));
+            color
+        } else {
+            Rgb::new(10., 180., 250., None)
+        }
+    }
+
+    fn render_col(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image {
         let mut data = vec![255; CHUNK_S2*4];
-        let def_color = Rgb::default();
         for i in (0..CHUNK_S2 * 4).step_by(4) {
             let (dx, dz) = ((i/4) % CHUNK_S1, CHUNK_S1-1-(i/4) / CHUNK_S1);
-            let blocpos2d = BlocPos2D::from(BlocPosChunked2D {col, dx, dz});
-            let (bloc, y) = self.top(blocpos2d);
-            let color = if y > WATER_H {
-                let mut color = soil_color.0.get(&bloc).unwrap_or(&def_color).clone();
-                let blocpos = BlocPos {realm: blocpos2d.realm, x: blocpos2d.x, y, z: blocpos2d.z};
-                color.lighten(self.bloc_shade(blocpos));
-                color
-            } else {
-                Rgb::new(10., 180., 250., None)
-            };
+            let color = self.bloc_color(BlocPos2D::from(BlocPosChunked2D {col, dx, dz}), soil_color);
             data[i] = color.blue() as u8;
             data[i + 1] = color.green() as u8;
             data[i + 2] = color.red() as u8;
@@ -97,7 +101,17 @@ impl Render2D for Blocs {
             BevyDefault::bevy_default(),
         );
         img
+    }
+
+    fn update_side(&self, image: &mut Image, col: ChunkPos2D, soil_color: &SoilColor) {
+        for i in (0..CHUNK_S1 * 4).step_by(4) {
+            let (dx, dz) = ((i/4) % CHUNK_S1, CHUNK_S1-1-(i/4) / CHUNK_S1);
+            let color = self.bloc_color(BlocPos2D::from(BlocPosChunked2D {col, dx, dz}), soil_color);
+            image.data[i] = color.blue() as u8;
+            image.data[i + 1] = color.green() as u8;
+            image.data[i + 2] = color.red() as u8;
         }
+    }
 }
 
 pub fn on_col_load(
@@ -105,26 +119,43 @@ pub fn on_col_load(
     mut ev_load: EventReader<ColLoadEvent>,
     blocs: Res<Blocs>,
     soil_color: Res<SoilColor>,
+    imquery: Query<&Handle<Image>>,
     mut images: ResMut<Assets<Image>>,
     mut col_ents: ResMut<HashMap<ChunkPos2D, Entity>>,
 ) {
-    for ColLoadEvent(col) in ev_load.iter() {
+    let cols: Vec<_> = ev_load.iter().map(|col_ev| col_ev.0).collect();
+    let mut ents = Vec::new();
+    // Add all the rendered columns before registering them
+    for col in cols.iter() {
         println!("Loaded ({:?})", col);
         let ent = commands.spawn_bundle(SpriteBundle {
-            texture: images.add(blocs.render(*col, &soil_color)),
+            texture: images.add(blocs.render_col(*col, &soil_color)),
             transform: Transform::from_translation(
                 Vec3::new(col.x as f32, col.z as f32, 0.) * CHUNK_S1 as f32,
             ),
             ..default()
-        });
-        col_ents.insert(*col, ent.id());
+        }).id();
+        ents.push(ent);
+        // if there was an already loaded col below
+        let col_below = *col+Dir::Back;
+        if let Some(ent_below) = col_ents.get(&col_below) {
+            if let Ok(handle) = imquery.get_component::<Handle<Image>>(*ent_below) {
+                if let Some(image) = images.get_mut(&handle) {
+                    // update the top side shading with the new information
+                    blocs.update_side(image, col_below, &soil_color);
+                }
+            }
+        }
+    }
+    for (col, ent) in zip(&cols, &ents)  {
+        col_ents.insert(*col, *ent);
     }
 }
 
 pub fn on_col_unload(
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
-    mut col_ents: ResMut<HashMap<(Realm, i32, i32), Entity>>,
+    mut col_ents: ResMut<HashMap<ChunkPos2D, Entity>>,
 ) {
     for col_ev in ev_unload.iter() {
         if let Some(ent) = col_ents.remove(&col_ev.0) {
@@ -152,7 +183,7 @@ pub struct Draw2d;
 impl Plugin for Draw2d {
     fn build(&self, app: &mut App) {
         app.insert_resource(SoilColor::from_csv("assets/data/soils_color.csv").unwrap())
-            .insert_resource(HashMap::<(Realm, i32, i32), Entity>::new())
+            .insert_resource(HashMap::<ChunkPos2D, Entity>::new())
             .add_startup_system(setup)
             .add_system(update_cam)
             .add_system(on_col_load)

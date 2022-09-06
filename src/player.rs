@@ -1,4 +1,4 @@
-use crate::{load_area::LoadArea, pos::Pos};
+use crate::{load_area::LoadArea, pos::{Pos, ChunkPos2D}, realm::Realm};
 use bevy::{
     math::Vec3,
     prelude::{Commands, KeyCode, Query, Res},
@@ -30,23 +30,23 @@ impl From<Dir> for Vec3 {
 }
 
 pub fn spawn_player(mut commands: Commands) {
+    let spawn = Pos::<f32> {realm: Realm::Earth, x: 0., y: 0., z: 0.};
     commands
         .spawn_bundle((
-            Pos::<f32>::default(),
+            spawn,
             LoadArea {
-                realm: crate::realm::Realm::Earth,
-                col: (0, 0),
+                col: ChunkPos2D::from(spawn),
                 dist: 5,
             },
         ))
         .insert_bundle(InputManagerBundle::<Dir> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
-                (KeyCode::W, Dir::Up),
+                (KeyCode::W, Dir::Front),
                 (KeyCode::A, Dir::Left),
-                (KeyCode::S, Dir::Down),
+                (KeyCode::S, Dir::Back),
                 (KeyCode::D, Dir::Right),
-                (KeyCode::Z, Dir::Up),
+                (KeyCode::Z, Dir::Front),
                 (KeyCode::Q, Dir::Left),
             ]),
         });

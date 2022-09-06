@@ -1,4 +1,4 @@
-use crate::{chunk::CHUNK_S1, pos::Pos, realm::Realm, col_commands::ColCommands};
+use crate::{pos::{Pos, ChunkPos2D}, col_commands::ColCommands};
 use bevy::prelude::Query;
 use bevy::prelude::*;
 use itertools::iproduct;
@@ -6,22 +6,21 @@ use std::ops::{Deref, Sub};
 
 #[derive(Component, Clone, Copy)]
 pub struct LoadArea {
-    pub realm: Realm,
-    pub col: (i32, i32),
+    pub col: ChunkPos2D,
     pub dist: u32,
 }
 
 impl LoadArea {
-    pub fn contains(&self, chunk_x: i32, chunk_z: i32) -> bool {
+    pub fn contains(&self, col: ChunkPos2D) -> bool {
         // checks if a chunk is in this Player loaded area (assuming they're in the same realm)
-        i32::max((self.col.0 - chunk_x).abs(), (self.col.1 - chunk_z).abs()) < self.dist as i32
+        self.col.dist(col) < self.dist as i32
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32)> {
         let dist = self.dist as i32;
         iproduct!(
-            (self.col.0 - dist)..=(self.col.0 + dist),
-            (self.col.1 - dist)..=(self.col.1 + dist)
+            (self.col.x - dist)..=(self.col.x + dist),
+            (self.col.z - dist)..=(self.col.z + dist)
         )
     }
 }
@@ -30,11 +29,11 @@ impl Sub<LoadArea> for LoadArea {
     type Output = Vec<(i32, i32)>;
 
     fn sub(self, rhs: LoadArea) -> Self::Output {
-        if self.realm != rhs.realm {
+        if self.col.realm != rhs.col.realm {
             self.iter().collect()
         } else {
             self.iter()
-                .filter(|(cx, cz)| !rhs.contains(*cx, *cz))
+                .filter(|(x, z)| !rhs.contains(ChunkPos2D {realm: self.col.realm, x: *x, z: *z}))
                 .collect()
         }
     }
@@ -42,14 +41,8 @@ impl Sub<LoadArea> for LoadArea {
 
 pub fn update_load_area(mut query: Query<(&Pos, &mut LoadArea), Changed<Pos>>) {
     for (pos, mut load_area) in query.iter_mut() {
-        let col = (
-            (*pos).x as i32 / CHUNK_S1 as i32,
-            (*pos).z as i32 / CHUNK_S1 as i32,
-        );
-        // we're checking before modifying to avoid triggering Change detection
-        if pos.realm != load_area.realm {
-            load_area.realm = pos.realm;
-        }
+        let col = ChunkPos2D::from(*pos);
+        // we're checking before modifying to avoid triggering unnecessary Change detection
         if col != load_area.col {
             load_area.col = col;
         }
@@ -74,20 +67,20 @@ pub fn load_order(
 ) {
     for (load_area, load_area_old_opt, entity) in query.iter_mut() {
         // compute the columns to load and unload & update old load area
-        let new_load_area_old = LoadAreaOld(load_area.clone());
+        let load_area_clone = LoadAreaOld(load_area.clone());
         if let Some(mut load_area_old) = load_area_old_opt {
             let mut load_area_ext = load_area.clone();
             load_area_ext.dist += 1;
-            world.load(*load_area - **load_area_old, load_area.realm, entity.id());
+            world.load(*load_area - **load_area_old, load_area.col.realm, entity.id());
             world.unload(
                 **load_area_old - load_area_ext,
-                load_area_old.realm,
+                load_area_old.col.realm,
                 entity.id(),
             );
-            *load_area_old = new_load_area_old;
+            *load_area_old = load_area_clone;
         } else {
-            commands.entity(entity).insert(new_load_area_old);
-            world.load(load_area.iter().collect(), load_area.realm, entity.id());
+            commands.entity(entity).insert(load_area_clone);
+            world.load(load_area.iter().collect(), load_area.col.realm, entity.id());
         }
     }
 }
