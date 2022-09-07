@@ -7,6 +7,7 @@ mod get_set;
 mod load_area;
 mod load_cols;
 mod noise_utils;
+mod noise_build;
 mod packed_ints;
 mod player;
 mod pos;
