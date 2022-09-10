@@ -1,8 +1,7 @@
+use crate::get_set::GetSet;
 use intbits::Bits;
 use serde::{Deserialize, Serialize};
 use std::iter;
-
-use crate::get_set::GetSet;
 // Inspiration from:
 // https://github.com/adrianwong/packed-integers/blob/master/src/lib.rs
 

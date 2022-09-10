@@ -1,4 +1,4 @@
-use crate::{load_area::LoadArea, pos::{Pos, ChunkPos2D}, realm::Realm};
+use crate::{bloc_pos::ChunkPos2D, load_area::LoadArea, pos::Pos, realm::Realm};
 use bevy::{
     math::Vec3,
     prelude::{Commands, KeyCode, Query, Res},
@@ -30,7 +30,12 @@ impl From<Dir> for Vec3 {
 }
 
 pub fn spawn_player(mut commands: Commands) {
-    let spawn = Pos::<f32> {realm: Realm::Earth, x: 0., y: 0., z: 0.};
+    let spawn = Pos::<f32> {
+        realm: Realm::Earth,
+        x: 0.,
+        y: 0.,
+        z: 0.,
+    };
     commands
         .spawn_bundle((
             spawn,

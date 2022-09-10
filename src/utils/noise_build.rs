@@ -1,7 +1,17 @@
-use std::ops::{Add, BitOr, Mul, Sub, Div};
+use std::{
+    ops::{Add, BitOr, Div, Mul, Sub},
+    sync::Arc,
+};
 
-#[derive(Clone, Copy)]
-pub struct NoiseFn {}
+#[derive(Clone)]
+pub enum NoiseFn {
+    Noise,
+    f32,
+    Add(Arc<NoiseFn>, Arc<NoiseFn>),
+    Mul(Arc<NoiseFn>, Arc<NoiseFn>),
+    Div(Arc<NoiseFn>, Arc<NoiseFn>),
+    Pow(Arc<NoiseFn>, i32),
+}
 
 pub fn noise(freq: f32) -> NoiseFn {
     todo!()
@@ -22,9 +32,9 @@ impl NoiseFn {
     }
 
     pub fn pow(self, p: u32) -> Self {
-        let mut res = self;
+        let mut res = self.clone();
         for _ in 0..p {
-            res = res * self;
+            res = res * self.clone();
         }
         res
     }
@@ -34,9 +44,9 @@ impl NoiseFn {
     }
 
     pub fn mask(self, t: f32) -> Self {
-        let t = 2.*(1.-t)-1.;
+        let t = 2. * (1. - t) - 1.;
         // a steep sigmoid
-        1.0 / (1.0 + (-16.*(self-t)).exp())
+        1.0 / (1.0 + (-16. * (self - t)).exp())
     }
 
     pub fn sample(&self, x: i32, y: i32, dist: usize, points: usize) -> Vec<Vec<f32>> {
@@ -129,6 +139,6 @@ impl Div<f32> for NoiseFn {
     type Output = NoiseFn;
 
     fn div(self, rhs: f32) -> Self::Output {
-        self * (1.0/rhs)
+        self * (1.0 / rhs)
     }
 }

@@ -1,4 +1,4 @@
-use crate::{pos::{Pos, ChunkPos2D}, col_commands::ColCommands};
+use crate::{bloc_pos::ChunkPos2D, col_commands::ColCommands, pos::Pos};
 use bevy::prelude::Query;
 use bevy::prelude::*;
 use itertools::iproduct;
@@ -33,7 +33,13 @@ impl Sub<LoadArea> for LoadArea {
             self.iter().collect()
         } else {
             self.iter()
-                .filter(|(x, z)| !rhs.contains(ChunkPos2D {realm: self.col.realm, x: *x, z: *z}))
+                .filter(|(x, z)| {
+                    !rhs.contains(ChunkPos2D {
+                        realm: self.col.realm,
+                        x: *x,
+                        z: *z,
+                    })
+                })
                 .collect()
         }
     }
@@ -71,7 +77,11 @@ pub fn load_order(
         if let Some(mut load_area_old) = load_area_old_opt {
             let mut load_area_ext = load_area.clone();
             load_area_ext.dist += 1;
-            world.load(*load_area - **load_area_old, load_area.col.realm, entity.id());
+            world.load(
+                *load_area - **load_area_old,
+                load_area.col.realm,
+                entity.id(),
+            );
             world.unload(
                 **load_area_old - load_area_ext,
                 load_area_old.col.realm,

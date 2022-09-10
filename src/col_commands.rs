@@ -1,4 +1,4 @@
-use crate::{realm::Realm, pos::ChunkPos2D};
+use crate::{bloc_pos::ChunkPos2D, realm::Realm};
 use std::collections::{HashMap, HashSet};
 pub const WATER_H: i32 = 100;
 
@@ -20,7 +20,7 @@ impl ColCommands {
 
     pub fn load(&mut self, to_load: Vec<(i32, i32)>, realm: Realm, player: u32) {
         for (x, z) in to_load.into_iter() {
-            let key = ChunkPos2D {realm, x, z};
+            let key = ChunkPos2D { realm, x, z };
             if let Some(players) = self.cols.get_mut(&key) {
                 players.insert(player);
             } else {
@@ -34,7 +34,7 @@ impl ColCommands {
 
     pub fn unload(&mut self, to_unload: Vec<(i32, i32)>, realm: Realm, player: u32) {
         for (x, z) in to_unload.into_iter() {
-            let key = ChunkPos2D {realm, x, z};
+            let key = ChunkPos2D { realm, x, z };
             if let Some(players) = self.cols.get_mut(&key) {
                 players.remove(&player);
                 if players.len() == 0 {

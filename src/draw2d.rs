@@ -1,16 +1,17 @@
 use crate::bloc::Bloc;
+use crate::bloc_pos::{BlocPos, BlocPos2D, BlocPosChunked2D, ChunkPos2D};
 use crate::blocs::Blocs;
 use crate::chunk::{CHUNK_S1, CHUNK_S2};
+use crate::col_commands::WATER_H;
 use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
 use crate::player::Dir;
-use crate::pos::{Pos, ChunkPos2D, BlocPos2D, BlocPosChunked2D, BlocPos};
-use crate::col_commands::WATER_H;
+use crate::pos::Pos;
 use anyhow::Result;
-use itertools::zip;
 use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use bevy::render::texture::BevyDefault;
-use colorsys::{Rgb, ColorTransform};
+use colorsys::{ColorTransform, Rgb};
+use itertools::zip;
 use leafwing_input_manager::prelude::ActionState;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -73,7 +74,12 @@ impl Render2D for Blocs {
         let (bloc, y) = self.top(pos);
         if y > WATER_H {
             let mut color = soil_color.0.get(&bloc).unwrap().clone();
-            let blocpos = BlocPos {realm: pos.realm, x: pos.x, y, z: pos.z};
+            let blocpos = BlocPos {
+                realm: pos.realm,
+                x: pos.x,
+                y,
+                z: pos.z,
+            };
             color.lighten(self.bloc_shade(blocpos));
             color
         } else {
@@ -82,10 +88,13 @@ impl Render2D for Blocs {
     }
 
     fn render_col(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image {
-        let mut data = vec![255; CHUNK_S2*4];
+        let mut data = vec![255; CHUNK_S2 * 4];
         for i in (0..CHUNK_S2 * 4).step_by(4) {
-            let (dx, dz) = ((i/4) % CHUNK_S1, CHUNK_S1-1-(i/4) / CHUNK_S1);
-            let color = self.bloc_color(BlocPos2D::from(BlocPosChunked2D {col, dx, dz}), soil_color);
+            let (dx, dz) = ((i / 4) % CHUNK_S1, CHUNK_S1 - 1 - (i / 4) / CHUNK_S1);
+            let color = self.bloc_color(
+                BlocPos2D::from(BlocPosChunked2D { col, dx, dz }),
+                soil_color,
+            );
             data[i] = color.blue() as u8;
             data[i + 1] = color.green() as u8;
             data[i + 2] = color.red() as u8;
@@ -105,8 +114,11 @@ impl Render2D for Blocs {
 
     fn update_side(&self, image: &mut Image, col: ChunkPos2D, soil_color: &SoilColor) {
         for i in (0..CHUNK_S1 * 4).step_by(4) {
-            let (dx, dz) = ((i/4) % CHUNK_S1, CHUNK_S1-1-(i/4) / CHUNK_S1);
-            let color = self.bloc_color(BlocPos2D::from(BlocPosChunked2D {col, dx, dz}), soil_color);
+            let (dx, dz) = ((i / 4) % CHUNK_S1, CHUNK_S1 - 1 - (i / 4) / CHUNK_S1);
+            let color = self.bloc_color(
+                BlocPos2D::from(BlocPosChunked2D { col, dx, dz }),
+                soil_color,
+            );
             image.data[i] = color.blue() as u8;
             image.data[i + 1] = color.green() as u8;
             image.data[i + 2] = color.red() as u8;
@@ -128,16 +140,18 @@ pub fn on_col_load(
     // Add all the rendered columns before registering them
     for col in cols.iter() {
         println!("Loaded ({:?})", col);
-        let ent = commands.spawn_bundle(SpriteBundle {
-            texture: images.add(blocs.render_col(*col, &soil_color)),
-            transform: Transform::from_translation(
-                Vec3::new(col.x as f32, col.z as f32, 0.) * CHUNK_S1 as f32,
-            ),
-            ..default()
-        }).id();
+        let ent = commands
+            .spawn_bundle(SpriteBundle {
+                texture: images.add(blocs.render_col(*col, &soil_color)),
+                transform: Transform::from_translation(
+                    Vec3::new(col.x as f32, col.z as f32, 0.) * CHUNK_S1 as f32,
+                ),
+                ..default()
+            })
+            .id();
         ents.push(ent);
         // if there was an already loaded col below
-        let col_below = *col+Dir::Back;
+        let col_below = *col + Dir::Back;
         if let Some(ent_below) = col_ents.get(&col_below) {
             if let Ok(handle) = imquery.get_component::<Handle<Image>>(*ent_below) {
                 if let Some(image) = images.get_mut(&handle) {
@@ -147,7 +161,7 @@ pub fn on_col_load(
             }
         }
     }
-    for (col, ent) in zip(&cols, &ents)  {
+    for (col, ent) in zip(&cols, &ents) {
         col_ents.insert(*col, *ent);
     }
 }

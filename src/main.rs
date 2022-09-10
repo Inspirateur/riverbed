@@ -1,28 +1,29 @@
 mod bloc;
-mod chunk;
+mod bloc_pos;
 mod blocs;
+mod chunk;
+mod col_commands;
 mod draw2d;
 mod earth_gen;
-mod get_set;
 mod load_area;
 mod load_cols;
-mod noise_utils;
-mod noise_build;
-mod packed_ints;
 mod player;
 mod pos;
 mod realm;
 mod terrain_gen;
-mod weighted_dist;
-mod col_commands;
+mod utils;
 use bevy::prelude::*;
 use blocs::Blocs;
+use col_commands::ColCommands;
 use draw2d::Draw2d;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 use load_cols::{ColLoadEvent, ColUnloadEvent};
-use terrain_gen::Generators;
 use std::sync::Arc;
-use col_commands::ColCommands;
+use terrain_gen::Generators;
+use utils::get_set;
+use utils::noise_build;
+use utils::packed_ints;
+use utils::weighted_dist;
 
 struct GameLogic;
 

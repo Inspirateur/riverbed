@@ -1,6 +1,8 @@
 use crate::{
+    bloc::Bloc,
+    bloc_pos::{BlocPos, BlocPos2D, BlocPosChunked, BlocPosChunked2D, ChunkPos, ChunkPos2D},
     chunk::{Chunk, CHUNK_S1},
-    realm::Realm, pos::{BlocPos, ChunkPos, ChunkPos2D, BlocPosChunked, BlocPos2D, BlocPosChunked2D}, bloc::Bloc,
+    realm::Realm,
 };
 use array_macro::array;
 use std::collections::HashMap;
@@ -22,13 +24,15 @@ impl Blocs {
         let pos = BlocPosChunked::from(pos);
         match self.get_chunk(pos.chunk) {
             Some(chunk) => *chunk.get(pos.dx, pos.dy, pos.dz),
-            None => Bloc::Air
+            None => Bloc::Air,
         }
     }
 
     pub fn top(&self, pos: BlocPos2D) -> (Bloc, i32) {
         let pos = BlocPosChunked2D::from(pos);
-        let col = self.chunks[pos.col.realm as usize].get(&(pos.col.x, pos.col.z)).unwrap();
+        let col = self.chunks[pos.col.realm as usize]
+            .get(&(pos.col.x, pos.col.z))
+            .unwrap();
         for cy in (0..col.len()).rev() {
             if let Some(chunk) = &col[cy] {
                 for dy in (0..CHUNK_S1).rev() {
@@ -51,7 +55,9 @@ impl Blocs {
     }
 
     pub fn remove_col(&mut self, pos: ChunkPos2D) -> bool {
-        self.chunks[pos.realm as usize].remove(&(pos.x, pos.z)).is_some()
+        self.chunks[pos.realm as usize]
+            .remove(&(pos.x, pos.z))
+            .is_some()
     }
 
     pub fn extend(&mut self, other: Blocs) {
@@ -64,9 +70,16 @@ impl Blocs {
         &self,
     ) -> impl Iterator<Item = (ChunkPos2D, &[Option<Chunk>; MAX_HEIGHT / CHUNK_S1])> {
         Realm::iter().flat_map(|realm| {
-            self.chunks[realm as usize]
-                .iter()
-                .map(move |((x, z), c)| (ChunkPos2D{realm, x: *x, z: *z}, c))
+            self.chunks[realm as usize].iter().map(move |((x, z), c)| {
+                (
+                    ChunkPos2D {
+                        realm,
+                        x: *x,
+                        z: *z,
+                    },
+                    c,
+                )
+            })
         })
     }
 }

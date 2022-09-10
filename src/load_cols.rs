@@ -1,7 +1,7 @@
+use crate::bloc_pos::ChunkPos2D;
 use crate::blocs::Blocs;
-use crate::pos::ChunkPos2D;
-use crate::terrain_gen::Generators;
 use crate::col_commands::ColCommands;
+use crate::terrain_gen::Generators;
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
