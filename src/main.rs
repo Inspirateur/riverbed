@@ -21,9 +21,10 @@ use load_cols::{ColLoadEvent, ColUnloadEvent};
 use std::sync::Arc;
 use terrain_gen::Generators;
 use utils::get_set;
-use utils::noise_build;
+use utils::noise_op;
 use utils::packed_ints;
 use utils::weighted_dist;
+use utils::noise_build;
 
 struct GameLogic;
 

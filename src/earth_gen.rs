@@ -3,7 +3,8 @@ use crate::{
     blocs::MAX_HEIGHT,
     chunk,
     chunk::Chunk,
-    noise_build::{noise, NoiseFn},
+    noise_op::{NoiseOp::Noise},
+    noise_build::{NoiseFn, NoiseBuild},
     packed_ints::PackedUsizes,
     terrain_gen::TerrainGen,
     weighted_dist::WeightedPoints,
@@ -11,7 +12,7 @@ use crate::{
 use array_macro::array;
 use itertools::iproduct;
 use std::{collections::HashMap, ops::IndexMut, usize};
-const SCALE: f64 = 0.01;
+const SCALE: f32 = 0.01;
 const CHUNK_S1: i32 = chunk::CHUNK_S1 as i32;
 
 pub struct Earth {
@@ -28,19 +29,20 @@ impl Earth {
             z * CHUNK_S1,
             CHUNK_S1 as usize,
             CHUNK_S1 as usize,
+            SCALE
         );
         (noise.remove(0), noise.remove(0), noise.remove(0))
     }
 
     pub fn build(seed: u32, landratio: f32) -> NoiseFn {
-        let land = noise(1.) + noise(0.3) * 0.3 + noise(0.1) * 0.1;
+        let land = Noise(1.) + Noise(0.3) * 0.3 + Noise(0.1) * 0.1;
         let land = land.mask(landratio);
-        let mount_mask = noise(1.).mask(0.2);
-        let mount = (noise(4.).abs() + noise(8.).abs() * 0.3) * land.clone() * mount_mask;
+        let mount_mask = Noise(1.).mask(0.2);
+        let mount = (Noise(4.).abs() + Noise(8.).abs() * 0.3) * land.clone() * mount_mask;
         let y = land * 0.2 + mount;
-        let t = (1. - y.clone()).rescale(0.5, 1.0) * noise(1.);
-        let h = (1. - (t.clone() - 0.7).pow(2) * 2.) * noise(1.);
-        (y | t | h).seed(seed)
+        let t = (1. - y.clone()).rescale(0.5, 1.0) * Noise(1.);
+        let h = (1. - (t.clone() - 0.7).pow(2) * 2.) * Noise(1.);
+        (y | t | h).build(seed)
     }
 }
 
