@@ -1,17 +1,11 @@
 use crate::chunk::CHUNK_S1;
 use crate::pos::{Pos, Pos2D};
-use crate::realm::Realm;
-use bevy::{ecs::component::Component, math::Vec3};
-use std::{
-    ops::{Add, AddAssign},
-    rc::Rc,
-};
 const CHUNK_S1i: i32 = CHUNK_S1 as i32;
 
-pub type BlocPos = Pos<i32, 1>;
-pub type BlocPos2D = Pos2D<i32, 1>;
-pub type ChunkPos = Pos<i32, CHUNK_S1>;
-pub type ChunkPos2D = Pos2D<i32, CHUNK_S1>;
+pub type BlocPos = Pos<i32>;
+pub type BlocPos2D = Pos2D<i32>;
+pub type ChunkPos = Pos<i32>;
+pub type ChunkPos2D = Pos2D<i32>;
 
 pub struct BlocPosChunked {
     pub chunk: ChunkPos,

@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use bevy::render::texture::BevyDefault;
 use colorsys::{ColorTransform, Rgb};
-use itertools::zip;
+use itertools::{zip, iproduct};
 use leafwing_input_manager::prelude::ActionState;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -89,8 +89,9 @@ impl Render2D for Blocs {
 
     fn render_col(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image {
         let mut data = vec![255; CHUNK_S2 * 4];
-        for i in (0..CHUNK_S2 * 4).step_by(4) {
-            let (dx, dz) = ((i / 4) % CHUNK_S1, CHUNK_S1 - 1 - (i / 4) / CHUNK_S1);
+        for (i, (dz, dx)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
+            let dz = CHUNK_S1-(dz+1);
+            let i = i*4;
             let color = self.bloc_color(
                 BlocPos2D::from(BlocPosChunked2D { col, dx, dz }),
                 soil_color,
@@ -138,7 +139,7 @@ pub fn on_col_load(
     let cols: Vec<_> = ev_load.iter().map(|col_ev| col_ev.0).collect();
     let mut ents = Vec::new();
     // Add all the rendered columns before registering them
-    for col in cols.iter() {
+    for col in cols.iter().filter(|col| blocs.contains_col(**col)) {
         println!("Loaded ({:?})", col);
         let ent = commands
             .spawn_bundle(SpriteBundle {

@@ -54,14 +54,14 @@ impl<N: Number, V: Into<Vec3>, const U: usize> AddAssign<V> for Pos<N, U> {
 }
 
 #[derive(Component, Clone, Copy, Eq, PartialEq, Hash, Default, Debug)]
-pub struct Pos2D<N: Number, const U: usize = 1> {
+pub struct Pos2D<N: Number> {
     pub realm: Realm,
     pub x: N,
     pub z: N,
 }
 
-impl<const U: usize> Pos2D<i32, U> {
-    pub fn dist(&self, other: Pos2D<i32, U>) -> i32 {
+impl Pos2D<i32> {
+    pub fn dist(&self, other: Pos2D<i32>) -> i32 {
         if self.realm != other.realm {
             i32::MAX
         } else {
@@ -70,8 +70,8 @@ impl<const U: usize> Pos2D<i32, U> {
     }
 }
 
-impl<N: Number, V: Into<Vec3>, const U: usize> Add<V> for Pos2D<N, U> {
-    type Output = Pos2D<N, U>;
+impl<N: Number, V: Into<Vec3>> Add<V> for Pos2D<N> {
+    type Output = Pos2D<N>;
 
     fn add(self, rhs: V) -> Self::Output {
         let rhs = rhs.into();

@@ -1,120 +1,139 @@
-use std::ops::{Add, BitOr, Div, Mul, Sub};
+use std::ops::{Add, Mul, Div, Sub};
+
 
 #[derive(Clone)]
-pub enum NoiseOp {
-    Noise(f32),
-    Const(f32),
-    Add(Box<NoiseOp>, Box<NoiseOp>),
-    Sub(Box<NoiseOp>, Box<NoiseOp>),
-    Mul(Box<NoiseOp>, Box<NoiseOp>),
-    Div(Box<NoiseOp>, Box<NoiseOp>),
-    Abs(Box<NoiseOp>),
-    Pow(Box<NoiseOp>, i32),
-    Exp(Box<NoiseOp>),
-    Rescale(Box<NoiseOp>, f32, f32),
-    Pipe(Box<NoiseOp>, Box<NoiseOp>)
+pub struct Signal<F> {
+    pub value: F,
+    ampl: f32,
 }
 
-impl NoiseOp {
-    pub fn abs(self) -> Self {
-        NoiseOp::Abs(Box::new(self))
+impl Signal<f32> {
+    pub fn new(value: f32) -> Self {
+        Signal { value, ampl: 1. }
     }
 
-    pub fn rescale(self, min: f32, max: f32) -> Self {
-        debug_assert!(min < max);
-        NoiseOp::Rescale(Box::new(self), min, max)
+    pub fn abs(self) -> Self {
+        Signal {
+            value: self.value.abs(),
+            ampl: self.ampl
+        }
     }
 
     pub fn pow(self, p: i32) -> Self {
-        NoiseOp::Pow(Box::new(self), p)
+        Signal { value: self.value.powi(p), ampl: self.ampl.powi(p) }
     }
 
     fn exp(self) -> Self {
-        NoiseOp::Exp(Box::new(self))
+        Signal { value: self.value.exp(), ampl: self.ampl }
     }
 
     pub fn mask(self, t: f32) -> Self {
         let t = 2. * (1. - t) - 1.;
         // a steep sigmoid
-        1.0 / (1.0 + (-16. * (self - t)).exp())
+        let mut res = 1.0 / (1.0 + (-16. * (self.norm() - t)).exp());
+        res.ampl = 1.;
+        res
+    }
+
+    pub fn norm(self) -> Self {
+        Signal { value: self.value/self.ampl, ampl: 1.0 }
     }
 }
 
-impl From<f32> for NoiseOp {
-    fn from(v: f32) -> Self {
-        NoiseOp::Const(v)
+// SIGNAL OP
+impl<F: Add<Output = F>> Add for Signal<F> {
+    type Output = Signal<F>;
+
+    fn add(self, rhs: Signal<F>) -> Self::Output {
+        Signal {
+            value: self.value+rhs.value,
+            ampl: self.ampl+rhs.ampl,
+        }
     }
 }
 
-impl<N: Into<NoiseOp>> Add<N> for NoiseOp {
-    type Output = NoiseOp;
+impl<F: Mul<Output = F>> Mul for Signal<F> {
+    type Output = Signal<F>;
 
-    fn add(self, rhs: N) -> Self::Output {
-        NoiseOp::Add(Box::new(self), Box::new(rhs.into()))
+    fn mul(self, rhs: Signal<F>) -> Self::Output {
+        Signal {
+            value: self.value*rhs.value,
+            ampl: self.ampl*rhs.ampl,
+        }
     }
 }
 
-impl<N: Into<NoiseOp>> Mul<N> for NoiseOp {
-    type Output = NoiseOp;
+// SCALAR OP
+impl<F: Add<f32, Output = F>> Add<f32> for Signal<F> {
+    type Output = Signal<F>;
 
-    fn mul(self, rhs: N) -> Self::Output {
-        NoiseOp::Mul(Box::new(self), Box::new(rhs.into()))
+    fn add(self, rhs: f32) -> Self::Output {
+        Signal {
+            value: self.value + rhs,
+            ampl: self.ampl,
+        }
     }
 }
 
-impl<N: Into<NoiseOp>> Div<N> for NoiseOp {
-    type Output = NoiseOp;
+impl<F: Mul<f32, Output = F>> Mul<f32> for Signal<F> {
+    type Output = Signal<F>;
 
-    fn div(self, rhs: N) -> Self::Output {
-        NoiseOp::Div(Box::new(self), Box::new(rhs.into()))
+    fn mul(self, rhs: f32) -> Self::Output {
+        Signal {
+            value: self.value*rhs,
+            ampl: self.ampl*rhs,
+        }
     }
 }
 
-impl<N: Into<NoiseOp>> Sub<N> for NoiseOp {
-    type Output = NoiseOp;
+impl<F: Sub<f32, Output = F>> Sub<f32> for Signal<F> {
+    type Output = Signal<F>;
 
-    fn sub(self, rhs: N) -> Self::Output {
-        NoiseOp::Sub(Box::new(self), Box::new(rhs.into()))
+    fn sub(self, rhs: f32) -> Self::Output {
+        Signal {
+            value: self.value-rhs,
+            ampl: self.ampl
+        }
     }
 }
 
-impl BitOr for NoiseOp {
-    type Output = NoiseOp;
+impl<F> Sub<Signal<F>> for f32
+where f32: Sub<F, Output = F> {
+    type Output = Signal<F>;
 
-    fn bitor(self, rhs: NoiseOp) -> Self::Output {
-        NoiseOp::Pipe(Box::new(self), Box::new(rhs))
+    fn sub(self, rhs: Signal<F>) -> Self::Output {
+        Signal {
+            value: self-rhs.value,
+            ampl: rhs.ampl
+        }
     }
 }
 
-// BLANKET IMPLs
-impl Add<NoiseOp> for f32 {
-    type Output = NoiseOp;
+impl<F> Div<Signal<F>> for f32 
+where f32: Div<F, Output = F> {
+    type Output = Signal<F>;
 
-    fn add(self, rhs: NoiseOp) -> Self::Output {
+    fn div(self, rhs: Signal<F>) -> Self::Output {
+        Signal {
+            value: self/rhs.value,
+            ampl: rhs.ampl
+        }
+    }
+}
+
+// COMMUTATION
+impl<F: Add<f32, Output = F>> Add<Signal<F>> for f32 {
+    type Output = Signal<F>;
+
+    fn add(self, rhs: Signal<F>) -> Self::Output {
         rhs + self
     }
 }
 
-impl Mul<NoiseOp> for f32 {
-    type Output = NoiseOp;
+impl<F: Mul<f32, Output = F>> Mul<Signal<F>> for f32 {
+    type Output = Signal<F>;
 
-    fn mul(self, rhs: NoiseOp) -> Self::Output {
+    fn mul(self, rhs: Signal<F>) -> Self::Output {
         rhs * self
-    }
-}
-
-impl Div<NoiseOp> for f32 {
-    type Output = NoiseOp;
-
-    fn div(self, rhs: NoiseOp) -> Self::Output {
-        NoiseOp::from(self)/rhs
-    }
-}
-
-impl Sub<NoiseOp> for f32 {
-    type Output = NoiseOp;
-
-    fn sub(self, rhs: NoiseOp) -> Self::Output {
-        NoiseOp::from(self) - rhs
     }
 }

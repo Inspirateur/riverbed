@@ -25,6 +25,7 @@ use utils::noise_op;
 use utils::packed_ints;
 use utils::weighted_dist;
 use utils::noise_build;
+use utils::noise_source;
 
 struct GameLogic;
 

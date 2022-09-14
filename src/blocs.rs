@@ -60,6 +60,10 @@ impl Blocs {
             .is_some()
     }
 
+    pub fn contains_col(&self, pos: ChunkPos2D) -> bool {
+        self.chunks[pos.realm as usize].contains_key(&(pos.x, pos.z))
+    }
+
     pub fn extend(&mut self, other: Blocs) {
         for (i, chunks) in other.chunks.into_iter().enumerate() {
             self.chunks[i].extend(chunks);

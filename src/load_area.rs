@@ -66,6 +66,7 @@ impl Deref for LoadAreaOld {
     }
 }
 
+// FIXME: COLUMN LOADING IS MEGA BUGGED, there's random holes and out of range cols, figure out why 
 pub fn load_order(
     mut commands: Commands,
     mut query: Query<(&LoadArea, Option<&mut LoadAreaOld>, Entity), Changed<LoadArea>>,

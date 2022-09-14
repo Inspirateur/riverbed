@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 bevy = "*"
 rand = "*"
-noise = "*"
 itertools = "*"
 vpsearch = "*"
 csv = "*"
@@ -22,6 +21,7 @@ strum_macros = "*"
 dashmap = "*"
 futures-lite = "*"
 array-macro = "*"
+noise = "*"
 
 [profile.test]
 opt-level = 3
