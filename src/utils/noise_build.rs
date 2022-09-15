@@ -1,6 +1,5 @@
 use array_macro::array;
 use itertools::iproduct;
-
 use crate::noise_op::Signal;
 use crate::noise_source::NoiseSource;
 use std::sync::Arc;

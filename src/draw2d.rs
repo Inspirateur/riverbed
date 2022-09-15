@@ -82,8 +82,10 @@ impl Render2D for Blocs {
             };
             color.lighten(self.bloc_shade(blocpos));
             color
-        } else {
+        } else if y > WATER_H - 15 {
             Rgb::new(10., 180., 250., None)
+        } else {
+            Rgb::new(5., 150., 230., None)
         }
     }
 

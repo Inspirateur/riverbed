@@ -1,8 +1,8 @@
 use dashmap::DashMap;
-use noise::{Perlin, Seedable, NoiseFn};
+use noise::{SuperSimplex, Seedable, NoiseFn};
 
 pub struct NoiseSource {
-    sources: DashMap<u32, Perlin>
+    sources: DashMap<u32, SuperSimplex>
 }
 
 impl NoiseSource {
@@ -15,7 +15,7 @@ impl NoiseSource {
 impl NoiseSource {
     pub fn get(&self, seed: u32, x: f64, y: f64) -> f64 {
         if !self.sources.contains_key(&seed) {
-            self.sources.insert(seed, Perlin::new().set_seed(seed));
+            self.sources.insert(seed, SuperSimplex::new().set_seed(seed));
         }
         self.sources.get(&seed).unwrap().get([x, y])
     }
