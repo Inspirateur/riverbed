@@ -48,6 +48,7 @@ impl NoiseFct<3> for Earth {
         // closer to the ocean => more humidity
         // higher temp => more humidity
         let h = t.clone().sqrt() * (ocean*0.5 + n.noise(0.8).pos()).norm();
+        // Add a slope output, useful for rocks and vegetation
         [y.value, t.value, h.value]
     }
 }
