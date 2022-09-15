@@ -178,6 +178,7 @@ impl Iterator for PackedUsizesIter {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use crate::get_set::GetSet;
     use rand::prelude::*;

@@ -69,17 +69,6 @@ impl Chunk<Vec<usize>> {
             palette: vec![Bloc::Air],
         }
     }
-
-    pub fn filled(bloc: Bloc) -> Self {
-        if bloc == Bloc::Air {
-            Chunk::<Vec<usize>>::new()
-        } else {
-            Chunk {
-                data: vec![1; CHUNK_S3],
-                palette: vec![Bloc::Air, bloc],
-            }
-        }
-    }
 }
 
 impl From<Chunk<Vec<usize>>> for Chunk<PackedUsizes> {

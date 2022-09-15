@@ -23,6 +23,10 @@ impl Signal<f32> {
         Signal { value: self.value.powi(p), ampl: self.ampl.powi(p) }
     }
 
+    pub fn sqrt(self) -> Self {
+        Signal { value: self.value.sqrt(), ampl: self.ampl.sqrt() }
+    }
+
     fn exp(self) -> Self {
         Signal { value: self.value.exp(), ampl: self.ampl }
     }
@@ -30,13 +34,21 @@ impl Signal<f32> {
     pub fn mask(self, t: f32) -> Self {
         let t = 2. * (1. - t) - 1.;
         // a steep sigmoid
-        let mut res = 1.0 / (1.0 + (-16. * (self.norm() - t)).exp());
+        let mut res = 1.0 / (1.0 + (-16. * (self - t)).exp());
         res.ampl = 1.;
         res
     }
 
     pub fn norm(self) -> Self {
         Signal { value: self.value/self.ampl, ampl: 1.0 }
+    }
+
+    pub fn turn(self) -> Self {
+        Signal { value: 1.-self.value, ampl: self.ampl }
+    }
+
+    pub fn pos(self) -> Self {
+        Signal { value: self.value*0.5+0.5, ampl: self.ampl }
     }
 }
 
@@ -81,7 +93,7 @@ impl<F: Mul<f32, Output = F>> Mul<f32> for Signal<F> {
     fn mul(self, rhs: f32) -> Self::Output {
         Signal {
             value: self.value*rhs,
-            ampl: self.ampl*rhs,
+            ampl: self.ampl*rhs.abs(),
         }
     }
 }

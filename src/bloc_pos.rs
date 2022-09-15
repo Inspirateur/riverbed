@@ -1,6 +1,6 @@
 use crate::chunk::CHUNK_S1;
 use crate::pos::{Pos, Pos2D};
-const CHUNK_S1i: i32 = CHUNK_S1 as i32;
+const CHUNK_S1I: i32 = CHUNK_S1 as i32;
 
 pub type BlocPos = Pos<i32>;
 pub type BlocPos2D = Pos2D<i32>;
@@ -37,9 +37,9 @@ impl From<BlocPosChunked> for BlocPos {
     fn from(pos: BlocPosChunked) -> Self {
         BlocPos {
             realm: pos.chunk.realm,
-            x: pos.chunk.x * CHUNK_S1i + pos.dx as i32,
-            y: pos.chunk.y * CHUNK_S1i + pos.dy as i32,
-            z: pos.chunk.z * CHUNK_S1i + pos.dz as i32,
+            x: pos.chunk.x * CHUNK_S1I + pos.dx as i32,
+            y: pos.chunk.y * CHUNK_S1I + pos.dy as i32,
+            z: pos.chunk.z * CHUNK_S1I + pos.dz as i32,
         }
     }
 }
@@ -51,8 +51,8 @@ pub struct BlocPosChunked2D {
 }
 
 fn chunked(x: i32) -> (i32, usize) {
-    let r = x.rem_euclid(CHUNK_S1i);
-    ((x - r) / CHUNK_S1i, r as usize)
+    let r = x.rem_euclid(CHUNK_S1I);
+    ((x - r) / CHUNK_S1I, r as usize)
 }
 
 impl From<BlocPos2D> for BlocPosChunked2D {
@@ -75,8 +75,8 @@ impl From<BlocPosChunked2D> for BlocPos2D {
     fn from(pos: BlocPosChunked2D) -> Self {
         BlocPos2D {
             realm: pos.col.realm,
-            x: pos.col.x * CHUNK_S1i + pos.dx as i32,
-            z: pos.col.z * CHUNK_S1i + pos.dz as i32,
+            x: pos.col.x * CHUNK_S1I + pos.dx as i32,
+            z: pos.col.z * CHUNK_S1I + pos.dz as i32,
         }
     }
 }
@@ -91,17 +91,18 @@ impl From<Pos> for ChunkPos2D {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::{BlocPos, BlocPosChunked};
-    use crate::{bloc_pos::CHUNK_S1i, chunk::CHUNK_S1, realm::Realm};
+    use crate::{bloc_pos::CHUNK_S1I, realm::Realm};
 
     #[test]
     fn roundtrip() {
         let pos = BlocPos {
             realm: Realm::Earth,
             x: -1,
-            y: 1,
-            z: CHUNK_S1i,
+            y: 57,
+            z: CHUNK_S1I,
         };
         assert_eq!(pos, BlocPos::from(BlocPosChunked::from(pos)));
     }

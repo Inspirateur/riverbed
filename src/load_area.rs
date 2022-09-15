@@ -13,7 +13,7 @@ pub struct LoadArea {
 impl LoadArea {
     pub fn contains(&self, col: ChunkPos2D) -> bool {
         // checks if a chunk is in this Player loaded area (assuming they're in the same realm)
-        self.col.dist(col) < self.dist as i32
+        self.col.dist(col) <= self.dist as i32
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32)> {
@@ -76,15 +76,13 @@ pub fn load_order(
         // compute the columns to load and unload & update old load area
         let load_area_clone = LoadAreaOld(load_area.clone());
         if let Some(mut load_area_old) = load_area_old_opt {
-            let mut load_area_ext = load_area.clone();
-            load_area_ext.dist += 1;
             world.load(
                 *load_area - **load_area_old,
                 load_area.col.realm,
                 entity.id(),
             );
             world.unload(
-                **load_area_old - load_area_ext,
+                **load_area_old - *load_area,
                 load_area_old.col.realm,
                 entity.id(),
             );
