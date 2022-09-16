@@ -76,12 +76,12 @@ pub fn load_order(
         // compute the columns to load and unload & update old load area
         let load_area_clone = LoadAreaOld(load_area.clone());
         if let Some(mut load_area_old) = load_area_old_opt {
-            world.load(
+            world.register(
                 *load_area - **load_area_old,
                 load_area.col.realm,
                 entity.id(),
             );
-            world.unload(
+            world.unregister(
                 **load_area_old - *load_area,
                 load_area_old.col.realm,
                 entity.id(),
@@ -89,7 +89,7 @@ pub fn load_order(
             *load_area_old = load_area_clone;
         } else {
             commands.entity(entity).insert(load_area_clone);
-            world.load(load_area.iter().collect(), load_area.col.realm, entity.id());
+            world.register(load_area.iter().collect(), load_area.col.realm, entity.id());
         }
     }
 }

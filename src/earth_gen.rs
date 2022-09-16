@@ -36,9 +36,9 @@ impl NoiseFct<3> for Earth {
         let land = land.norm().mask(self.landratio);
         let mount_mask = (n.noise(1.) + n.noise(2.)*0.3).norm().mask(0.2);
         let mount = (1.-n.noise(1.).abs()) * land.clone() * mount_mask;
-        let y = (land + mount.clone()).norm();
+        let y = (land + mount).norm();
         // more attitude => less temperature
-        let t = mount.pow(2).turn() * n.noise(0.2).pos();
+        let t = y.clone().pow(3).turn() * n.noise(0.2).pos();
         // closer to the ocean => more humidity
         // higher temp => more humidity
         let h = t.clone().sqrt() * (ocean*0.5 + n.noise(0.8).pos()).norm();

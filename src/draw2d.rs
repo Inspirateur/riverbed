@@ -1,4 +1,4 @@
-use crate::blocs::{Bloc, Blocs, CHUNK_S1, CHUNK_S2};
+use crate::blocs::{Bloc, Blocs, CHUNK_S1, CHUNK_S2, BlocsTrait};
 use crate::pos::{BlocPos, BlocPos2D, ChunkPos2D};
 use crate::col_commands::WATER_H;
 use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
@@ -48,9 +48,9 @@ trait Render2D {
 impl Render2D for Blocs {
     fn bloc_y_cmp(&self, pos: BlocPos, dir: Dir) -> Ordering {
         let opos = pos + dir;
-        if self.get(opos + Dir::Up) != Bloc::Air {
+        if self.get_block(opos + Dir::Up) != Bloc::Air {
             Ordering::Less
-        } else if self.get(opos) != Bloc::Air {
+        } else if self.get_block(opos) != Bloc::Air {
             Ordering::Equal
         } else {
             Ordering::Greater
@@ -69,7 +69,7 @@ impl Render2D for Blocs {
     }
 
     fn bloc_color(&self, pos: BlocPos2D, soil_color: &SoilColor) -> Rgb {
-        let (bloc, y) = self.top(pos);
+        let (bloc, y) = self.top_block(pos);
         if y > WATER_H {
             let mut color = soil_color.0.get(&bloc).unwrap().clone();
             let blocpos = BlocPos {
@@ -139,7 +139,7 @@ pub fn on_col_load(
     let cols: Vec<_> = ev_load.iter().map(|col_ev| col_ev.0).collect();
     let mut ents = Vec::new();
     // Add all the rendered columns before registering them
-    for col in cols.iter().filter(|col| blocs.contains_col(**col)) {
+    for col in cols.iter().filter(|col| blocs.contains_key(*col)) {
         println!("Loaded ({:?})", col);
         let ent = commands
             .spawn_bundle(SpriteBundle {
