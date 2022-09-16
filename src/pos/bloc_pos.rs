@@ -11,12 +11,12 @@ pub type ChunkedPos2D = (usize, usize);
 pub type ColedPos = (usize, i32, usize);
 
 
-fn chunked(x: i32) -> (i32, usize) {
+pub fn chunked(x: i32) -> (i32, usize) {
     let r = x.rem_euclid(CHUNK_S1I);
     ((x - r) / CHUNK_S1I, r as usize)
 }
 
-fn unchunked(cx: i32, dx: usize) -> i32 {
+pub fn unchunked(cx: i32, dx: usize) -> i32 {
     cx * CHUNK_S1I + dx as i32
 }
 

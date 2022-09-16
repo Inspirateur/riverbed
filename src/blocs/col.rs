@@ -1,6 +1,5 @@
 use std::ops::IndexMut;
-
-use crate::{blocs::{Chunk, CHUNK_S1, Bloc}, pos::{ChunkedPos2D, ColedPos}};
+use crate::{blocs::{Chunk, CHUNK_S1, Bloc}, pos::{ChunkedPos2D, ColedPos, bloc_pos::chunked}, utils::packed_ints::PackedUsizes};
 use array_macro::array;
 use itertools::iproduct;
 pub const MAX_HEIGHT: usize = 256;
@@ -30,11 +29,21 @@ impl Col {
     }
 
     pub fn get(&self, (dx, y, dz): ColedPos) -> Bloc {
-        todo!()
+        let (qy, dy) = chunked(y);
+        let qy = qy as usize;
+        match &self.chunks[qy] {
+            None => Bloc::Air,
+            Some(chunk) => chunk.get((dx, dy, dz)).clone()
+        }
     }
 
     pub fn set(&mut self, (dx, y, dz): ColedPos, bloc: Bloc) {
-        todo!()
+        let (qy, dy) = chunked(y);
+        let qy = qy as usize;
+        if self.chunks[qy].is_none() {
+            self.chunks[qy] = Some(Chunk::<PackedUsizes>::new());
+        }
+        self.chunks[qy].as_mut().unwrap().set((dx, dy, dz), bloc);
     }
 
     pub fn fill_up(&mut self, bloc: Bloc) {

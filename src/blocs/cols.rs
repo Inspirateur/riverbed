@@ -58,14 +58,20 @@ impl<E> Cols<E> {
     }
 }
 
-impl Cols<Col> {
+impl Blocs {
     pub fn get(&self, pos: BlocPos) -> Bloc {
         let (colpos, coledpos) = pos.into();
-        self.get_col(colpos).unwrap().get(coledpos)
+        match self.get_col(colpos) {
+            None => Bloc::Air,
+            Some(col) => col.get(coledpos)
+        }
     }
 
     pub fn top(&self, pos: BlocPos2D) -> (Bloc, i32) {
         let (colpos, pos2d) = pos.into();
-        self.get_col(colpos).unwrap().top(pos2d)
+        match self.get_col(colpos) {
+            None => (Bloc::Bedrock, 0),
+            Some(col) => col.top(pos2d)
+        }
     }
 }
