@@ -1,4 +1,4 @@
-use crate::realm::Realm;
+use crate::pos::Realm;
 use bevy::{ecs::component::Component, prelude::Vec3};
 use std::ops::{Add, AddAssign};
 
@@ -9,6 +9,12 @@ pub trait Fromf32 {
 impl Fromf32 for i32 {
     fn from_f32(v: f32) -> Self {
         v as i32
+    }
+}
+
+impl Fromf32 for usize {
+    fn from_f32(v: f32) -> Self {
+        v as usize
     }
 }
 
@@ -80,5 +86,11 @@ impl<N: Number, V: Into<Vec3>> Add<V> for Pos2D<N> {
             x: self.x + N::from_f32(rhs.x),
             z: self.z + N::from_f32(rhs.z),
         }
+    }
+}
+
+impl From<Pos<i32>> for Pos2D<i32> {
+    fn from(pos: Pos<i32>) -> Self {
+        Pos2D { realm: pos.realm, x: pos.x, z: pos.z }
     }
 }

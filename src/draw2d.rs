@@ -1,7 +1,5 @@
-use crate::bloc::Bloc;
-use crate::bloc_pos::{BlocPos, BlocPos2D, BlocPosChunked2D, ChunkPos2D};
-use crate::blocs::Blocs;
-use crate::chunk::{CHUNK_S1, CHUNK_S2};
+use crate::blocs::{Bloc, Blocs, CHUNK_S1, CHUNK_S2};
+use crate::pos::{BlocPos, BlocPos2D, ChunkPos2D};
 use crate::col_commands::WATER_H;
 use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
 use crate::player::Dir;
@@ -95,7 +93,7 @@ impl Render2D for Blocs {
             let dz = CHUNK_S1-(dz+1);
             let i = i*4;
             let color = self.bloc_color(
-                BlocPos2D::from(BlocPosChunked2D { col, dx, dz }),
+                BlocPos2D::from((col, (dx, dz))),
                 soil_color,
             );
             data[i] = color.blue() as u8;
@@ -119,7 +117,7 @@ impl Render2D for Blocs {
         for i in (0..CHUNK_S1 * 4).step_by(4) {
             let (dx, dz) = ((i / 4) % CHUNK_S1, CHUNK_S1 - 1 - (i / 4) / CHUNK_S1);
             let color = self.bloc_color(
-                BlocPos2D::from(BlocPosChunked2D { col, dx, dz }),
+                BlocPos2D::from((col, (dx, dz))),
                 soil_color,
             );
             image.data[i] = color.blue() as u8;

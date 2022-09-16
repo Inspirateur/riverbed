@@ -1,9 +1,7 @@
 use crate::{
-    bloc_pos::ChunkPos2D,
-    blocs::MAX_HEIGHT,
-    chunk::{Chunk, CHUNK_S1},
+    pos::{ChunkPos2D, Realm},
+    blocs::Col,
     earth_gen::Earth,
-    realm::Realm,
 };
 use dashmap::DashMap;
 use std::collections::HashMap;
@@ -13,7 +11,7 @@ pub trait TerrainGen: Send + Sync {
     where
         Self: Sized + Clone;
 
-    fn gen(&self, col: (i32, i32)) -> [Option<Chunk>; MAX_HEIGHT / CHUNK_S1];
+    fn gen(&self, col: (i32, i32)) -> Col;
 }
 
 pub struct Generators {
@@ -27,7 +25,7 @@ impl Generators {
         Generators { data: gens }
     }
 
-    pub fn gen(&self, pos: ChunkPos2D) -> [Option<Chunk>; MAX_HEIGHT / CHUNK_S1] {
+    pub fn gen(&self, pos: ChunkPos2D) -> Col {
         self.data.get(&pos.realm).unwrap().gen((pos.x, pos.z))
     }
 }

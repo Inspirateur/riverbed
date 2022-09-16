@@ -1,4 +1,4 @@
-use crate::{bloc_pos::ChunkPos2D, realm::Realm};
+use crate::pos::{ChunkPos2D, Realm};
 use std::collections::{HashMap, HashSet};
 pub const WATER_H: i32 = 100;
 

@@ -1,4 +1,4 @@
-use crate::{bloc_pos::ChunkPos2D, load_area::LoadArea, pos::Pos, realm::Realm};
+use crate::{pos::{ChunkPos2D, Realm, Pos}, load_area::LoadArea};
 use bevy::{
     math::Vec3,
     prelude::{Commands, KeyCode, Query, Res},

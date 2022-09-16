@@ -1,4 +1,4 @@
-use crate::bloc_pos::ChunkPos2D;
+use crate::pos::ChunkPos2D;
 use crate::blocs::Blocs;
 use crate::col_commands::ColCommands;
 use crate::terrain_gen::Generators;

@@ -1,7 +1,3 @@
-mod bloc;
-mod bloc_pos;
-mod blocs;
-mod chunk;
 mod col_commands;
 mod draw2d;
 mod earth_gen;
@@ -9,11 +5,10 @@ mod load_area;
 mod load_cols;
 mod player;
 mod pos;
-mod realm;
 mod terrain_gen;
 mod utils;
+mod blocs;
 use bevy::prelude::*;
-use blocs::Blocs;
 use col_commands::ColCommands;
 use draw2d::Draw2d;
 use leafwing_input_manager::plugin::InputManagerPlugin;
@@ -26,6 +21,7 @@ use utils::packed_ints;
 use utils::weighted_dist;
 use utils::noise_build;
 use utils::noise_source;
+use blocs::Blocs;
 
 struct GameLogic;
 

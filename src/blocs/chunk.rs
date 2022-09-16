@@ -1,6 +1,8 @@
-use crate::{bloc::Bloc, packed_ints::find_bitsize};
+use crate::pos::ChunkedPos;
+use crate::{blocs::bloc::Bloc, packed_ints::find_bitsize};
 use crate::get_set::GetSet;
 use crate::packed_ints::PackedUsizes;
+use crate::utils::palette::Palette;
 use serde::{Deserialize, Serialize};
 pub const CHUNK_S1: usize = 32;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
@@ -10,20 +12,6 @@ fn index(x: usize, y: usize, z: usize) -> usize {
     x + y * CHUNK_S1 + z * CHUNK_S2
 }
 
-trait Palette<E> {
-    fn index(&mut self, elem: E) -> usize;
-}
-
-impl<E: Eq> Palette<E> for Vec<E> {
-    fn index(&mut self, elem: E) -> usize {
-        self.iter().position(|other| *other == elem).unwrap_or({
-            // bloc is not present in the palette
-            self.push(elem);
-            self.len() - 1
-        })
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Chunk<L: GetSet<usize> = PackedUsizes> {
     data: L,
@@ -31,14 +19,22 @@ pub struct Chunk<L: GetSet<usize> = PackedUsizes> {
 }
 
 impl<L: GetSet<usize>> Chunk<L> {
-    pub fn get(&self, x: usize, y: usize, z: usize) -> &Bloc {
+    pub fn get(&self, (x, y, z): ChunkedPos) -> &Bloc {
         &self.palette[self.data.get(index(x, y, z))]
     }
 
-    pub fn set(&mut self, x: usize, y: usize, z: usize, bloc: Bloc) {
+    pub fn set(&mut self, (x, y, z): ChunkedPos, bloc: Bloc) {
         let idx = index(x, y, z);
-        let value = self.palette.index(bloc);
-        self.data.set(idx, value);
+        self.data.set(idx, self.palette.index(bloc));
+    }
+
+    pub fn set_if_empty(&mut self, (x, y, z): ChunkedPos, bloc: Bloc) -> bool {
+        let idx = index(x, y, z);
+        if self.palette[self.data.get(idx)] != Bloc::Air {
+            return false;
+        }
+        self.data.set(idx, self.palette.index(bloc));
+        true
     }
 }
 

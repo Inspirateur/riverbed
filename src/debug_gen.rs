@@ -1,7 +1,5 @@
 use crate::{
-    bloc::Bloc,
-    chunk::{self, Chunk},
-    chunk_map::MAX_HEIGHT,
+    blocs::{Bloc, Chunk, MAX_HEIGHT},
     packed_ints::PackedUsizes,
     terrain_gen::TerrainGen,
     weighted_dist::WeightedPoints,

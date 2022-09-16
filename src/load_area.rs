@@ -1,4 +1,4 @@
-use crate::{bloc_pos::ChunkPos2D, col_commands::ColCommands, pos::Pos};
+use crate::{pos::{ChunkPos2D, Pos}, col_commands::ColCommands};
 use bevy::prelude::Query;
 use bevy::prelude::*;
 use itertools::iproduct;

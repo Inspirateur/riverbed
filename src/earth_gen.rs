@@ -1,18 +1,12 @@
 use crate::{
-    bloc::Bloc,
-    blocs::MAX_HEIGHT,
-    chunk,
-    chunk::Chunk,
-    noise_build::{NoiseFct},
-    packed_ints::PackedUsizes,
+    blocs::{Bloc, MAX_HEIGHT, CHUNK_S1, Col},
+    noise_build::NoiseFct,
     terrain_gen::TerrainGen,
     weighted_dist::WeightedPoints, utils::{noise_build::Noise, noise_source::NoiseSource},
 };
-use array_macro::array;
 use itertools::iproduct;
-use std::{collections::HashMap, ops::IndexMut, usize, sync::Arc};
+use std::{collections::HashMap, usize, sync::Arc};
 const SCALE: f32 = 0.005;
-const CHUNK_S1: i32 = chunk::CHUNK_S1 as i32;
 
 pub struct Earth {
     soils: WeightedPoints<Bloc>,
@@ -24,8 +18,8 @@ pub struct Earth {
 
 impl Earth {
     pub fn sample_col(&self, x: i32, z: i32) -> [Vec<f32>; 3] {
-        self.sample( x * CHUNK_S1,
-            z * CHUNK_S1,
+        self.sample( x * CHUNK_S1 as i32,
+            z * CHUNK_S1 as i32,
             CHUNK_S1 as usize,
             CHUNK_S1 as usize,
             SCALE,
@@ -74,34 +68,22 @@ impl TerrainGen for Earth {
         }
     }
 
-    fn gen(&self, col: (i32, i32)) -> [Option<Chunk>; MAX_HEIGHT / chunk::CHUNK_S1] {
-        let mut res = array![_ => None; MAX_HEIGHT / chunk::CHUNK_S1];
-        let [ys, ts, hs] = self.sample_col(col.0, col.1);
+    fn gen(&self, col_pos: (i32, i32)) -> Col {
+        let mut col = Col::new();
+        let [ys, ts, hs] = self.sample_col(col_pos.0, col_pos.1);
         for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
             let (y, t, h) = (ys[i], ts[i], hs[i]);
             let y = (y * MAX_HEIGHT as f32 * 0.8) as i32;
             assert!(y >= 0);
-            let (qy, dy) = (y / CHUNK_S1, y % CHUNK_S1);
-            if res[qy as usize].is_none() {
-                res[qy as usize] = Some(Chunk::<PackedUsizes>::new());
-            }
-            if let Some(chunk) = res.index_mut(qy as usize) {
-                chunk.set(
-                    dx as usize,
-                    dy as usize,
-                    dz as usize,
-                    self.soils.closest(&[t as f32, h as f32]).0,
-                );
-                for dy_ in 0..dy as usize {
-                    chunk.set(dx as usize, dy_, dz as usize, Bloc::Dirt);
+            col.set((dx, y, dz), self.soils.closest(&[t as f32, h as f32]).0);
+            for y_ in (y-3)..y {
+                if y_ < 0 {
+                    break;
                 }
+                col.set((dx, y_, dz), Bloc::Dirt);
             }
         }
-        let mut qy = 0;
-        while res[qy].is_none() {
-            res[qy] = Some(Chunk::<PackedUsizes>::filled(Bloc::Stone));
-            qy += 1;
-        }
-        res
+        col.fill_up(Bloc::Stone);
+        col
     }
 }
