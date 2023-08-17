@@ -1,8 +1,7 @@
 use crate::{
-    pos::{ChunkPos2D, Realm},
-    blocs::Col,
-    earth_gen::Earth,
+    earth_gen::Earth, realm::Realm, blocs::{ChunkPos2D, Col},
 };
+use bevy::prelude::Resource;
 use dashmap::DashMap;
 use std::collections::HashMap;
 
@@ -14,6 +13,7 @@ pub trait TerrainGen: Send + Sync {
     fn gen(&self, col: (i32, i32)) -> Col;
 }
 
+#[derive(Resource)]
 pub struct Generators {
     data: DashMap<Realm, Box<dyn TerrainGen>>,
 }
@@ -21,11 +21,11 @@ pub struct Generators {
 impl Generators {
     pub fn new(seed: u32) -> Self {
         let gens: DashMap<Realm, Box<dyn TerrainGen>> = DashMap::new();
-        gens.insert(Realm::Earth, Box::new(Earth::new(seed, HashMap::new())));
+        gens.insert(Realm::Overworld, Box::new(Earth::new(seed, HashMap::new())));
         Generators { data: gens }
     }
 
     pub fn gen(&self, pos: ChunkPos2D) -> Col {
-        self.data.get(&pos.realm).unwrap().gen((pos.x, pos.z))
+        self.data.get(&Realm::Overworld).unwrap().gen((pos.x, pos.z))
     }
 }

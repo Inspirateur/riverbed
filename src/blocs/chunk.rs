@@ -1,36 +1,48 @@
-use crate::pos::ChunkedPos;
-use crate::{blocs::bloc::Bloc, packed_ints::find_bitsize};
-use crate::get_set::GetSet;
-use crate::packed_ints::PackedUsizes;
-use crate::utils::palette::Palette;
-use serde::{Deserialize, Serialize};
+use itertools::Itertools;
+use packed_uints::PackedUints;
+use crate::bloc::Bloc;
+
+use super::pos::{ChunkedPos, ChunkedPos2D};
+use super::utils::Palette;
 pub const CHUNK_S1: usize = 32;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
-const CHUNK_S3: usize = CHUNK_S1.pow(3);
+pub const CHUNK_S3: usize = CHUNK_S1.pow(3);
 
-fn index(x: usize, y: usize, z: usize) -> usize {
-    x + y * CHUNK_S1 + z * CHUNK_S2
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Chunk<L: GetSet<usize> = PackedUsizes> {
-    data: L,
+#[derive(Debug)]
+pub struct Chunk {
+    data: PackedUints,
     palette: Vec<Bloc>,
+    size: usize,
+    size2: usize
 }
 
-impl<L: GetSet<usize>> Chunk<L> {
+impl Chunk {
+    fn index(&self, x: usize, y: usize, z: usize) -> usize {
+        x + y * self.size + z * self.size2
+    }
+
     pub fn get(&self, (x, y, z): ChunkedPos) -> &Bloc {
-        &self.palette[self.data.get(index(x, y, z))]
+        &self.palette[self.data.get(self.index(x, y, z))]
     }
 
     pub fn set(&mut self, (x, y, z): ChunkedPos, bloc: Bloc) {
-        let idx = index(x, y, z);
+        let idx = self.index(x, y, z);
         self.data.set(idx, self.palette.index(bloc));
     }
 
+    pub fn top(&self, (x, z): ChunkedPos2D) -> (&Bloc, usize) {
+        for y in (0..self.size).rev() {
+            let b_idx = self.data.get(self.index(x, y, z));
+            if b_idx > 0 {
+                return (&self.palette[b_idx], y);
+            }
+        }
+        (&self.palette[0], 0)
+    }
+
     pub fn set_if_empty(&mut self, (x, y, z): ChunkedPos, bloc: Bloc) -> bool {
-        let idx = index(x, y, z);
-        if self.palette[self.data.get(idx)] != Bloc::Air {
+        let idx = self.index(x, y, z);
+        if self.palette[self.data.get(idx)] != Bloc::default() {
             return false;
         }
         self.data.set(idx, self.palette.index(bloc));
@@ -38,52 +50,37 @@ impl<L: GetSet<usize>> Chunk<L> {
     }
 }
 
-impl Chunk<PackedUsizes> {
-    pub fn new() -> Self {
+impl From<&[Bloc]> for Chunk {
+    fn from(values: &[Bloc]) -> Self {
+        let size = (values.len() as f64).cbrt() as usize;
+        let mut palette = vec![Bloc::default()];
+        let values = values.iter().map(|v| palette.index(v.clone())).collect_vec();
+        let data = PackedUints::from(values.as_slice());
         Chunk {
-            data: PackedUsizes::new(CHUNK_S3, 4),
-            palette: vec![Bloc::Air],
+            data, palette, 
+            size, size2: size*size
+        }
+    }
+}
+
+impl Chunk {
+    pub fn new(size: usize) -> Self {
+        Chunk {
+            data: PackedUints::new(size*size*size),
+            palette: vec![Bloc::default()], 
+            size, size2: size*size
         }
     }
 
-    pub fn filled(bloc: Bloc) -> Self {
-        if bloc == Bloc::Air {
-            Chunk::<PackedUsizes>::new()
+    pub fn filled(size: usize, bloc: Bloc) -> Self {
+        if bloc == Bloc::default() {
+            Chunk::new(size)
         } else {
             Chunk {
-                data: PackedUsizes::filled(CHUNK_S3, 4, 1),
-                palette: vec![Bloc::Air, bloc],
+                data: PackedUints::filled(size*size*size, 1),
+                palette: vec![Bloc::default(), bloc], 
+                size, size2: size*size
             }
         }
-    }
-}
-
-impl Chunk<Vec<usize>> {
-    pub fn new() -> Self {
-        Chunk {
-            data: vec![0; CHUNK_S3],
-            palette: vec![Bloc::Air],
-        }
-    }
-}
-
-impl From<Chunk<Vec<usize>>> for Chunk<PackedUsizes> {
-    fn from(chunk: Chunk<Vec<usize>>) -> Self {
-        Chunk {
-            data: PackedUsizes::from_usizes(chunk.data, find_bitsize(chunk.palette.len())),
-            palette: chunk.palette,
-        }
-    }
-}
-
-impl Default for Chunk<Vec<usize>> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Default for Chunk<PackedUsizes> {
-    fn default() -> Self {
-        Self::new()
     }
 }

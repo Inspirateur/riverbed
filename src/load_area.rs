@@ -1,4 +1,4 @@
-use crate::{pos::{ChunkPos2D, Pos}, col_commands::ColCommands};
+use crate::{col_commands::ColCommands, blocs::{ChunkPos2D, Pos}, realm::Realm};
 use bevy::prelude::Query;
 use bevy::prelude::*;
 use itertools::iproduct;
@@ -8,6 +8,7 @@ use std::ops::{Deref, Sub};
 pub struct LoadArea {
     pub col: ChunkPos2D,
     pub dist: u32,
+    pub realm: Realm,
 }
 
 impl LoadArea {
@@ -29,13 +30,12 @@ impl Sub<LoadArea> for LoadArea {
     type Output = Vec<(i32, i32)>;
 
     fn sub(self, rhs: LoadArea) -> Self::Output {
-        if self.col.realm != rhs.col.realm {
+        if self.realm != rhs.realm {
             self.iter().collect()
         } else {
             self.iter()
                 .filter(|(x, z)| {
                     !rhs.contains(ChunkPos2D {
-                        realm: self.col.realm,
                         x: *x,
                         z: *z,
                     })
@@ -78,18 +78,16 @@ pub fn load_order(
         if let Some(mut load_area_old) = load_area_old_opt {
             world.register(
                 *load_area - **load_area_old,
-                load_area.col.realm,
-                entity.id(),
+                entity.index(),
             );
             world.unregister(
                 **load_area_old - *load_area,
-                load_area_old.col.realm,
-                entity.id(),
+                entity.index()
             );
             *load_area_old = load_area_clone;
         } else {
             commands.entity(entity).insert(load_area_clone);
-            world.register(load_area.iter().collect(), load_area.col.realm, entity.id());
+            world.register(load_area.iter().collect(), entity.index());
         }
     }
 }

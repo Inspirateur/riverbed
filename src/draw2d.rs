@@ -1,22 +1,23 @@
-use crate::blocs::{Bloc, Blocs, CHUNK_S1, CHUNK_S2, BlocsTrait};
-use crate::pos::{BlocPos, BlocPos2D, ChunkPos2D};
-use crate::col_commands::WATER_H;
+use crate::CHUNK_S1;
+use crate::bloc::Bloc;
+use crate::blocs::{BlocPos, ChunkPos2D, BlocPos2D, Blocs, CHUNK_S2, Pos};
+use crate::earth_gen::WATER_H;
 use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
 use crate::player::Dir;
-use crate::pos::Pos;
 use anyhow::Result;
 use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use bevy::render::texture::BevyDefault;
 use colorsys::{ColorTransform, Rgb};
-use itertools::{zip, iproduct};
+use itertools::iproduct;
 use leafwing_input_manager::prelude::ActionState;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::iter::zip;
 use std::str::FromStr;
 
 pub fn setup(mut commands: Commands) {
-    commands.spawn_bundle(Camera2dBundle {
+    commands.spawn(Camera2dBundle {
         projection: OrthographicProjection {
             scale: 0.5,
             ..Default::default()
@@ -70,10 +71,9 @@ impl Render2D for Blocs {
 
     fn bloc_color(&self, pos: BlocPos2D, soil_color: &SoilColor) -> Rgb {
         let (bloc, y) = self.top_block(pos);
-        if y > WATER_H {
+        if y >= WATER_H {
             let mut color = soil_color.0.get(&bloc).unwrap().clone();
             let blocpos = BlocPos {
-                realm: pos.realm,
                 x: pos.x,
                 y,
                 z: pos.z,
@@ -134,15 +134,15 @@ pub fn on_col_load(
     soil_color: Res<SoilColor>,
     imquery: Query<&Handle<Image>>,
     mut images: ResMut<Assets<Image>>,
-    mut col_ents: ResMut<HashMap<ChunkPos2D, Entity>>,
+    mut col_ents: ResMut<ColEntities>,
 ) {
     let cols: Vec<_> = ev_load.iter().map(|col_ev| col_ev.0).collect();
     let mut ents = Vec::new();
     // Add all the rendered columns before registering them
-    for col in cols.iter().filter(|col| blocs.contains_key(*col)) {
+    for col in cols.iter().filter(|col| blocs.0.contains_key(*col)) {
         println!("Loaded ({:?})", col);
         let ent = commands
-            .spawn_bundle(SpriteBundle {
+            .spawn(SpriteBundle {
                 texture: images.add(blocs.render_col(*col, &soil_color)),
                 transform: Transform::from_translation(
                     Vec3::new(col.x as f32, col.z as f32, 0.) * CHUNK_S1 as f32,
@@ -153,7 +153,7 @@ pub fn on_col_load(
         ents.push(ent);
         // if there was an already loaded col below
         let col_below = *col + Dir::Back;
-        if let Some(ent_below) = col_ents.get(&col_below) {
+        if let Some(ent_below) = col_ents.0.get(&col_below) {
             if let Ok(handle) = imquery.get_component::<Handle<Image>>(*ent_below) {
                 if let Some(image) = images.get_mut(&handle) {
                     // update the top side shading with the new information
@@ -163,22 +163,23 @@ pub fn on_col_load(
         }
     }
     for (col, ent) in zip(&cols, &ents) {
-        col_ents.insert(*col, *ent);
+        col_ents.0.insert(*col, *ent);
     }
 }
 
 pub fn on_col_unload(
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
-    mut col_ents: ResMut<HashMap<ChunkPos2D, Entity>>,
+    mut col_ents: ResMut<ColEntities>,
 ) {
     for col_ev in ev_unload.iter() {
-        if let Some(ent) = col_ents.remove(&col_ev.0) {
+        if let Some(ent) = col_ents.0.remove(&col_ev.0) {
             commands.entity(ent).despawn();
         }
     }
 }
 
+#[derive(Resource)]
 pub struct SoilColor(HashMap<Bloc, Rgb>);
 
 impl SoilColor {
@@ -187,21 +188,25 @@ impl SoilColor {
         let mut data = HashMap::new();
         for record in reader.records() {
             let record = record?;
-            let color = Rgb::from_hex_str(&record[1])?;
+            let color = Rgb::from_hex_str(&record[1].trim())?;
             data.insert(Bloc::from_str(&record[0]).unwrap(), color);
         }
         Ok(SoilColor(data))
     }
 }
+
+#[derive(Resource)]
+pub struct ColEntities(HashMap::<ChunkPos2D, Entity>);
+
 pub struct Draw2d;
 
 impl Plugin for Draw2d {
     fn build(&self, app: &mut App) {
         app.insert_resource(SoilColor::from_csv("assets/data/soils_color.csv").unwrap())
-            .insert_resource(HashMap::<ChunkPos2D, Entity>::new())
-            .add_startup_system(setup)
-            .add_system(update_cam)
-            .add_system(on_col_load)
-            .add_system(on_col_unload);
+            .insert_resource(ColEntities(HashMap::<ChunkPos2D, Entity>::new()))
+            .add_systems(Startup, setup)
+            .add_systems(Update, update_cam)
+            .add_systems(Update, on_col_load)
+            .add_systems(Update, on_col_unload);
     }
 }

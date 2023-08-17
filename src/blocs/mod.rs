@@ -1,8 +1,10 @@
-pub mod chunk;
-pub mod col;
-pub mod cols;
-pub mod bloc;
-pub use bloc::Bloc;
+mod utils;
+mod chunk;
+mod col;
+mod cols;
+mod pos;
+pub use cols::*;
+pub use col::*;
 pub use chunk::*;
-pub use col::{Col, MAX_HEIGHT};
-pub use cols::{Cols, Blocs, BlocsTrait};
+pub use pos::*;
+pub use utils::*;

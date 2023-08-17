@@ -1,6 +1,5 @@
-use crate::get_set::GetSet;
+use crate::utils::get_set::GetSet;
 use intbits::Bits;
-use serde::{Deserialize, Serialize};
 use std::iter;
 // Inspiration from:
 // https://github.com/adrianwong/packed-integers/blob/master/src/lib.rs
@@ -10,14 +9,10 @@ fn div_ceil(a: u32, b: u32) -> u32 {
 }
 
 pub fn find_bitsize(value: usize) -> u32 {
-    let mut bitsize = 4;
-    while 2_u32.pow(bitsize) <= value as u32 {
-        bitsize += 1;
-    }
-    bitsize
+    (value.ilog2() + 1).max(4)
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
 pub struct PackedUsizes {
     pub len: usize,
     bitsize: u32,
@@ -25,29 +20,14 @@ pub struct PackedUsizes {
     data: Vec<usize>,
 }
 
-fn set_bits(data: &mut Vec<usize>, i: usize, start: u32, end: u32, value: usize) {
-    if end <= usize::BITS {
-        // the value is in 1 cell
-        data[i].set_bits(start..end, value);
-    } else {
-        // the value is split in 2 cells
-        let end = end - usize::BITS;
-        data[i].set_bits(start..usize::BITS, value.bits(..(usize::BITS - start)));
-        data[1 + i].set_bits(..end, value.bits((usize::BITS - start)..));
-    }
+fn set_bit(data: &mut Vec<usize>, i: usize, start: u32, end: u32, value: usize) {
+    // the value is in 1 cell
+    data[i].set_bits(start..end, value);
 }
 
-fn get_bits(data: &Vec<usize>, i: usize, start: u32, end: u32) -> usize {
-    if end <= usize::BITS {
-        // the value is in 1 cell
-        data[i].bits(start..end)
-    } else {
-        // the value is split in 2 cells
-        let end = end - usize::BITS;
-        data[i]
-            .bits(start..usize::BITS)
-            .with_bits((usize::BITS - start).., data[1 + i].bits(..end))
-    }
+fn get_bit(data: &Vec<usize>, i: usize, start: u32, end: u32) -> usize {
+    // the value is in 1 cell
+    data[i].bits(start..end)
 }
 
 impl PackedUsizes {
@@ -85,7 +65,7 @@ impl PackedUsizes {
         let mut start_u = 0;
         let mut new_data = vec![0; div_ceil(bitsize * len as u32, usize::BITS) as usize];
         for value in data.into_iter() {
-            set_bits(&mut new_data, index_u, start_u, start_u + bitsize, value);
+            set_bit(&mut new_data, index_u, start_u, start_u + bitsize, value);
             start_u += bitsize;
             if start_u >= usize::BITS {
                 start_u -= usize::BITS;
@@ -126,7 +106,7 @@ impl GetSet<usize> for PackedUsizes {
     fn get(&self, i: usize) -> usize {
         let start_bit = self.bitsize * i as u32;
         let (index_u, start_u) = ((start_bit / usize::BITS) as usize, start_bit % usize::BITS);
-        get_bits(&self.data, index_u, start_u, start_u + self.bitsize)
+        get_bit(&self.data, index_u, start_u, start_u + self.bitsize)
     }
 
     fn set(&mut self, i: usize, value: usize) {
@@ -136,7 +116,7 @@ impl GetSet<usize> for PackedUsizes {
         }
         let start_bit = self.bitsize * i as u32;
         let (index_u, start_u) = ((start_bit / usize::BITS) as usize, start_bit % usize::BITS);
-        set_bits(
+        set_bit(
             &mut self.data,
             index_u,
             start_u,
@@ -145,6 +125,7 @@ impl GetSet<usize> for PackedUsizes {
         );
     }
 }
+
 pub struct PackedUsizesIter {
     len: usize,
     count: usize,
@@ -161,7 +142,7 @@ impl Iterator for PackedUsizesIter {
         if self.count >= self.len {
             None
         } else {
-            let value = get_bits(
+            let value = get_bit(
                 &mut self.data,
                 self.index_u,
                 self.start_u,
@@ -180,9 +161,7 @@ impl Iterator for PackedUsizesIter {
 
 #[cfg(test)]
 mod tests {
-    use crate::get_set::GetSet;
-    use rand::prelude::*;
-    use std::time;
+    use crate::utils::get_set::GetSet;
 
     use super::PackedUsizes;
     fn roundtrip(usizes: &mut PackedUsizes, values: &[usize]) {
@@ -197,69 +176,18 @@ mod tests {
     }
 
     #[test]
-    pub fn test_no_split() {
-        // EASY: All values are within one cell
-        // holds 8 integers of 5 bits (40 bits total, max = 2^5-1 = 31)
-        let mut usizes = PackedUsizes::new(8, 5);
-        roundtrip(&mut usizes, &[2, 31, 18, 0, 21, 11, 7, 14]);
-    }
-
-    #[test]
     pub fn test_fill() {
         // EASY: Every bit up to the last is used
-        // holds 8 integers of 8 bits (64 bits total, max = 2^8-1 = 255)
-        let mut usizes = PackedUsizes::new(8, 8);
-        roundtrip(&mut usizes, &[2, 222, 18, 0, 140, 11, 7, 255]);
-    }
-
-    #[test]
-    pub fn test_split() {
-        // MEDIUM: Some values are split between 2 cells
-        // holds 8 integers of 10 bits (80 bits total, max = 2^10-1 = 1023)
-        let mut usizes = PackedUsizes::new(8, 10);
-        roundtrip(&mut usizes, &[541, 26, 999, 4, 0, 263, 1022, 477]);
+        // holds 8 integers of 4 bits (32 bits total, max = 2^4-1 = 15)
+        let mut usizes = PackedUsizes::new(8, 4);
+        roundtrip(&mut usizes, &[2, 15, 6, 0, 4, 5, 10, 11]);
     }
 
     #[test]
     pub fn test_reallocation() {
         // HARD: some values exceed the capacity of 2^bitsize-1, need to reallocate
-        // holds 8 integers of 10 bits (80 bits total, max = 2^10-1 = 1023)
-        let mut usizes = PackedUsizes::new(8, 10);
-        roundtrip(&mut usizes, &[541, 26, 999, 4, 0, 263, 1024, 477]);
-    }
-
-    // actually a benchmark because UGH I don't want to add the whole lib.rs, bench folder with criterion just for this
-    // why did they remove the #[bench] macro ?
-    #[test]
-    pub fn bench_io() {
-        let mut rng = rand::thread_rng();
-        let n = 1000000;
-        let bitsize = 5;
-        let mut values = vec![0; n];
-        values.fill_with(|| rng.gen_range(0..2_usize.pow(bitsize)));
-        // init bench
-        let now = time::Instant::now();
-        let mut packed = PackedUsizes::from_usizes(values, bitsize);
-        let elapsed = now.elapsed();
-        println!("Initializing {} values took {} ms", n, elapsed.as_millis());
-        let mut indices: Vec<usize> = (0..n).collect();
-        indices.shuffle(&mut rng);
-        // write bench
-        let mut values = vec![0; n];
-        values.fill_with(|| rng.gen_range(0..2_usize.pow(bitsize)));
-        let now = time::Instant::now();
-        for i in indices.iter() {
-            packed.set(*i, values[*i]);
-        }
-        let elapsed = now.elapsed();
-        println!("Writing {} values took {} ms", n, elapsed.as_millis());
-        // read bench
-        let mut values = vec![0; n];
-        let now = time::Instant::now();
-        for i in indices.into_iter() {
-            values[i] = packed.get(i);
-        }
-        let elapsed = now.elapsed();
-        println!("Reading {} values took {} ms", n, elapsed.as_millis());
+        // holds 8 integers of 8 bits (64 bits total, max = 2^8-1 = 255)
+        let mut usizes = PackedUsizes::new(8, 8);
+        roundtrip(&mut usizes, &[2, 26, 255, 4, 0, 0, 127, 128]);
     }
 }

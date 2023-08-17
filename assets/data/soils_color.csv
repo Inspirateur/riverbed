@@ -1,9 +1,9 @@
 id, color
-ice, #ddf
-dirt, #752
-snow, #eee 
-mud, #530
-grass, #693
-sand, #dc8
-stone, #666
-bedrock, #000
+ice, ddf
+dirt, 985
+snow, eee 
+mud, 530
+grass, 693
+sand, dc8
+stone, 666
+bedrock, 000

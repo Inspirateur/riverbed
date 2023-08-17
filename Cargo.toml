@@ -13,7 +13,6 @@ vpsearch = "*"
 csv = "*"
 colorsys = "*"
 anyhow = "*"
-intbits = "*"
 serde = "*"
 leafwing-input-manager = "*"
 strum = "*"
@@ -21,7 +20,9 @@ strum_macros = "*"
 dashmap = "*"
 futures-lite = "*"
 array-macro = "*"
-noise = "*"
+packed-uints = "*"
+noise-algebra = { git = "https://github.com/Inspirateur/noise-algebra" }
+nd-interval = { git = "https://github.com/Inspirateur/nd-interval" }
 
 [profile.test]
 opt-level = 3

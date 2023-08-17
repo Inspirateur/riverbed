@@ -1,6 +1,6 @@
-id, temp, hum, weight
-ice, 0, 0, 1
-snow, 0.0, 0.5, 1
-grass, 0.35, 0.5, 2
-mud, 0.5, 1, 1
-sand, 1, 0, 1
+id, temp, hum
+ice, 0;0.2, 0.5;1
+snow, 0;0.3, 0;0.5
+grass, 0.3;0.7, 0.2;0.6
+mud, 0.5;1, 0.5;1
+sand, 0.9;1, 0;0.5

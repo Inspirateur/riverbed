@@ -1,9 +1,11 @@
+use std::ops::Range;
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, EnumString, Hash)]
+#[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, EnumString, Hash)]
 #[strum(ascii_case_insensitive)]
 pub enum Bloc {
+    #[default]
     Air,
     Dirt,
     Grass,
@@ -16,3 +18,5 @@ pub enum Bloc {
     Mud,
     Bedrock,
 }
+
+pub type Soils = Vec<([Range<f32>; 2], Bloc)>;

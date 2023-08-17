@@ -1,12 +1,12 @@
-use crate::{pos::{ChunkPos2D, Realm, Pos}, load_area::LoadArea};
+use crate::{load_area::LoadArea, blocs::{Pos, ChunkPos2D}, realm::Realm};
 use bevy::{
     math::Vec3,
     prelude::{Commands, KeyCode, Query, Res},
-    time::Time,
+    time::Time, reflect::TypePath,
 };
 use leafwing_input_manager::prelude::*;
 
-#[derive(Actionlike, PartialEq, Clone, Copy, Debug, Hash)]
+#[derive(Actionlike, TypePath, PartialEq, Clone, Copy, Debug, Hash)]
 pub enum Dir {
     Front,
     Back,
@@ -31,20 +31,20 @@ impl From<Dir> for Vec3 {
 
 pub fn spawn_player(mut commands: Commands) {
     let spawn = Pos::<f32> {
-        realm: Realm::Earth,
         x: 0.,
         y: 0.,
         z: 0.,
     };
     commands
-        .spawn_bundle((
+        .spawn((
             spawn,
             LoadArea {
                 col: ChunkPos2D::from(spawn),
                 dist: 5,
+                realm: Realm::Overworld
             },
         ))
-        .insert_bundle(InputManagerBundle::<Dir> {
+        .insert(InputManagerBundle::<Dir> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
                 (KeyCode::W, Dir::Front),

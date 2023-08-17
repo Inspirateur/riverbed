@@ -1,56 +1,24 @@
 use crate::{
-    blocs::{Bloc, MAX_HEIGHT, CHUNK_S1, Col},
-    noise_build::NoiseFct,
+    bloc::{Bloc, Soils},
     terrain_gen::TerrainGen,
-    weighted_dist::WeightedPoints, utils::{noise_build::Noise, noise_source::NoiseSource},
+    MAX_HEIGHT, CHUNK_S1, blocs::Col
 };
+use noise_algebra::NoiseSource;
 use itertools::iproduct;
-use std::{collections::HashMap, usize, sync::Arc};
-const SCALE: f32 = 0.005;
+use std::{collections::HashMap, path::Path, ops::RangeInclusive};
+use nd_interval::NdInterval;
+pub const WATER_R: f64 = 0.3;
+pub const WATER_H: i32 = (MAX_HEIGHT as f64*WATER_R) as i32;
 
+#[derive(Clone)]
 pub struct Earth {
-    soils: WeightedPoints<Bloc>,
-    seed: u32,
-    source: Arc<NoiseSource>,
-    landratio: f32,
+    soils: Soils,
+    seed: i32,
     config: HashMap<String, f32>,
 }
 
-impl Earth {
-    pub fn sample_col(&self, x: i32, z: i32) -> [Vec<f32>; 3] {
-        self.sample( x * CHUNK_S1 as i32,
-            z * CHUNK_S1 as i32,
-            CHUNK_S1 as usize,
-            CHUNK_S1 as usize,
-            SCALE,
-            self.seed,
-            self.source.clone()
-        )
-    }
-}
-
-impl NoiseFct<3> for Earth {
-    fn build(&self, n: &mut Noise<f64>) -> [f32; 3] {
-        let land = n.noise(0.7) + n.noise(3.) * 0.3 + n.noise(9.) * 0.1;
-        let ocean = land.clone().turn().pos();
-        let land = land.norm().mask(self.landratio);
-        let mount_mask = (n.noise(1.) + n.noise(2.)*0.3).norm().mask(0.2);
-        let mount = (1.-n.noise(1.).abs()) * land.clone() * mount_mask;
-        let y = (land + mount).norm();
-        // more attitude => less temperature
-        let t = y.clone().pow(3).turn() * n.noise(0.2).pos();
-        // closer to the ocean => more humidity
-        // higher temp => more humidity
-        let h = t.clone().sqrt() * (ocean*0.5 + n.noise(0.8).pos()).norm();
-        // Add a slope output, useful for rocks and vegetation
-        [y.value, t.value, h.value]
-    }
-}
-
-impl Clone for Earth {
-    fn clone(&self) -> Self {
-        Earth::new(self.seed, self.config.clone())
-    }
+fn pos_to_range(col_pos: (i32, i32)) -> [RangeInclusive<i32>; 2] {
+    [col_pos.0..=(col_pos.0+CHUNK_S1 as i32-1), col_pos.1..=(col_pos.1+CHUNK_S1 as i32-1)]
 }
 
 impl TerrainGen for Earth {
@@ -58,24 +26,40 @@ impl TerrainGen for Earth {
     where
         Self: Sized,
     {
-        let landratio = config.get("land_ratio").copied().unwrap_or(0.5);
         Earth {
-            soils: WeightedPoints::from_csv("assets/data/soils_condition.csv").unwrap(),
-            seed,
-            landratio,
-            config,
-            source: Arc::new(NoiseSource::new())
+            soils: Soils::from_csv(Path::new("assets/data/soils_condition.csv")).unwrap(),
+            seed: seed as i32,
+            config
         }
     }
 
     fn gen(&self, col_pos: (i32, i32)) -> Col {
         let mut col = Col::new();
-        let [ys, ts, hs] = self.sample_col(col_pos.0, col_pos.1);
+        let range = pos_to_range(col_pos);
+        let mut n = NoiseSource::new(range, self.seed, 1);
+        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.45) as f64;
+        let cont = (n.simplex(0.7) + n.simplex(3.) * 0.3).normalize();
+        let land = cont.clone() + n.simplex(9.) * 0.1;
+        let ocean = !(cont*0.5 + 0.5);
+        let land = land.normalize().mask(landratio);
+        let mount_mask = (n.simplex(1.) + n.simplex(2.)*0.3).normalize().mask(0.2)*land.clone();
+        let mount = (!n.simplex(0.8).powi(2) + n.simplex(1.5).powi(2)*0.4).normalize() * mount_mask;
+        // WATER_R is used to ensure land remains above water even if water level is raised
+        let ys = 0.009 + land*WATER_R + mount*(1.-WATER_R);
+        // more attitude => less temperature
+        let ts = !ys.clone().powi(3) * (n.simplex(0.2)*0.5 + 0.5 + n.simplex(0.6)*0.3).normalize();
+        // closer to the ocean => more humidity
+        // higher temp => more humidity
+        let hs = (ocean + ts.clone().powf(0.5) * (n.simplex(0.5)*0.5 + 0.5)).normalize();
         for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
             let (y, t, h) = (ys[i], ts[i], hs[i]);
-            let y = (y * MAX_HEIGHT as f32 * 0.8) as i32;
+            let y = (y * MAX_HEIGHT as f64) as i32;
             assert!(y >= 0);
-            col.set((dx, y, dz), self.soils.closest(&[t as f32, h as f32]).0);
+            let bloc = match self.soils.closest([t as f32, h as f32]) {
+                Some((bloc, _)) => *bloc,
+                None => Bloc::Dirt,
+            };
+            col.set((dx, y, dz), bloc);
             for y_ in (y-3)..y {
                 if y_ < 0 {
                     break;
