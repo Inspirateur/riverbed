@@ -23,6 +23,7 @@ pub fn unchunked(cx: i32, dx: usize) -> i32 {
 impl From<Pos> for ChunkPos2D {
     fn from(pos: Pos) -> Self {
         ChunkPos2D {
+            realm: pos.realm,
             x: chunked(pos.x as i32).0,
             z: chunked(pos.z as i32).0,
         }
@@ -34,7 +35,7 @@ impl From<BlocPos> for (ChunkPos, ChunkedPos) {
         let (cx, dx) = chunked(pos.x);
         let (cy, dy) = chunked(pos.y);
         let (cz, dz) = chunked(pos.z);
-        (ChunkPos {x: cx, y: cy, z: cz}, (dx, dy, dz))
+        (ChunkPos {realm: pos.realm, x: cx, y: cy, z: cz}, (dx, dy, dz))
     }
 }
 
@@ -42,13 +43,14 @@ impl From<BlocPos> for (ChunkPos2D, ColedPos) {
     fn from(pos: BlocPos) -> Self {
         let (cx, dx) = chunked(pos.x);
         let (cz, dz) = chunked(pos.z);
-        (ChunkPos2D {x: cx, z: cz}, (dx, pos.y, dz))
+        (ChunkPos2D { realm: pos.realm, x: cx, z: cz}, (dx, pos.y, dz))
     }
 }
 
 impl From<(ChunkPos, ChunkedPos)> for BlocPos {
     fn from((chunk, (dx, dy, dz)): (ChunkPos, ChunkedPos)) -> Self {
         BlocPos {
+            realm: chunk.realm,
             x: unchunked(chunk.x, dx),
             y: unchunked(chunk.y, dy),
             z: unchunked(chunk.z, dz),
@@ -60,13 +62,14 @@ impl From<BlocPos2D> for (ChunkPos2D, ChunkedPos2D) {
     fn from(pos: BlocPos2D) -> Self {
         let (cx, dx) = chunked(pos.x);
         let (cz, dz) = chunked(pos.z);
-        (ChunkPos2D {x: cx, z: cz}, (dx, dz))
+        (ChunkPos2D { realm: pos.realm, x: cx, z: cz}, (dx, dz))
     }
 }
 
 impl From<(ChunkPos2D, ChunkedPos2D)> for BlocPos2D {
     fn from((col, (dx, dz)): (ChunkPos2D, ChunkedPos2D)) -> Self {
         BlocPos2D {
+            realm: col.realm,
             x: unchunked(col.x, dx),
             z: unchunked(col.z, dz),
         }
@@ -76,12 +79,14 @@ impl From<(ChunkPos2D, ChunkedPos2D)> for BlocPos2D {
 
 #[cfg(test)]
 mod tests {
+    use crate::realm::Realm;
     use super::{BlocPos, ChunkPos, ChunkedPos};
     use super::CHUNK_S1I;
 
     #[test]
     fn roundtrip() {
         let pos = BlocPos {
+            realm: Realm::Overworld,
             x: -1,
             y: 57,
             z: CHUNK_S1I,

@@ -74,6 +74,7 @@ impl Render2D for Blocs {
         if y >= WATER_H {
             let mut color = soil_color.0.get(&bloc).unwrap().clone();
             let blocpos = BlocPos {
+                realm: pos.realm,
                 x: pos.x,
                 y,
                 z: pos.z,
@@ -145,7 +146,7 @@ pub fn on_col_load(
             .spawn(SpriteBundle {
                 texture: images.add(blocs.render_col(*col, &soil_color)),
                 transform: Transform::from_translation(
-                    Vec3::new(col.x as f32, col.z as f32, 0.) * CHUNK_S1 as f32,
+                    Vec3::new(col.x as f32, col.z as f32, -1.) * CHUNK_S1 as f32,
                 ),
                 ..default()
             })

@@ -1,6 +1,7 @@
 
 use bevy::{ecs::component::Component, prelude::Vec3};
 use std::ops::{Add, AddAssign};
+use crate::realm::Realm;
 
 pub trait Fromf32 {
     fn from_f32(v: f32) -> Self;
@@ -31,6 +32,7 @@ impl<T> Number for T where T: Add<Output = T> + AddAssign + Fromf32 {}
 #[derive(Component)]
 #[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash)]
 pub struct Pos<N: Number = f32, const U: usize = 1> {
+    pub realm: Realm,
     pub x: N,
     pub y: N,
     pub z: N,
@@ -43,6 +45,7 @@ impl<N: Number, V: Into<Vec3>, const U: usize> Add<V> for Pos<N, U> {
     fn add(self, rhs: V) -> Self::Output {
         let rhs = rhs.into();
         Pos {
+            realm: self.realm,
             x: self.x + N::from_f32(rhs.x),
             y: self.y + N::from_f32(rhs.y),
             z: self.z + N::from_f32(rhs.z),
@@ -63,6 +66,7 @@ impl<N: Number, V: Into<Vec3>, const U: usize> AddAssign<V> for Pos<N, U> {
 #[derive(Component)]
 #[derive(Clone, Copy, Eq, PartialEq, Hash, Default, Debug)]
 pub struct Pos2D<N: Number> {
+    pub realm: Realm,
     pub x: N,
     pub z: N,
 }
@@ -80,6 +84,7 @@ impl<N: Number, V: Into<Vec3>> Add<V> for Pos2D<N> {
     fn add(self, rhs: V) -> Self::Output {
         let rhs = rhs.into();
         Pos2D {
+            realm: self.realm,
             x: self.x + N::from_f32(rhs.x),
             z: self.z + N::from_f32(rhs.z),
         }
@@ -88,6 +93,6 @@ impl<N: Number, V: Into<Vec3>> Add<V> for Pos2D<N> {
 
 impl From<Pos<i32>> for Pos2D<i32> {
     fn from(pos: Pos<i32>) -> Self {
-        Pos2D { x: pos.x, z: pos.z }
+        Pos2D { realm: pos.realm, x: pos.x, z: pos.z }
     }
 }

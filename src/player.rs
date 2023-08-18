@@ -31,6 +31,7 @@ impl From<Dir> for Vec3 {
 
 pub fn spawn_player(mut commands: Commands) {
     let spawn = Pos::<f32> {
+        realm: Realm::Overworld,
         x: 0.,
         y: 0.,
         z: 0.,
@@ -41,7 +42,6 @@ pub fn spawn_player(mut commands: Commands) {
             LoadArea {
                 col: ChunkPos2D::from(spawn),
                 dist: 5,
-                realm: Realm::Overworld
             },
         ))
         .insert(InputManagerBundle::<Dir> {
