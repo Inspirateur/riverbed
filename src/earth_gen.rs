@@ -9,6 +9,7 @@ use std::{collections::HashMap, path::Path, ops::RangeInclusive};
 use nd_interval::NdInterval;
 pub const WATER_R: f64 = 0.3;
 pub const WATER_H: i32 = (MAX_HEIGHT as f64*WATER_R) as i32;
+pub const CHUNK_S1i: i32 = CHUNK_S1 as i32;
 
 #[derive(Clone)]
 pub struct Earth {
@@ -18,7 +19,9 @@ pub struct Earth {
 }
 
 fn pos_to_range(col_pos: (i32, i32)) -> [RangeInclusive<i32>; 2] {
-    [col_pos.0..=(col_pos.0+CHUNK_S1 as i32-1), col_pos.1..=(col_pos.1+CHUNK_S1 as i32-1)]
+    let x = col_pos.1*CHUNK_S1i;
+    let y = col_pos.0*CHUNK_S1i;
+    [x..=(x+CHUNK_S1i-1), y..=(y+CHUNK_S1i-1)]
 }
 
 impl TerrainGen for Earth {

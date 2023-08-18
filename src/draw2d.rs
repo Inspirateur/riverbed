@@ -97,9 +97,9 @@ impl Render2D for Blocs {
                 BlocPos2D::from((col, (dx, dz))),
                 soil_color,
             );
-            data[i] = color.blue() as u8;
+            data[i] = color.red() as u8;
             data[i + 1] = color.green() as u8;
-            data[i + 2] = color.red() as u8;
+            data[i + 2] = color.blue() as u8;
         }
         let img = Image::new(
             Extent3d {
@@ -121,9 +121,10 @@ impl Render2D for Blocs {
                 BlocPos2D::from((col, (dx, dz))),
                 soil_color,
             );
-            image.data[i] = color.blue() as u8;
+            image.data[i] = color.red() as u8;
             image.data[i + 1] = color.green() as u8;
-            image.data[i + 2] = color.red() as u8;
+            image.data[i + 2] = color.blue() as u8;
+
         }
     }
 }

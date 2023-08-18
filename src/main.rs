@@ -17,7 +17,7 @@ use leafwing_input_manager::plugin::InputManagerPlugin;
 use load_cols::{ColLoadEvent, ColUnloadEvent};
 use terrain_gen::Generators;
 pub const CHUNK_S1: usize = 32;
-pub const MAX_HEIGHT: usize = 256;
+pub const MAX_HEIGHT: usize = 200;
 struct GameLogic;
 
 impl Plugin for GameLogic {
