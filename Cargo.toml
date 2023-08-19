@@ -26,3 +26,10 @@ nd-interval = { git = "https://github.com/Inspirateur/nd-interval" }
 
 [profile.test]
 opt-level = 3
+
+[dev-dependencies]
+criterion = "*"
+
+[[bench]]
+name = "chunk"
+harness = false

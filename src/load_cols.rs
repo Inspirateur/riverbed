@@ -30,5 +30,5 @@ pub fn pull_orders(
     for pos in col_commands.unloads.drain() {
         blocs.0.remove(&pos);
         ev_unload.send(ColUnloadEvent(pos));
-    }    
+    }
 }
