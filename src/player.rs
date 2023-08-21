@@ -1,4 +1,5 @@
-use crate::{load_area::LoadArea, blocs::{Pos, ChunkPos2D}, realm::Realm};
+use crate::load_area::LoadArea;
+use ourcraft::{Pos, ChunkPos2D, Realm};
 use bevy::{
     math::Vec3,
     prelude::{Commands, KeyCode, Query, Res},

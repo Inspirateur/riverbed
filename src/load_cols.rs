@@ -1,4 +1,4 @@
-use crate::blocs::{Blocs, ChunkPos2D};
+use ourcraft::{Blocs, ChunkPos2D};
 use crate::col_commands::ColCommands;
 use crate::terrain_gen::Generators;
 use bevy::prelude::*;

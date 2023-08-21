@@ -1,8 +1,5 @@
-use crate::{
-    bloc::{Bloc, Soils},
-    terrain_gen::TerrainGen,
-    MAX_HEIGHT, CHUNK_S1, blocs::Col
-};
+use crate::terrain_gen::TerrainGen;
+use ourcraft::{MAX_HEIGHT, Bloc, CHUNK_S1, Soils, Col};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};

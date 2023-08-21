@@ -1,6 +1,4 @@
-use crate::CHUNK_S1;
-use crate::bloc::Bloc;
-use crate::blocs::{BlocPos, ChunkPos2D, BlocPos2D, Blocs, CHUNK_S2, Pos};
+use ourcraft::{CHUNK_S1, Bloc, BlocPos, ChunkPos2D, BlocPos2D, Blocs, CHUNK_S2, Pos};
 use crate::earth_gen::WATER_H;
 use crate::load_cols::{ColLoadEvent, ColUnloadEvent};
 use crate::player::Dir;

@@ -1,6 +1,6 @@
 use bevy::prelude::Resource;
 use std::collections::{HashSet, HashMap};
-use crate::{blocs::ChunkPos2D, realm::Realm};
+use ourcraft::{ChunkPos2D, Realm};
 
 #[derive(Resource)]
 pub struct ColCommands {

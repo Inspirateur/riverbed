@@ -1,4 +1,5 @@
-use crate::{col_commands::ColCommands, blocs::{ChunkPos2D, Pos}};
+use crate::col_commands::ColCommands;
+use ourcraft::{ChunkPos2D, Pos};
 use bevy::prelude::Query;
 use bevy::prelude::*;
 use itertools::iproduct;

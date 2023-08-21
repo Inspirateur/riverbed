@@ -31,5 +31,5 @@ opt-level = 3
 criterion = "*"
 
 [[bench]]
-name = "chunk"
+name = "generation"
 harness = false
