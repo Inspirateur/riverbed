@@ -1,8 +1,12 @@
+use std::collections::HashMap;
 use ourcraft::{Blocs, ChunkPos2D};
 use crate::col_commands::ColCommands;
 use crate::terrain_gen::Generators;
 use bevy::prelude::*;
 use itertools::Itertools;
+
+#[derive(Resource)]
+pub struct ColEntities(pub HashMap::<ChunkPos2D, Entity>);
 
 #[derive(Event)]
 pub struct ColLoadEvent(pub ChunkPos2D);

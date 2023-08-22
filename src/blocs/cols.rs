@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use bevy::prelude::Resource;
+use crate::ChunkPos;
 use crate::bloc::Bloc;
 use super::pos::{ChunkPos2D, BlocPos, BlocPos2D};
 use super::Col;

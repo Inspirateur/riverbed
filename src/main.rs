@@ -1,5 +1,9 @@
 mod col_commands;
+mod render2d;
 mod draw2d;
+mod texture_array;
+mod render3d;
+mod draw3d;
 mod debug_gen;
 mod earth_gen;
 mod load_area;
@@ -10,6 +14,7 @@ use bevy::{prelude::*, window::{PresentMode, WindowTheme}};
 use ourcraft::{Blocs, Cols};
 use col_commands::ColCommands;
 use draw2d::Draw2d;
+use draw3d::Draw3d;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 use load_cols::{ColLoadEvent, ColUnloadEvent};
 use terrain_gen::Generators;
@@ -48,6 +53,6 @@ fn main() {
         }))
         .add_plugins(InputManagerPlugin::<player::Dir>::default())
         .add_plugins(GameLogic)
-        .add_plugins(Draw2d)
+        .add_plugins(Draw3d)
         .run();
 }

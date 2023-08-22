@@ -20,8 +20,8 @@ pub enum Dir {
 impl From<Dir> for Vec3 {
     fn from(dir: Dir) -> Self {
         match dir {
-            Dir::Front => Vec3::new(0., 0., 1.),
-            Dir::Back => Vec3::new(0., 0., -1.),
+            Dir::Front => Vec3::new(0., 0., -1.),
+            Dir::Back => Vec3::new(0., 0., 1.),
             Dir::Up => Vec3::new(0., 1., 0.),
             Dir::Down => Vec3::new(0., -1., 0.),
             Dir::Right => Vec3::new(1., 0., 0.),
@@ -42,7 +42,7 @@ pub fn spawn_player(mut commands: Commands) {
             spawn,
             LoadArea {
                 col: ChunkPos2D::from(spawn),
-                dist: 5,
+                dist: 2,
             },
         ))
         .insert(InputManagerBundle::<Dir> {
@@ -54,6 +54,8 @@ pub fn spawn_player(mut commands: Commands) {
                 (KeyCode::D, Dir::Right),
                 (KeyCode::Z, Dir::Front),
                 (KeyCode::Q, Dir::Left),
+                (KeyCode::ShiftLeft, Dir::Down),
+                (KeyCode::Space, Dir::Up)
             ]),
         });
 }
