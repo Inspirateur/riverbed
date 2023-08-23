@@ -1,30 +1,41 @@
 use std::collections::HashMap;
-use std::convert::identity;
 use std::iter::zip;
-use bevy::pbr::wireframe::Wireframe;
 use bevy::prelude::*;
-use bevy::reflect::{TypePath, TypeUuid};
-use bevy::render::render_resource::{ShaderRef, AsBindGroup};
-use leafwing_input_manager::prelude::ActionState;
-use block_mesh::ndshape::{ConstShape, ConstShape3u32};
-use block_mesh::{greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG};
-use ourcraft::{Pos, Blocs, ChunkPos2D, Bloc, ChunkPos, CHUNK_S1};
-use crate::render2d::Render2D;
+use bevy::window::CursorGrabMode;
+use leafwing_input_manager::prelude::*;
+use ourcraft::{Pos, Blocs, ChunkPos2D, ChunkPos, CHUNK_S1};
 use crate::render3d::Meshable;
 use crate::texture_array::{TextureMap, TextureArrayPlugin};
 use crate::{player::Dir, load_cols::{ColLoadEvent, ColUnloadEvent, ColEntities}};
+const CAMERA_PAN_RATE: f32 = 0.1;
 
-
-pub fn setup(mut commands: Commands) {
+pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(10., 50., 0.)
-            .looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(0., 150., 10.)
+            .looking_at(Vec3 {x: 0., y: 150., z: 0.}, Vec3::Y),
         ..Default::default()
+    })
+    .insert(InputManagerBundle::<CameraMovement> {
+        input_map: InputMap::default()
+            // This will capture the total continuous value, for direct use.
+            // Note that you can also use discrete gesture-like motion, via the `MouseMotionDirection` enum.
+            .insert(DualAxis::mouse_motion(), CameraMovement::Pan)
+            .build(),
+        ..default()
     });
+    let mut window = windows.single_mut();
+    window.cursor.grab_mode = CursorGrabMode::Locked;
 }
 
+fn pan_camera(mut query: Query<(&mut Transform, &ActionState<CameraMovement>), With<Camera3d>>, time: Res<Time>) {
+    let (mut camera_transform, action_state) = query.single_mut();
+    let camera_pan_vector = action_state.axis_pair(CameraMovement::Pan).unwrap();
+    let c = time.delta_seconds() * CAMERA_PAN_RATE;
+    camera_transform.rotate_y(-c * camera_pan_vector.x());
+    camera_transform.rotate_local_x(-c * camera_pan_vector.y());
+}
 
-pub fn update_cam(
+pub fn translate_cam(
     mut cam_query: Query<&mut Transform, With<Camera>>,
     player_query: Query<&Pos, (With<ActionState<Dir>>, Changed<Pos>)>
 ) {
@@ -56,7 +67,7 @@ pub fn on_col_load(
                     mesh: meshes.add(blocs.fast_mesh(ChunkPos {x: col.x, y: cy as i32, z: col.z, realm: col.realm}, &texture_map)),
                     material: materials.add(Color::rgb(0.7, 0.3, 0.7).into()),
                     transform: Transform::from_translation(
-                        Vec3::new(col.x as f32, cy as f32, col.z as f32) * (CHUNK_S1/2) as f32,
+                        Vec3::new(col.x as f32, cy as f32, col.z as f32) * CHUNK_S1 as f32,
                     ),
                     ..Default::default()
                 }).id();
@@ -82,16 +93,22 @@ pub fn on_col_unload(
     }
 }
 
+#[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect)]
+enum CameraMovement {
+    Pan,
+}
 
 pub struct Draw3d;
 
 impl Plugin for Draw3d {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(ColEntities(HashMap::<ChunkPos2D, Entity>::new()))
+            .add_plugins(InputManagerPlugin::<CameraMovement>::default())
             .add_plugins(TextureArrayPlugin)
+            .insert_resource(ColEntities(HashMap::<ChunkPos2D, Entity>::new()))
             .add_systems(Startup, setup)
-            .add_systems(Update, update_cam)
+            .add_systems(Update, translate_cam)
+            .add_systems(Update, pan_camera)
             .add_systems(Update, on_col_load)
             .add_systems(Update, on_col_unload);
     }

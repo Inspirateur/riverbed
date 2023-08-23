@@ -2,7 +2,7 @@ use crate::load_area::LoadArea;
 use ourcraft::{Pos, ChunkPos2D, Realm};
 use bevy::{
     math::Vec3,
-    prelude::{Commands, KeyCode, Query, Res},
+    prelude::*,
     time::Time, reflect::TypePath,
 };
 use leafwing_input_manager::prelude::*;
@@ -20,8 +20,8 @@ pub enum Dir {
 impl From<Dir> for Vec3 {
     fn from(dir: Dir) -> Self {
         match dir {
-            Dir::Front => Vec3::new(0., 0., -1.),
-            Dir::Back => Vec3::new(0., 0., 1.),
+            Dir::Front => Vec3::new(0., 0., 1.),
+            Dir::Back => Vec3::new(0., 0., -1.),
             Dir::Up => Vec3::new(0., 1., 0.),
             Dir::Down => Vec3::new(0., -1., 0.),
             Dir::Right => Vec3::new(1., 0., 0.),
@@ -42,7 +42,7 @@ pub fn spawn_player(mut commands: Commands) {
             spawn,
             LoadArea {
                 col: ChunkPos2D::from(spawn),
-                dist: 2,
+                dist: 4,
             },
         ))
         .insert(InputManagerBundle::<Dir> {
@@ -60,14 +60,16 @@ pub fn spawn_player(mut commands: Commands) {
         });
 }
 
-pub fn move_player(mut query: Query<(&mut Pos, &ActionState<Dir>)>, time: Res<Time>) {
-    let (mut pos, action_state) = query.single_mut();
+pub fn move_player(mut player_query: Query<(&mut Pos, &ActionState<Dir>)>, cam_query: Query<&Transform, With<Camera>>, time: Res<Time>) {
+    let cam_transform = cam_query.single();
+    let (mut pos, action_state) = player_query.single_mut();
     let mut movement = Vec3::default();
     for action in action_state.get_pressed() {
         movement += Vec3::from(action);
     }
     if movement.length_squared() > 0. {
         movement = movement.normalize() * 40. * time.delta_seconds();
+        movement = Vec3::Y.cross(cam_transform.right())*movement.z + cam_transform.right()*movement.x + movement.y * Vec3::Y;
         *pos += movement;
     }
 }

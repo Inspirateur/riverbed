@@ -33,7 +33,7 @@ impl Meshable for Blocs {
             &voxels,
             &ChunkShape {},
             [0; 3],
-            [17; 3],
+            [CHUNK_S1 as u32+1; 3],
             &faces,
             &mut buffer
         );

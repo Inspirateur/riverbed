@@ -58,8 +58,7 @@ impl Render2D for Blocs {
 
     fn render_col(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image {
         let mut data = vec![255; CHUNK_S2 * 4];
-        for (i, (dz, dx)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
-            let dz = CHUNK_S1-(dz+1);
+        for (i, (dx, dz)) in iproduct!((0..CHUNK_S1).rev(), (0..CHUNK_S1).rev()).enumerate() {
             let i = i*4;
             let color = self.bloc_color(
                 BlocPos2D::from((col, (dx, dz))),
@@ -84,7 +83,7 @@ impl Render2D for Blocs {
 
     fn update_side(&self, image: &mut Image, col: ChunkPos2D, soil_color: &SoilColor) {
         for i in (0..CHUNK_S1 * 4).step_by(4) {
-            let (dx, dz) = ((i / 4) % CHUNK_S1, CHUNK_S1 - 1 - (i / 4) / CHUNK_S1);
+            let (dz, dx) = (CHUNK_S1 - 1 - (i / 4) % CHUNK_S1, CHUNK_S1 - 1 - (i / 4) / CHUNK_S1);
             let color = self.bloc_color(
                 BlocPos2D::from((col, (dx, dz))),
                 soil_color,

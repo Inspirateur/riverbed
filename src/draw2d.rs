@@ -16,6 +16,8 @@ pub fn setup(mut commands: Commands) {
             scale: 0.5,
             ..Default::default()
         },
+        transform: Transform::from_xyz(0., 50., 10.)
+            .looking_at(Vec3::ZERO, Vec3::Y),
         ..Default::default()
     });
 }
@@ -27,7 +29,7 @@ pub fn update_cam(
     if let Ok(mut cam_pos) = cam_query.get_single_mut() {
         if let Ok(player_pos) = player_query.get_single() {
             cam_pos.translation.x = player_pos.x;
-            cam_pos.translation.y = player_pos.z;
+            cam_pos.translation.z = player_pos.z;
         }
     }
 }
@@ -46,12 +48,12 @@ pub fn on_col_load(
     // Add all the rendered columns before registering them
     for col in cols.iter().filter(|col| blocs.0.contains_key(*col)) {
         println!("Loaded ({:?})", col);
+        let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
         let ent = commands
             .spawn(SpriteBundle {
                 texture: images.add(blocs.render_col(*col, &soil_color)),
-                transform: Transform::from_translation(
-                    Vec3::new(col.x as f32, col.z as f32, -1.) * CHUNK_S1 as f32,
-                ),
+                transform: Transform::from_translation(trans)
+                    .looking_at(trans + Vec3::Y, Vec3::Y),
                 ..default()
             })
             .id();

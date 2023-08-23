@@ -37,7 +37,7 @@ impl TerrainGen for Earth {
         let mut col = Col::new();
         let range = pos_to_range(col_pos);
         let mut n = NoiseSource::new(range, self.seed, 1);
-        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.45) as f64;
+        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.7) as f64;
         let cont = (n.simplex(0.7) + n.simplex(3.) * 0.3).normalize();
         let land = cont.clone() + n.simplex(9.) * 0.1;
         let ocean = !(cont*0.5 + 0.5);
@@ -60,7 +60,7 @@ impl TerrainGen for Earth {
                 None => Bloc::Dirt,
             };
             col.set((dx, y, dz), bloc);
-            for y_ in (y-3)..y {
+            for y_ in (y-5)..y {
                 if y_ < 0 {
                     break;
                 }
