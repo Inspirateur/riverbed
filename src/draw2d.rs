@@ -1,12 +1,11 @@
-use ourcraft::{CHUNK_S1, Bloc, ChunkPos2D, Blocs, Pos};
-use crate::load_cols::{ColLoadEvent, ColUnloadEvent, ColEntities};
+use ourcraft::{CHUNK_S1, Bloc, Blocs, Pos};
+use crate::load_cols::{ColLoadOrders, ColUnloadEvent, ColEntities};
 use crate::player::Dir;
 use anyhow::Result;
 use bevy::prelude::*;
 use colorsys::Rgb;
 use leafwing_input_manager::prelude::ActionState;
 use std::collections::HashMap;
-use std::iter::zip;
 use std::str::FromStr;
 use crate::render2d::Render2D;
 
@@ -36,31 +35,28 @@ pub fn update_cam(
 
 pub fn on_col_load(
     mut commands: Commands,
-    mut ev_load: EventReader<ColLoadEvent>,
+    mut ev_load: ResMut<ColLoadOrders>,
     blocs: Res<Blocs>,
     soil_color: Res<SoilColor>,
     imquery: Query<&Handle<Image>>,
     mut images: ResMut<Assets<Image>>,
     mut col_ents: ResMut<ColEntities>,
 ) {
-    let cols: Vec<_> = ev_load.iter().map(|col_ev| col_ev.0).collect();
-    let mut ents = Vec::new();
     // Add all the rendered columns before registering them
-    for col in cols.iter().filter(|col| blocs.0.contains_key(*col)) {
+    if let Some(col) = ev_load.0.pop_back() {
         println!("Loaded ({:?})", col);
         let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
         let ent = commands
             .spawn(SpriteBundle {
-                texture: images.add(blocs.render_col(*col, &soil_color)),
+                texture: images.add(blocs.render_col(col, &soil_color)),
                 transform: Transform::from_translation(trans)
                     .looking_at(trans + Vec3::Y, Vec3::Y),
                 ..default()
             })
             .id();
-        ents.push(ent);
         // if there was an already loaded col below
-        let col_below = *col + Dir::Back;
-        if let Some(ent_below) = col_ents.0.get(&col_below) {
+        let col_below = col + Dir::Back;
+        for ent_below in col_ents.get(&col_below).unwrap_or(&Vec::new()) {
             if let Ok(handle) = imquery.get_component::<Handle<Image>>(*ent_below) {
                 if let Some(image) = images.get_mut(&handle) {
                     // update the top side shading with the new information
@@ -68,9 +64,7 @@ pub fn on_col_load(
                 }
             }
         }
-    }
-    for (col, ent) in zip(&cols, &ents) {
-        col_ents.0.insert(*col, *ent);
+        col_ents.insert(col, ent);
     }
 }
 
@@ -80,7 +74,7 @@ pub fn on_col_unload(
     mut col_ents: ResMut<ColEntities>,
 ) {
     for col_ev in ev_unload.iter() {
-        if let Some(ent) = col_ents.0.remove(&col_ev.0) {
+        for ent in col_ents.pop(&col_ev.0) {
             commands.entity(ent).despawn();
         }
     }
@@ -107,7 +101,7 @@ pub struct Draw2d;
 impl Plugin for Draw2d {
     fn build(&self, app: &mut App) {
         app.insert_resource(SoilColor::from_csv("assets/data/soils_color.csv").unwrap())
-            .insert_resource(ColEntities(HashMap::<ChunkPos2D, Entity>::new()))
+            .insert_resource(ColEntities::new())
             .add_systems(Startup, setup)
             .add_systems(Update, update_cam)
             .add_systems(Update, on_col_load)
