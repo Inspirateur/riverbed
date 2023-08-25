@@ -40,21 +40,23 @@ pub fn pull_orders(
     mut ev_unload: EventWriter<ColUnloadEvent>,
     mut ev_load: ResMut<ColLoadOrders>,
 ) {
-    // LOAD ORDERS
+    // RETRIEVE LOAD ORDERS
     let mut load_orders = col_commands.loads.drain().collect_vec();
-    // just take 1 generation order at a time to spread the work over multiple frames
+    // PROCESS UNLOAD ORDERS
+    for pos in col_commands.unloads.drain() {
+        blocs.0.remove(&pos);
+        // remove the pos from load orders queue (in case it hasn't loaded yet)
+        if let Some((i, _)) = load_orders.iter().find_position(|_pos| **_pos == pos) {
+            println!("Load Cancelled for {:?}", pos);
+            load_orders.remove(i);
+        } else {
+            ev_unload.send(ColUnloadEvent(pos));
+        }
+    }
+    // take 1 generation order at a time to spread the work over multiple frames
     if let Some(pos) = load_orders.pop() {
         blocs.0.insert(pos, gens.gen(pos));
         ev_load.0.push_front(pos);
     }
     col_commands.loads = load_orders.into_iter().collect();
-    // UNLOAD ORDERS
-    for pos in col_commands.unloads.drain() {
-        blocs.0.remove(&pos);
-        // remove the pos from load orders queue (in case it hasn't loaded yet)
-        if let Some((i, _)) = ev_load.0.iter().find_position(|_pos| _pos == &&pos) {
-            ev_load.0.remove(i);
-        }
-        ev_unload.send(ColUnloadEvent(pos));
-    }
 }

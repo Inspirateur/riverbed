@@ -37,7 +37,7 @@ impl TerrainGen for Earth {
         let mut col = Col::new();
         let range = pos_to_range(col_pos);
         let mut n = NoiseSource::new(range, self.seed, 1);
-        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.7) as f64;
+        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.35) as f64;
         let cont = (n.simplex(0.7) + n.simplex(3.) * 0.3).normalize();
         let land = cont.clone() + n.simplex(9.) * 0.1;
         let ocean = !(cont*0.5 + 0.5);
@@ -45,7 +45,7 @@ impl TerrainGen for Earth {
         let mount_mask = (n.simplex(1.) + n.simplex(2.)*0.3).normalize().mask(0.2)*land.clone();
         let mount = (!n.simplex(0.8).powi(2) + n.simplex(1.5).powi(2)*0.4).normalize() * mount_mask;
         // WATER_R is used to ensure land remains above water even if water level is raised
-        let ys = 0.009 + land*WATER_R + mount*(1.-WATER_R);
+        let ys = (0.009 + land*WATER_R + mount*(1.-WATER_R)).normalize();
         // more attitude => less temperature
         let ts = !ys.clone().powi(3) * (n.simplex(0.2)*0.5 + 0.5 + n.simplex(0.6)*0.3).normalize();
         // closer to the ocean => more humidity
@@ -53,8 +53,7 @@ impl TerrainGen for Earth {
         let hs = (ocean + ts.clone().powf(0.5) * (n.simplex(0.5)*0.5 + 0.5)).normalize();
         for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
             let (y, t, h) = (ys[i], ts[i], hs[i]);
-            let y = (y * MAX_HEIGHT as f64) as i32;
-            assert!(y >= 0);
+            let y = (y.min(1.) * MAX_HEIGHT as f64) as i32;
             let bloc = match self.soils.closest([t as f32, h as f32]) {
                 Some((bloc, _)) => *bloc,
                 None => Bloc::Dirt,

@@ -74,7 +74,11 @@ pub fn on_col_unload(
     mut col_ents: ResMut<ColEntities>,
 ) {
     for col_ev in ev_unload.iter() {
-        for ent in col_ents.pop(&col_ev.0) {
+        let ents = col_ents.pop(&col_ev.0);
+        if ents.len() == 0 {
+            println!("unload order for {:?} but no entities", col_ev.0);
+        }
+        for ent in ents {
             commands.entity(ent).despawn();
         }
     }
