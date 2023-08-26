@@ -55,7 +55,7 @@ pub fn pull_orders(
     }
     // take 1 generation order at a time to spread the work over multiple frames
     if let Some(pos) = load_orders.pop() {
-        blocs.0.insert(pos, gens.gen(pos));
+        gens.gen(&mut blocs, pos);
         ev_load.0.push_front(pos);
     }
     col_commands.loads = load_orders.into_iter().collect();

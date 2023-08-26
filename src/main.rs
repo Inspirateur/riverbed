@@ -11,7 +11,6 @@ mod load_cols;
 mod player;
 mod terrain_gen;
 use std::collections::VecDeque;
-
 use bevy::{prelude::*, window::{PresentMode, WindowTheme}};
 use ourcraft::{Blocs, Cols};
 use col_commands::ColCommands;

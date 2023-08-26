@@ -1,8 +1,10 @@
 mod realm;
 mod bloc;
 mod blocs;
+mod growables;
 pub use blocs::*;
 pub use bloc::*;
 pub use realm::*;
+pub use growables::*;
 pub const CHUNK_S1: usize = 32;
 pub const MAX_HEIGHT: usize = 200;

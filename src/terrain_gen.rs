@@ -1,15 +1,15 @@
 use crate::earth_gen::Earth;
-use ourcraft::{Realm, Col, ChunkPos2D};
+use ourcraft::{Realm, ChunkPos2D, Blocs};
 use bevy::prelude::Resource;
 use dashmap::DashMap;
 use std::collections::HashMap;
 
 pub trait TerrainGen: Send + Sync {
-    fn new(seed: u32, config: HashMap<String, f32>) -> Self
-    where
-        Self: Sized + Clone;
+    fn set_config(&mut self, config: HashMap<String, f32>);
 
-    fn gen(&self, col: (i32, i32)) -> Col;
+    fn set_seed(&mut self, seed: u32);
+
+    fn gen(&self, world: &mut Blocs, col: ChunkPos2D);
 }
 
 #[derive(Resource)]
@@ -24,7 +24,7 @@ impl Generators {
         Generators { data: gens }
     }
 
-    pub fn gen(&self, pos: ChunkPos2D) -> Col {
-        self.data.get(&Realm::Overworld).unwrap().gen((pos.x, pos.z))
+    pub fn gen(&self, world: &mut Blocs, pos: ChunkPos2D) {
+        self.data.get(&Realm::Overworld).unwrap().gen(world, pos)
     }
 }

@@ -3,6 +3,8 @@ use block_mesh::{VoxelVisibility, Voxel, MergeVoxel};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
+use crate::{Blocs, BlocPos, grow_oak};
+
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, EnumString, Hash)]
 #[strum(ascii_case_insensitive)]
 pub enum Bloc {
@@ -30,8 +32,6 @@ pub enum Face {
     Back
 }
 
-pub type Soils = Vec<([Range<f32>; 2], Bloc)>;
-
 impl Voxel for Bloc {
     fn get_visibility(&self) -> VoxelVisibility {
         match self {
@@ -49,3 +49,35 @@ impl MergeVoxel for Bloc {
         *self
     }
 }
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, EnumString)]
+#[strum(ascii_case_insensitive)]
+pub enum Plant {
+    Oak,
+    Spruce,
+    Sequoia,
+    Palm,
+    Bush,
+    Grass,
+    Birch,
+    Lavander,
+    Lily,
+    Chestnut,
+    Cypress,
+    Ironwood,
+    Baobab,
+    Cactus,
+    Acacia,
+    Bamboo
+}
+
+impl Plant {
+    pub fn grow(&self, world: &mut Blocs, pos: BlocPos, dist: f32) {
+        match self {
+            _ => grow_oak(world, pos, dist)
+        }
+    }
+}
+
+pub type Soils = Vec<([Range<f32>; 2], Bloc)>;
+pub type Plants = Vec<([Range<f32>; 5], Plant)>;

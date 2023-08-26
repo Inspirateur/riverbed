@@ -1,5 +1,5 @@
 use crate::terrain_gen::TerrainGen;
-use ourcraft::{MAX_HEIGHT, Bloc, CHUNK_S1, Soils, Col};
+use ourcraft::{MAX_HEIGHT, Bloc, CHUNK_S1, Soils, Col, ChunkPos2D, Blocs, Plants, grow_oak, Pos2D, Pos};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
@@ -8,34 +8,34 @@ pub const WATER_R: f64 = 0.3;
 pub const WATER_H: i32 = (MAX_HEIGHT as f64*WATER_R) as i32;
 pub const CHUNK_S1i: i32 = CHUNK_S1 as i32;
 
-#[derive(Clone)]
 pub struct Earth {
     soils: Soils,
+    plants: Plants,
     seed: i32,
     config: HashMap<String, f32>,
 }
 
-fn pos_to_range(col_pos: (i32, i32)) -> [RangeInclusive<i32>; 2] {
-    let x = col_pos.1*CHUNK_S1i;
-    let y = col_pos.0*CHUNK_S1i;
+fn pos_to_range(pos: ChunkPos2D) -> [RangeInclusive<i32>; 2] {
+    let x = pos.z*CHUNK_S1i;
+    let y = pos.x*CHUNK_S1i;
     [x..=(x+CHUNK_S1i-1), y..=(y+CHUNK_S1i-1)]
 }
 
-impl TerrainGen for Earth {
-    fn new(seed: u32, config: HashMap<String, f32>) -> Self
-    where
-        Self: Sized,
-    {
+impl Earth {
+    pub fn new(seed: u32, config: HashMap<String, f32>) -> Self {
         Earth {
             soils: Soils::from_csv(Path::new("assets/data/soils_condition.csv")).unwrap(),
+            plants: Plants::from_csv(Path::new("assets/data/plants_condition.csv")).unwrap(),
             seed: seed as i32,
             config
         }
     }
+}
 
-    fn gen(&self, col_pos: (i32, i32)) -> Col {
-        let mut col = Col::new();
-        let range = pos_to_range(col_pos);
+impl TerrainGen for Earth {
+    fn gen(&self, world: &mut Blocs, pos: ChunkPos2D) {
+        let mut col: &mut Col = world.0.entry(pos).or_insert(Col::new());
+        let range = pos_to_range(pos);
         let mut n = NoiseSource::new(range, self.seed, 1);
         let landratio = self.config.get("land_ratio").copied().unwrap_or(0.35) as f64;
         let cont = (n.simplex(0.7) + n.simplex(3.) * 0.3).normalize();
@@ -51,9 +51,10 @@ impl TerrainGen for Earth {
         // closer to the ocean => more humidity
         // higher temp => more humidity
         let hs = (ocean + ts.clone().powf(0.5) * (n.simplex(0.5)*0.5 + 0.5)).normalize();
+        // convert y to convenient values
+        let ys = ys.map(|y| (y.clamp(0., 1.) * MAX_HEIGHT as f64) as i32);
         for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
             let (y, t, h) = (ys[i], ts[i], hs[i]);
-            let y = (y.min(1.) * MAX_HEIGHT as f64) as i32;
             let bloc = match self.soils.closest([t as f32, h as f32]) {
                 Some((bloc, _)) => *bloc,
                 None => Bloc::Dirt,
@@ -68,6 +69,14 @@ impl TerrainGen for Earth {
         }
         // this is a bit too slow so we don't bother with it for now
         // col.fill_up(Bloc::Stone);
-        col
+        grow_oak(world, Pos { x: pos.x*CHUNK_S1i, y: ys[0], z: pos.z*CHUNK_S1i, realm: pos.realm}, 0.);
+    }
+
+    fn set_config(&mut self, config: HashMap<String, f32>) {
+        todo!()
+    }
+
+    fn set_seed(&mut self, seed: u32) {
+        todo!()
     }
 }

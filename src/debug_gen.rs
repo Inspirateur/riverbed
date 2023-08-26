@@ -4,7 +4,7 @@ use crate::{
 };
 use ourcraft::{
     MAX_HEIGHT, CHUNK_S1,
-    Bloc, Soils, Col, unchunked
+    Bloc, Soils, Col, unchunked, Blocs, ChunkPos2D
 };
 use itertools::iproduct;
 use nd_interval::NdInterval;
@@ -49,7 +49,7 @@ fn values(x: i32, z: i32) -> (f32, f32, f32) {
     (hnorm(y), hnorm(t), hnorm(h))
 }
 
-impl TerrainGen for DebugGen {
+impl DebugGen {
     fn new(seed: u32, config: std::collections::HashMap<String, f32>) -> Self
     where
         Self: Sized + Clone,
@@ -60,11 +60,13 @@ impl TerrainGen for DebugGen {
             soils: Soils::from_csv(Path::new("assets/data/soils_condition.csv")).unwrap(),
         }
     }
+}
 
-    fn gen(&self, (cx, cz): (i32, i32)) -> Col {
+impl TerrainGen for DebugGen {
+    fn gen(&self, world: &mut Blocs, pos: ChunkPos2D) {
         let mut col = Col::new();
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
-            let (x, z) = (unchunked(cx, dx), unchunked(cz, dz));
+            let (x, z) = (unchunked(pos.x, dx), unchunked(pos.z, dz));
             let (y, t, h) = values(x, z);
             let y = (WATER_R as f32*(y+1.) * MAX_HEIGHT as f32) as i32;
             assert!(y >= 0);
@@ -78,6 +80,14 @@ impl TerrainGen for DebugGen {
         }
         // this is a bit too slow so we don't bother with it for now
         // col.fill_up(Bloc::Stone);
-        col
+        world.0.insert(pos, col);
+    }
+
+    fn set_config(&mut self, config: HashMap<String, f32>) {
+        todo!()
+    }
+
+    fn set_seed(&mut self, seed: u32) {
+        todo!()
     }
 }

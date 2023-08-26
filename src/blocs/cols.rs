@@ -12,6 +12,16 @@ pub type Cols<E> = HashMap<ChunkPos2D, E>;
 pub struct Blocs(pub Cols<Col>);
 
 impl Blocs {
+    pub fn set_bloc(&mut self, pos: BlocPos, bloc: Bloc) {
+        let (colpos, coledpos) = pos.into();
+        self.0.entry(colpos).or_insert(Col::new()).set(coledpos, bloc);
+    }
+
+    pub fn set_if_empty(&mut self, pos: BlocPos, bloc: Bloc) {
+        let (colpos, coledpos) = pos.into();
+        self.0.entry(colpos).or_insert(Col::new()).set_if_empty(coledpos, bloc);
+    }
+    
     pub fn get_block(&self, pos: BlocPos) -> Bloc {
         let (colpos, coledpos) = pos.into();
         match self.0.get(&colpos) {

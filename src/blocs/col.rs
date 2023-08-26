@@ -46,6 +46,15 @@ impl Col {
         self.chunks[qy].as_mut().unwrap().set((dx, dy, dz), bloc);
     }
 
+    pub fn set_if_empty(&mut self, (dx, y, dz): ColedPos, bloc: Bloc) {
+        let (qy, dy) = chunked(y);
+        let qy = qy as usize;
+        if self.chunks[qy].is_none() {
+            self.chunks[qy] = Some(Chunk::new(CHUNK_S1));
+        }
+        self.chunks[qy].as_mut().unwrap().set_if_empty((dx, dy, dz), bloc);
+    }
+    
     pub fn fill_up(&mut self, bloc: Bloc) {
         let mut qy = 0;
         // fill the uninitialized chunks
