@@ -1,11 +1,11 @@
 use crate::terrain_gen::TerrainGen;
-use ourcraft::{MAX_HEIGHT, Bloc, CHUNK_S1, Soils, Col, ChunkPos2D, Blocs, Plants, grow_oak, Pos2D, Pos};
+use ourcraft::{MAX_GEN_HEIGHT, Bloc, CHUNK_S1, Soils, Col, ChunkPos2D, Blocs, Plants, grow_oak, Pos2D, Pos};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
 use nd_interval::NdInterval;
 pub const WATER_R: f64 = 0.3;
-pub const WATER_H: i32 = (MAX_HEIGHT as f64*WATER_R) as i32;
+pub const WATER_H: i32 = (MAX_GEN_HEIGHT as f64*WATER_R) as i32;
 pub const CHUNK_S1i: i32 = CHUNK_S1 as i32;
 
 pub struct Earth {
@@ -34,7 +34,7 @@ impl Earth {
 
 impl TerrainGen for Earth {
     fn gen(&self, world: &mut Blocs, pos: ChunkPos2D) {
-        let mut col: &mut Col = world.0.entry(pos).or_insert(Col::new());
+        let col = world.cols.entry(pos).or_insert(Col::new());
         let range = pos_to_range(pos);
         let mut n = NoiseSource::new(range, self.seed, 1);
         let landratio = self.config.get("land_ratio").copied().unwrap_or(0.35) as f64;
@@ -52,7 +52,7 @@ impl TerrainGen for Earth {
         // higher temp => more humidity
         let hs = (ocean + ts.clone().powf(0.5) * (n.simplex(0.5)*0.5 + 0.5)).normalize();
         // convert y to convenient values
-        let ys = ys.map(|y| (y.clamp(0., 1.) * MAX_HEIGHT as f64) as i32);
+        let ys = ys.map(|y| (y.clamp(0., 1.) * MAX_GEN_HEIGHT as f64) as i32);
         for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
             let (y, t, h) = (ys[i], ts[i], hs[i]);
             let bloc = match self.soils.closest([t as f32, h as f32]) {

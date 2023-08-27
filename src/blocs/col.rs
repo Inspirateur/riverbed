@@ -1,9 +1,8 @@
 use std::ops::IndexMut;
 use crate::bloc::Bloc;
-
+use crate::MAX_HEIGHT;
 use super::{Chunk, CHUNK_S1, pos::{ChunkedPos2D, ColedPos, bloc_pos::chunked}};
 use itertools::iproduct;
-pub const MAX_HEIGHT: usize = 256;
 
 pub struct Col {
     pub chunks: [Option<Chunk>; MAX_HEIGHT / CHUNK_S1],

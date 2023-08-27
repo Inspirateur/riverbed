@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 use leafwing_input_manager::prelude::*;
-use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1};
+use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, MAX_HEIGHT, Chunk};
 use crate::render3d::Meshable;
 use crate::texture_array::{TextureMap, TextureArrayPlugin};
-use crate::{player::Dir, load_cols::{ColLoadOrders, ColUnloadEvent, ColEntities}};
+use crate::{player::Dir, load_cols::{ColLoadOrders, ColUnloadEvent}};
 const CAMERA_PAN_RATE: f32 = 0.1;
 
 pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
@@ -49,27 +51,30 @@ pub fn translate_cam(
 pub fn on_col_load(
     mut commands: Commands,
     mut ev_load: ResMut<ColLoadOrders>,
-    blocs: Res<Blocs>,
-    mut col_ents: ResMut<ColEntities>,
+    mut blocs: ResMut<Blocs>,
+    mut col_ents: ResMut<ChunkEntities>,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     texture_map: Res<TextureMap>
 ) {
     if let Some(col) = ev_load.0.pop_back() {
-        for (cy, chunk) in blocs.0.get(&col).unwrap().chunks.iter().enumerate().rev() {
+        for (cy, chunk) in blocs.cols.get(&col).unwrap().chunks.iter().enumerate().rev() {
             if chunk.is_some() {
+                let chunk_pos = ChunkPos {x: col.x, y: cy as i32, z: col.z, realm: col.realm};
                 let ent = commands.spawn(PbrBundle {
-                    mesh: meshes.add(blocs.fast_mesh(ChunkPos {x: col.x, y: cy as i32, z: col.z, realm: col.realm}, &texture_map)),
+                    mesh: meshes.add(blocs.fast_mesh(chunk_pos, &texture_map)),
                     material: materials.add(Color::rgb(0.7, 0.3, 0.7).into()),
                     transform: Transform::from_translation(
                         Vec3::new(col.x as f32, cy as f32, col.z as f32) * CHUNK_S1 as f32,
                     ),
                     ..Default::default()
                 }).id();
-                col_ents.insert(col, ent);
+                col_ents.0.insert(chunk_pos, ent);
             }
         }
+        // activate change tracking for the col so that we can update the mesh when data changes
+        blocs.track(col);
         println!("Loaded ({:?})", col);
     }
 }
@@ -77,18 +82,44 @@ pub fn on_col_load(
 pub fn on_col_unload(
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
-    mut col_ents: ResMut<ColEntities>,
+    mut chunk_ents: ResMut<ChunkEntities>,
 ) {
     for col_ev in ev_unload.iter() {
-        for ent in col_ents.pop(&col_ev.0) {
-            commands.entity(ent).despawn();
+        for i in 0..(MAX_HEIGHT / CHUNK_S1) {
+            if let Some(ent) = chunk_ents.0.remove(&ChunkPos {
+                x: col_ev.0.x,
+                y: i as i32,
+                z: col_ev.0.z,
+                realm: col_ev.0.realm
+            }) {
+                commands.entity(ent).despawn();
+            }
         }
     }
+}
+
+pub fn process_bloc_changes(
+    mut blocs: ResMut<Blocs>, 
+    mesh_query: Query<&Handle<Mesh>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    chunk_ents: Res<ChunkEntities>
+) {
+
 }
 
 #[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect)]
 enum CameraMovement {
     Pan,
+}
+
+
+#[derive(Resource)]
+pub struct ChunkEntities(pub HashMap::<ChunkPos, Entity>);
+
+impl ChunkEntities {
+    pub fn new() -> Self {
+        ChunkEntities(HashMap::new())
+    }
 }
 
 pub struct Draw3d;
@@ -98,7 +129,7 @@ impl Plugin for Draw3d {
         app
             .add_plugins(InputManagerPlugin::<CameraMovement>::default())
             .add_plugins(TextureArrayPlugin)
-            .insert_resource(ColEntities::new())
+            .insert_resource(ChunkEntities::new())
             .add_systems(Startup, setup)
             .add_systems(Update, translate_cam)
             .add_systems(Update, pan_camera)

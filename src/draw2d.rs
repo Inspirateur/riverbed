@@ -1,5 +1,5 @@
-use ourcraft::{CHUNK_S1, Bloc, Blocs, Pos};
-use crate::load_cols::{ColLoadOrders, ColUnloadEvent, ColEntities};
+use ourcraft::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D};
+use crate::load_cols::{ColLoadOrders, ColUnloadEvent};
 use crate::player::Dir;
 use anyhow::Result;
 use bevy::prelude::*;
@@ -7,7 +7,7 @@ use colorsys::Rgb;
 use leafwing_input_manager::prelude::ActionState;
 use std::collections::HashMap;
 use std::str::FromStr;
-use crate::render2d::Render2D;
+use crate::render2d::{Render2D, ImageUtils};
 
 pub fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle {
@@ -36,9 +36,9 @@ pub fn update_cam(
 pub fn on_col_load(
     mut commands: Commands,
     mut ev_load: ResMut<ColLoadOrders>,
-    blocs: Res<Blocs>,
+    mut blocs: ResMut<Blocs>,
     soil_color: Res<SoilColor>,
-    imquery: Query<&Handle<Image>>,
+    im_query: Query<&Handle<Image>>,
     mut images: ResMut<Assets<Image>>,
     mut col_ents: ResMut<ColEntities>,
 ) {
@@ -54,17 +54,18 @@ pub fn on_col_load(
                 ..default()
             })
             .id();
+        blocs.track(col);
         // if there was an already loaded col below
         let col_below = col + Dir::Back;
-        for ent_below in col_ents.get(&col_below).unwrap_or(&Vec::new()) {
-            if let Ok(handle) = imquery.get_component::<Handle<Image>>(*ent_below) {
+        if let Some(ent_below) = col_ents.0.get(&col_below) {
+            if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent_below) {
                 if let Some(image) = images.get_mut(&handle) {
                     // update the top side shading with the new information
                     blocs.update_side(image, col_below, &soil_color);
                 }
             }
         }
-        col_ents.insert(col, ent);
+        col_ents.0.insert(col, ent);
     }
 }
 
@@ -74,12 +75,32 @@ pub fn on_col_unload(
     mut col_ents: ResMut<ColEntities>,
 ) {
     for col_ev in ev_unload.iter() {
-        let ents = col_ents.pop(&col_ev.0);
-        if ents.len() == 0 {
+        if let Some(ent) = col_ents.0.remove(&col_ev.0) {
+            commands.entity(ent).despawn();
+        } else {
             println!("unload order for {:?} but no entities", col_ev.0);
         }
-        for ent in ents {
-            commands.entity(ent).despawn();
+    }
+}
+
+pub fn process_bloc_changes(
+    mut blocs: ResMut<Blocs>, 
+    im_query: Query<&Handle<Image>>,
+    mut images: ResMut<Assets<Image>>,
+    col_ents: Res<ColEntities>,
+    soil_color: Res<SoilColor>,
+) {
+    for (col, changes) in blocs.pull_changes() {
+        if let Some(ent) = col_ents.0.get(&col) {
+            if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent) {
+                if let Some(image) = images.get_mut(&handle) {
+                    for (change, _) in changes {
+                        let bloc_pos = (col, (change.0, change.2)).into();
+                        let color = blocs.bloc_color(bloc_pos, &soil_color);
+                        image.set_pixel(change.0 as i32, change.2 as i32, color);
+                    }
+                }
+            }
         }
     }
 }
@@ -100,6 +121,15 @@ impl SoilColor {
     }
 }
 
+#[derive(Resource)]
+pub struct ColEntities(pub HashMap::<ChunkPos2D, Entity>);
+
+impl ColEntities {
+    pub fn new() -> Self {
+        ColEntities(HashMap::new())
+    }
+}
+
 pub struct Draw2d;
 
 impl Plugin for Draw2d {
@@ -109,6 +139,8 @@ impl Plugin for Draw2d {
             .add_systems(Startup, setup)
             .add_systems(Update, update_cam)
             .add_systems(Update, on_col_load)
-            .add_systems(Update, on_col_unload);
+            .add_systems(Update, on_col_unload)
+            .add_systems(Update, process_bloc_changes);
+
     }
 }

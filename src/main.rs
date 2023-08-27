@@ -12,7 +12,7 @@ mod player;
 mod terrain_gen;
 use std::collections::VecDeque;
 use bevy::{prelude::*, window::{PresentMode, WindowTheme}};
-use ourcraft::{Blocs, Cols};
+use ourcraft::Blocs;
 use col_commands::ColCommands;
 use draw2d::Draw2d;
 use draw3d::Draw3d;
@@ -24,7 +24,7 @@ struct GameLogic;
 impl Plugin for GameLogic {
     fn build(&self, app: &mut App) {
         app.insert_resource(ColCommands::new())
-            .insert_resource(Blocs(Cols::new()))
+            .insert_resource(Blocs::new())
             .insert_resource(Generators::new(0))
             .insert_resource(ColLoadOrders(VecDeque::new()))
             .add_event::<ColUnloadEvent>()
@@ -54,6 +54,6 @@ fn main() {
         }))
         .add_plugins(InputManagerPlugin::<player::Dir>::default())
         .add_plugins(GameLogic)
-        .add_plugins(Draw3d)
+        .add_plugins(Draw2d)
         .run();
 }

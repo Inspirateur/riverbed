@@ -5,6 +5,22 @@ use itertools::iproduct;
 use ourcraft::{BlocPos, BlocPos2D, ChunkPos2D, Blocs, Bloc, CHUNK_S2, CHUNK_S1};
 use crate::{player::Dir, draw2d::SoilColor, earth_gen::WATER_H};
 
+fn image_to_2d(i: usize) -> (usize, usize) {
+    (CHUNK_S1 - 1 - (i / 4) / CHUNK_S1, CHUNK_S1 - 1 - (i / 4) % CHUNK_S1)
+}
+
+pub trait ImageUtils {
+    fn set_pixel(&mut self, x: i32, z: i32, color: Rgb);
+}
+
+impl ImageUtils for Image {
+    fn set_pixel(&mut self, x: i32, z: i32, color: Rgb) {
+        let i = 4*((CHUNK_S1 - 1 - x as usize)*CHUNK_S1 + CHUNK_S1 - 1 - z as usize);
+        self.data[i] = color.red() as u8;
+        self.data[i + 1] = color.green() as u8;
+        self.data[i + 2] = color.blue() as u8;
+    }
+}
 
 pub trait Render2D {
     fn bloc_y_cmp(&self, pos: BlocPos, dir: Dir) -> Ordering;
@@ -83,7 +99,7 @@ impl Render2D for Blocs {
 
     fn update_side(&self, image: &mut Image, col: ChunkPos2D, soil_color: &SoilColor) {
         for i in (0..CHUNK_S1 * 4).step_by(4) {
-            let (dz, dx) = (CHUNK_S1 - 1 - (i / 4) % CHUNK_S1, CHUNK_S1 - 1 - (i / 4) / CHUNK_S1);
+            let (dx, dz) = image_to_2d(i);
             let color = self.bloc_color(
                 BlocPos2D::from((col, (dx, dz))),
                 soil_color,

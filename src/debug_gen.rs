@@ -3,7 +3,7 @@ use crate::{
     earth_gen::WATER_R
 };
 use ourcraft::{
-    MAX_HEIGHT, CHUNK_S1,
+    MAX_GEN_HEIGHT, CHUNK_S1,
     Bloc, Soils, Col, unchunked, Blocs, ChunkPos2D
 };
 use itertools::iproduct;
@@ -23,7 +23,7 @@ impl Clone for DebugGen {
 }
 
 fn hnorm(v: f32) -> f32 {
-    let v = (0.5 * v / MAX_HEIGHT as f32).max(0.);
+    let v = (0.5 * v / MAX_GEN_HEIGHT as f32).max(0.);
     if v > 1. {
         0.
     } else {
@@ -40,7 +40,7 @@ fn max_pos(x: i32, z: i32) -> i32 {
 }
 
 fn values(x: i32, z: i32) -> (f32, f32, f32) {
-    let halfh = MAX_HEIGHT as i32 / 2;
+    let halfh = MAX_GEN_HEIGHT as i32 / 2;
     let x = x + halfh;
     let z = z + halfh;
     let y = max_pos(x, z) as f32;
@@ -68,7 +68,7 @@ impl TerrainGen for DebugGen {
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (x, z) = (unchunked(pos.x, dx), unchunked(pos.z, dz));
             let (y, t, h) = values(x, z);
-            let y = (WATER_R as f32*(y+1.) * MAX_HEIGHT as f32) as i32;
+            let y = (WATER_R as f32*(y+1.) * MAX_GEN_HEIGHT as f32) as i32;
             assert!(y >= 0);
             col.set((dx, y, dz), *self.soils.closest([t as f32, h as f32]).unwrap_or((&Bloc::Dirt, 0.)).0);
             for y_ in (y-3)..y {
@@ -80,7 +80,7 @@ impl TerrainGen for DebugGen {
         }
         // this is a bit too slow so we don't bother with it for now
         // col.fill_up(Bloc::Stone);
-        world.0.insert(pos, col);
+        world.cols.insert(pos, col);
     }
 
     fn set_config(&mut self, config: HashMap<String, f32>) {

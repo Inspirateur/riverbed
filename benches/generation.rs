@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use itertools::iproduct;
 use nd_interval::NdInterval;
 use noise_algebra::NoiseSource;
-use ourcraft::{MAX_HEIGHT, CHUNK_S1, Bloc, Soils, Col};
+use ourcraft::{MAX_GEN_HEIGHT, CHUNK_S1, Bloc, Soils, Col};
 
 fn col_gen(n: &mut NoiseSource<2>, soils: &Soils) {
     let mut col = Col::new();
@@ -21,7 +21,7 @@ fn col_gen(n: &mut NoiseSource<2>, soils: &Soils) {
     let hs = (ocean + ts.clone().powf(0.5) * (n.simplex(0.5)*0.5 + 0.5)).normalize();
     for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
         let (y, t, h) = (ys[i], ts[i], hs[i]);
-        let y = (y * MAX_HEIGHT as f64) as i32;
+        let y = (y * MAX_GEN_HEIGHT as f64) as i32;
         assert!(y >= 0);
         let bloc = match soils.closest([t as f32, h as f32]) {
             Some((bloc, _)) => *bloc,

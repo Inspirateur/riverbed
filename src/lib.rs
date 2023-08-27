@@ -7,4 +7,5 @@ pub use bloc::*;
 pub use realm::*;
 pub use growables::*;
 pub const CHUNK_S1: usize = 32;
-pub const MAX_HEIGHT: usize = 200;
+pub const MAX_GEN_HEIGHT: usize = 200;
+pub const MAX_HEIGHT: usize = 256;

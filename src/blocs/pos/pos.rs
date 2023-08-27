@@ -64,7 +64,7 @@ impl<N: Number, V: Into<Vec3>, const U: usize> AddAssign<V> for Pos<N, U> {
 }
 
 #[derive(Component)]
-#[derive(Clone, Copy, Eq, PartialEq, Hash, Default, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Default, Debug, PartialOrd, Ord)]
 pub struct Pos2D<N: Number> {
     pub realm: Realm,
     pub x: N,
