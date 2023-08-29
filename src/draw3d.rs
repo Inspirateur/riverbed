@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-
 use bevy::prelude::*;
+use bevy::render::view::NoFrustumCulling;
 use bevy::window::CursorGrabMode;
 use leafwing_input_manager::prelude::*;
-use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, MAX_HEIGHT, Chunk};
+use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, HashMapUtils};
 use crate::render3d::Meshable;
 use crate::texture_array::{TextureMap, TextureArrayPlugin};
 use crate::{player::Dir, load_cols::{ColLoadOrders, ColUnloadEvent}};
@@ -51,41 +51,38 @@ pub fn translate_cam(
 pub fn on_col_load(
     mut commands: Commands,
     mut ev_load: ResMut<ColLoadOrders>,
-    mut blocs: ResMut<Blocs>,
-    mut col_ents: ResMut<ChunkEntities>,
+    blocs: ResMut<Blocs>,
+    mut chunk_ents: ResMut<ChunkEntities>,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     texture_map: Res<TextureMap>
 ) {
     if let Some(col) = ev_load.0.pop_back() {
-        for (cy, chunk) in blocs.cols.get(&col).unwrap().chunks.iter().enumerate().rev() {
-            if chunk.is_some() {
-                let chunk_pos = ChunkPos {x: col.x, y: cy as i32, z: col.z, realm: col.realm};
-                let ent = commands.spawn(PbrBundle {
-                    mesh: meshes.add(blocs.fast_mesh(chunk_pos, &texture_map)),
-                    material: materials.add(Color::rgb(0.7, 0.3, 0.7).into()),
-                    transform: Transform::from_translation(
-                        Vec3::new(col.x as f32, cy as f32, col.z as f32) * CHUNK_S1 as f32,
-                    ),
-                    ..Default::default()
-                }).id();
-                col_ents.0.insert(chunk_pos, ent);
-            }
+        for cy in 0..Y_CHUNKS as i32 {
+            let chunk_pos = ChunkPos {x: col.x, y: cy, z: col.z, realm: col.realm};
+            let ent = commands.spawn(PbrBundle {
+                mesh: meshes.add(blocs.fast_mesh(chunk_pos, &texture_map)),
+                material: materials.add(Color::rgb(0.7, 0.3, 0.7).into()),
+                transform: Transform::from_translation(
+                    Vec3::new(col.x as f32, cy as f32, col.z as f32) * CHUNK_S1 as f32,
+                ),
+                ..Default::default()
+            }).insert(NoFrustumCulling).id();
+            chunk_ents.0.insert(chunk_pos, ent);
         }
-        // activate change tracking for the col so that we can update the mesh when data changes
-        blocs.track(col);
         println!("Loaded ({:?})", col);
     }
 }
 
 pub fn on_col_unload(
+    mut blocs: ResMut<Blocs>,
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
     mut chunk_ents: ResMut<ChunkEntities>,
 ) {
     for col_ev in ev_unload.iter() {
-        for i in 0..(MAX_HEIGHT / CHUNK_S1) {
+        for i in 0..Y_CHUNKS {
             if let Some(ent) = chunk_ents.0.remove(&ChunkPos {
                 x: col_ev.0.x,
                 y: i as i32,
@@ -102,9 +99,21 @@ pub fn process_bloc_changes(
     mut blocs: ResMut<Blocs>, 
     mesh_query: Query<&Handle<Mesh>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    chunk_ents: Res<ChunkEntities>
+    chunk_ents: Res<ChunkEntities>,
+    texture_map: Res<TextureMap>
 ) {
-
+    if let Some((chunk, changes)) = blocs.changes.pop() {
+        if let Some(ent) = chunk_ents.0.get(&chunk) {
+            if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
+                if let Some(mesh) = meshes.get_mut(&handle) {
+                    println!("Processing changes for {:?}", chunk);
+                    blocs.process_changes(chunk, changes, mesh, &texture_map);
+                }
+            } else {
+                blocs.changes.insert(chunk, changes);
+            }
+        }
+    }
 }
 
 #[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect)]
@@ -134,6 +143,8 @@ impl Plugin for Draw3d {
             .add_systems(Update, translate_cam)
             .add_systems(Update, pan_camera)
             .add_systems(Update, on_col_load)
-            .add_systems(Update, on_col_unload);
+            .add_systems(Update, on_col_unload)
+            .add_systems(Update, process_bloc_changes)
+            ;
     }
 }

@@ -42,7 +42,7 @@ pub fn spawn_player(mut commands: Commands) {
             spawn,
             LoadArea {
                 col: ChunkPos2D::from(spawn),
-                dist: 5,
+                dist: 2,
             },
         ))
         .insert(InputManagerBundle::<Dir> {

@@ -2,10 +2,11 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use itertools::iproduct;
 use nd_interval::NdInterval;
 use noise_algebra::NoiseSource;
-use ourcraft::{MAX_GEN_HEIGHT, CHUNK_S1, Bloc, Soils, Col};
+use ourcraft::{MAX_GEN_HEIGHT, CHUNK_S1, Bloc, Soils, Blocs, chunked, ChunkPos2D, Realm, ChunkPos};
 
 fn col_gen(n: &mut NoiseSource<2>, soils: &Soils) {
-    let mut col = Col::new();
+    let pos = ChunkPos2D { x: 0, z: 0, realm: Realm::Overworld };
+    let mut world = Blocs::new();
     let cont = (n.simplex(0.7) + n.simplex(3.) * 0.3).normalize();
     let land = cont.clone() + n.simplex(9.) * 0.1;
     let ocean = !(cont*0.5 + 0.5);
@@ -27,12 +28,16 @@ fn col_gen(n: &mut NoiseSource<2>, soils: &Soils) {
             Some((bloc, _)) => *bloc,
             None => Bloc::Dirt,
         };
-        col.set((dx, y, dz), bloc);
-        for y_ in (y-3)..y {
+        let (qy, dy) = chunked(y);
+        let chunk_pos = ChunkPos {x: pos.x, y: qy, z: pos.z, realm: pos.realm};
+        world.set_chunked(chunk_pos, (dx, dy, dz), bloc);
+    for y_ in (y-3)..y {
             if y_ < 0 {
                 break;
             }
-            col.set((dx, y_, dz), Bloc::Dirt);
+            let (qy, dy) = chunked(y_);
+            let chunk_pos = ChunkPos {x: pos.x, y: qy, z: pos.z, realm: pos.realm};
+            world.set_chunked(chunk_pos, (dx, dy, dz), Bloc::Dirt);
         }
     }
 }

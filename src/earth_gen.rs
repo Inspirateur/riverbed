@@ -1,5 +1,5 @@
 use crate::terrain_gen::TerrainGen;
-use ourcraft::{MAX_GEN_HEIGHT, Bloc, CHUNK_S1, Soils, Col, ChunkPos2D, Blocs, Plants, grow_oak, Pos2D, Pos};
+use ourcraft::{MAX_GEN_HEIGHT, Bloc, CHUNK_S1, Soils, ChunkPos2D, Blocs, Plants, grow_oak, Pos, ChunkPos, chunked};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
@@ -34,7 +34,6 @@ impl Earth {
 
 impl TerrainGen for Earth {
     fn gen(&self, world: &mut Blocs, pos: ChunkPos2D) {
-        let col = world.cols.entry(pos).or_insert(Col::new());
         let range = pos_to_range(pos);
         let mut n = NoiseSource::new(range, self.seed, 1);
         let landratio = self.config.get("land_ratio").copied().unwrap_or(0.35) as f64;
@@ -59,12 +58,16 @@ impl TerrainGen for Earth {
                 Some((bloc, _)) => *bloc,
                 None => Bloc::Dirt,
             };
-            col.set((dx, y, dz), bloc);
+            let (qy, dy) = chunked(y);
+            let chunk_pos = ChunkPos {x: pos.x, y: qy, z: pos.z, realm: pos.realm};
+            world.set_chunked(chunk_pos, (dx, dy, dz), bloc);
             for y_ in (y-5)..y {
                 if y_ < 0 {
                     break;
                 }
-                col.set((dx, y_, dz), Bloc::Dirt);
+                let (qy, dy) = chunked(y_);
+                let chunk_pos = ChunkPos {x: pos.x, y: qy, z: pos.z, realm: pos.realm};
+                world.set_chunked(chunk_pos, (dx, dy, dz), Bloc::Dirt);
             }
         }
         // this is a bit too slow so we don't bother with it for now

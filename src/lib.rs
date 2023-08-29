@@ -9,3 +9,4 @@ pub use growables::*;
 pub const CHUNK_S1: usize = 32;
 pub const MAX_GEN_HEIGHT: usize = 200;
 pub const MAX_HEIGHT: usize = 256;
+pub const Y_CHUNKS: usize = MAX_HEIGHT/CHUNK_S1;

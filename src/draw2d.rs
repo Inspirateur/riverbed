@@ -1,4 +1,4 @@
-use ourcraft::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D};
+use ourcraft::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D, HashMapUtils};
 use crate::load_cols::{ColLoadOrders, ColUnloadEvent};
 use crate::player::Dir;
 use anyhow::Result;
@@ -7,7 +7,7 @@ use colorsys::Rgb;
 use leafwing_input_manager::prelude::ActionState;
 use std::collections::HashMap;
 use std::str::FromStr;
-use crate::render2d::{Render2D, ImageUtils};
+use crate::render2d::Render2D;
 
 pub fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle {
@@ -42,7 +42,7 @@ pub fn on_col_load(
     mut images: ResMut<Assets<Image>>,
     mut col_ents: ResMut<ColEntities>,
 ) {
-    // Add all the rendered columns before registering them
+    // Add the rendered column before registering it
     if let Some(col) = ev_load.0.pop_back() {
         println!("Loaded ({:?})", col);
         let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
@@ -54,7 +54,7 @@ pub fn on_col_load(
                 ..default()
             })
             .id();
-        blocs.track(col);
+        col_ents.0.insert(col, ent);
         // if there was an already loaded col below
         let col_below = col + Dir::Back;
         if let Some(ent_below) = col_ents.0.get(&col_below) {
@@ -65,11 +65,11 @@ pub fn on_col_load(
                 }
             }
         }
-        col_ents.0.insert(col, ent);
     }
 }
 
 pub fn on_col_unload(
+    mut blocs: ResMut<Blocs>,
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
     mut col_ents: ResMut<ColEntities>,
@@ -90,16 +90,15 @@ pub fn process_bloc_changes(
     col_ents: Res<ColEntities>,
     soil_color: Res<SoilColor>,
 ) {
-    for (col, changes) in blocs.pull_changes() {
+    if let Some((chunk, changes)) = blocs.changes.pop() {
+        let col = chunk.into();
         if let Some(ent) = col_ents.0.get(&col) {
             if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent) {
                 if let Some(image) = images.get_mut(&handle) {
-                    for (change, _) in changes {
-                        let bloc_pos = (col, (change.0, change.2)).into();
-                        let color = blocs.bloc_color(bloc_pos, &soil_color);
-                        image.set_pixel(change.0 as i32, change.2 as i32, color);
-                    }
+                    blocs.process_changes(chunk, changes, image, &soil_color);
                 }
+            } else {
+                blocs.changes.insert(chunk, changes);
             }
         }
     }
@@ -140,7 +139,7 @@ impl Plugin for Draw2d {
             .add_systems(Update, update_cam)
             .add_systems(Update, on_col_load)
             .add_systems(Update, on_col_unload)
-            .add_systems(Update, process_bloc_changes);
-
+            .add_systems(Update, process_bloc_changes)
+            ;
     }
 }

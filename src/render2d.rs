@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use bevy::{prelude::Image, render::{render_resource::Extent3d, texture::BevyDefault}};
 use colorsys::{Rgb, ColorTransform};
 use itertools::iproduct;
-use ourcraft::{BlocPos, BlocPos2D, ChunkPos2D, Blocs, Bloc, CHUNK_S2, CHUNK_S1};
+use ourcraft::{BlocPos, BlocPos2D, ChunkPos2D, Blocs, Bloc, CHUNK_S2, CHUNK_S1, ChunkPos, ChunkedPos};
 use crate::{player::Dir, draw2d::SoilColor, earth_gen::WATER_H};
 
 fn image_to_2d(i: usize) -> (usize, usize) {
@@ -28,6 +28,7 @@ pub trait Render2D {
     fn bloc_color(&self, pos: BlocPos2D, soil_color: &SoilColor) -> Rgb;
     fn update_side(&self, image: &mut Image, col: ChunkPos2D, soil_color: &SoilColor);
     fn render_col(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image;
+    fn process_changes(&mut self, chunk: ChunkPos, changes: Vec<(ChunkedPos, Bloc)>, image: &mut Image, soil_color: &SoilColor);
 }
 
 impl Render2D for Blocs {
@@ -108,6 +109,14 @@ impl Render2D for Blocs {
             image.data[i + 1] = color.green() as u8;
             image.data[i + 2] = color.blue() as u8;
 
+        }
+    }
+
+    fn process_changes(&mut self, chunk: ChunkPos, changes: Vec<(ChunkedPos, Bloc)>, image: &mut Image, soil_color: &SoilColor) {
+        for (blocpos, _) in changes {
+            let bloc_pos = (chunk.into(), (blocpos.0, blocpos.2)).into();
+            let color = self.bloc_color(bloc_pos, &soil_color);
+            image.set_pixel(blocpos.0 as i32, blocpos.2 as i32, color);    
         }
     }
 }

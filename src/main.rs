@@ -54,6 +54,6 @@ fn main() {
         }))
         .add_plugins(InputManagerPlugin::<player::Dir>::default())
         .add_plugins(GameLogic)
-        .add_plugins(Draw2d)
+        .add_plugins(Draw3d)
         .run();
 }
