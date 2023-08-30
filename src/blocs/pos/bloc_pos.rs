@@ -1,3 +1,5 @@
+use std::ops::{Add, BitXor};
+
 use super::pos::{Pos, Pos2D};
 const CHUNK_S1I: i32 = 32;
 
@@ -76,6 +78,50 @@ impl From<(ChunkPos2D, ChunkedPos2D)> for BlocPos2D {
     }
 }
 
+const K: usize = 0x517cc1b727220a95;
+
+impl Pos<i32> {
+    pub fn prng(&self, seed: i32) -> usize {
+        (seed as usize)
+            .rotate_left(5).bitxor(self.x as usize).wrapping_mul(K)
+            .rotate_left(5).bitxor(self.y as usize).wrapping_mul(K)
+            .rotate_left(5).bitxor(self.z as usize).wrapping_mul(K)
+    }
+}
+
+impl Add<(i32, i32, i32)> for Pos<i32> {
+    type Output = Pos<i32>;
+
+    fn add(self, rhs: (i32, i32, i32)) -> Self::Output {
+        Pos {
+            x: self.x + rhs.0,
+            y: self.y + rhs.1,
+            z: self.z + rhs.2,
+            realm: self.realm
+        }
+    }
+}
+
+
+impl Pos2D<i32> {
+    pub fn prng(&self, seed: i32) -> usize {
+        (seed as usize)
+            .rotate_left(5).bitxor(self.x as usize).wrapping_mul(K)
+            .rotate_left(5).bitxor(self.z as usize).wrapping_mul(K)
+    }
+}
+
+impl Add<(i32, i32)> for Pos2D<i32> {
+    type Output = Pos2D<i32>;
+
+    fn add(self, rhs: (i32, i32)) -> Self::Output {
+        Pos2D {
+            x: self.x + rhs.0,
+            z: self.z + rhs.1,
+            realm: self.realm
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

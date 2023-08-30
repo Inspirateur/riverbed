@@ -39,11 +39,10 @@ pub struct Pos<N: Number = f32, const U: usize = 1> {
 }
 
 
-impl<N: Number, V: Into<Vec3>, const U: usize> Add<V> for Pos<N, U> {
+impl<N: Number, const U: usize> Add<Vec3> for Pos<N, U> {
     type Output = Pos<N, U>;
 
-    fn add(self, rhs: V) -> Self::Output {
-        let rhs = rhs.into();
+    fn add(self, rhs: Vec3) -> Self::Output {
         Pos {
             realm: self.realm,
             x: self.x + N::from_f32(rhs.x),
@@ -78,11 +77,10 @@ impl Pos2D<i32> {
 }
 
 
-impl<N: Number, V: Into<Vec3>> Add<V> for Pos2D<N> {
+impl<N: Number> Add<Vec3> for Pos2D<N> {
     type Output = Pos2D<N>;
 
-    fn add(self, rhs: V) -> Self::Output {
-        let rhs = rhs.into();
+    fn add(self, rhs: Vec3) -> Self::Output {
         Pos2D {
             realm: self.realm,
             x: self.x + N::from_f32(rhs.x),

@@ -1,5 +1,5 @@
 use crate::terrain_gen::TerrainGen;
-use ourcraft::{MAX_GEN_HEIGHT, Bloc, CHUNK_S1, Soils, ChunkPos2D, Blocs, Plants, grow_oak, Pos, ChunkPos, chunked};
+use ourcraft::{MAX_GEN_HEIGHT, Bloc, CHUNK_S1, Soils, ChunkPos2D, Blocs, Trees, ChunkPos, chunked, BlocPos2D, BlocPos};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
@@ -10,7 +10,7 @@ pub const CHUNK_S1i: i32 = CHUNK_S1 as i32;
 
 pub struct Earth {
     soils: Soils,
-    plants: Plants,
+    trees: Trees,
     seed: i32,
     config: HashMap<String, f32>,
 }
@@ -25,7 +25,7 @@ impl Earth {
     pub fn new(seed: u32, config: HashMap<String, f32>) -> Self {
         Earth {
             soils: Soils::from_csv(Path::new("assets/data/soils_condition.csv")).unwrap(),
-            plants: Plants::from_csv(Path::new("assets/data/plants_condition.csv")).unwrap(),
+            trees: Trees::from_csv(Path::new("assets/data/trees_condition.csv")).unwrap(),
             seed: seed as i32,
             config
         }
@@ -33,23 +33,22 @@ impl Earth {
 }
 
 impl TerrainGen for Earth {
-    fn gen(&self, world: &mut Blocs, pos: ChunkPos2D) {
-        let range = pos_to_range(pos);
+    fn gen(&self, world: &mut Blocs, col: ChunkPos2D) {
+        let range = pos_to_range(col);
         let mut n = NoiseSource::new(range, self.seed, 1);
-        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.35) as f64;
-        let cont = (n.simplex(0.7) + n.simplex(3.) * 0.3).normalize();
-        let land = cont.clone() + n.simplex(9.) * 0.1;
-        let ocean = !(cont*0.5 + 0.5);
-        let land = land.normalize().mask(landratio);
-        let mount_mask = (n.simplex(1.) + n.simplex(2.)*0.3).normalize().mask(0.2)*land.clone();
-        let mount = (!n.simplex(0.8).powi(2) + n.simplex(1.5).powi(2)*0.4).normalize() * mount_mask;
-        // WATER_R is used to ensure land remains above water even if water level is raised
-        let ys = (0.009 + land*WATER_R + mount*(1.-WATER_R)).normalize();
+        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4) as f64;
+        let cont = (n.simplex(0.5) + n.simplex(2.) * 0.4).normalize();
+        let land = (cont.clone() + n.simplex(9.)*0.1).normalize().mask(landratio);
+        let ocean = !cont.pos();
+        // WATER_R is used to level land just above water level
+        let ys = 0.009 + land.clone()*WATER_R + land*n.simplex(1.).pos().powi(3)*0.4;
         // more attitude => less temperature
-        let ts = !ys.clone().powi(3) * (n.simplex(0.2)*0.5 + 0.5 + n.simplex(0.6)*0.3).normalize();
+        let ts = (n.simplex(0.2) + n.simplex(0.6)*0.3).normalize().pos();
         // closer to the ocean => more humidity
-        // higher temp => more humidity
-        let hs = (ocean + ts.clone().powf(0.5) * (n.simplex(0.5)*0.5 + 0.5)).normalize();
+        // lower temp => less humidity
+        let hs = (!ts.clone()*0.5 + ocean + n.simplex(0.5).pos()).normalize();
+        let ph = (n.simplex(0.3) + n.simplex(0.9)*0.2).normalize().pos();
+        println!("y {:?} t {:?} h {:?} ph {:?}", ys.domain, ts.domain, hs.domain, ph.domain);
         // convert y to convenient values
         let ys = ys.map(|y| (y.clamp(0., 1.) * MAX_GEN_HEIGHT as f64) as i32);
         for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
@@ -59,20 +58,41 @@ impl TerrainGen for Earth {
                 None => Bloc::Dirt,
             };
             let (qy, dy) = chunked(y);
-            let chunk_pos = ChunkPos {x: pos.x, y: qy, z: pos.z, realm: pos.realm};
+            let chunk_pos = ChunkPos {x: col.x, y: qy, z: col.z, realm: col.realm};
             world.set_chunked(chunk_pos, (dx, dy, dz), bloc);
             for y_ in (y-5)..y {
                 if y_ < 0 {
                     break;
                 }
                 let (qy, dy) = chunked(y_);
-                let chunk_pos = ChunkPos {x: pos.x, y: qy, z: pos.z, realm: pos.realm};
+                let chunk_pos = ChunkPos {x: col.x, y: qy, z: col.z, realm: col.realm};
                 world.set_chunked(chunk_pos, (dx, dy, dz), Bloc::Dirt);
             }
         }
         // this is a bit too slow so we don't bother with it for now
         // col.fill_up(Bloc::Stone);
-        grow_oak(world, Pos { x: pos.x*CHUNK_S1i, y: ys[0], z: pos.z*CHUNK_S1i, realm: pos.realm}, 0.);
+        let tree_spots = [(0, 0), (16, 0), (8, 16), (24, 16)];
+        for spot in tree_spots {
+            let rng = <BlocPos2D>::from((col, spot)).prng(self.seed);
+            let dx = spot.0 + (rng & 0b111);
+            let dz = spot.1 + ((rng >> 3) & 0b111);
+            println!("dx {} dz {}", dx, dz);
+            let i = dx*CHUNK_S1 + dz;
+            let y = ys[i];
+            if y >= WATER_H {
+                if let Some((tree, dist)) = self.trees.closest([
+                    ts[i] as f32, 
+                    hs[i] as f32, 
+                    ph[i] as f32, 
+                    y as f32/MAX_GEN_HEIGHT as f32
+                ]) {
+                    let pos = BlocPos {
+                        x: col.x*CHUNK_S1i+dx as i32, y, z: col.z*CHUNK_S1i+dz as i32, realm: col.realm
+                    };
+                    tree.grow(world, pos, self.seed, dist);
+                }    
+            }
+        }
     }
 
     fn set_config(&mut self, config: HashMap<String, f32>) {

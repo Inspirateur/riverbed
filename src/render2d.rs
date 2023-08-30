@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use bevy::{prelude::Image, render::{render_resource::Extent3d, texture::BevyDefault}};
+use bevy::{prelude::{Image, Vec3}, render::{render_resource::Extent3d, texture::BevyDefault}};
 use colorsys::{Rgb, ColorTransform};
 use itertools::iproduct;
 use ourcraft::{BlocPos, BlocPos2D, ChunkPos2D, Blocs, Bloc, CHUNK_S2, CHUNK_S1, ChunkPos, ChunkedPos};
@@ -33,8 +33,8 @@ pub trait Render2D {
 
 impl Render2D for Blocs {
     fn bloc_y_cmp(&self, pos: BlocPos, dir: Dir) -> Ordering {
-        let opos = pos + dir;
-        if self.get_block(opos + Dir::Up) != Bloc::Air {
+        let opos = pos + <Vec3>::from(dir);
+        if self.get_block(opos + <Vec3>::from(Dir::Up)) != Bloc::Air {
             Ordering::Less
         } else if self.get_block(opos) != Bloc::Air {
             Ordering::Equal

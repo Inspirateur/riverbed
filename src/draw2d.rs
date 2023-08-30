@@ -56,7 +56,7 @@ pub fn on_col_load(
             .id();
         col_ents.0.insert(col, ent);
         // if there was an already loaded col below
-        let col_below = col + Dir::Back;
+        let col_below = col + <Vec3>::from(Dir::Back);
         if let Some(ent_below) = col_ents.0.get(&col_below) {
             if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent_below) {
                 if let Some(image) = images.get_mut(&handle) {

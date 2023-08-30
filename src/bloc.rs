@@ -3,7 +3,7 @@ use block_mesh::{VoxelVisibility, Voxel, MergeVoxel};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
-use crate::{Blocs, BlocPos, grow_oak};
+use crate::{Blocs, BlocPos, grow_oak, grow_spruce, grow_cypress, grow_birch, grow_sequoia};
 
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, EnumString, Hash)]
 #[strum(ascii_case_insensitive)]
@@ -14,8 +14,14 @@ pub enum Bloc {
     Grass,
     Glass,
     Stone,
+    BirchWood,
+    BirchLeave,
     OakWood,
     OakLeave,
+    SpruceWood,
+    SpruceLeave,
+    SequoiaWood,
+    SequoiaLeave,
     Sand,
     Ice,
     Snow,
@@ -36,7 +42,7 @@ impl Voxel for Bloc {
     fn get_visibility(&self) -> VoxelVisibility {
         match self {
             Bloc::Air => VoxelVisibility::Empty,
-            Bloc::Glass | Bloc::OakLeave => VoxelVisibility::Translucent,
+            Bloc::Glass | Bloc::OakLeave | Bloc::SpruceLeave => VoxelVisibility::Translucent,
             _ => VoxelVisibility::Opaque
         }
     }
@@ -52,16 +58,12 @@ impl MergeVoxel for Bloc {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, EnumString)]
 #[strum(ascii_case_insensitive)]
-pub enum Plant {
+pub enum Tree {
     Oak,
     Spruce,
     Sequoia,
     Palm,
-    Bush,
-    Grass,
     Birch,
-    Lavander,
-    Lily,
     Chestnut,
     Cypress,
     Ironwood,
@@ -71,13 +73,18 @@ pub enum Plant {
     Bamboo
 }
 
-impl Plant {
-    pub fn grow(&self, world: &mut Blocs, pos: BlocPos, dist: f32) {
+impl Tree {
+    pub fn grow(&self, world: &mut Blocs, pos: BlocPos, seed: i32, dist: f32) {
         match self {
-            _ => grow_oak(world, pos, dist)
+            Tree::Spruce => grow_spruce(world, pos, seed, dist),
+            Tree::Birch => grow_birch(world, pos, seed, dist),
+            Tree::Cypress => grow_cypress(world, pos, seed, dist),
+            Tree::Oak | Tree::Chestnut | Tree::Ironwood | Tree::Acacia => grow_oak(world, pos, seed, dist),
+            Tree::Sequoia | Tree::Palm | Tree::Baobab => grow_sequoia(world, pos, seed, dist),
+            _ => {}
         }
     }
 }
 
 pub type Soils = Vec<([Range<f32>; 2], Bloc)>;
-pub type Plants = Vec<([Range<f32>; 5], Plant)>;
+pub type Trees = Vec<([Range<f32>; 4], Tree)>;
