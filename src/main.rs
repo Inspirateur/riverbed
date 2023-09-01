@@ -32,6 +32,7 @@ impl Plugin for GameLogic {
             .add_systems(Startup, player::spawn_player)
             .add_systems(Update, player::move_player)
             .add_systems(Update, movement::apply_acc)
+            .add_systems(Update, movement::apply_gravity)
             .add_systems(Update, movement::apply_speed)
             .add_systems(Update, load_area::update_load_area)
             .add_systems(Update, load_area::load_order)

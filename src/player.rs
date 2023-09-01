@@ -40,7 +40,7 @@ pub fn spawn_player(mut commands: Commands) {
     commands
         .spawn((
             spawn,
-            Gravity(1.),
+            Gravity(0.5),
             Heading(Vec3::default()),
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
@@ -74,6 +74,7 @@ pub fn move_player(mut player_query: Query<(&mut Heading, &ActionState<Dir>)>, c
     if movement.length_squared() > 0. {
         movement = movement.normalize() * 40. * time.delta_seconds();
         movement = Vec3::Y.cross(cam_transform.right())*movement.z + cam_transform.right()*movement.x + movement.y * Vec3::Y;
-        heading.0 = movement;
     }
+    heading.0 = movement;
+    heading.0.y = f32::NAN;
 }
