@@ -4,6 +4,7 @@ use bevy::render::view::NoFrustumCulling;
 use bevy::window::CursorGrabMode;
 use leafwing_input_manager::prelude::*;
 use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, HashMapUtils};
+use crate::movement::AABB;
 use crate::render3d::Meshable;
 use crate::texture_array::{TextureMap, TextureArrayPlugin};
 use crate::{player::Dir, load_cols::{ColLoadOrders, ColUnloadEvent}};
@@ -37,13 +38,13 @@ fn pan_camera(mut query: Query<(&mut Transform, &ActionState<CameraMovement>), W
 
 pub fn translate_cam(
     mut cam_query: Query<&mut Transform, With<Camera>>,
-    player_query: Query<&Pos, (With<ActionState<Dir>>, Changed<Pos>)>
+    player_query: Query<(&Pos, &AABB), (With<ActionState<Dir>>, Changed<Pos>)>
 ) {
     if let Ok(mut cam_pos) = cam_query.get_single_mut() {
-        if let Ok(player_pos) = player_query.get_single() {
-            cam_pos.translation.x = player_pos.x;
-            cam_pos.translation.y = player_pos.y;
-            cam_pos.translation.z = player_pos.z;
+        if let Ok((player_pos, aabb)) = player_query.get_single() {
+            cam_pos.translation.x = player_pos.x + aabb.0.x/2.;
+            cam_pos.translation.y = player_pos.y + aabb.0.y;
+            cam_pos.translation.z = player_pos.z + aabb.0.z/2.;
         }
     }
 }

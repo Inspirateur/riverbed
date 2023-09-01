@@ -31,16 +31,26 @@ impl<T> Number for T where T: Add<Output = T> + AddAssign + Fromf32 {}
 
 #[derive(Component)]
 #[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash)]
-pub struct Pos<N: Number = f32, const U: usize = 1> {
+pub struct Pos<N: Number = f32> {
     pub realm: Realm,
     pub x: N,
     pub y: N,
     pub z: N,
 }
 
+impl From<Pos<f32>> for Pos<i32> {
+    fn from(value: Pos<f32>) -> Self {
+        Pos {
+            x: value.x as i32,
+            y: value.y as i32,
+            z: value.z as i32,
+            realm: value.realm
+        }
+    }
+}
 
-impl<N: Number, const U: usize> Add<Vec3> for Pos<N, U> {
-    type Output = Pos<N, U>;
+impl<N: Number> Add<Vec3> for Pos<N> {
+    type Output = Pos<N>;
 
     fn add(self, rhs: Vec3) -> Self::Output {
         Pos {
@@ -53,7 +63,7 @@ impl<N: Number, const U: usize> Add<Vec3> for Pos<N, U> {
 }
 
 
-impl<N: Number, V: Into<Vec3>, const U: usize> AddAssign<V> for Pos<N, U> {
+impl<N: Number, V: Into<Vec3>> AddAssign<V> for Pos<N> {
     fn add_assign(&mut self, rhs: V) {
         let rhs = rhs.into();
         self.x += N::from_f32(rhs.x);

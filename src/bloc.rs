@@ -29,6 +29,31 @@ pub enum Bloc {
     Bedrock,
 }
 
+
+impl Bloc {
+    pub fn friction(&self) -> f32 {
+        match self {
+            Bloc::Air => 0.2,
+            Bloc::Ice => 0.3,
+            _ => 1.
+        }
+    }
+
+    pub fn slowing(&self) -> f32 {
+        match self {
+            Bloc::Mud => 0.8,
+            _ => 1.
+        }
+    }
+
+    pub fn traversable(&self) -> bool {
+        match self {
+            Bloc::Air => true,
+            _ => false,
+        }
+    }
+}
+
 pub enum Face {
     Up,
     Down,

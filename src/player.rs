@@ -1,4 +1,4 @@
-use crate::load_area::LoadArea;
+use crate::{load_area::LoadArea, movement::{Gravity, Heading, AABB, Velocity}};
 use ourcraft::{Pos, ChunkPos2D, Realm};
 use bevy::{
     math::Vec3,
@@ -34,12 +34,16 @@ pub fn spawn_player(mut commands: Commands) {
     let spawn = Pos::<f32> {
         realm: Realm::Overworld,
         x: 0.,
-        y: 0.,
+        y: 200.,
         z: 0.,
     };
     commands
         .spawn((
             spawn,
+            Gravity(1.),
+            Heading(Vec3::default()),
+            AABB(Vec3::new(0.5, 1.7, 0.5)),
+            Velocity(Vec3::default()),
             LoadArea {
                 col: ChunkPos2D::from(spawn),
                 dist: 5,
@@ -60,9 +64,9 @@ pub fn spawn_player(mut commands: Commands) {
         });
 }
 
-pub fn move_player(mut player_query: Query<(&mut Pos, &ActionState<Dir>)>, cam_query: Query<&Transform, With<Camera>>, time: Res<Time>) {
+pub fn move_player(mut player_query: Query<(&mut Heading, &ActionState<Dir>)>, cam_query: Query<&Transform, With<Camera>>, time: Res<Time>) {
     let cam_transform = cam_query.single();
-    let (mut pos, action_state) = player_query.single_mut();
+    let (mut heading, action_state) = player_query.single_mut();
     let mut movement = Vec3::default();
     for action in action_state.get_pressed() {
         movement += Vec3::from(action);
@@ -70,6 +74,6 @@ pub fn move_player(mut player_query: Query<(&mut Pos, &ActionState<Dir>)>, cam_q
     if movement.length_squared() > 0. {
         movement = movement.normalize() * 40. * time.delta_seconds();
         movement = Vec3::Y.cross(cam_transform.right())*movement.z + cam_transform.right()*movement.x + movement.y * Vec3::Y;
-        *pos += movement;
+        heading.0 = movement;
     }
 }
