@@ -44,7 +44,6 @@ pub fn translate_cam(
         if let Ok((player_pos, aabb)) = player_query.get_single() {
             cam_pos.translation.x = player_pos.x + aabb.0.x/2.;
             cam_pos.translation.y = player_pos.y + aabb.0.y;
-            println!("cam y: {}", cam_pos.translation.y);
             cam_pos.translation.z = player_pos.z + aabb.0.z/2.;
         }
     }
@@ -71,7 +70,7 @@ pub fn on_col_load(
                     if col.z % 2 == 0 { 0.8 } else { 0.4 }
                 ).into()),
                 transform: Transform::from_translation(
-                    Vec3::new(col.x as f32, cy as f32, col.z as f32) * CHUNK_S1 as f32,
+                    Vec3::new(col.x as f32, cy as f32, col.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
                 ),
                 ..Default::default()
             }).insert(NoFrustumCulling).id();
