@@ -16,7 +16,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 TextStyle {
                     // This font is loaded and will be used instead of the default font.
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"),
-                    font_size: 30.0,
+                    font_size: 20.0,
                     color: Color::BEIGE,
                 },
             ),
@@ -25,7 +25,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 TextStyle {
                     // This font is loaded and will be used instead of the default font.
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"),
-                    font_size: 30.0,
+                    font_size: 20.0,
                     color: Color::BEIGE,
                 },
             ),
@@ -34,7 +34,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 TextStyle {
                     // This font is loaded and will be used instead of the default font.
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"),
-                    font_size: 30.0,
+                    font_size: 20.0,
                     color: Color::BEIGE,
                 },
             ),

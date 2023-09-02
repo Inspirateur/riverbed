@@ -1,9 +1,8 @@
-use std::ops::RangeInclusive;
 use bevy::{prelude::{Vec3, Res, Query, Component}, time::{Time, Timer}};
-use itertools::iproduct;
+use itertools::{iproduct, Itertools};
 use ourcraft::{Blocs, Pos, BlocPos};
-const SPEED: f32 = 20.;
-const ACC: f32 = 10.;
+const SPEED: f32 = 10.;
+const ACC: f32 = 15.;
 
 #[derive(Component)]
 pub struct Jumping {
@@ -27,8 +26,12 @@ pub struct Velocity(pub Vec3);
 #[derive(Component)]
 pub struct Gravity(pub f32);
 
-fn extent(v: f32, size: f32) -> RangeInclusive<i32> {
-    (v.floor() as i32)..=((size+v).floor() as i32)
+fn extent(v: f32, size: f32) -> Vec<i32> {
+    if size > 0. {
+        ((v.floor() as i32)..=((size+v).floor() as i32)).collect_vec()
+    } else {
+        (((size+v).floor() as i32)..=(v.floor() as i32)).rev().collect_vec()
+    }
 }
 
 fn blocs_perp_y(pos: Pos<f32>, aabb: &AABB) -> impl Iterator<Item = BlocPos> {
@@ -107,58 +110,66 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Ve
             continue;
         }
         let applied_velocity = velocity.0*time.delta_seconds()*SPEED;
-        let clamped_velocity = applied_velocity.clamp(Vec3::new(-1., -1., -1.), Vec3::new(1., 1., 1.));
         // split the motion on all 3 axis, check for collisions, adjust the final speed vector if there's any
         // x
-        if applied_velocity.x != 0. {
-            let sx = clamped_velocity.x;
-            let dx = if sx > 0. { aabb.0.x + sx } else { sx };
-            let pos_x = *pos + Vec3::new(dx, 0., 0.);
+        let xpos = if applied_velocity.x > 0. { aabb.0.x + pos.x } else { pos.x }; 
+        let mut stopped = false;
+        for x in extent(xpos, applied_velocity.x).into_iter().skip(1) {
+            let pos_x = Pos {x: x as f32, y: pos.y, z: pos.z, realm: pos.realm };
             if blocs_perp_x(pos_x, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
                 // there's a collision in this direction, stop at the block limit
-                if sx > 0. { 
-                    pos.x = pos.x.ceil() - aabb.0.x - f32::EPSILON;
+                if applied_velocity.x > 0. { 
+                    pos.x = pos_x.x - aabb.0.x - 0.01;
                 } else { 
-                    pos.x = pos.x.floor() + f32::EPSILON;
+                    pos.x = pos_x.x + 1.01;
                 }
                 velocity.0.x = 0.;
-            } else {
-                pos.x += applied_velocity.x;
-            }
+                stopped = true;
+                break;
+            }  
+        }
+        if !stopped {
+            pos.x += applied_velocity.x;
         }
         // y
-        if applied_velocity.y != 0. {
-            let sy = clamped_velocity.y;
-            let dy = if sy > 0. { aabb.0.y + sy } else { sy };
-            let pos_y = *pos + Vec3::new(0., dy, 0.);
+        let ypos: f32 = if applied_velocity.y > 0. { aabb.0.y + pos.y } else { pos.y }; 
+        let mut stopped = false;
+        for y in extent(ypos, applied_velocity.y).into_iter().skip(1) {
+            let pos_y = Pos {x: pos.x, y: y as f32, z: pos.z, realm: pos.realm };
             if blocs_perp_y(pos_y, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
                 // there's a collision in this direction, stop at the block limit
-                if sy > 0. { 
-                    pos.y = pos.y.ceil() - aabb.0.y - f32::EPSILON;
+                if applied_velocity.y > 0. {
+                    pos.y = pos_y.y - aabb.0.y - 0.01;
                 } else { 
-                    pos.y = pos.y.floor() + f32::EPSILON;
+                    pos.y = pos_y.y + 1.01;
                 }
                 velocity.0.y = 0.;
-            } else {
-                pos.y += applied_velocity.y;
+                stopped = true;
+                break;
             }
         }
+        if !stopped {
+            pos.y += applied_velocity.y;
+        }
         // z
-        if applied_velocity.z != 0. {
-            let sz = clamped_velocity.z;
-            let dz: f32 = if sz > 0. { aabb.0.z + sz } else { sz };
-            let pos_z = *pos + Vec3::new(0., 0., dz);
+        let zpos: f32 = if applied_velocity.z > 0. { aabb.0.z + pos.z } else { pos.z }; 
+        let mut stopped = false;
+        for z in extent(zpos, applied_velocity.z).into_iter().skip(1) {
+            let pos_z = Pos {x: pos.x, y: pos.y, z: z as f32, realm: pos.realm };
             if blocs_perp_z(pos_z, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
                 // there's a collision in this direction, stop at the block limit
-                if sz > 0. { 
-                    pos.z = pos.z.ceil() - aabb.0.z - f32::EPSILON;
+                if applied_velocity.z > 0. { 
+                    pos.z = pos_z.z - aabb.0.z - 0.01;
                 } else { 
-                    pos.z = pos.z.floor() + f32::EPSILON;
+                    pos.z = pos_z.z + 1.01;
                 }
                 velocity.0.z = 0.;
-            } else {
-                pos.z += applied_velocity.z;
+                stopped = true;
+                break;
             }
+        }
+        if !stopped {
+            pos.z += applied_velocity.z;
         }
     }
 }
