@@ -36,7 +36,7 @@ pub fn spawn_player(mut commands: Commands) {
     let spawn = Pos::<f32> {
         realm: Realm::Overworld,
         x: 0.,
-        y: 200.,
+        y: 100.,
         z: 0.,
     };
     commands

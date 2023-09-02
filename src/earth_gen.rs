@@ -90,7 +90,7 @@ impl TerrainGen for Earth {
                         x: col.x*CHUNK_S1i+dx as i32, y, z: col.z*CHUNK_S1i+dz as i32, realm: col.realm
                     };
                     tree.grow(world, pos, self.seed, dist);
-                }    
+                }
             }
         }
     }

@@ -20,7 +20,7 @@ pub struct Generators {
 impl Generators {
     pub fn new(seed: u32) -> Self {
         let gens: DashMap<Realm, Box<dyn TerrainGen>> = DashMap::new();
-        gens.insert(Realm::Overworld, Box::new(DebugGen::new(seed, HashMap::new())));
+        gens.insert(Realm::Overworld, Box::new(Earth::new(seed, HashMap::new())));
         Generators { data: gens }
     }
 

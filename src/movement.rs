@@ -53,7 +53,7 @@ pub fn process_jumps(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Pos,
     for (pos, aabb, mut jumping, mut velocity) in query.iter_mut() {
         jumping.cd.tick(time.delta());
         if jumping.intent && jumping.cd.finished() {
-            let below = *pos + Vec3::new(0., -1., 0.);
+            let below = *pos + Vec3::new(0., -0.01, 0.);
             if blocs_perp_y(below, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
                 velocity.0.y += jumping.force;
                 jumping.cd.reset();
@@ -68,10 +68,13 @@ pub fn apply_acc(
     mut query: Query<(&Heading, &mut Velocity, &Pos, &AABB)>
 ) {
     for (heading, mut velocity, pos, aabb) in query.iter_mut() {
+        if !blocs.is_col_loaded(*pos) {
+            continue;
+        }
         // get the bloc the entity is standing on if the entity has an AABB
         let mut friction: f32 = 0.;
         let mut slowing: f32 = 0.;
-        let below = *pos + Vec3::new(0., -1., 0.);
+        let below = *pos + Vec3::new(0., -0.01, 0.);
         for bloc in blocs_perp_y(below, aabb).map(|blocpos| blocs.get_block(blocpos)) {
             friction = friction.max(bloc.slowing());
             slowing = slowing.max(bloc.slowing())
@@ -89,14 +92,20 @@ pub fn apply_acc(
     }
 }
 
-pub fn apply_gravity(time: Res<Time>, mut query: Query<(&mut Velocity, &Gravity)>) {
-    for (mut velocity, gravity) in query.iter_mut() {
+pub fn apply_gravity(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Pos, &mut Velocity, &Gravity)>) {
+    for (pos, mut velocity, gravity) in query.iter_mut() {
+        if !blocs.is_col_loaded(*pos) {
+            continue;
+        }
         velocity.0 += Vec3::new(0., -gravity.0*time.delta_seconds(), 0.);
     }
 }
 
 pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Velocity, &mut Pos, &AABB)>) {
     for (mut velocity, mut pos, aabb) in query.iter_mut() {
+        if !blocs.is_col_loaded(*pos) {
+            continue;
+        }
         let applied_velocity = velocity.0*time.delta_seconds()*SPEED;
         let clamped_velocity = applied_velocity.clamp(Vec3::new(-1., -1., -1.), Vec3::new(1., 1., 1.));
         // split the motion on all 3 axis, check for collisions, adjust the final speed vector if there's any

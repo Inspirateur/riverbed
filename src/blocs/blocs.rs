@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use bevy::prelude::Resource;
-use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS};
+use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos};
 use crate::bloc::Bloc;
 use super::pos::{ChunkPos2D, BlocPos, BlocPos2D};
 use super::CHUNK_S1;
@@ -89,5 +89,16 @@ impl Blocs {
             self.chunks.remove(&chunk_pos);
             self.changes.remove(&chunk_pos);
         }
+    }
+
+    pub fn is_col_loaded(&self, player_pos: Pos<f32>) -> bool {
+        let (chunk_pos, _): (Pos<i32>, _) = <BlocPos>::from(player_pos).into();
+        for y in (0..Y_CHUNKS as i32).rev() {
+            let chunk = Pos { x: chunk_pos.x, y, z: chunk_pos.z, realm: chunk_pos.realm };
+            if self.chunks.contains_key(&chunk) {
+                return true;
+            }
+        }
+        false
     }
 }
