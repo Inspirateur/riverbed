@@ -21,13 +21,12 @@ pub fn unchunked(cx: i32, dx: usize) -> i32 {
     cx * CHUNK_S1I + dx as i32
 }
 
-
-impl From<Pos> for ChunkPos2D {
+impl From<Pos<f32>> for ChunkPos2D {
     fn from(pos: Pos) -> Self {
         ChunkPos2D {
             realm: pos.realm,
-            x: chunked(pos.x as i32).0,
-            z: chunked(pos.z as i32).0,
+            x: chunked(pos.x.floor() as i32).0,
+            z: chunked(pos.z.floor() as i32).0,
         }
     }
 }

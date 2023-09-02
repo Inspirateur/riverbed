@@ -21,24 +21,24 @@ pub struct Velocity(pub Vec3);
 pub struct Gravity(pub f32);
 
 fn extent(v: f32, size: f32) -> RangeInclusive<i32> {
-    (v as i32)..=((size+v) as i32)
+    (v.floor() as i32)..=((size+v).floor() as i32)
 }
 
 fn blocs_perp_y(pos: Pos<f32>, aabb: &AABB) -> impl Iterator<Item = BlocPos> {
     iproduct!(extent(pos.x, aabb.0.x) , extent(pos.z, aabb.0.z)).map(move |(x, z)| Pos {
-        x, y: pos.y as i32, z, realm: pos.realm
+        x, y: pos.y.floor() as i32, z, realm: pos.realm
     })
 }
 
 fn blocs_perp_z(pos: Pos<f32>, aabb: &AABB) -> impl Iterator<Item = BlocPos> {
     iproduct!(extent(pos.x, aabb.0.x) , extent(pos.y, aabb.0.y)).map(move |(x, y)| Pos {
-        x, y, z: pos.z as i32, realm: pos.realm
+        x, y, z: pos.z.floor() as i32, realm: pos.realm
     })
 }
 
 fn blocs_perp_x(pos: Pos<f32>, aabb: &AABB) -> impl Iterator<Item = BlocPos> {
     iproduct!(extent(pos.y, aabb.0.y) , extent(pos.z, aabb.0.z)).map(move |(y, z)| Pos {
-        x: pos.x as i32, y, z, realm: pos.realm
+        x: pos.x.floor() as i32, y, z, realm: pos.realm
     })
 }
 
@@ -58,7 +58,6 @@ pub fn apply_acc(
         }
         // applying slowing
         let heading = heading.0*slowing;
-        println!("heading: {}", heading);
         // make velocity inch towards heading
         let speed = heading.length();
         let diff = heading-velocity.0;
@@ -67,7 +66,6 @@ pub fn apply_acc(
             acc.y = 0.;
         }
         velocity.0 += acc;
-        println!("velocity: {}", velocity.0);
     }
 }
 
@@ -77,13 +75,13 @@ pub fn apply_gravity(time: Res<Time>, mut query: Query<(&mut Velocity, &Gravity)
     }
 }
 
-pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Velocity, &mut Pos, &AABB)>) {
-    for (velocity, mut pos, aabb) in query.iter_mut() {
-        let velocity = velocity.0*time.delta_seconds()*SPEED;
-        let clamped_velocity = velocity.clamp(Vec3::new(-1., -1., -1.), Vec3::new(1., 1., 1.));
+pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Velocity, &mut Pos, &AABB)>) {
+    for (mut velocity, mut pos, aabb) in query.iter_mut() {
+        let applied_velocity = velocity.0*time.delta_seconds()*SPEED;
+        let clamped_velocity = applied_velocity.clamp(Vec3::new(-1., -1., -1.), Vec3::new(1., 1., 1.));
         // split the motion on all 3 axis, check for collisions, adjust the final speed vector if there's any
         // x
-        if velocity.x != 0. {
+        if applied_velocity.x != 0. {
             let sx = clamped_velocity.x;
             let dx = if sx > 0. { aabb.0.x + sx } else { sx };
             let pos_x = *pos + Vec3::new(dx, 0., 0.);
@@ -94,12 +92,13 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Veloci
                 } else { 
                     pos.x = pos.x.floor() + f32::EPSILON;
                 }
+                velocity.0.x = 0.;
             } else {
-                pos.x += velocity.x;
+                pos.x += applied_velocity.x;
             }
         }
         // y
-        if velocity.y != 0. {
+        if applied_velocity.y != 0. {
             let sy = clamped_velocity.y;
             let dy = if sy > 0. { aabb.0.y + sy } else { sy };
             let pos_y = *pos + Vec3::new(0., dy, 0.);
@@ -110,12 +109,13 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Veloci
                 } else { 
                     pos.y = pos.y.floor() + f32::EPSILON;
                 }
+                velocity.0.y = 0.;
             } else {
-                pos.y += velocity.y;
+                pos.y += applied_velocity.y;
             }
         }
         // z
-        if velocity.z != 0. {
+        if applied_velocity.z != 0. {
             let sz = clamped_velocity.z;
             let dz: f32 = if sz > 0. { aabb.0.z + sz } else { sz };
             let pos_z = *pos + Vec3::new(0., 0., dz);
@@ -126,8 +126,9 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Veloci
                 } else { 
                     pos.z = pos.z.floor() + f32::EPSILON;
                 }
+                velocity.0.z = 0.;
             } else {
-                pos.z += velocity.z;
+                pos.z += applied_velocity.z;
             }
         }
     }

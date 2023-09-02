@@ -41,9 +41,9 @@ pub struct Pos<N: Number = f32> {
 impl From<Pos<f32>> for Pos<i32> {
     fn from(value: Pos<f32>) -> Self {
         Pos {
-            x: value.x as i32,
-            y: value.y as i32,
-            z: value.z as i32,
+            x: value.x.floor() as i32,
+            y: value.y.floor() as i32,
+            z: value.z.floor() as i32,
             realm: value.realm
         }
     }

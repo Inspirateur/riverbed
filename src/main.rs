@@ -11,8 +11,10 @@ mod load_cols;
 mod movement;
 mod player;
 mod terrain_gen;
+mod debug_display;
 use std::collections::VecDeque;
 use bevy::{prelude::*, window::{PresentMode, WindowTheme}};
+use debug_display::DebugPlugin;
 use ourcraft::Blocs;
 use col_commands::ColCommands;
 use draw2d::Draw2d;
@@ -59,5 +61,6 @@ fn main() {
         .add_plugins(InputManagerPlugin::<player::Dir>::default())
         .add_plugins(GameLogic)
         .add_plugins(Draw3d)
+        .add_plugins(DebugPlugin)
         .run();
 }
