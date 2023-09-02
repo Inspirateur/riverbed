@@ -1,9 +1,16 @@
 use std::ops::RangeInclusive;
-use bevy::{prelude::{Vec3, Res, Query, Component}, time::Time};
+use bevy::{prelude::{Vec3, Res, Query, Component}, time::{Time, Timer}};
 use itertools::iproduct;
 use ourcraft::{Blocs, Pos, BlocPos};
 const SPEED: f32 = 20.;
 const ACC: f32 = 10.;
+
+#[derive(Component)]
+pub struct Jumping {
+    pub force: f32,
+    pub cd: Timer,
+    pub intent: bool,
+}
 
 #[derive(Component)]
 pub struct AABB(pub Vec3);
@@ -40,6 +47,19 @@ fn blocs_perp_x(pos: Pos<f32>, aabb: &AABB) -> impl Iterator<Item = BlocPos> {
     iproduct!(extent(pos.y, aabb.0.y) , extent(pos.z, aabb.0.z)).map(move |(y, z)| Pos {
         x: pos.x.floor() as i32, y, z, realm: pos.realm
     })
+}
+
+pub fn process_jumps(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Pos, &AABB, &mut Jumping, &mut Velocity)>) {
+    for (pos, aabb, mut jumping, mut velocity) in query.iter_mut() {
+        jumping.cd.tick(time.delta());
+        if jumping.intent && jumping.cd.finished() {
+            let below = *pos + Vec3::new(0., -1., 0.);
+            if blocs_perp_y(below, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
+                velocity.0.y += jumping.force;
+                jumping.cd.reset();
+            }
+        }
+    }
 }
 
 pub fn apply_acc(

@@ -1,9 +1,11 @@
-use crate::{load_area::LoadArea, movement::{Gravity, Heading, AABB, Velocity}};
+use std::time::Duration;
+
+use crate::{load_area::LoadArea, movement::{Gravity, Heading, AABB, Velocity, Jumping}};
 use ourcraft::{Pos, ChunkPos2D, Realm};
 use bevy::{
     math::Vec3,
     prelude::*,
-    time::Time, reflect::TypePath,
+    reflect::TypePath,
 };
 use leafwing_input_manager::prelude::*;
 
@@ -40,8 +42,9 @@ pub fn spawn_player(mut commands: Commands) {
     commands
         .spawn((
             spawn,
-            Gravity(0.5),
+            Gravity(1.),
             Heading(Vec3::default()),
+            Jumping {force: 0.5, cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
             LoadArea {
@@ -64,15 +67,22 @@ pub fn spawn_player(mut commands: Commands) {
         });
 }
 
-pub fn move_player(mut player_query: Query<(&mut Heading, &ActionState<Dir>)>, cam_query: Query<&Transform, With<Camera>>, time: Res<Time>) {
+pub fn move_player(
+    mut player_query: Query<(&mut Heading, &mut Jumping, &ActionState<Dir>)>, 
+    cam_query: Query<&Transform, With<Camera>>, 
+) {
     let cam_transform = cam_query.single();
-    let (mut heading, action_state) = player_query.single_mut();
+    let (mut heading, mut jumping, action_state) = player_query.single_mut();
+    jumping.intent = false;
     let mut movement = Vec3::default();
     for action in action_state.get_pressed() {
         movement += Vec3::from(action);
     }
     if movement.length_squared() > 0. {
-        movement = movement.normalize() * 40. * time.delta_seconds();
+        if movement.y > 0. {
+            jumping.intent = true;
+        }
+        movement = movement.normalize();
         movement = Vec3::Y.cross(cam_transform.right())*movement.z + cam_transform.right()*movement.x + movement.y * Vec3::Y;
     }
     heading.0 = movement;

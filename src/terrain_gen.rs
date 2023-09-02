@@ -1,4 +1,4 @@
-use crate::earth_gen::Earth;
+use crate::{earth_gen::Earth, debug_gen::DebugGen};
 use ourcraft::{Realm, ChunkPos2D, Blocs};
 use bevy::prelude::Resource;
 use dashmap::DashMap;
@@ -20,7 +20,7 @@ pub struct Generators {
 impl Generators {
     pub fn new(seed: u32) -> Self {
         let gens: DashMap<Realm, Box<dyn TerrainGen>> = DashMap::new();
-        gens.insert(Realm::Overworld, Box::new(Earth::new(seed, HashMap::new())));
+        gens.insert(Realm::Overworld, Box::new(DebugGen::new(seed, HashMap::new())));
         Generators { data: gens }
     }
 

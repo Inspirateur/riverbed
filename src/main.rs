@@ -36,6 +36,7 @@ impl Plugin for GameLogic {
             .add_systems(Update, movement::apply_acc)
             .add_systems(Update, movement::apply_gravity)
             .add_systems(Update, movement::apply_speed)
+            .add_systems(Update, movement::process_jumps)
             .add_systems(Update, load_area::update_load_area)
             .add_systems(Update, load_area::load_order)
             .add_systems(Update, load_cols::pull_orders);

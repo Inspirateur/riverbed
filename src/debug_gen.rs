@@ -22,35 +22,13 @@ impl Clone for DebugGen {
     }
 }
 
-fn hnorm(v: f32) -> f32 {
-    let v = (0.5 * v / MAX_GEN_HEIGHT as f32).max(0.);
-    if v > 1. {
-        0.
-    } else {
-        v
-    }
-}
-
-fn max_pos(x: i32, z: i32) -> i32 {
-    if x < 0 || z < 0 {
-        0
-    } else {
-        x.max(z)
-    }
-}
-
 fn values(x: i32, z: i32) -> (f32, f32, f32) {
-    let halfh = MAX_GEN_HEIGHT as i32 / 2;
-    let x = x + halfh;
-    let z = z + halfh;
-    let y = max_pos(x, z) as f32;
-    let t = x as f32;
-    let h = z as f32;
-    (hnorm(y), hnorm(t), hnorm(h))
+    let y = (x as f32/300.).sin()*0.5 + 0.5;
+    (y, 5., 5.)
 }
 
 impl DebugGen {
-    fn new(seed: u32, config: std::collections::HashMap<String, f32>) -> Self
+    pub fn new(seed: u32, config: std::collections::HashMap<String, f32>) -> Self
     where
         Self: Sized + Clone,
     {
@@ -64,11 +42,10 @@ impl DebugGen {
 
 impl TerrainGen for DebugGen {
     fn gen(&self, world: &mut Blocs, pos: ChunkPos2D) {
-        let mut col: [Option<Chunk>; Y_CHUNKS] = core::array::from_fn(|_| None);
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (x, z) = (unchunked(pos.x, dx), unchunked(pos.z, dz));
             let (y, t, h) = values(x, z);
-            let y = (WATER_R as f32*(y+1.) * MAX_GEN_HEIGHT as f32) as i32;
+            let y = (y * MAX_GEN_HEIGHT as f32) as i32;
             assert!(y >= 0);
             let bloc = *self.soils.closest([t as f32, h as f32]).unwrap_or((&Bloc::Dirt, 0.)).0;
             let (qy, dy) = chunked(y);
