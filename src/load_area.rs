@@ -1,9 +1,10 @@
-use crate::col_commands::ColCommands;
 use ourcraft::{ChunkPos2D, Pos};
 use bevy::prelude::Query;
 use bevy::prelude::*;
 use itertools::iproduct;
 use std::ops::{Deref, Sub};
+
+use crate::load_cols::LoadedCols;
 
 #[derive(Component, Clone, Copy)]
 pub struct LoadArea {
@@ -67,11 +68,10 @@ impl Deref for LoadAreaOld {
     }
 }
 
-// FIXME: COLUMN LOADING IS MEGA BUGGED, there's random holes and out of range cols, figure out why 
 pub fn load_order(
     mut commands: Commands,
     mut query: Query<(&LoadArea, Option<&mut LoadAreaOld>, Entity), Changed<LoadArea>>,
-    mut world: ResMut<ColCommands>,
+    mut world: ResMut<LoadedCols>,
 ) {
     for (load_area, load_area_old_opt, entity) in query.iter_mut() {
         // compute the columns to load and unload & update old load area

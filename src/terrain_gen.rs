@@ -1,7 +1,6 @@
-use crate::{earth_gen::Earth, debug_gen::DebugGen};
+use crate::earth_gen::Earth;
 use ourcraft::{Realm, ChunkPos2D, Blocs};
 use bevy::prelude::Resource;
-use dashmap::DashMap;
 use std::collections::HashMap;
 
 pub trait TerrainGen: Send + Sync {
@@ -14,12 +13,12 @@ pub trait TerrainGen: Send + Sync {
 
 #[derive(Resource)]
 pub struct Generators {
-    data: DashMap<Realm, Box<dyn TerrainGen>>,
+    data: HashMap<Realm, Box<dyn TerrainGen>>,
 }
 
 impl Generators {
     pub fn new(seed: u32) -> Self {
-        let gens: DashMap<Realm, Box<dyn TerrainGen>> = DashMap::new();
+        let mut gens: HashMap<Realm, Box<dyn TerrainGen>> = HashMap::new();
         gens.insert(Realm::Overworld, Box::new(Earth::new(seed, HashMap::new())));
         Generators { data: gens }
     }

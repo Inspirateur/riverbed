@@ -76,7 +76,6 @@ impl TerrainGen for Earth {
             let rng = <BlocPos2D>::from((col, spot)).prng(self.seed);
             let dx = spot.0 + (rng & 0b111);
             let dz = spot.1 + ((rng >> 3) & 0b111);
-            println!("dx {} dz {}", dx, dz);
             let i = dx*CHUNK_S1 + dz;
             let y = ys[i];
             if y >= WATER_H {

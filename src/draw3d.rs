@@ -3,11 +3,12 @@ use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
 use bevy::window::CursorGrabMode;
 use leafwing_input_manager::prelude::*;
-use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, HashMapUtils};
+use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges, Pos2D};
+use crate::load_cols::LoadedCols;
 use crate::movement::AABB;
 use crate::render3d::Meshable;
 use crate::texture_array::{TextureMap, TextureArrayPlugin};
-use crate::{player::Dir, load_cols::{ColLoadOrders, ColUnloadEvent}};
+use crate::{player::Dir, load_cols::ColUnloadEvent};
 const CAMERA_PAN_RATE: f32 = 0.1;
 
 pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
@@ -49,37 +50,6 @@ pub fn translate_cam(
     }
 }
 
-pub fn on_col_load(
-    mut commands: Commands,
-    mut ev_load: ResMut<ColLoadOrders>,
-    blocs: ResMut<Blocs>,
-    mut chunk_ents: ResMut<ChunkEntities>,
-    asset_server: Res<AssetServer>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    texture_map: Res<TextureMap>
-) {
-    if let Some(col) = ev_load.0.pop_back() {
-        for cy in 0..Y_CHUNKS as i32 {
-            let chunk_pos = ChunkPos {x: col.x, y: cy, z: col.z, realm: col.realm};
-            let ent = commands.spawn(PbrBundle {
-                mesh: meshes.add(blocs.fast_mesh(chunk_pos, &texture_map)),
-                material: materials.add(Color::rgb(
-                    if col.x % 2 == 0 { 0.8 } else { 0.4 }, 
-                    if cy % 2 == 0 { 0.8 } else { 0.4 }, 
-                    if col.z % 2 == 0 { 0.8 } else { 0.4 }
-                ).into()),
-                transform: Transform::from_translation(
-                    Vec3::new(col.x as f32, cy as f32, col.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
-                ),
-                ..Default::default()
-            }).insert(NoFrustumCulling).id();
-            chunk_ents.0.insert(chunk_pos, ent);
-        }
-        println!("Loaded ({:?})", col);
-    }
-}
-
 pub fn on_col_unload(
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
@@ -100,21 +70,48 @@ pub fn on_col_unload(
 }
 
 pub fn process_bloc_changes(
+    loaded_cols: Res<LoadedCols>,
+    mut commands: Commands,
     mut blocs: ResMut<Blocs>, 
     mesh_query: Query<&Handle<Mesh>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    chunk_ents: Res<ChunkEntities>,
-    texture_map: Res<TextureMap>
+    mut chunk_ents: ResMut<ChunkEntities>,
+    texture_map: Res<TextureMap>,
+    mut materials: ResMut<Assets<StandardMaterial>>
 ) {
-    if let Some((chunk, changes)) = blocs.changes.pop() {
-        if let Some(ent) = chunk_ents.0.get(&chunk) {
-            if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
-                if let Some(mesh) = meshes.get_mut(&handle) {
-                    println!("Processing changes for {:?}", chunk);
-                    blocs.process_changes(chunk, changes, mesh, &texture_map);
+    if let Some((chunk, chunk_change)) = blocs.changes.pop() {
+        if !loaded_cols.has_player(chunk.into()) { return; }
+        match chunk_change {
+            ChunkChanges::Created => {
+                let ent = commands.spawn(PbrBundle {
+                    mesh: meshes.add(blocs.fast_mesh(chunk, &texture_map)),
+                    material: materials.add(Color::rgb(
+                        if chunk.x % 2 == 0 { 0.8 } else { 0.4 }, 
+                        if chunk.y % 2 == 0 { 0.8 } else { 0.4 }, 
+                        if chunk.z % 2 == 0 { 0.8 } else { 0.4 }
+                    ).into()),
+                    transform: Transform::from_translation(
+                        Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
+                    ),
+                    ..Default::default()
+                }).insert(NoFrustumCulling).id();
+                // this should not happen
+                assert!(!chunk_ents.0.contains_key(&chunk));
+                chunk_ents.0.insert(chunk, ent);
+                println!("Loaded chunk ({:?})", chunk);
+            },
+            ChunkChanges::Edited(changes) => {
+                if let Some(ent) = chunk_ents.0.get(&chunk) {
+                    if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
+                        if let Some(mesh) = meshes.get_mut(&handle) {
+                            println!("Processing changes for {:?}", chunk);
+                            blocs.process_changes(chunk, changes, mesh, &texture_map);
+                        }
+                    } else {
+                        // the entity is not instanciated yet, we put it back
+                        blocs.changes.insert(chunk, ChunkChanges::Edited(changes));
+                    }
                 }
-            } else {
-                blocs.changes.insert(chunk, changes);
             }
         }
     }
@@ -146,7 +143,6 @@ impl Plugin for Draw3d {
             .add_systems(Startup, setup)
             .add_systems(Update, translate_cam)
             .add_systems(Update, pan_camera)
-            .add_systems(Update, on_col_load)
             .add_systems(Update, on_col_unload)
             .add_systems(Update, process_bloc_changes)
             ;

@@ -1,5 +1,5 @@
-use ourcraft::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D, HashMapUtils};
-use crate::load_cols::{ColLoadOrders, ColUnloadEvent};
+use ourcraft::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D, ChunkChanges, Pos2D};
+use crate::load_cols::{ColUnloadEvent, LoadedCols};
 use crate::player::Dir;
 use anyhow::Result;
 use bevy::prelude::*;
@@ -33,43 +33,7 @@ pub fn update_cam(
     }
 }
 
-pub fn on_col_load(
-    mut commands: Commands,
-    mut ev_load: ResMut<ColLoadOrders>,
-    mut blocs: ResMut<Blocs>,
-    soil_color: Res<SoilColor>,
-    im_query: Query<&Handle<Image>>,
-    mut images: ResMut<Assets<Image>>,
-    mut col_ents: ResMut<ColEntities>,
-) {
-    // Add the rendered column before registering it
-    if let Some(col) = ev_load.0.pop_back() {
-        println!("Loaded ({:?})", col);
-        let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
-        let ent = commands
-            .spawn(SpriteBundle {
-                texture: images.add(blocs.render_col(col, &soil_color)),
-                transform: Transform::from_translation(trans)
-                    .looking_at(trans + Vec3::Y, Vec3::Y),
-                ..default()
-            })
-            .id();
-        col_ents.0.insert(col, ent);
-        // if there was an already loaded col below
-        let col_below = col + <Vec3>::from(Dir::Back);
-        if let Some(ent_below) = col_ents.0.get(&col_below) {
-            if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent_below) {
-                if let Some(image) = images.get_mut(&handle) {
-                    // update the top side shading with the new information
-                    blocs.update_side(image, col_below, &soil_color);
-                }
-            }
-        }
-    }
-}
-
 pub fn on_col_unload(
-    mut blocs: ResMut<Blocs>,
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
     mut col_ents: ResMut<ColEntities>,
@@ -83,23 +47,42 @@ pub fn on_col_unload(
     }
 }
 
-pub fn process_bloc_changes(
+pub fn process_chunk_changes(
+    loaded_cols: Res<LoadedCols>,
+    mut commands: Commands,
     mut blocs: ResMut<Blocs>, 
     im_query: Query<&Handle<Image>>,
     mut images: ResMut<Assets<Image>>,
-    col_ents: Res<ColEntities>,
+    mut col_ents: ResMut<ColEntities>,
     soil_color: Res<SoilColor>,
 ) {
-    if let Some((chunk, changes)) = blocs.changes.pop() {
-        let col = chunk.into();
+    if let Some((chunk, chunk_change)) = blocs.changes.pop() {
+        let col: Pos2D<i32> = chunk.into();
+        if !loaded_cols.has_player(col) { return; }
         if let Some(ent) = col_ents.0.get(&col) {
             if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent) {
                 if let Some(image) = images.get_mut(&handle) {
-                    blocs.process_changes(chunk, changes, image, &soil_color);
+                    match chunk_change {
+                        ChunkChanges::Created => *image = blocs.render_col(col, &soil_color),
+                        ChunkChanges::Edited(changes) => blocs.process_changes(chunk, changes, image, &soil_color)
+                    }
                 }
             } else {
-                blocs.changes.insert(chunk, changes);
+                // the entity is not instanciated yet, we put it back
+                blocs.changes.insert(chunk, chunk_change);
             }
+        } else {
+            println!("Loaded ({:?})", col);
+            let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
+            let ent = commands
+                .spawn(SpriteBundle {
+                    texture: images.add(blocs.render_col(col, &soil_color)),
+                    transform: Transform::from_translation(trans)
+                        .looking_at(trans + Vec3::Y, Vec3::Y),
+                    ..default()
+                })
+                .id();
+            col_ents.0.insert(col, ent);
         }
     }
 }
@@ -137,9 +120,8 @@ impl Plugin for Draw2d {
             .insert_resource(ColEntities::new())
             .add_systems(Startup, setup)
             .add_systems(Update, update_cam)
-            .add_systems(Update, on_col_load)
             .add_systems(Update, on_col_unload)
-            .add_systems(Update, process_bloc_changes)
+            .add_systems(Update, process_chunk_changes)
             ;
     }
 }
