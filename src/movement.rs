@@ -77,7 +77,7 @@ pub fn apply_acc(
         // get the bloc the entity is standing on if the entity has an AABB
         let mut friction: f32 = 0.;
         let mut slowing: f32 = 0.;
-        let below = *pos + Vec3::new(0., -0.01, 0.);
+        let below = *pos + Vec3::new(0., -0.001, 0.);
         for bloc in blocs_perp_y(below, aabb).map(|blocpos| blocs.get_block(blocpos)) {
             friction = friction.max(bloc.slowing());
             slowing = slowing.max(bloc.slowing())
@@ -119,9 +119,9 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Ve
             if blocs_perp_x(pos_x, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
                 // there's a collision in this direction, stop at the block limit
                 if applied_velocity.x > 0. { 
-                    pos.x = pos_x.x - aabb.0.x - 0.01;
+                    pos.x = pos_x.x - aabb.0.x - 0.001;
                 } else { 
-                    pos.x = pos_x.x + 1.01;
+                    pos.x = pos_x.x + 1.001;
                 }
                 velocity.0.x = 0.;
                 stopped = true;
@@ -139,9 +139,9 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Ve
             if blocs_perp_y(pos_y, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
                 // there's a collision in this direction, stop at the block limit
                 if applied_velocity.y > 0. {
-                    pos.y = pos_y.y - aabb.0.y - 0.01;
+                    pos.y = pos_y.y - aabb.0.y - 0.001;
                 } else { 
-                    pos.y = pos_y.y + 1.01;
+                    pos.y = pos_y.y + 1.001;
                 }
                 velocity.0.y = 0.;
                 stopped = true;
@@ -159,9 +159,9 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Ve
             if blocs_perp_z(pos_z, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
                 // there's a collision in this direction, stop at the block limit
                 if applied_velocity.z > 0. { 
-                    pos.z = pos_z.z - aabb.0.z - 0.01;
+                    pos.z = pos_z.z - aabb.0.z - 0.001;
                 } else { 
-                    pos.z = pos_z.z + 1.01;
+                    pos.z = pos_z.z + 1.001;
                 }
                 velocity.0.z = 0.;
                 stopped = true;

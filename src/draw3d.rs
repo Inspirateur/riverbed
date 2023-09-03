@@ -81,7 +81,6 @@ pub fn on_col_load(
 }
 
 pub fn on_col_unload(
-    mut blocs: ResMut<Blocs>,
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
     mut chunk_ents: ResMut<ChunkEntities>,
