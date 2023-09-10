@@ -1,7 +1,6 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
 use crate::bloc::Bloc;
-
 use super::pos::{ChunkedPos, ChunkedPos2D};
 use super::utils::Palette;
 pub const CHUNK_S1: usize = 32;
@@ -11,7 +10,7 @@ pub const CHUNK_S3: usize = CHUNK_S1.pow(3);
 #[derive(Debug)]
 pub struct Chunk {
     data: PackedUints,
-    palette: Vec<Bloc>,
+    palette: Palette<Bloc>,
     size: usize,
     size2: usize
 }
@@ -53,7 +52,8 @@ impl Chunk {
 impl From<&[Bloc]> for Chunk {
     fn from(values: &[Bloc]) -> Self {
         let size = (values.len() as f64).cbrt() as usize;
-        let mut palette = vec![Bloc::default()];
+        let mut palette = Palette::new();
+        palette.index(Bloc::default());
         let values = values.iter().map(|v| palette.index(v.clone())).collect_vec();
         let data = PackedUints::from(values.as_slice());
         Chunk {
@@ -65,9 +65,11 @@ impl From<&[Bloc]> for Chunk {
 
 impl Chunk {
     pub fn new(size: usize) -> Self {
+        let mut palette = Palette::new();
+        palette.index(Bloc::default()); 
         Chunk {
             data: PackedUints::new(size*size*size),
-            palette: vec![Bloc::default()], 
+            palette: palette, 
             size, size2: size*size
         }
     }
@@ -76,9 +78,12 @@ impl Chunk {
         if bloc == Bloc::default() {
             Chunk::new(size)
         } else {
+            let mut palette = Palette::new();
+            palette.index(Bloc::default());
+            palette.index(bloc);
             Chunk {
                 data: PackedUints::filled(size*size*size, 1),
-                palette: vec![Bloc::default(), bloc], 
+                palette: palette, 
                 size, size2: size*size
             }
         }

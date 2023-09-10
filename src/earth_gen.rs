@@ -76,6 +76,7 @@ impl TerrainGen for Earth {
             let rng = <BlocPos2D>::from((col, spot)).prng(self.seed);
             let dx = spot.0 + (rng & 0b111);
             let dz = spot.1 + ((rng >> 3) & 0b111);
+            let h = ((rng >> 5) & 0b11);
             let i = dx*CHUNK_S1 + dz;
             let y = ys[i];
             if y >= WATER_H {
@@ -88,7 +89,7 @@ impl TerrainGen for Earth {
                     let pos = BlocPos {
                         x: col.x*CHUNK_S1i+dx as i32, y, z: col.z*CHUNK_S1i+dz as i32, realm: col.realm
                     };
-                    tree.grow(world, pos, self.seed, dist);
+                    tree.grow(world, pos, self.seed, dist+h as f32/10.);
                 }
             }
         }

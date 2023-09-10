@@ -23,7 +23,7 @@ impl Clone for DebugGen {
 }
 
 fn values(x: i32, z: i32) -> (f32, f32, f32) {
-    let y = (x as f32/300.).sin()*0.5 + 0.5;
+    let y = ((x as f32/50.).sin()*0.5+0.5+(z as f32/50.).cos()*0.5+0.5)/2.;
     (y, 5., 5.)
 }
 

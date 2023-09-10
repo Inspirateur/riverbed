@@ -1,4 +1,4 @@
-use crate::earth_gen::Earth;
+use crate::{earth_gen::Earth, debug_gen::DebugGen};
 use ourcraft::{Realm, ChunkPos2D, Blocs};
 use bevy::prelude::Resource;
 use std::collections::HashMap;
