@@ -41,24 +41,14 @@ impl DebugGen {
 }
 
 impl TerrainGen for DebugGen {
-    fn gen(&self, world: &mut Blocs, pos: ChunkPos2D) {
+    fn gen(&self, world: &mut Blocs, col: ChunkPos2D) {
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
-            let (x, z) = (unchunked(pos.x, dx), unchunked(pos.z, dz));
+            let (x, z) = (unchunked(col.x, dx), unchunked(col.z, dz));
             let (y, t, h) = values(x, z);
             let y = (y * MAX_GEN_HEIGHT as f32) as i32;
             assert!(y >= 0);
             let bloc = *self.soils.closest([t as f32, h as f32]).unwrap_or((&Bloc::Dirt, 0.)).0;
-            let (qy, dy) = chunked(y);
-            let chunk_pos = ChunkPos {x: pos.x, y: qy, z: pos.z, realm: pos.realm};
-            world.set_chunked(chunk_pos, (dx, dy, dz), bloc);
-            for y_ in (y-3)..y {
-                if y_ < 0 {
-                    break;
-                }
-                let (qy, dy) = chunked(y_);
-                let chunk_pos = ChunkPos {x: pos.x, y: qy, z: pos.z, realm: pos.realm};
-                world.set_chunked(chunk_pos, (dx, dy, dz), Bloc::Dirt);
-            }
+            world.set_yrange(col, (dx, dz), y, 3, bloc);
         }
         // this is a bit too slow so we don't bother with it for now
         // col.fill_up(Bloc::Stone);

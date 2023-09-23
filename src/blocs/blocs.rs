@@ -70,11 +70,6 @@ impl Blocs {
         self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set(chunked_pos, bloc);
     }
 
-    pub fn set_chunked(&mut self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, bloc: Bloc) {
-        // BYPASSES CHANGE DETECTION, used by terrain generation for efficiency
-        self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set(chunked_pos, bloc);
-    }
-
     pub fn set_yrange(&mut self, chunk_pos2d: ChunkPos2D, (x, z): ChunkedPos2D, top: i32, mut height: usize, bloc: Bloc) {
         // BYPASSES CHANGE DETECTION, used by terrain generation to efficiently fill columns of blocs
         let (mut cy, mut dy) = chunked(top);
