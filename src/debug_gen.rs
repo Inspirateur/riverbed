@@ -1,10 +1,7 @@
-use crate::{
-    terrain_gen::TerrainGen,
-    earth_gen::WATER_R
-};
+use crate::terrain_gen::TerrainGen;
 use ourcraft::{
     MAX_GEN_HEIGHT, CHUNK_S1,
-    Bloc, Soils, unchunked, Blocs, ChunkPos2D, Chunk, Y_CHUNKS, ChunkPos, chunked
+    Bloc, Soils, unchunked, Blocs, ChunkPos2D
 };
 use itertools::iproduct;
 use nd_interval::NdInterval;

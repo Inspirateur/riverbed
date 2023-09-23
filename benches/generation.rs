@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use itertools::iproduct;
 use nd_interval::NdInterval;
 use noise_algebra::NoiseSource;
-use ourcraft::{MAX_GEN_HEIGHT, CHUNK_S1, Bloc, Soils, Blocs, chunked, ChunkPos2D, Realm, ChunkPos};
+use ourcraft::{MAX_GEN_HEIGHT, CHUNK_S1, Bloc, Soils, Blocs, ChunkPos2D, Realm};
 
 fn col_gen(n: &mut NoiseSource<2>, soils: &Soils) {
     let col = ChunkPos2D { x: 11, z: 0, realm: Realm::Overworld };

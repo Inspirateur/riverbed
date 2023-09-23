@@ -1,6 +1,6 @@
 use crate::terrain_gen::TerrainGen;
 use bevy::prelude::info_span;
-use ourcraft::{MAX_GEN_HEIGHT, Bloc, CHUNK_S1, Soils, ChunkPos2D, Blocs, Trees, ChunkPos, chunked, BlocPos2D, BlocPos};
+use ourcraft::{MAX_GEN_HEIGHT, Bloc, CHUNK_S1, Soils, ChunkPos2D, Blocs, Trees, BlocPos2D, BlocPos};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};

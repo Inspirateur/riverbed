@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos, ChunkedPos2D, chunked};
 use crate::bloc::Bloc;
 use super::pos::{ChunkPos2D, BlocPos, BlocPos2D};
-use super::{CHUNK_S1, chunk};
+use super::CHUNK_S1;
 
 pub enum ChunkChanges {
     Created,
