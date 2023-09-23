@@ -2,10 +2,10 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use bevy::prelude::Resource;
 use indexmap::IndexMap;
-use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos};
+use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos, ChunkedPos2D, chunked};
 use crate::bloc::Bloc;
 use super::pos::{ChunkPos2D, BlocPos, BlocPos2D};
-use super::CHUNK_S1;
+use super::{CHUNK_S1, chunk};
 
 pub enum ChunkChanges {
     Created,
@@ -73,6 +73,19 @@ impl Blocs {
     pub fn set_chunked(&mut self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, bloc: Bloc) {
         // BYPASSES CHANGE DETECTION, used by terrain generation for efficiency
         self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set(chunked_pos, bloc);
+    }
+
+    pub fn set_yrange(&mut self, chunk_pos2d: ChunkPos2D, (x, z): ChunkedPos2D, top: i32, mut height: usize, bloc: Bloc) {
+        // BYPASSES CHANGE DETECTION, used by terrain generation to efficiently fill columns of blocs
+        let (mut cy, mut dy) = chunked(top);
+        while height > 0 && cy >= 0 {
+            let chunk_pos = ChunkPos { x: chunk_pos2d.x, y: cy, z: chunk_pos2d.z, realm: chunk_pos2d.realm};
+            let h = height.min(dy);
+            self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set_yrange((x, dy, z), h, bloc);
+            height -= h;
+            cy -= 1;
+            dy = CHUNK_S1-1;
+        }
     }
 
     pub fn set_if_empty(&mut self, pos: BlocPos, bloc: Bloc) {

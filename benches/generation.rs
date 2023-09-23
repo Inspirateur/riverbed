@@ -5,7 +5,7 @@ use noise_algebra::NoiseSource;
 use ourcraft::{MAX_GEN_HEIGHT, CHUNK_S1, Bloc, Soils, Blocs, chunked, ChunkPos2D, Realm, ChunkPos};
 
 fn col_gen(n: &mut NoiseSource<2>, soils: &Soils) {
-    let pos = ChunkPos2D { x: 0, z: 0, realm: Realm::Overworld };
+    let pos = ChunkPos2D { x: 11, z: 0, realm: Realm::Overworld };
     let mut world = Blocs::new();
     let cont = (n.simplex(0.7) + n.simplex(3.) * 0.3).normalize();
     let land = cont.clone() + n.simplex(9.) * 0.1;
@@ -31,7 +31,7 @@ fn col_gen(n: &mut NoiseSource<2>, soils: &Soils) {
         let (qy, dy) = chunked(y);
         let chunk_pos = ChunkPos {x: pos.x, y: qy, z: pos.z, realm: pos.realm};
         world.set_chunked(chunk_pos, (dx, dy, dz), bloc);
-    for y_ in (y-3)..y {
+        for y_ in (y-3)..y {
             if y_ < 0 {
                 break;
             }

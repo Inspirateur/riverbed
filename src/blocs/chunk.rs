@@ -17,7 +17,8 @@ pub struct Chunk {
 
 impl Chunk {
     fn index(&self, x: usize, y: usize, z: usize) -> usize {
-        x + y * self.size + z * self.size2
+        // arranged by columns for efficiency of vertical operations
+        y + x * self.size + z * self.size2
     }
 
     pub fn get(&self, (x, y, z): ChunkedPos) -> &Bloc {
@@ -27,6 +28,14 @@ impl Chunk {
     pub fn set(&mut self, (x, y, z): ChunkedPos, bloc: Bloc) {
         let idx = self.index(x, y, z);
         self.data.set(idx, self.palette.index(bloc));
+    }
+
+    pub fn set_yrange(&mut self, (x, top, z): ChunkedPos, height: usize, bloc: Bloc) {
+        let value = self.palette.index(bloc);
+        let top = self.index(x, top, z);
+        for idx in (top-height)..=top {
+            self.data.set(idx, value);
+        }
     }
 
     pub fn top(&self, (x, z): ChunkedPos2D) -> (&Bloc, usize) {

@@ -1,4 +1,5 @@
 use crate::terrain_gen::TerrainGen;
+use bevy::prelude::info_span;
 use ourcraft::{MAX_GEN_HEIGHT, Bloc, CHUNK_S1, Soils, ChunkPos2D, Blocs, Trees, ChunkPos, chunked, BlocPos2D, BlocPos};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
@@ -35,6 +36,7 @@ impl Earth {
 impl TerrainGen for Earth {
     fn gen(&self, world: &mut Blocs, col: ChunkPos2D) {
         let range = pos_to_range(col);
+        let gen_span = info_span!("noise gen", name = "noise gen").entered();
         let mut n = NoiseSource::new(range, self.seed, 1);
         let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4) as f64;
         let cont = (n.simplex(0.5) + n.simplex(2.) * 0.4).normalize();
@@ -51,26 +53,21 @@ impl TerrainGen for Earth {
         println!("y {:?} t {:?} h {:?} ph {:?}", ys.domain, ts.domain, hs.domain, ph.domain);
         // convert y to convenient values
         let ys = ys.map(|y| (y.clamp(0., 1.) * MAX_GEN_HEIGHT as f64) as i32);
+        gen_span.exit();
+        let fill_span = info_span!("chunk filling", name = "chunk filling").entered();
         for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
             let (y, t, h) = (ys[i], ts[i], hs[i]);
+            /* 
             let bloc = match self.soils.closest([t as f32, h as f32]) {
                 Some((bloc, _)) => *bloc,
                 None => Bloc::Dirt,
-            };
-            let (qy, dy) = chunked(y);
-            let chunk_pos = ChunkPos {x: col.x, y: qy, z: col.z, realm: col.realm};
-            world.set_chunked(chunk_pos, (dx, dy, dz), bloc);
-            for y_ in (y-5)..y {
-                if y_ < 0 {
-                    break;
-                }
-                let (qy, dy) = chunked(y_);
-                let chunk_pos = ChunkPos {x: col.x, y: qy, z: col.z, realm: col.realm};
-                world.set_chunked(chunk_pos, (dx, dy, dz), Bloc::Dirt);
-            }
+            };*/
+            world.set_yrange(col, (dx, dz), y, 5, Bloc::Dirt);
         }
         // this is a bit too slow so we don't bother with it for now
         // col.fill_up(Bloc::Stone);
+        fill_span.exit();
+        let tree_span = info_span!("tree gen", name = "tree gen").entered();
         let tree_spots = [(0, 0), (16, 0), (8, 16), (24, 16)];
         for spot in tree_spots {
             let rng = <BlocPos2D>::from((col, spot)).prng(self.seed);
@@ -93,6 +90,7 @@ impl TerrainGen for Earth {
                 }
             }
         }
+        tree_span.exit();
     }
 
     fn set_config(&mut self, config: HashMap<String, f32>) {
