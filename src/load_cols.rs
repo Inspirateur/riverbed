@@ -29,7 +29,7 @@ impl LoadedCols {
     pub fn register(&mut self, to_load: Vec<(i32, i32)>, realm: Realm, player: u32) {
         for (x, z) in to_load.into_iter() {
             let pos = ChunkPos2D { realm, x, z };
-            let players = self.cols.entry(pos).or_insert(HashSet::new());
+            let players = self.cols.entry(pos).or_insert_with(|| HashSet::new());
             if players.len() == 0 {
                 self.loads.push(pos);
             }
@@ -40,7 +40,7 @@ impl LoadedCols {
     pub fn unregister(&mut self, to_unload: Vec<(i32, i32)>, realm: Realm, player: u32) {
         for (x, z) in to_unload.into_iter() {
             let pos = ChunkPos2D { realm, x, z };
-            let players = self.cols.entry(pos).or_insert(HashSet::new());
+            let players = self.cols.entry(pos).or_insert_with(|| HashSet::new());
             players.remove(&player);
             if players.len() == 0 {
                 self.cols.remove(&pos);

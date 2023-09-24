@@ -12,7 +12,7 @@ impl<E: Hash + Eq + PartialEq + Clone> Palette<E> {
     }
 
     pub fn index(&mut self, elem: E) -> usize {
-        *self.leftmap.entry(elem.clone()).or_insert({
+        *self.leftmap.entry(elem.clone()).or_insert_with(|| {
             self.rightmap.push(elem);
             self.rightmap.len()-1
         })
