@@ -11,6 +11,12 @@ use crate::texture_array::{TextureMap, TextureArrayPlugin};
 use crate::{player::Dir, load_cols::ColUnloadEvent};
 const CAMERA_PAN_RATE: f32 = 0.1;
 
+#[derive(Component, Default, Debug, Clone, Copy)]
+pub struct FpsCam {
+    pub yaw: f32,
+    pub pitch: f32,
+}
+
 pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0., 150., 10.)
@@ -24,17 +30,23 @@ pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
             .insert(DualAxis::mouse_motion(), CameraMovement::Pan)
             .build(),
         ..default()
-    });
+    }).insert(FpsCam::default());
     let mut window = windows.single_mut();
     window.cursor.grab_mode = CursorGrabMode::Locked;
 }
 
-fn pan_camera(mut query: Query<(&mut Transform, &ActionState<CameraMovement>), With<Camera3d>>, time: Res<Time>) {
-    let (mut camera_transform, action_state) = query.single_mut();
+fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>, time: Res<Time>) {
+    let (action_state, mut fpscam) = query.single_mut();
     let camera_pan_vector = action_state.axis_pair(CameraMovement::Pan).unwrap();
     let c = time.delta_seconds() * CAMERA_PAN_RATE;
-    camera_transform.rotate_y(-c * camera_pan_vector.x());
-    camera_transform.rotate_local_x(-c * camera_pan_vector.y());
+    fpscam.yaw -= c*camera_pan_vector.x();
+    fpscam.pitch -= c*camera_pan_vector.y();
+    fpscam.pitch = fpscam.pitch.clamp(-1.4, 1.4);
+}
+
+fn apply_fps_cam(mut query: Query<(&mut Transform, &FpsCam)>) {
+    let (mut transform, fpscam) = query.single_mut();
+    transform.rotation = Quat::from_axis_angle(Vec3::Y, fpscam.yaw) * Quat::from_axis_angle(Vec3::X, fpscam.pitch);
 }
 
 pub fn translate_cam(
@@ -98,13 +110,11 @@ pub fn process_bloc_changes(
                 // this should not happen
                 assert!(!chunk_ents.0.contains_key(&chunk));
                 chunk_ents.0.insert(chunk, ent);
-                println!("Loaded chunk ({:?})", chunk);
             },
             ChunkChanges::Edited(changes) => {
                 if let Some(ent) = chunk_ents.0.get(&chunk) {
                     if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
                         if let Some(mesh) = meshes.get_mut(&handle) {
-                            println!("Processing changes for {:?}", chunk);
                             blocs.process_changes(chunk, changes, mesh, &texture_map);
                         }
                     } else {
@@ -143,6 +153,7 @@ impl Plugin for Draw3d {
             .add_systems(Startup, setup)
             .add_systems(Update, translate_cam)
             .add_systems(Update, pan_camera)
+            .add_systems(Update, apply_fps_cam)
             .add_systems(Update, on_col_unload)
             .add_systems(Update, process_bloc_changes)
             ;

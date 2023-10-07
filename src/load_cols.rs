@@ -44,7 +44,6 @@ impl LoadedCols {
             players.remove(&player);
             if players.len() == 0 {
                 self.cols.remove(&pos);
-                println!("unloading {:?}", pos);
                 if let Some((i, _)) = self.loads.iter().find_position(|pos_| **pos_ == pos) {
                     // the column was still waiting for load
                     self.loads.remove(i);

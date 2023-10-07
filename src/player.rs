@@ -49,7 +49,7 @@ pub fn spawn_player(mut commands: Commands) {
             Velocity(Vec3::default()),
             LoadArea {
                 col: ChunkPos2D::from(spawn),
-                dist: 5,
+                dist: 6,
             },
         ))
         .insert(InputManagerBundle::<Dir> {

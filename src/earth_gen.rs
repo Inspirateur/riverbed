@@ -50,22 +50,18 @@ impl TerrainGen for Earth {
         // lower temp => less humidity
         let hs = (!ts.clone()*0.5 + ocean + n.simplex(0.5).pos()).normalize();
         let ph = (n.simplex(0.3) + n.simplex(0.9)*0.2).normalize().pos();
-        println!("y {:?} t {:?} h {:?} ph {:?}", ys.domain, ts.domain, hs.domain, ph.domain);
         // convert y to convenient values
         let ys = ys.map(|y| (y.clamp(0., 1.) * MAX_GEN_HEIGHT as f64) as i32);
         gen_span.exit();
         let fill_span = info_span!("chunk filling", name = "chunk filling").entered();
         for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
-            let (y, t, h) = (ys[i], ts[i], hs[i]);
-            /* 
+            let (y, t, h) = (ys[i], ts[i], hs[i]); 
             let bloc = match self.soils.closest([t as f32, h as f32]) {
                 Some((bloc, _)) => *bloc,
                 None => Bloc::Dirt,
-            };*/
-            world.set_yrange(col, (dx, dz), y, 5, Bloc::Dirt);
+            };
+            world.set_yrange(col, (dx, dz), y, 5, bloc);
         }
-        // this is a bit too slow so we don't bother with it for now
-        // col.fill_up(Bloc::Stone);
         fill_span.exit();
         let tree_span = info_span!("tree gen", name = "tree gen").entered();
         let tree_spots = [(0, 0), (16, 0), (8, 16), (24, 16)];

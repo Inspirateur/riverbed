@@ -41,8 +41,6 @@ pub fn on_col_unload(
     for col_ev in ev_unload.iter() {
         if let Some(ent) = col_ents.0.remove(&col_ev.0) {
             commands.entity(ent).despawn();
-        } else {
-            println!("unload order for {:?} but no entities", col_ev.0);
         }
     }
 }
@@ -72,7 +70,6 @@ pub fn process_chunk_changes(
                 blocs.changes.insert(chunk, chunk_change);
             }
         } else {
-            println!("Loaded ({:?})", col);
             let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
             let ent = commands
                 .spawn(SpriteBundle {
