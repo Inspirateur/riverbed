@@ -7,6 +7,7 @@ use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges, Pos2D};
 use crate::load_cols::LoadedCols;
 use crate::movement::AABB;
 use crate::render3d::Meshable;
+use crate::sky::SkyPlugin;
 use crate::texture_array::{TextureMap, TextureArrayPlugin};
 use crate::{player::Dir, load_cols::ColUnloadEvent};
 const CAMERA_PAN_RATE: f32 = 0.1;
@@ -147,6 +148,7 @@ pub struct Draw3d;
 impl Plugin for Draw3d {
     fn build(&self, app: &mut App) {
         app
+            .add_plugins(SkyPlugin)
             .add_plugins(InputManagerPlugin::<CameraMovement>::default())
             .add_plugins(TextureArrayPlugin)
             .insert_resource(ChunkEntities::new())

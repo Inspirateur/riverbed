@@ -42,9 +42,9 @@ pub fn spawn_player(mut commands: Commands) {
     commands
         .spawn((
             spawn,
-            Gravity(3.),
+            Gravity(5.),
             Heading(Vec3::default()),
-            Jumping {force: 3., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
+            Jumping {force: 2., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
             LoadArea {

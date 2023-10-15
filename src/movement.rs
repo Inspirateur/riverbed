@@ -1,7 +1,7 @@
 use bevy::{prelude::{Vec3, Res, Query, Component}, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
 use ourcraft::{Blocs, Pos, BlocPos};
-const SPEED: f32 = 10.;
+const SPEED: f32 = 30.;
 const ACC: f32 = 15.;
 
 #[derive(Component)]

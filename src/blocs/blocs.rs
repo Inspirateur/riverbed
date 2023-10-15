@@ -1,11 +1,16 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
-use bevy::prelude::Resource;
+use bevy::prelude::{Resource, Vec3};
 use indexmap::IndexMap;
-use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos, ChunkedPos2D, chunked};
+use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos, ChunkedPos2D, chunked, Realm};
 use crate::bloc::Bloc;
 use super::pos::{ChunkPos2D, BlocPos, BlocPos2D};
 use super::CHUNK_S1;
+
+pub struct BlocRayCastHit {
+    pos: BlocPos,
+    normal: Vec3,
+}
 
 pub enum ChunkChanges {
     Created,
@@ -151,5 +156,19 @@ impl Blocs {
             self.changes.remove(&chunk_pos);
             self.tracking.remove(&chunk_pos);
         }
+    }
+
+    pub fn raycast(&self, realm: Realm, start: Vec3, dir: Vec3, dist: f32) -> Option<BlocRayCastHit> {
+        let bloc_pos = BlocPos {
+            realm, 
+            x: start.x as i32,
+            y: start.y as i32,
+            z: start.z as i32,
+        };
+        let sx = dir.x.signum();
+        let sy = dir.y.signum();
+        let sz = dir.z.signum();
+        let t_max_x = todo!();
+        todo!()
     }
 }

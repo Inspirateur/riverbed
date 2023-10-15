@@ -1,3 +1,4 @@
+mod sky;
 mod render2d;
 mod draw2d;
 mod texture_array;
