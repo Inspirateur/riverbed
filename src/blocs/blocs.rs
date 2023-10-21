@@ -1,15 +1,15 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
-use bevy::prelude::{Resource, Vec3};
+use bevy::prelude::{Resource, Vec3, Component};
 use indexmap::IndexMap;
-use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos, ChunkedPos2D, chunked, Realm};
+use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos, ChunkedPos2D, chunked, Realm, MAX_HEIGHT};
 use crate::bloc::Bloc;
 use super::pos::{ChunkPos2D, BlocPos, BlocPos2D};
 use super::CHUNK_S1;
 
 pub struct BlocRayCastHit {
-    pos: BlocPos,
-    normal: Vec3,
+    pub pos: BlocPos,
+    pub normal: Vec3,
 }
 
 pub enum ChunkChanges {
@@ -108,6 +108,14 @@ impl Blocs {
         }
     }
 
+    pub fn get_block_safe(&self, pos: BlocPos) -> Bloc {
+        if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 {
+            Bloc::Air
+        } else {
+            self.get_block(pos)
+        }
+    }
+
     pub fn top_block(&self, pos: BlocPos2D) -> (Bloc, i32) {
         let (col_pos, pos2d) = pos.into();
         for y in (0..Y_CHUNKS as i32).rev() {
@@ -159,16 +167,64 @@ impl Blocs {
     }
 
     pub fn raycast(&self, realm: Realm, start: Vec3, dir: Vec3, dist: f32) -> Option<BlocRayCastHit> {
-        let bloc_pos = BlocPos {
+        let mut pos = BlocPos {
             realm, 
             x: start.x as i32,
             y: start.y as i32,
             z: start.z as i32,
         };
-        let sx = dir.x.signum();
-        let sy = dir.y.signum();
-        let sz = dir.z.signum();
-        let t_max_x = todo!();
-        todo!()
+        let mut last_pos;
+        let sx = dir.x.signum() as i32;
+        let sy = dir.y.signum() as i32;
+        let sz = dir.z.signum() as i32;
+        if sx == 0 && sy == 0 && sz == 0 {
+            return None;
+        }
+        let next_x = start.x + sx as f32;
+        let next_y = start.y + sy as f32;
+        let next_z = start.z + sz as f32;
+        let mut t_max_x = (next_x - start.x) / dir.x;
+        let mut t_max_y = (next_y - start.y) / dir.y;
+        let mut t_max_z = (next_z - start.z) / dir.z;
+        let slope_x = 1./dir.x;
+        let slope_y = 1./dir.y;
+        let slope_z = 1./dir.z;
+        let mut travelled = 0.;
+        loop {
+            last_pos = pos.clone();
+            if t_max_x < t_max_y {
+                if t_max_x < t_max_z {
+                    pos.x += sx;
+                    t_max_x += slope_x;
+                    travelled += slope_x.abs();
+                } else {
+                    pos.z += sz;
+                    t_max_z += slope_z;
+                    travelled += slope_z.abs();
+                }
+            } else {
+                if t_max_y < t_max_z {
+                    pos.y += sy;
+                    t_max_y += slope_y;
+                    travelled += slope_y.abs();
+                } else {
+                    pos.z += sz;
+                    t_max_z += slope_z;
+                    travelled += slope_z.abs();
+                }
+            }
+            if travelled >= dist {
+                return None;
+            }
+            if self.get_block_safe(pos) != Bloc::Air {
+                return Some(BlocRayCastHit {
+                    pos, normal: Vec3 { 
+                        x: (pos.x-last_pos.x) as f32, 
+                        y: (pos.y-last_pos.y) as f32, 
+                        z: (pos.z-last_pos.z) as f32 
+                    }
+                });
+            }
+        }
     }
 }

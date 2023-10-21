@@ -1,13 +1,16 @@
 use std::time::Duration;
-
 use crate::{load_area::LoadArea, movement::{Gravity, Heading, AABB, Velocity, Jumping}};
-use ourcraft::{Pos, ChunkPos2D, Realm};
+use ourcraft::{Pos, ChunkPos2D, Realm, BlocRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
     reflect::TypePath,
 };
 use leafwing_input_manager::prelude::*;
+
+
+#[derive(Component)]
+pub struct TargetBloc(pub Option<BlocRayCastHit>);
 
 #[derive(Actionlike, TypePath, PartialEq, Clone, Copy, Debug, Hash)]
 pub enum Dir {
@@ -51,6 +54,7 @@ pub fn spawn_player(mut commands: Commands) {
                 col: ChunkPos2D::from(spawn),
                 dist: 6,
             },
+            TargetBloc(None)
         ))
         .insert(InputManagerBundle::<Dir> {
             action_state: ActionState::default(),

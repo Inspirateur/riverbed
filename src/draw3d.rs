@@ -6,6 +6,7 @@ use leafwing_input_manager::prelude::*;
 use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges, Pos2D};
 use crate::load_cols::LoadedCols;
 use crate::movement::AABB;
+use crate::player::TargetBloc;
 use crate::render3d::Meshable;
 use crate::sky::SkyPlugin;
 use crate::texture_array::{TextureMap, TextureArrayPlugin};
@@ -36,6 +37,19 @@ pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
     window.cursor.grab_mode = CursorGrabMode::Locked;
 }
 
+pub fn translate_cam(
+    mut cam_query: Query<&mut Transform, With<Camera>>,
+    player_query: Query<(&Pos, &AABB), (With<ActionState<Dir>>, Changed<Pos>)>
+) {
+    if let Ok(mut cam_pos) = cam_query.get_single_mut() {
+        if let Ok((player_pos, aabb)) = player_query.get_single() {
+            cam_pos.translation.x = player_pos.x + aabb.0.x/2.;
+            cam_pos.translation.y = player_pos.y + aabb.0.y;
+            cam_pos.translation.z = player_pos.z + aabb.0.z/2.;
+        }
+    }
+}
+
 fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>, time: Res<Time>) {
     let (action_state, mut fpscam) = query.single_mut();
     let camera_pan_vector = action_state.axis_pair(CameraMovement::Pan).unwrap();
@@ -50,17 +64,19 @@ fn apply_fps_cam(mut query: Query<(&mut Transform, &FpsCam)>) {
     transform.rotation = Quat::from_axis_angle(Vec3::Y, fpscam.yaw) * Quat::from_axis_angle(Vec3::X, fpscam.pitch);
 }
 
-pub fn translate_cam(
-    mut cam_query: Query<&mut Transform, With<Camera>>,
-    player_query: Query<(&Pos, &AABB), (With<ActionState<Dir>>, Changed<Pos>)>
+fn target_bloc(
+    mut player: Query<(&mut TargetBloc, &Pos<f32>), With<ActionState<Dir>>>, 
+    player_cam: Query<&Transform, With<FpsCam>>,
+    world: Res<Blocs>
 ) {
-    if let Ok(mut cam_pos) = cam_query.get_single_mut() {
-        if let Ok((player_pos, aabb)) = player_query.get_single() {
-            cam_pos.translation.x = player_pos.x + aabb.0.x/2.;
-            cam_pos.translation.y = player_pos.y + aabb.0.y;
-            cam_pos.translation.z = player_pos.z + aabb.0.z/2.;
-        }
-    }
+    let (mut target_bloc, player_pos) = player.single_mut();
+    let transform = player_cam.single();
+    target_bloc.0 = world.raycast(
+        player_pos.realm, 
+        transform.translation, 
+        transform.forward(), 
+        12.
+    );
 }
 
 pub fn on_col_unload(
@@ -155,6 +171,7 @@ impl Plugin for Draw3d {
             .add_systems(Startup, setup)
             .add_systems(Update, translate_cam)
             .add_systems(Update, pan_camera)
+            .add_systems(Update, target_bloc)
             .add_systems(Update, apply_fps_cam)
             .add_systems(Update, on_col_unload)
             .add_systems(Update, process_bloc_changes)
