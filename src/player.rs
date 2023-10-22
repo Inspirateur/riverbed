@@ -1,13 +1,12 @@
 use std::time::Duration;
-use crate::{load_area::LoadArea, movement::{Gravity, Heading, AABB, Velocity, Jumping}};
+use crate::{load_area::LoadArea, movement::{Gravity, Heading, AABB, Velocity, Jumping}, GameState};
 use ourcraft::{Pos, ChunkPos2D, Realm, BlocRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
-    reflect::TypePath,
+    reflect::TypePath, window::CursorGrabMode,
 };
 use leafwing_input_manager::prelude::*;
-
 
 #[derive(Component)]
 pub struct TargetBloc(pub Option<BlocRayCastHit>);
@@ -35,6 +34,12 @@ impl From<Dir> for Vec3 {
     }
 }
 
+#[derive(Actionlike, TypePath, PartialEq, Clone, Copy, Debug, Hash)]
+pub enum UIAction {
+    Escape,
+    Inventory,
+}
+
 pub fn spawn_player(mut commands: Commands) {
     let spawn = Pos::<f32> {
         realm: Realm::Overworld,
@@ -54,7 +59,7 @@ pub fn spawn_player(mut commands: Commands) {
                 col: ChunkPos2D::from(spawn),
                 dist: 6,
             },
-            TargetBloc(None)
+            TargetBloc(None),
         ))
         .insert(InputManagerBundle::<Dir> {
             action_state: ActionState::default(),
@@ -67,6 +72,12 @@ pub fn spawn_player(mut commands: Commands) {
                 (KeyCode::Q, Dir::Left),
                 (KeyCode::ShiftLeft, Dir::Down),
                 (KeyCode::Space, Dir::Up)
+            ]),
+        })
+        .insert(InputManagerBundle::<UIAction> {
+            action_state: ActionState::default(),
+            input_map: InputMap::new([
+                (KeyCode::Escape, UIAction::Escape),
             ]),
         });
 }

@@ -4,6 +4,7 @@ use bevy::render::view::NoFrustumCulling;
 use bevy::window::CursorGrabMode;
 use leafwing_input_manager::prelude::*;
 use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges, Pos2D};
+use crate::GameState;
 use crate::load_cols::LoadedCols;
 use crate::movement::AABB;
 use crate::player::TargetBloc;
@@ -35,6 +36,7 @@ pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
     }).insert(FpsCam::default());
     let mut window = windows.single_mut();
     window.cursor.grab_mode = CursorGrabMode::Locked;
+    window.cursor.visible = false;
 }
 
 pub fn translate_cam(
@@ -170,7 +172,7 @@ impl Plugin for Draw3d {
             .insert_resource(ChunkEntities::new())
             .add_systems(Startup, setup)
             .add_systems(Update, translate_cam)
-            .add_systems(Update, pan_camera)
+            .add_systems(Update, pan_camera.run_if(in_state(GameState::Game)))
             .add_systems(Update, target_bloc)
             .add_systems(Update, apply_fps_cam)
             .add_systems(Update, on_col_unload)
