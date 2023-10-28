@@ -1,23 +1,10 @@
-use std::iter::zip;
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
-use crate::blocs::{Pos, Blocs};
-use crate::agents::{AABB, TargetBloc, Dir};
+use crate::GameState;
+use crate::blocs::Pos;
+use crate::agents::{AABB, Dir};
 use leafwing_input_manager::prelude::*;
 
-const TARGET_DIST: f32 = 8.;
-const EDGES_ANCHORS: [Vec3; 4] = [
-    Vec3::ZERO,
-    Vec3::new(1., 1., 0.),
-    Vec3::new(1., 0., 1.),
-    Vec3::new(0., 1., 1.), 
-];
-const EDGES_LINES: [Vec3; 4] = [
-    Vec3::ONE,
-    Vec3::new(-1., -1., 1.),
-    Vec3::new(-1., 1., -1.),
-    Vec3::new(1., -1., -1.), 
-];
 const CAMERA_PAN_RATE: f32 = 0.1;
 
 #[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect)]
@@ -77,31 +64,17 @@ pub fn apply_fps_cam(mut query: Query<(&mut Transform, &FpsCam)>) {
     transform.rotation = Quat::from_axis_angle(Vec3::Y, fpscam.yaw) * Quat::from_axis_angle(Vec3::X, fpscam.pitch);
 }
 
-pub fn target_bloc(
-    mut player: Query<(&mut TargetBloc, &Pos<f32>), With<ActionState<Dir>>>, 
-    player_cam: Query<&Transform, With<FpsCam>>,
-    world: Res<Blocs>
-) {
-    let (mut target_bloc, player_pos) = player.single_mut();
-    let transform = player_cam.single();
-    target_bloc.0 = world.raycast(
-        player_pos.realm, 
-        transform.translation, 
-        transform.forward(), 
-        TARGET_DIST
-    );
-}
 
-pub fn bloc_outline(mut gizmos: Gizmos, target_bloc_query: Query<&TargetBloc>) {
-    for target_bloc_opt in target_bloc_query.iter() {
-        if let Some(target_bloc) = &target_bloc_opt.0 {
-            let pos: Vec3 = target_bloc.pos.into();
-            for (anchor, lines) in zip(EDGES_ANCHORS, EDGES_LINES) {
-                let anchor_pos = pos + anchor;
-                gizmos.line(anchor_pos, anchor_pos+lines*Vec3::X, Color::BLACK);
-                gizmos.line(anchor_pos, anchor_pos+lines*Vec3::Y, Color::BLACK);
-                gizmos.line(anchor_pos, anchor_pos+lines*Vec3::Z, Color::BLACK);
-            }
-        }
+pub struct Camera3dPlugin;
+
+impl Plugin for Camera3dPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_plugins(InputManagerPlugin::<CameraMovement>::default())
+            .add_systems(Startup, setup)
+            .add_systems(Update, translate_cam)
+            .add_systems(Update, apply_fps_cam)
+            .add_systems(Update, pan_camera.run_if(in_state(GameState::Game)))
+        ;
     }
 }

@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
-use leafwing_input_manager::prelude::*;
 use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges};
-use crate::GameState;
 use crate::gen::{LoadedCols, ColUnloadEvent};
-use crate::sky::SkyPlugin;
-use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}, camera::*};
+use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 
 pub fn on_col_unload(
     mut commands: Commands,
@@ -88,18 +85,10 @@ pub struct Draw3d;
 impl Plugin for Draw3d {
     fn build(&self, app: &mut App) {
         app
-            .add_plugins(SkyPlugin)
-            .add_plugins(InputManagerPlugin::<CameraMovement>::default())
             .add_plugins(TextureArrayPlugin)
             .insert_resource(ChunkEntities::new())
-            .add_systems(Startup, setup)
-            .add_systems(Update, translate_cam)
-            .add_systems(Update, pan_camera.run_if(in_state(GameState::Game)))
-            .add_systems(Update, target_bloc)
-            .add_systems(Update, apply_fps_cam)
             .add_systems(Update, on_col_unload)
             .add_systems(Update, process_bloc_changes)
-            .add_systems(Update, bloc_outline)
             ;
     }
 }

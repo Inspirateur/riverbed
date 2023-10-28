@@ -3,7 +3,8 @@ use bevy::{prelude::{Image, Vec3}, render::{render_resource::Extent3d, texture::
 use colorsys::{Rgb, ColorTransform};
 use itertools::iproduct;
 use crate::blocs::{BlocPos, BlocPos2D, ChunkPos2D, Blocs, Bloc, CHUNK_S2, CHUNK_S1, ChunkPos, ChunkedPos};
-use crate::{agents::Dir, draw2d::draw2d::SoilColor, gen::WATER_H};
+use crate::{agents::Dir, gen::WATER_H};
+use super::draw2d::SoilColor;
 
 fn image_to_2d(i: usize) -> (usize, usize) {
     (CHUNK_S1 - 1 - (i / 4) / CHUNK_S1, CHUNK_S1 - 1 - (i / 4) % CHUNK_S1)

@@ -77,19 +77,3 @@ pub fn pull_orders(
         blocs.register(col)
     }
 }
-
-
-pub struct LoadTerrainPlugin;
-
-impl Plugin for LoadTerrainPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .insert_resource(LoadedCols::new())
-            .insert_resource(Generators::new(0))
-            .add_event::<ColUnloadEvent>()
-            .add_systems(Update, update_load_area)
-            .add_systems(Update, load_order)
-            .add_systems(Update, pull_orders)
-        ;
-    }
-}

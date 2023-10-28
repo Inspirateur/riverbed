@@ -1,17 +1,16 @@
 mod blocs;
 mod ui;
 mod gen;
-mod draw2d;
-mod draw3d;
-mod sky;
+mod game2d;
+mod game3d;
 mod agents;
 use bevy::{prelude::*, window::{PresentMode, WindowTheme}};
 use blocs::Blocs;
 use ui::MenuPlugin;
-use draw2d::Draw2d;
-use draw3d::Draw3d;
+use game2d::Game2d;
+use game3d::Game3d;
 use agents::{MovementPlugin, PlayerPlugin};
-use gen::LoadTerrainPlugin;
+use gen::GenPlugin;
 use ui::UIPlugin;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
@@ -43,7 +42,7 @@ fn main() {
         .add_plugins(MenuPlugin)
         .add_plugins(PlayerPlugin)
         .add_plugins(MovementPlugin)
-        .add_plugins(LoadTerrainPlugin)
-        .add_plugins(Draw3d)
+        .add_plugins(GenPlugin)
+        .add_plugins(Game3d)
         .run();
 }

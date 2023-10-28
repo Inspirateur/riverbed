@@ -7,7 +7,7 @@ use colorsys::Rgb;
 use leafwing_input_manager::prelude::ActionState;
 use std::collections::HashMap;
 use std::str::FromStr;
-use crate::draw2d::render2d::Render2D;
+use super::render2d::Render2D;
 
 pub fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle {

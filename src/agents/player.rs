@@ -1,10 +1,10 @@
 use std::time::Duration;
-use crate::{gen::LoadArea, agents::{Gravity, Heading, AABB, Velocity, Jumping}, GameState};
+use crate::{gen::LoadArea, agents::{Gravity, Heading, AABB, Velocity, Jumping}};
 use crate::blocs::{Pos, ChunkPos2D, Realm, BlocRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
-    reflect::TypePath, window::CursorGrabMode,
+    reflect::TypePath
 };
 use leafwing_input_manager::prelude::*;
 
@@ -32,6 +32,12 @@ impl From<Dir> for Vec3 {
             Dir::Left => Vec3::new(-1., 0., 0.),
         }
     }
+}
+
+#[derive(Actionlike, TypePath, PartialEq, Clone, Copy, Debug, Hash)]
+pub enum Action {
+    Action1,
+    Action2,
 }
 
 #[derive(Actionlike, TypePath, PartialEq, Clone, Copy, Debug, Hash)]
@@ -79,6 +85,13 @@ pub fn spawn_player(mut commands: Commands) {
             input_map: InputMap::new([
                 (KeyCode::Escape, UIAction::Escape),
             ]),
+        })
+        .insert(InputManagerBundle::<Action> {
+            action_state: ActionState::default(),
+            input_map: InputMap::new([
+                (MouseButton::Left, Action::Action1),
+                (MouseButton::Right, Action::Action2),
+            ])
         });
 }
 
