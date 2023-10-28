@@ -186,7 +186,6 @@ impl Blocs {
         let mut t_max_x = (next_x - start.x) / dir.x;
         let mut t_max_y = (next_y - start.y) / dir.y;
         let mut t_max_z = (next_z - start.z) / dir.z;
-        println!("t_max {} ; {} ; {}", t_max_x, t_max_y, t_max_z);
         let slope_x = 1./dir.x.abs();
         let slope_y = 1./dir.y.abs();
         let slope_z = 1./dir.z.abs();

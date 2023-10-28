@@ -123,6 +123,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins(InputManagerPlugin::<Dir>::default())
+            .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<UIAction>::default())
             .add_systems(Startup, spawn_player)
             .add_systems(Update, move_player)
