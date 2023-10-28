@@ -28,7 +28,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     color: Color::BEIGE,
                 },
             ),
-        ]),
+        ]).with_style(Style {
+            position_type: PositionType::Absolute,
+            ..Default::default()
+        }),
         DebugText,
     ));
 }

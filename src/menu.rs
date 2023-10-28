@@ -42,6 +42,7 @@ pub fn setup_pause(mut commands: Commands, asset_server: Res<AssetServer>) {
                 height: Val::Percent(100.0),
                 ..default()
             },
+            background_color: BackgroundColor(Color::Rgba { red: 0., green: 0., blue: 0., alpha: 0.6 }),
             ..default()
         },
         OnPauseScreen,

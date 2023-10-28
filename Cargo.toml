@@ -26,6 +26,9 @@ block-mesh = "*"
 noise-algebra = { git = "https://github.com/Inspirateur/noise-algebra" }
 nd-interval = { git = "https://github.com/Inspirateur/nd-interval" }
 
+[profile.dev]
+opt-level = 1
+
 [profile.test]
 opt-level = 3
 
