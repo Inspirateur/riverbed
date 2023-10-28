@@ -13,6 +13,7 @@ mod player;
 mod terrain_gen;
 mod debug_display;
 mod menu;
+mod ui;
 use bevy::{prelude::*, window::{PresentMode, WindowTheme}};
 use debug_display::DebugPlugin;
 use menu::MenuPlugin;
@@ -22,6 +23,7 @@ use draw3d::Draw3d;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 use load_cols::{ColUnloadEvent, LoadedCols};
 use terrain_gen::Generators;
+use ui::UIPlugin;
 struct GameLogic;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
@@ -66,10 +68,11 @@ fn main() {
                 ..default()
             }),
             ..default()
-        }))
+        }).set(ImagePlugin::default_nearest()))
         .add_plugins(InputManagerPlugin::<player::Dir>::default())
         .add_plugins(InputManagerPlugin::<player::UIAction>::default())
         .add_plugins(GameLogic)
+        .add_plugins(UIPlugin)
         .add_plugins(MenuPlugin)
         .add_plugins(Draw3d)
         .add_plugins(DebugPlugin)
