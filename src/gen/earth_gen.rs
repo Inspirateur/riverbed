@@ -1,12 +1,13 @@
-use crate::terrain_gen::TerrainGen;
+use crate::gen::terrain_gen::TerrainGen;
 use bevy::prelude::info_span;
-use ourcraft::{MAX_GEN_HEIGHT, Bloc, CHUNK_S1, Soils, ChunkPos2D, Blocs, Trees, BlocPos2D, BlocPos};
+use crate::blocs::{CHUNK_S1, ChunkPos2D, Blocs,BlocPos2D, BlocPos};
+use crate::blocs::{MAX_GEN_HEIGHT, Bloc, Soils, Trees};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
 use nd_interval::NdInterval;
 pub const WATER_R: f64 = 0.3;
-pub const WATER_H: i32 = (MAX_GEN_HEIGHT as f64*WATER_R) as i32;
+pub const WATER_H: i32 = (crate::blocs::MAX_GEN_HEIGHT as f64*WATER_R) as i32;
 pub const CHUNK_S1i: i32 = CHUNK_S1 as i32;
 
 pub struct Earth {

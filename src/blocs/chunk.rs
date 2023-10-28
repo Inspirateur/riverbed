@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
-use crate::bloc::Bloc;
+use crate::blocs::Bloc;
 use super::pos::{ChunkedPos, ChunkedPos2D};
 use super::utils::Palette;
 pub const CHUNK_S1: usize = 32;

@@ -1,5 +1,5 @@
-use crate::terrain_gen::TerrainGen;
-use ourcraft::{
+use crate::gen::terrain_gen::TerrainGen;
+use crate::blocs::{
     MAX_GEN_HEIGHT, CHUNK_S1,
     Bloc, Soils, unchunked, Blocs, ChunkPos2D
 };

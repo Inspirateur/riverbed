@@ -1,6 +1,6 @@
-use bevy::{prelude::{Vec3, Res, Query, Component}, time::{Time, Timer}};
+use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
-use ourcraft::{Blocs, Pos, BlocPos};
+use crate::blocs::{Blocs, Pos, BlocPos};
 const SPEED: f32 = 30.;
 const ACC: f32 = 15.;
 
@@ -172,4 +172,18 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Ve
             pos.z += applied_velocity.z;
         }
     }
+}
+
+pub struct MovementPlugin;
+
+impl Plugin for MovementPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_systems(Update, process_jumps)
+            .add_systems(Update, apply_acc)
+            .add_systems(Update, apply_gravity)
+            .add_systems(Update, apply_speed)
+            ;
+    }
+
 }

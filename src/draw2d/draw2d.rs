@@ -1,13 +1,13 @@
-use ourcraft::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D, ChunkChanges, Pos2D};
-use crate::load_cols::{ColUnloadEvent, LoadedCols};
-use crate::player::Dir;
+use crate::blocs::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D, ChunkChanges, Pos2D};
+use crate::gen::{ColUnloadEvent, LoadedCols};
+use crate::agents::Dir;
 use anyhow::Result;
 use bevy::prelude::*;
 use colorsys::Rgb;
 use leafwing_input_manager::prelude::ActionState;
 use std::collections::HashMap;
 use std::str::FromStr;
-use crate::render2d::Render2D;
+use crate::draw2d::render2d::Render2D;
 
 pub fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle {

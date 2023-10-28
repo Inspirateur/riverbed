@@ -1,13 +1,39 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
-use ourcraft::{Pos, Blocs, Bloc};
-use crate::player::{Dir, TargetBloc};
+use crate::blocs::{Pos, Blocs, Bloc};
+use crate::agents::{Dir, TargetBloc};
+
+fn setup_crosshair(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let crosshair = asset_server.load("crosshair.png");
+    commands.spawn((
+        NodeBundle {
+            style: Style {
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                position_type: PositionType::Absolute,
+                ..default()
+            },
+            ..default()
+        },
+    )).with_children(|parent| {
+        parent.spawn(ImageBundle {
+            style: Style {
+                width: Val::Px(34.0),
+                ..default()
+            },
+            image: UiImage::new(crosshair),
+            ..default()
+        });
+    });
+}
+
 
 #[derive(Component)]
 struct DebugText;
 
-
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         TextBundle::from_sections([
             TextSection::new(
@@ -52,12 +78,13 @@ fn debug_display(
     text.sections[1].value = format!("bloc: {bloc:?}");
 }
 
-pub struct DebugPlugin;
+pub struct UIPlugin;
 
-impl Plugin for DebugPlugin {
+impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup)
-            .add_systems(Update, debug_display)
-            ;
+        app
+        .add_systems(Startup, setup_crosshair)
+        .add_systems(Startup, setup_debug_display)
+        .add_systems(Update, debug_display);
     }
 }

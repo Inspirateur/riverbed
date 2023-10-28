@@ -124,7 +124,7 @@ impl Add<(i32, i32)> for Pos2D<i32> {
 
 #[cfg(test)]
 mod tests {
-    use crate::realm::Realm;
+    use crate::blocs::realm::Realm;
     use super::{BlocPos, ChunkPos, ChunkedPos};
     use super::CHUNK_S1I;
 

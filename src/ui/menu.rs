@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::CursorGrabMode};
 use leafwing_input_manager::prelude::ActionState;
-use crate::{player::UIAction, GameState};
+use crate::{agents::UIAction, GameState};
 
 #[derive(Component)]
 struct OnPauseScreen;

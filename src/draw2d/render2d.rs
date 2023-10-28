@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 use bevy::{prelude::{Image, Vec3}, render::{render_resource::Extent3d, texture::BevyDefault}};
 use colorsys::{Rgb, ColorTransform};
 use itertools::iproduct;
-use ourcraft::{BlocPos, BlocPos2D, ChunkPos2D, Blocs, Bloc, CHUNK_S2, CHUNK_S1, ChunkPos, ChunkedPos};
-use crate::{player::Dir, draw2d::SoilColor, earth_gen::WATER_H};
+use crate::blocs::{BlocPos, BlocPos2D, ChunkPos2D, Blocs, Bloc, CHUNK_S2, CHUNK_S1, ChunkPos, ChunkedPos};
+use crate::{agents::Dir, draw2d::draw2d::SoilColor, gen::WATER_H};
 
 fn image_to_2d(i: usize) -> (usize, usize) {
     (CHUNK_S1 - 1 - (i / 4) / CHUNK_S1, CHUNK_S1 - 1 - (i / 4) % CHUNK_S1)

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use ourcraft::{Blocs, ChunkPos2D, Realm};
-use crate::terrain_gen::Generators;
+use crate::blocs::{Blocs, ChunkPos2D, Realm};
+use crate::gen::{Generators, load_area::{update_load_area, load_order}};
 use itertools::Itertools;
 use bevy::prelude::*;
 
@@ -75,5 +75,21 @@ pub fn pull_orders(
     if let Some(col) = col_commands.loads.pop() {
         gens.gen(&mut blocs, col);
         blocs.register(col)
+    }
+}
+
+
+pub struct LoadTerrainPlugin;
+
+impl Plugin for LoadTerrainPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .insert_resource(LoadedCols::new())
+            .insert_resource(Generators::new(0))
+            .add_event::<ColUnloadEvent>()
+            .add_systems(Update, update_load_area)
+            .add_systems(Update, load_order)
+            .add_systems(Update, pull_orders)
+        ;
     }
 }

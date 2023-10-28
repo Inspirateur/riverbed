@@ -3,15 +3,13 @@ use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
 use bevy::window::CursorGrabMode;
 use leafwing_input_manager::prelude::*;
-use ourcraft::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges, Pos2D};
+use crate::blocs::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges, Pos2D};
 use crate::GameState;
-use crate::load_cols::LoadedCols;
-use crate::movement::AABB;
-use crate::player::TargetBloc;
-use crate::render3d::Meshable;
+use crate::gen::{LoadedCols, ColUnloadEvent};
+use crate::agents::{AABB, TargetBloc, Dir};
+use crate::draw3d::render3d::Meshable;
 use crate::sky::SkyPlugin;
-use crate::texture_array::{TextureMap, TextureArrayPlugin};
-use crate::{player::Dir, load_cols::ColUnloadEvent};
+use crate::draw3d::texture_array::{TextureMap, TextureArrayPlugin};
 const CAMERA_PAN_RATE: f32 = 0.1;
 
 #[derive(Component, Default, Debug, Clone, Copy)]

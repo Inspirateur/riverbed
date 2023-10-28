@@ -1,4 +1,4 @@
-use crate::{BlocPos, Blocs, Bloc};
+use crate::blocs::{BlocPos, Blocs, Bloc};
 
 pub trait Growable: Send + Sync {
     fn grow(&self, dist: f32, pos: BlocPos, world: &mut Blocs);

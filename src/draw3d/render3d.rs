@@ -1,7 +1,7 @@
 use bevy::{prelude::Mesh, render::{render_resource::PrimitiveTopology, mesh::{VertexAttributeValues, Indices}}};
 use block_mesh::{ndshape::{ConstShape, ConstShape3u32}, UnitQuadBuffer, RIGHT_HANDED_Y_UP_CONFIG, visible_block_faces};
-use ourcraft::{Blocs, CHUNK_S1, Bloc, ChunkPos, Pos, ChunkedPos};
-use crate::texture_array::TextureMap;
+use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, Pos, ChunkedPos};
+use crate::draw3d::texture_array::TextureMap;
 const CHUNK_S1I: i32 = CHUNK_S1 as i32;
 const CHUNK_PADDED: u32 = CHUNK_S1 as u32 + 2;
 type ChunkShape = ConstShape3u32<CHUNK_PADDED, CHUNK_PADDED, CHUNK_PADDED>;

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bevy::{prelude::*, reflect::{TypeUuid, TypePath}, render::render_resource::{ShaderRef, AsBindGroup}};
-use ourcraft::{Bloc, Face};
+use crate::blocs::{Bloc, Face};
 
 #[derive(Resource)]
 pub struct TextureMap(pub HashMap<(Bloc, Face), usize>);

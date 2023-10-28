@@ -1,10 +1,9 @@
-use ourcraft::{ChunkPos2D, Pos};
+use crate::blocs::{ChunkPos2D, Pos};
 use bevy::prelude::Query;
 use bevy::prelude::*;
 use itertools::iproduct;
 use std::ops::{Deref, Sub};
-
-use crate::load_cols::LoadedCols;
+use crate::gen::load_cols::LoadedCols;
 
 #[derive(Component, Clone, Copy)]
 pub struct LoadArea {

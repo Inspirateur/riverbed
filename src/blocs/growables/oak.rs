@@ -1,4 +1,4 @@
-use crate::{BlocPos, Blocs, Bloc};
+use crate::blocs::{BlocPos, Blocs, Bloc};
 use super::utils::leaf_disk;
 
 pub fn grow_oak(world: &mut Blocs, pos: BlocPos, seed: i32, dist: f32) {

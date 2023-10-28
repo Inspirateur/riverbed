@@ -1,7 +1,7 @@
 
 use bevy::{ecs::component::Component, prelude::Vec3};
 use std::ops::{Add, AddAssign};
-use crate::realm::Realm;
+use crate::blocs::realm::Realm;
 
 pub trait Fromf32 {
     fn from_f32(v: f32) -> Self;

@@ -1,4 +1,4 @@
-use crate::{BlocPos, Blocs, Bloc};
+use crate::blocs::{BlocPos, Blocs, Bloc};
 use super::utils::leaf_disk;
 const DIRS: [(i32, i32); 8] = [(-1, 1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
 

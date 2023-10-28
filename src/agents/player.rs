@@ -1,6 +1,6 @@
 use std::time::Duration;
-use crate::{load_area::LoadArea, movement::{Gravity, Heading, AABB, Velocity, Jumping}, GameState};
-use ourcraft::{Pos, ChunkPos2D, Realm, BlocRayCastHit};
+use crate::{gen::LoadArea, agents::{Gravity, Heading, AABB, Velocity, Jumping}, GameState};
+use crate::blocs::{Pos, ChunkPos2D, Realm, BlocRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
@@ -102,4 +102,17 @@ pub fn move_player(
     }
     heading.0 = movement;
     heading.0.y = f32::NAN;
+}
+
+pub struct PlayerPlugin;
+
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_plugins(InputManagerPlugin::<Dir>::default())
+            .add_plugins(InputManagerPlugin::<UIAction>::default())
+            .add_systems(Startup, spawn_player)
+            .add_systems(Update, move_player)
+        ;
+    }
 }

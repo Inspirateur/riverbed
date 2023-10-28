@@ -28,13 +28,3 @@ nd-interval = { git = "https://github.com/Inspirateur/nd-interval" }
 
 [profile.dev]
 opt-level = 1
-
-[profile.test]
-opt-level = 3
-
-[dev-dependencies]
-criterion = "*"
-
-[[bench]]
-name = "generation"
-harness = false

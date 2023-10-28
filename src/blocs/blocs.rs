@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
-use bevy::prelude::{Resource, Vec3, Component};
+use bevy::prelude::{Resource, Vec3};
 use indexmap::IndexMap;
-use crate::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos, ChunkedPos2D, chunked, Realm, MAX_HEIGHT};
-use crate::bloc::Bloc;
+use crate::blocs::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos, ChunkedPos2D, chunked, Realm, MAX_HEIGHT, Bloc};
 use super::pos::{ChunkPos2D, BlocPos, BlocPos2D};
 use super::CHUNK_S1;
 
