@@ -1,83 +1,12 @@
 use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
-use bevy::window::CursorGrabMode;
 use leafwing_input_manager::prelude::*;
-use crate::blocs::{Pos, Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges, Pos2D};
+use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges};
 use crate::GameState;
 use crate::gen::{LoadedCols, ColUnloadEvent};
-use crate::agents::{AABB, TargetBloc, Dir};
-use crate::draw3d::render3d::Meshable;
 use crate::sky::SkyPlugin;
-use crate::draw3d::texture_array::{TextureMap, TextureArrayPlugin};
-const CAMERA_PAN_RATE: f32 = 0.1;
-
-#[derive(Component, Default, Debug, Clone, Copy)]
-pub struct FpsCam {
-    pub yaw: f32,
-    pub pitch: f32,
-}
-
-pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0., 150., 10.)
-            .looking_at(Vec3 {x: 0., y: 150., z: 0.}, Vec3::Y),
-        ..Default::default()
-    })
-    .insert(InputManagerBundle::<CameraMovement> {
-        input_map: InputMap::default()
-            // This will capture the total continuous value, for direct use.
-            // Note that you can also use discrete gesture-like motion, via the `MouseMotionDirection` enum.
-            .insert(DualAxis::mouse_motion(), CameraMovement::Pan)
-            .build(),
-        ..default()
-    }).insert(FpsCam::default());
-    let mut window = windows.single_mut();
-    window.cursor.grab_mode = CursorGrabMode::Locked;
-    window.cursor.visible = false;
-}
-
-pub fn translate_cam(
-    mut cam_query: Query<&mut Transform, With<Camera>>,
-    player_query: Query<(&Pos, &AABB), (With<ActionState<Dir>>, Changed<Pos>)>
-) {
-    if let Ok(mut cam_pos) = cam_query.get_single_mut() {
-        if let Ok((player_pos, aabb)) = player_query.get_single() {
-            cam_pos.translation.x = player_pos.x + aabb.0.x/2.;
-            cam_pos.translation.y = player_pos.y + aabb.0.y;
-            cam_pos.translation.z = player_pos.z + aabb.0.z/2.;
-        }
-    }
-}
-
-fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>, time: Res<Time>) {
-    let (action_state, mut fpscam) = query.single_mut();
-    let camera_pan_vector = action_state.axis_pair(CameraMovement::Pan).unwrap();
-    let c = time.delta_seconds() * CAMERA_PAN_RATE;
-    fpscam.yaw -= c*camera_pan_vector.x();
-    fpscam.pitch -= c*camera_pan_vector.y();
-    fpscam.pitch = fpscam.pitch.clamp(-1.4, 1.4);
-}
-
-fn apply_fps_cam(mut query: Query<(&mut Transform, &FpsCam)>) {
-    let (mut transform, fpscam) = query.single_mut();
-    transform.rotation = Quat::from_axis_angle(Vec3::Y, fpscam.yaw) * Quat::from_axis_angle(Vec3::X, fpscam.pitch);
-}
-
-fn target_bloc(
-    mut player: Query<(&mut TargetBloc, &Pos<f32>), With<ActionState<Dir>>>, 
-    player_cam: Query<&Transform, With<FpsCam>>,
-    world: Res<Blocs>
-) {
-    let (mut target_bloc, player_pos) = player.single_mut();
-    let transform = player_cam.single();
-    target_bloc.0 = world.raycast(
-        player_pos.realm, 
-        transform.translation, 
-        transform.forward(), 
-        12.
-    );
-}
+use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}, camera::*};
 
 pub fn on_col_unload(
     mut commands: Commands,
@@ -144,11 +73,6 @@ pub fn process_bloc_changes(
     }
 }
 
-#[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect)]
-enum CameraMovement {
-    Pan,
-}
-
 
 #[derive(Resource)]
 pub struct ChunkEntities(pub HashMap::<ChunkPos, Entity>);
@@ -175,6 +99,7 @@ impl Plugin for Draw3d {
             .add_systems(Update, apply_fps_cam)
             .add_systems(Update, on_col_unload)
             .add_systems(Update, process_bloc_changes)
+            .add_systems(Update, bloc_outline)
             ;
     }
 }

@@ -2,7 +2,7 @@ use std::ops::Range;
 use block_mesh::{VoxelVisibility, Voxel, MergeVoxel};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
-use crate::blocs::{Blocs, BlocPos, growables::*};
+use super::{Blocs, BlocPos, growables::*};
 
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, EnumString, Hash)]
 #[strum(ascii_case_insensitive)]

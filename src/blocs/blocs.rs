@@ -2,9 +2,10 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use bevy::prelude::{Resource, Vec3};
 use indexmap::IndexMap;
-use crate::blocs::{ChunkedPos, Chunk, ChunkPos, Y_CHUNKS, Pos, ChunkedPos2D, chunked, Realm, MAX_HEIGHT, Bloc};
-use super::pos::{ChunkPos2D, BlocPos, BlocPos2D};
-use super::CHUNK_S1;
+use super::{
+    CHUNK_S1, Y_CHUNKS,  MAX_HEIGHT, ChunkedPos, Chunk, ChunkPos, Pos, ChunkedPos2D, chunked, Realm, Bloc,
+    ChunkPos2D, BlocPos, BlocPos2D
+};
 
 pub struct BlocRayCastHit {
     pub pos: BlocPos,
@@ -168,9 +169,9 @@ impl Blocs {
     pub fn raycast(&self, realm: Realm, start: Vec3, dir: Vec3, dist: f32) -> Option<BlocRayCastHit> {
         let mut pos = BlocPos {
             realm, 
-            x: start.x as i32,
-            y: start.y as i32,
-            z: start.z as i32,
+            x: start.x.floor() as i32,
+            y: start.y.floor() as i32,
+            z: start.z.floor() as i32,
         };
         let mut last_pos;
         let sx = dir.x.signum() as i32;
@@ -179,41 +180,38 @@ impl Blocs {
         if sx == 0 && sy == 0 && sz == 0 {
             return None;
         }
-        let next_x = start.x + sx as f32;
-        let next_y = start.y + sy as f32;
-        let next_z = start.z + sz as f32;
+        let next_x = (pos.x + sx.max(0)) as f32;
+        let next_y = (pos.y + sy.max(0)) as f32;
+        let next_z = (pos.z + sz.max(0)) as f32;
         let mut t_max_x = (next_x - start.x) / dir.x;
         let mut t_max_y = (next_y - start.y) / dir.y;
         let mut t_max_z = (next_z - start.z) / dir.z;
-        let slope_x = 1./dir.x;
-        let slope_y = 1./dir.y;
-        let slope_z = 1./dir.z;
-        let mut travelled = 0.;
+        println!("t_max {} ; {} ; {}", t_max_x, t_max_y, t_max_z);
+        let slope_x = 1./dir.x.abs();
+        let slope_y = 1./dir.y.abs();
+        let slope_z = 1./dir.z.abs();
         loop {
             last_pos = pos.clone();
             if t_max_x < t_max_y {
                 if t_max_x < t_max_z {
+                    if t_max_x >= dist { return None };
                     pos.x += sx;
                     t_max_x += slope_x;
-                    travelled += slope_x.abs();
                 } else {
+                    if t_max_z >= dist { return None };
                     pos.z += sz;
                     t_max_z += slope_z;
-                    travelled += slope_z.abs();
                 }
             } else {
                 if t_max_y < t_max_z {
+                    if t_max_y >= dist { return None };
                     pos.y += sy;
                     t_max_y += slope_y;
-                    travelled += slope_y.abs();
                 } else {
+                    if t_max_z >= dist { return None };
                     pos.z += sz;
                     t_max_z += slope_z;
-                    travelled += slope_z.abs();
                 }
-            }
-            if travelled >= dist {
-                return None;
             }
             if self.get_block_safe(pos) != Bloc::Air {
                 return Some(BlocRayCastHit {

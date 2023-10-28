@@ -1,5 +1,7 @@
 use std::ops::{Add, BitXor};
 
+use bevy::prelude::Vec3;
+
 use super::pos::{Pos, Pos2D};
 const CHUNK_S1I: i32 = 32;
 
@@ -28,6 +30,12 @@ impl From<Pos<f32>> for ChunkPos2D {
             x: chunked(pos.x.floor() as i32).0,
             z: chunked(pos.z.floor() as i32).0,
         }
+    }
+}
+
+impl From<BlocPos> for Vec3 {
+    fn from(value: BlocPos) -> Self {
+        Vec3 { x: value.x as f32, y: value.y as f32, z: value.z as f32 }
     }
 }
 

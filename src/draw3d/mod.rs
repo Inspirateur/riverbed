@@ -1,3 +1,4 @@
+mod camera;
 mod draw3d;
 mod render3d;
 mod texture_array;
