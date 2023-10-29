@@ -49,6 +49,13 @@ impl Blocs {
         self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set(chunked_pos, bloc);
     }
 
+    pub fn set_bloc_safe(&mut self, pos: BlocPos, bloc: Bloc) {
+        if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 { return; }
+        let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
+        self.mark_change(chunk_pos, chunked_pos);
+        self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set(chunked_pos, bloc);
+    }
+
     pub fn set_yrange(&mut self, chunk_pos2d: ChunkPos2D, (x, z): ChunkedPos2D, top: i32, mut height: usize, bloc: Bloc) {
         // BYPASSES CHANGE DETECTION, used by terrain generation to efficiently fill columns of blocs
         let (mut cy, mut dy) = chunked(top);
@@ -222,9 +229,9 @@ impl Blocs {
             if self.get_block_safe(pos) != Bloc::Air {
                 return Some(BlocRayCastHit {
                     pos, normal: Vec3 { 
-                        x: (pos.x-last_pos.x) as f32, 
-                        y: (pos.y-last_pos.y) as f32, 
-                        z: (pos.z-last_pos.z) as f32 
+                        x: (last_pos.x-pos.x) as f32, 
+                        y: (last_pos.y-pos.y) as f32, 
+                        z: (last_pos.z-pos.z) as f32 
                     }
                 });
             }

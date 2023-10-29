@@ -1,7 +1,7 @@
 use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
 use crate::blocs::{Blocs, Pos, BlocPos};
-const SPEED: f32 = 30.;
+const SPEED: f32 = 15.;
 const ACC: f32 = 15.;
 
 #[derive(Component)]
