@@ -51,9 +51,7 @@ pub fn bloc_outline(mut gizmos: Gizmos, target_bloc_query: Query<&TargetBloc>) {
 pub fn break_bloc(mut world: ResMut<Blocs>, bloc_action_query: Query<(&TargetBloc, &ActionState<Action>)>) {
     for (target_bloc_opt, action) in bloc_action_query.iter() {
         if action.just_pressed(Action::Action1) {
-            println!("clicked");
             if let Some(target_bloc) = &target_bloc_opt.0 {
-                println!("broke a bloc");
                 world.set_bloc(target_bloc.pos, Bloc::Air);
             }    
         }

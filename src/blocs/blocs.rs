@@ -14,7 +14,7 @@ pub struct BlocRayCastHit {
 
 pub enum ChunkChanges {
     Created,
-    Edited(Vec<(ChunkedPos, Bloc)>)
+    Edited
 }
 
 impl ChunkChanges {
@@ -22,14 +22,7 @@ impl ChunkChanges {
         if new {
             ChunkChanges::Created
         } else {
-            ChunkChanges::Edited(Vec::new())
-        }
-    }
-
-    pub fn push(&mut self, chunked_pos: ChunkedPos, bloc: Bloc) {
-        match self {
-            ChunkChanges::Created => (),
-            ChunkChanges::Edited(ref mut changes) => changes.push((chunked_pos, bloc))
+            ChunkChanges::Edited
         }
     }
 }
@@ -65,13 +58,18 @@ impl Blocs {
         }
     }
 
-    pub fn set_bloc(&mut self, pos: BlocPos, bloc: Bloc) {
-        let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
+    fn mark_change(&mut self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) {
+        // register change for neighboring chunks 
         if self.tracking.contains(&chunk_pos) {
             self.changes.entry(chunk_pos).or_insert_with(
                 || ChunkChanges::new(!self.chunks.contains_key(&chunk_pos))
-            ).push(chunked_pos, bloc);    
+            );
         }
+    }
+
+    pub fn set_bloc(&mut self, pos: BlocPos, bloc: Bloc) {
+        let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
+        self.mark_change(chunk_pos, chunked_pos);
         self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set(chunked_pos, bloc);
     }
 
@@ -91,12 +89,11 @@ impl Blocs {
     pub fn set_if_empty(&mut self, pos: BlocPos, bloc: Bloc) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         let new_chunk = !self.chunks.contains_key(&chunk_pos);
-        if self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set_if_empty(chunked_pos, bloc) 
-            && self.tracking.contains(&chunk_pos) 
+        if self.chunks.entry(chunk_pos)
+            .or_insert_with(|| Chunk::new(CHUNK_S1))
+            .set_if_empty(chunked_pos, bloc) 
         {
-            self.changes.entry(chunk_pos).or_insert_with(|| ChunkChanges::new(new_chunk)).push(
-                chunked_pos, bloc
-            );
+            self.mark_change(chunk_pos, chunked_pos);
         }
     }
     

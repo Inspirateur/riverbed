@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use crate::blocs::{Blocs, ChunkPos2D, Realm};
-use crate::gen::{Generators, load_area::{update_load_area, load_order}};
+use crate::gen::Generators;
 use itertools::Itertools;
 use bevy::prelude::*;
 
@@ -22,7 +22,7 @@ impl LoadedCols {
         }
     }
 
-    pub fn has_player(&self, pos: ChunkPos2D) -> bool {
+    pub fn in_player_range(&self, pos: ChunkPos2D) -> bool {
         self.cols.contains_key(&pos)
     }
 

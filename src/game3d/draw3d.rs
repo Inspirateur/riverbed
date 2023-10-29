@@ -35,11 +35,11 @@ pub fn process_bloc_changes(
     mut materials: ResMut<Assets<StandardMaterial>>
 ) {
     if let Some((chunk, chunk_change)) = blocs.changes.pop() {
-        if !loaded_cols.has_player(chunk.into()) { return; }
+        if !loaded_cols.in_player_range(chunk.into()) { return; }
         match chunk_change {
             ChunkChanges::Created => {
                 let ent = commands.spawn(PbrBundle {
-                    mesh: meshes.add(blocs.fast_mesh(chunk, &texture_map)),
+                    mesh: meshes.add(blocs.create_mesh(chunk, &texture_map)),
                     material: materials.add(Color::rgb(
                         if chunk.x % 2 == 0 { 0.8 } else { 0.4 }, 
                         if chunk.y % 2 == 0 { 0.8 } else { 0.4 }, 
@@ -50,19 +50,19 @@ pub fn process_bloc_changes(
                     ),
                     ..Default::default()
                 }).insert(NoFrustumCulling).id();
-                // this should not happen
+                // no entity should be registered yet for the chunk
                 assert!(!chunk_ents.0.contains_key(&chunk));
                 chunk_ents.0.insert(chunk, ent);
             },
-            ChunkChanges::Edited(changes) => {
+            ChunkChanges::Edited => {
                 if let Some(ent) = chunk_ents.0.get(&chunk) {
                     if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
                         if let Some(mesh) = meshes.get_mut(&handle) {
-                            blocs.process_changes(chunk, changes, mesh, &texture_map);
+                            blocs.update_mesh(chunk, mesh, &texture_map);
                         }
                     } else {
                         // the entity is not instanciated yet, we put it back
-                        blocs.changes.insert(chunk, ChunkChanges::Edited(changes));
+                        blocs.changes.insert(chunk, ChunkChanges::Edited);
                     }
                 }
             }

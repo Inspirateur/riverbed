@@ -16,12 +16,10 @@ pub fn cursor_grab(
         for action in action_state.get_just_pressed() {
             if action == UIAction::Escape {
                 if **game_state == GameState::Menu {
-                    println!("unpaused");
                     window.cursor.visible = false;
                     window.cursor.grab_mode = CursorGrabMode::Confined;
                     next_game_state.set(GameState::Game);
                 } else {
-                    println!("paused");
                     window.cursor.visible = true;
                     window.cursor.grab_mode = CursorGrabMode::None;
                     next_game_state.set(GameState::Menu);

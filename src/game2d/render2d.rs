@@ -27,9 +27,9 @@ pub trait Render2D {
     fn bloc_y_cmp(&self, pos: BlocPos, dir: Dir) -> Ordering;
     fn bloc_shade(&self, pos: BlocPos) -> f64;
     fn bloc_color(&self, pos: BlocPos2D, soil_color: &SoilColor) -> Rgb;
-    fn update_side(&self, image: &mut Image, col: ChunkPos2D, soil_color: &SoilColor);
-    fn render_col(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image;
-    fn process_changes(&mut self, chunk: ChunkPos, changes: Vec<(ChunkedPos, Bloc)>, image: &mut Image, soil_color: &SoilColor);
+    fn create_image(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image;
+    fn update_image(&self, col: ChunkPos2D, image: &mut Image, soil_color: &SoilColor);
+    fn update_side(&self, col: ChunkPos2D, image: &mut Image, soil_color: &SoilColor);
 }
 
 impl Render2D for Blocs {
@@ -74,19 +74,9 @@ impl Render2D for Blocs {
         }
     }
 
-    fn render_col(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image {
+    fn create_image(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image {
         let mut data = vec![255; CHUNK_S2 * 4];
-        for (i, (dx, dz)) in iproduct!((0..CHUNK_S1).rev(), (0..CHUNK_S1).rev()).enumerate() {
-            let i = i*4;
-            let color = self.bloc_color(
-                BlocPos2D::from((col, (dx, dz))),
-                soil_color,
-            );
-            data[i] = color.red() as u8;
-            data[i + 1] = color.green() as u8;
-            data[i + 2] = color.blue() as u8;
-        }
-        let img = Image::new(
+        let mut image = Image::new(
             Extent3d {
                 width: CHUNK_S1 as u32,
                 height: CHUNK_S1 as u32,
@@ -96,10 +86,24 @@ impl Render2D for Blocs {
             data,
             BevyDefault::bevy_default(),
         );
-        img
+        self.update_image(col, &mut image, soil_color);
+        image
     }
 
-    fn update_side(&self, image: &mut Image, col: ChunkPos2D, soil_color: &SoilColor) {
+    fn update_image(&self, col: ChunkPos2D, image: &mut Image, soil_color: &SoilColor) {
+        for (i, (dx, dz)) in iproduct!((0..CHUNK_S1).rev(), (0..CHUNK_S1).rev()).enumerate() {
+            let i = i*4;
+            let color = self.bloc_color(
+                BlocPos2D::from((col, (dx, dz))),
+                soil_color,
+            );
+            image.data[i] = color.red() as u8;
+            image.data[i + 1] = color.green() as u8;
+            image.data[i + 2] = color.blue() as u8;
+        }
+    }
+    
+    fn update_side(&self, col: ChunkPos2D, image: &mut Image, soil_color: &SoilColor) {
         for i in (0..CHUNK_S1 * 4).step_by(4) {
             let (dx, dz) = image_to_2d(i);
             let color = self.bloc_color(
@@ -109,15 +113,6 @@ impl Render2D for Blocs {
             image.data[i] = color.red() as u8;
             image.data[i + 1] = color.green() as u8;
             image.data[i + 2] = color.blue() as u8;
-
-        }
-    }
-
-    fn process_changes(&mut self, chunk: ChunkPos, changes: Vec<(ChunkedPos, Bloc)>, image: &mut Image, soil_color: &SoilColor) {
-        for (blocpos, _) in changes {
-            let bloc_pos = (chunk.into(), (blocpos.0, blocpos.2)).into();
-            let color = self.bloc_color(bloc_pos, &soil_color);
-            image.set_pixel(blocpos.0 as i32, blocpos.2 as i32, color);    
         }
     }
 }

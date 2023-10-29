@@ -56,13 +56,13 @@ pub fn process_chunk_changes(
 ) {
     if let Some((chunk, chunk_change)) = blocs.changes.pop() {
         let col: Pos2D<i32> = chunk.into();
-        if !loaded_cols.has_player(col) { return; }
+        if !loaded_cols.in_player_range(col) { return; }
         if let Some(ent) = col_ents.0.get(&col) {
             if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent) {
                 if let Some(image) = images.get_mut(&handle) {
                     match chunk_change {
-                        ChunkChanges::Created => *image = blocs.render_col(col, &soil_color),
-                        ChunkChanges::Edited(changes) => blocs.process_changes(chunk, changes, image, &soil_color)
+                        ChunkChanges::Created => *image = blocs.create_image(col, &soil_color),
+                        ChunkChanges::Edited => blocs.update_image(chunk.into(), image, &soil_color)
                     }
                 }
             } else {
@@ -73,7 +73,7 @@ pub fn process_chunk_changes(
             let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
             let ent = commands
                 .spawn(SpriteBundle {
-                    texture: images.add(blocs.render_col(col, &soil_color)),
+                    texture: images.add(blocs.create_image(col, &soil_color)),
                     transform: Transform::from_translation(trans)
                         .looking_at(trans + Vec3::Y, Vec3::Y),
                     ..default()
