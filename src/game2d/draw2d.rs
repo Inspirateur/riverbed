@@ -1,4 +1,4 @@
-use crate::blocs::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D, ChunkChanges, Pos2D};
+use crate::blocs::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D, Pos2D};
 use crate::gen::{ColUnloadEvent, LoadedCols};
 use crate::agents::Dir;
 use anyhow::Result;
@@ -54,20 +54,17 @@ pub fn process_chunk_changes(
     mut col_ents: ResMut<ColEntities>,
     soil_color: Res<SoilColor>,
 ) {
-    if let Some((chunk, chunk_change)) = blocs.changes.pop() {
+    if let Some(chunk) = blocs.changes.pop() {
         let col: Pos2D<i32> = chunk.into();
         if !loaded_cols.in_player_range(col) { return; }
         if let Some(ent) = col_ents.0.get(&col) {
             if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent) {
                 if let Some(image) = images.get_mut(&handle) {
-                    match chunk_change {
-                        ChunkChanges::Created => *image = blocs.create_image(col, &soil_color),
-                        ChunkChanges::Edited => blocs.update_image(chunk.into(), image, &soil_color)
-                    }
+                    blocs.update_image(chunk.into(), image, &soil_color);
                 }
             } else {
                 // the entity is not instanciated yet, we put it back
-                blocs.changes.insert(chunk, chunk_change);
+                blocs.changes.insert(chunk);
             }
         } else {
             let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
