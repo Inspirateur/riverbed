@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
-use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, ChunkChanges};
+use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{LoadedCols, ColUnloadEvent};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 
@@ -34,38 +34,31 @@ pub fn process_bloc_changes(
     texture_map: Res<TextureMap>,
     mut materials: ResMut<Assets<StandardMaterial>>
 ) {
-    if let Some((chunk, chunk_change)) = blocs.changes.pop() {
+    if let Some(chunk) = blocs.changes.pop() {
         if !loaded_cols.in_player_range(chunk.into()) { return; }
-        match chunk_change {
-            ChunkChanges::Created => {
-                let ent = commands.spawn(PbrBundle {
-                    mesh: meshes.add(blocs.create_mesh(chunk, &texture_map)),
-                    material: materials.add(Color::rgb(
-                        if chunk.x % 2 == 0 { 0.8 } else { 0.4 }, 
-                        if chunk.y % 2 == 0 { 0.8 } else { 0.4 }, 
-                        if chunk.z % 2 == 0 { 0.8 } else { 0.4 }
-                    ).into()),
-                    transform: Transform::from_translation(
-                        Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
-                    ),
-                    ..Default::default()
-                }).insert(NoFrustumCulling).id();
-                // no entity should be registered yet for the chunk
-                assert!(!chunk_ents.0.contains_key(&chunk));
-                chunk_ents.0.insert(chunk, ent);
-            },
-            ChunkChanges::Edited => {
-                if let Some(ent) = chunk_ents.0.get(&chunk) {
-                    if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
-                        if let Some(mesh) = meshes.get_mut(&handle) {
-                            blocs.update_mesh(chunk, mesh, &texture_map);
-                        }
-                    } else {
-                        // the entity is not instanciated yet, we put it back
-                        blocs.changes.insert(chunk, ChunkChanges::Edited);
-                    }
+        if let Some(ent) = chunk_ents.0.get(&chunk) {
+            if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
+                if let Some(mesh) = meshes.get_mut(&handle) {
+                    blocs.update_mesh(chunk, mesh, &texture_map);
                 }
+            } else {
+                // the entity is not instanciated yet, we put it back
+                blocs.changes.insert(chunk);
             }
+        } else {
+            let ent = commands.spawn(PbrBundle {
+                mesh: meshes.add(blocs.create_mesh(chunk, &texture_map)),
+                material: materials.add(Color::rgb(
+                    if chunk.x % 2 == 0 { 0.8 } else { 0.4 }, 
+                    if chunk.y % 2 == 0 { 0.8 } else { 0.4 }, 
+                    if chunk.z % 2 == 0 { 0.8 } else { 0.4 }
+                ).into()),
+                transform: Transform::from_translation(
+                    Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
+                ),
+                ..Default::default()
+            }).insert(NoFrustumCulling).id();
+            chunk_ents.0.insert(chunk, ent);
         }
     }
 }

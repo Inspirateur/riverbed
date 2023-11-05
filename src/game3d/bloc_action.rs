@@ -58,6 +58,16 @@ pub fn break_bloc(mut world: ResMut<Blocs>, bloc_action_query: Query<(&TargetBlo
     }
 }
 
+pub fn place_bloc(mut world: ResMut<Blocs>, bloc_action_query: Query<(&TargetBloc, &ActionState<Action>)>) {
+    for (target_bloc_opt, action) in bloc_action_query.iter() {
+        if action.just_pressed(Action::Action2) {
+            if let Some(target_bloc) = &target_bloc_opt.0 {
+                world.set_bloc_safe(target_bloc.pos+target_bloc.normal, Bloc::Stone);
+            }
+        }
+    }   
+}
+
 pub struct BlocActionPlugin;
 
 impl Plugin for BlocActionPlugin {
@@ -66,6 +76,7 @@ impl Plugin for BlocActionPlugin {
 			.add_systems(Update, target_bloc)
 			.add_systems(Update, bloc_outline)
             .add_systems(Update, break_bloc)
+            .add_systems(Update, place_bloc)
 			;
     }
 }

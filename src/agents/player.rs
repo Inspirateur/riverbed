@@ -57,9 +57,9 @@ pub fn spawn_player(mut commands: Commands) {
         .spawn((
             transform,
             Realm::Overworld,
-            Gravity(5.),
+            Gravity(3.),
             Heading(Vec3::default()),
-            Jumping {force: 2., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
+            Jumping {force: 1., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
             LoadArea {
