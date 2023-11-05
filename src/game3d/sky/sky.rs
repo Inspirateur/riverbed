@@ -1,16 +1,15 @@
 use std::f32::consts::PI;
 use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*};
+use bevy_mod_billboard::prelude::*;
 const TIME_FACTOR: f32 = 20.;
 
 #[derive(Resource)]
 struct Hour(f32);
 
 #[derive(Component)]
-struct Sun {
-    angle: Vec3
-}
+struct Sun;
 
-fn spawn_sun(mut commands: Commands) {
+fn spawn_sun(mut commands: Commands, asset_server: Res<AssetServer>) {
     let angle = Vec3::new(1., 1., 0.1).normalize();
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
@@ -28,7 +27,22 @@ fn spawn_sun(mut commands: Commands) {
         cascade_shadow_config: CascadeShadowConfigBuilder::default()
         .into(),
         ..default()
-    }).insert(Sun { angle });
+    }).insert(BillboardTextBundle {
+        transform: Transform::from_translation(Vec3::new(0., 2., 0.))
+            .with_scale(Vec3::splat(0.0085)),
+        text: Text::from_sections([
+            TextSection {
+                value: "SUN".to_string(),
+                style: TextStyle {
+                    font_size: 60.0,
+                    font: asset_server.load("fonts/RobotoMono-Light.ttf"),
+                    color: Color::ORANGE,
+                }
+            }
+        ]).with_alignment(TextAlignment::Center),
+        ..default()
+    })
+    .insert(Sun);
 }
 
 fn update_hour(mut hour: ResMut<Hour>, time: Res<Time>) {
@@ -49,6 +63,7 @@ pub struct SkyPlugin;
 impl Plugin for SkyPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_plugins(BillboardPlugin)
             .insert_resource(Hour(0.))
             .add_systems(Startup, spawn_sun)
             .add_systems(Update, update_hour)

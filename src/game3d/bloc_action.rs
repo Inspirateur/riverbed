@@ -1,5 +1,5 @@
 use std::iter::zip;
-use crate::blocs::{Blocs, Pos, Bloc};
+use crate::blocs::{Blocs, Bloc, Realm};
 use crate::agents::{TargetBloc, Dir, Action};
 use super::camera::FpsCam;
 use leafwing_input_manager::prelude::*;
@@ -20,14 +20,14 @@ const EDGES_LINES: [Vec3; 4] = [
 ];
 
 pub fn target_bloc(
-    mut player: Query<(&mut TargetBloc, &Pos<f32>), With<ActionState<Dir>>>, 
+    mut player: Query<(&mut TargetBloc,&Realm), With<ActionState<Dir>>>, 
     player_cam: Query<&Transform, With<FpsCam>>,
     world: Res<Blocs>
 ) {
-    let (mut target_bloc, player_pos) = player.single_mut();
+    let (mut target_bloc, realm) = player.single_mut();
     let transform = player_cam.single();
     target_bloc.0 = world.raycast(
-        player_pos.realm, 
+        *realm, 
         transform.translation, 
         transform.forward(), 
         TARGET_DIST

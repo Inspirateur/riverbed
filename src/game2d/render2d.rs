@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use bevy::{prelude::{Image, Vec3}, render::{render_resource::Extent3d, texture::BevyDefault}};
 use colorsys::{Rgb, ColorTransform};
 use itertools::iproduct;
-use crate::blocs::{BlocPos, BlocPos2D, ChunkPos2D, Blocs, Bloc, CHUNK_S2, CHUNK_S1, ChunkPos, ChunkedPos};
+use crate::blocs::{BlocPos, BlocPos2d, ColPos, Blocs, Bloc, CHUNK_S2, CHUNK_S1};
 use crate::{agents::Dir, gen::WATER_H};
 use super::draw2d::SoilColor;
 
@@ -26,10 +26,10 @@ impl ImageUtils for Image {
 pub trait Render2D {
     fn bloc_y_cmp(&self, pos: BlocPos, dir: Dir) -> Ordering;
     fn bloc_shade(&self, pos: BlocPos) -> f64;
-    fn bloc_color(&self, pos: BlocPos2D, soil_color: &SoilColor) -> Rgb;
-    fn create_image(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image;
-    fn update_image(&self, col: ChunkPos2D, image: &mut Image, soil_color: &SoilColor);
-    fn update_side(&self, col: ChunkPos2D, image: &mut Image, soil_color: &SoilColor);
+    fn bloc_color(&self, pos: BlocPos2d, soil_color: &SoilColor) -> Rgb;
+    fn create_image(&self, col: ColPos, soil_color: &SoilColor) -> Image;
+    fn update_image(&self, col: ColPos, image: &mut Image, soil_color: &SoilColor);
+    fn update_side(&self, col: ColPos, image: &mut Image, soil_color: &SoilColor);
 }
 
 impl Render2D for Blocs {
@@ -55,7 +55,7 @@ impl Render2D for Blocs {
         }
     }
 
-    fn bloc_color(&self, pos: BlocPos2D, soil_color: &SoilColor) -> Rgb {
+    fn bloc_color(&self, pos: BlocPos2d, soil_color: &SoilColor) -> Rgb {
         let (bloc, y) = self.top_block(pos);
         if y >= WATER_H {
             let mut color = soil_color.0.get(&bloc).unwrap().clone();
@@ -74,7 +74,7 @@ impl Render2D for Blocs {
         }
     }
 
-    fn create_image(&self, col: ChunkPos2D, soil_color: &SoilColor) -> Image {
+    fn create_image(&self, col: ColPos, soil_color: &SoilColor) -> Image {
         let mut data = vec![255; CHUNK_S2 * 4];
         let mut image = Image::new(
             Extent3d {
@@ -90,11 +90,11 @@ impl Render2D for Blocs {
         image
     }
 
-    fn update_image(&self, col: ChunkPos2D, image: &mut Image, soil_color: &SoilColor) {
+    fn update_image(&self, col: ColPos, image: &mut Image, soil_color: &SoilColor) {
         for (i, (dx, dz)) in iproduct!((0..CHUNK_S1).rev(), (0..CHUNK_S1).rev()).enumerate() {
             let i = i*4;
             let color = self.bloc_color(
-                BlocPos2D::from((col, (dx, dz))),
+                BlocPos2d::from((col, (dx, dz))),
                 soil_color,
             );
             image.data[i] = color.red() as u8;
@@ -103,11 +103,11 @@ impl Render2D for Blocs {
         }
     }
     
-    fn update_side(&self, col: ChunkPos2D, image: &mut Image, soil_color: &SoilColor) {
+    fn update_side(&self, col: ColPos, image: &mut Image, soil_color: &SoilColor) {
         for i in (0..CHUNK_S1 * 4).step_by(4) {
             let (dx, dz) = image_to_2d(i);
             let color = self.bloc_color(
-                BlocPos2D::from((col, (dx, dz))),
+                BlocPos2d::from((col, (dx, dz))),
                 soil_color,
             );
             image.data[i] = color.red() as u8;

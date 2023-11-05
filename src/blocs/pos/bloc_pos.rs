@@ -8,9 +8,9 @@ const CHUNK_S1I: i32 = 32;
 pub type BlocPos = Pos<i32>;
 pub type BlocPos2D = Pos2D<i32>;
 pub type ChunkPos = Pos<i32>;
-pub type ChunkPos2D = Pos2D<i32>;
+pub type ColPos = Pos2D<i32>;
 pub type ChunkedPos = (usize, usize, usize);
-pub type ChunkedPos2D = (usize, usize);
+pub type ColedPos = (usize, usize);
 pub type ColedPos = (usize, i32, usize);
 
 
@@ -23,9 +23,9 @@ pub fn unchunked(cx: i32, dx: usize) -> i32 {
     cx * CHUNK_S1I + dx as i32
 }
 
-impl From<Pos<f32>> for ChunkPos2D {
+impl From<Pos<f32>> for ColPos {
     fn from(pos: Pos) -> Self {
-        ChunkPos2D {
+        ColPos {
             realm: pos.realm,
             x: chunked(pos.x.floor() as i32).0,
             z: chunked(pos.z.floor() as i32).0,
@@ -48,11 +48,11 @@ impl From<BlocPos> for (ChunkPos, ChunkedPos) {
     }
 }
 
-impl From<BlocPos> for (ChunkPos2D, ColedPos) {
+impl From<BlocPos> for (ColPos, ColedPos) {
     fn from(pos: BlocPos) -> Self {
         let (cx, dx) = chunked(pos.x);
         let (cz, dz) = chunked(pos.z);
-        (ChunkPos2D { realm: pos.realm, x: cx, z: cz}, (dx, pos.y, dz))
+        (ColPos { realm: pos.realm, x: cx, z: cz}, (dx, pos.y, dz))
     }
 }
 
@@ -67,16 +67,16 @@ impl From<(ChunkPos, ChunkedPos)> for BlocPos {
     }
 }
 
-impl From<BlocPos2D> for (ChunkPos2D, ChunkedPos2D) {
+impl From<BlocPos2D> for (ColPos, ColedPos) {
     fn from(pos: BlocPos2D) -> Self {
         let (cx, dx) = chunked(pos.x);
         let (cz, dz) = chunked(pos.z);
-        (ChunkPos2D { realm: pos.realm, x: cx, z: cz}, (dx, dz))
+        (ColPos { realm: pos.realm, x: cx, z: cz}, (dx, dz))
     }
 }
 
-impl From<(ChunkPos2D, ChunkedPos2D)> for BlocPos2D {
-    fn from((col, (dx, dz)): (ChunkPos2D, ChunkedPos2D)) -> Self {
+impl From<(ColPos, ColedPos)> for BlocPos2D {
+    fn from((col, (dx, dz)): (ColPos, ColedPos)) -> Self {
         BlocPos2D {
             realm: col.realm,
             x: unchunked(col.x, dx),

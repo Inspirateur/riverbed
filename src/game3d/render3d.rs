@@ -1,6 +1,6 @@
 use bevy::{prelude::Mesh, render::{render_resource::PrimitiveTopology, mesh::{VertexAttributeValues, Indices}}};
 use block_mesh::{ndshape::{ConstShape, ConstShape3u32}, UnitQuadBuffer, RIGHT_HANDED_Y_UP_CONFIG, visible_block_faces};
-use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, Pos};
+use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, BlocPos};
 use super::texture_array::TextureMap;
 const CHUNK_S1I: i32 = CHUNK_S1 as i32;
 const CHUNK_PADDED: u32 = CHUNK_S1 as u32 + 2;
@@ -24,7 +24,7 @@ impl Meshable for Blocs {
             let [x, y, z] = ChunkShape::delinearize(i);
             let y = y as i32 + pos.y*CHUNK_S1I -1;
             if y >= 0 {
-                voxels[i as usize] = self.get_block(Pos {
+                voxels[i as usize] = self.get_block(BlocPos {
                     x: x as i32 + pos.x*CHUNK_S1I -1, 
                     y, 
                     z: z as i32 + pos.z*CHUNK_S1I -1, 

@@ -1,4 +1,4 @@
-use crate::blocs::{CHUNK_S1, Bloc, Blocs, Pos, ChunkPos2D, ChunkChanges, Pos2D};
+use crate::blocs::{CHUNK_S1, Bloc, Blocs, ColPos, ChunkChanges};
 use crate::gen::{ColUnloadEvent, LoadedCols};
 use crate::agents::Dir;
 use anyhow::Result;
@@ -23,12 +23,12 @@ pub fn setup(mut commands: Commands) {
 
 pub fn update_cam(
     mut cam_query: Query<&mut Transform, With<Camera>>,
-    player_query: Query<&Pos, (With<ActionState<Dir>>, Changed<Pos>)>,
+    player_query: Query<&Transform, (With<ActionState<Dir>>, Changed<Transform>)>,
 ) {
     if let Ok(mut cam_pos) = cam_query.get_single_mut() {
-        if let Ok(player_pos) = player_query.get_single() {
-            cam_pos.translation.x = player_pos.x;
-            cam_pos.translation.z = player_pos.z;
+        if let Ok(player_transform) = player_query.get_single() {
+            cam_pos.translation.x = player_transform.translation.x;
+            cam_pos.translation.z = player_transform.translation.z;
         }
     }
 }
@@ -55,7 +55,7 @@ pub fn process_chunk_changes(
     soil_color: Res<SoilColor>,
 ) {
     if let Some((chunk, chunk_change)) = blocs.changes.pop() {
-        let col: Pos2D<i32> = chunk.into();
+        let col: ColPos = chunk.into();
         if !loaded_cols.in_player_range(col) { return; }
         if let Some(ent) = col_ents.0.get(&col) {
             if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent) {
@@ -101,7 +101,7 @@ impl SoilColor {
 }
 
 #[derive(Resource)]
-pub struct ColEntities(pub HashMap::<ChunkPos2D, Entity>);
+pub struct ColEntities(pub HashMap::<ColPos, Entity>);
 
 impl ColEntities {
     pub fn new() -> Self {

@@ -1,6 +1,6 @@
 use crate::gen::terrain_gen::TerrainGen;
 use bevy::prelude::info_span;
-use crate::blocs::{CHUNK_S1, ChunkPos2D, Blocs,BlocPos2D, BlocPos};
+use crate::blocs::{CHUNK_S1, ColPos, Blocs, BlocPos2d, BlocPos};
 use crate::blocs::{MAX_GEN_HEIGHT, Bloc, Soils, Trees};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
@@ -8,7 +8,7 @@ use std::{collections::HashMap, path::Path, ops::RangeInclusive};
 use nd_interval::NdInterval;
 pub const WATER_R: f64 = 0.3;
 pub const WATER_H: i32 = (crate::blocs::MAX_GEN_HEIGHT as f64*WATER_R) as i32;
-pub const CHUNK_S1i: i32 = CHUNK_S1 as i32;
+pub const CHUNK_S1I: i32 = CHUNK_S1 as i32;
 
 pub struct Earth {
     soils: Soils,
@@ -17,10 +17,10 @@ pub struct Earth {
     config: HashMap<String, f32>,
 }
 
-fn pos_to_range(pos: ChunkPos2D) -> [RangeInclusive<i32>; 2] {
-    let x = pos.z*CHUNK_S1i;
-    let y = pos.x*CHUNK_S1i;
-    [x..=(x+CHUNK_S1i-1), y..=(y+CHUNK_S1i-1)]
+fn pos_to_range(pos: ColPos) -> [RangeInclusive<i32>; 2] {
+    let x = pos.z*CHUNK_S1I;
+    let y = pos.x*CHUNK_S1I;
+    [x..=(x+CHUNK_S1I-1), y..=(y+CHUNK_S1I-1)]
 }
 
 impl Earth {
@@ -35,7 +35,7 @@ impl Earth {
 }
 
 impl TerrainGen for Earth {
-    fn gen(&self, world: &mut Blocs, col: ChunkPos2D) {
+    fn gen(&self, world: &mut Blocs, col: ColPos) {
         let range = pos_to_range(col);
         let gen_span = info_span!("noise gen", name = "noise gen").entered();
         let mut n = NoiseSource::new(range, self.seed, 1);
@@ -67,10 +67,10 @@ impl TerrainGen for Earth {
         let tree_span = info_span!("tree gen", name = "tree gen").entered();
         let tree_spots = [(0, 0), (16, 0), (8, 16), (24, 16)];
         for spot in tree_spots {
-            let rng = <BlocPos2D>::from((col, spot)).prng(self.seed);
+            let rng = <BlocPos2d>::from((col, spot)).prng(self.seed);
             let dx = spot.0 + (rng & 0b111);
             let dz = spot.1 + ((rng >> 3) & 0b111);
-            let h = ((rng >> 5) & 0b11);
+            let h = (rng >> 5) & 0b11;
             let i = dx*CHUNK_S1 + dz;
             let y = ys[i];
             if y >= WATER_H {
@@ -81,7 +81,7 @@ impl TerrainGen for Earth {
                     y as f32/MAX_GEN_HEIGHT as f32
                 ]) {
                     let pos = BlocPos {
-                        x: col.x*CHUNK_S1i+dx as i32, y, z: col.z*CHUNK_S1i+dz as i32, realm: col.realm
+                        x: col.x*CHUNK_S1I+dx as i32, y, z: col.z*CHUNK_S1I+dz as i32, realm: col.realm
                     };
                     tree.grow(world, pos, self.seed, dist+h as f32/10.);
                 }

@@ -1,4 +1,4 @@
-use crate::blocs::{ChunkPos2D, Pos};
+use crate::blocs::{ColPos, Realm, BlocPos};
 use bevy::prelude::Query;
 use bevy::prelude::*;
 use itertools::iproduct;
@@ -7,12 +7,12 @@ use crate::gen::load_cols::LoadedCols;
 
 #[derive(Component, Clone, Copy)]
 pub struct LoadArea {
-    pub col: ChunkPos2D,
+    pub col: ColPos,
     pub dist: u32,
 }
 
 impl LoadArea {
-    pub fn contains(&self, col: ChunkPos2D) -> bool {
+    pub fn contains(&self, col: ColPos) -> bool {
         // checks if a chunk is in this Player loaded area (assuming they're in the same realm)
         self.col.dist(col) <= self.dist as i32
     }
@@ -35,7 +35,7 @@ impl Sub<LoadArea> for LoadArea {
         } else {
             self.iter()
                 .filter(|(x, z)| {
-                    !rhs.contains(ChunkPos2D {
+                    !rhs.contains(ColPos {
                         realm: self.col.realm,
                         x: *x,
                         z: *z,
@@ -46,9 +46,9 @@ impl Sub<LoadArea> for LoadArea {
     }
 }
 
-pub fn update_load_area(mut query: Query<(&Pos, &mut LoadArea), Changed<Pos>>) {
-    for (pos, mut load_area) in query.iter_mut() {
-        let col = ChunkPos2D::from(*pos);
+pub fn update_load_area(mut query: Query<(&Transform, &Realm, &mut LoadArea)>) {
+    for (transform, realm, mut load_area) in query.iter_mut() {
+        let col = ColPos::from(BlocPos::from((transform.translation, *realm)));
         // we're checking before modifying to avoid triggering unnecessary Change detection
         if col != load_area.col {
             load_area.col = col;

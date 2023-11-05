@@ -3,8 +3,8 @@ use std::hash::Hash;
 use bevy::prelude::{Resource, Vec3};
 use indexmap::IndexMap;
 use super::{
-    CHUNK_S1, Y_CHUNKS,  MAX_HEIGHT, ChunkedPos, Chunk, ChunkPos, Pos, ChunkedPos2D, chunked, Realm, Bloc,
-    ChunkPos2D, BlocPos, BlocPos2D
+    CHUNK_S1, Y_CHUNKS,  MAX_HEIGHT, ChunkedPos, Chunk, ChunkPos, ColedPos, Realm, Bloc,
+    ColPos, BlocPos, BlocPos2d, chunked
 };
 
 pub struct BlocRayCastHit {
@@ -27,7 +27,7 @@ impl ChunkChanges {
     }
 }
 
-pub type Cols<E> = HashMap<ChunkPos2D, E>;
+pub type Cols<E> = HashMap<ColPos, E>;
 
 pub trait HashMapUtils<K, V> {
     fn pop(&mut self) -> Option<(K, V)>;
@@ -73,11 +73,11 @@ impl Blocs {
         self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set(chunked_pos, bloc);
     }
 
-    pub fn set_yrange(&mut self, chunk_pos2d: ChunkPos2D, (x, z): ChunkedPos2D, top: i32, mut height: usize, bloc: Bloc) {
+    pub fn set_yrange(&mut self, col_pos: ColPos, (x, z): ColedPos, top: i32, mut height: usize, bloc: Bloc) {
         // BYPASSES CHANGE DETECTION, used by terrain generation to efficiently fill columns of blocs
         let (mut cy, mut dy) = chunked(top);
         while height > 0 && cy >= 0 {
-            let chunk_pos = ChunkPos { x: chunk_pos2d.x, y: cy, z: chunk_pos2d.z, realm: chunk_pos2d.realm};
+            let chunk_pos = ChunkPos { x: col_pos.x, y: cy, z: col_pos.z, realm: col_pos.realm};
             let h = height.min(dy);
             self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set_yrange((x, dy, z), h, bloc);
             height -= h;
@@ -113,7 +113,7 @@ impl Blocs {
         }
     }
 
-    pub fn top_block(&self, pos: BlocPos2D) -> (Bloc, i32) {
+    pub fn top_block(&self, pos: BlocPos2d) -> (Bloc, i32) {
         let (col_pos, pos2d) = pos.into();
         for y in (0..Y_CHUNKS as i32).rev() {
             let chunk_pos = ChunkPos {
@@ -132,10 +132,10 @@ impl Blocs {
         (Bloc::default(), 0)
     }
 
-    pub fn is_col_loaded(&self, player_pos: Pos<f32>) -> bool {
-        let (chunk_pos, _): (Pos<i32>, _) = <BlocPos>::from(player_pos).into();
+    pub fn is_col_loaded(&self, player_pos: Vec3, realm: Realm) -> bool {
+        let (chunk_pos, _): (ChunkPos, _) = <BlocPos>::from((player_pos, realm)).into();
         for y in (0..Y_CHUNKS as i32).rev() {
-            let chunk = Pos { x: chunk_pos.x, y, z: chunk_pos.z, realm: chunk_pos.realm };
+            let chunk = ChunkPos { x: chunk_pos.x, y, z: chunk_pos.z, realm: chunk_pos.realm };
             if self.chunks.contains_key(&chunk) {
                 return true;
             }
@@ -143,7 +143,7 @@ impl Blocs {
         false
     }
 
-    pub fn register(&mut self, col: ChunkPos2D) {
+    pub fn register(&mut self, col: ColPos) {
         // Used by terrain generation to batch register chunks for efficiency
         for y in 0..Y_CHUNKS as i32 {
             let chunk_pos = ChunkPos {x: col.x, y, z: col.z, realm: col.realm };
@@ -154,7 +154,7 @@ impl Blocs {
         }
     }
     
-    pub fn unload_col(&mut self, col: ChunkPos2D) {
+    pub fn unload_col(&mut self, col: ColPos) {
         for y in 0..Y_CHUNKS as i32 {
             let chunk_pos = ChunkPos {x: col.x, y, z: col.z, realm: col.realm };
             self.chunks.remove(&chunk_pos);

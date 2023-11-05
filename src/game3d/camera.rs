@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 use crate::GameState;
-use crate::blocs::Pos;
 use crate::agents::{AABB, Dir};
 use leafwing_input_manager::prelude::*;
 
@@ -37,19 +36,6 @@ pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
     window.cursor.visible = false;
 }
 
-pub fn translate_cam(
-    mut cam_query: Query<&mut Transform, With<Camera>>,
-    player_query: Query<(&Pos, &AABB), (With<ActionState<Dir>>, Changed<Pos>)>
-) {
-    if let Ok(mut cam_pos) = cam_query.get_single_mut() {
-        if let Ok((player_pos, aabb)) = player_query.get_single() {
-            cam_pos.translation.x = player_pos.x + aabb.0.x/2.;
-            cam_pos.translation.y = player_pos.y + aabb.0.y;
-            cam_pos.translation.z = player_pos.z + aabb.0.z/2.;
-        }
-    }
-}
-
 pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>, time: Res<Time>) {
     let (action_state, mut fpscam) = query.single_mut();
     let camera_pan_vector = action_state.axis_pair(CameraMovement::Pan).unwrap();
@@ -72,7 +58,6 @@ impl Plugin for Camera3dPlugin {
         app
             .add_plugins(InputManagerPlugin::<CameraMovement>::default())
             .add_systems(Startup, setup)
-            .add_systems(Update, translate_cam)
             .add_systems(Update, apply_fps_cam)
             .add_systems(Update, pan_camera.run_if(in_state(GameState::Game)))
         ;

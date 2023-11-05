@@ -1,6 +1,6 @@
 use std::time::Duration;
-use crate::{gen::LoadArea, agents::{Gravity, Heading, AABB, Velocity, Jumping}};
-use crate::blocs::{Pos, ChunkPos2D, Realm, BlocRayCastHit};
+use crate::{gen::LoadArea, agents::{Gravity, Heading, AABB, Velocity, Jumping}, blocs::BlocPos2d};
+use crate::blocs::{ColPos, Realm, BlocRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
@@ -46,23 +46,24 @@ pub enum UIAction {
     Inventory,
 }
 
-pub fn spawn_player(mut commands: Commands) {
-    let spawn = Pos::<f32> {
-        realm: Realm::Overworld,
-        x: 0.,
-        y: 250.,
-        z: 0.,
+pub fn spawn_player(mut commands: Commands) {    
+    let spawn = Vec3 { x: 0., y: 250., z: 0.};
+    let realm = Realm::Overworld;
+    let transform = Transform {
+        translation: spawn,
+        ..default()
     };
     commands
         .spawn((
-            spawn,
+            transform,
+            Realm::Overworld,
             Gravity(5.),
             Heading(Vec3::default()),
             Jumping {force: 2., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
             LoadArea {
-                col: ChunkPos2D::from(spawn),
+                col: ColPos::from(<BlocPos2d>::from((spawn, realm))),
                 dist: 6,
             },
             TargetBloc(None),

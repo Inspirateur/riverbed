@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
-use super::{Bloc, pos::{ChunkedPos, ChunkedPos2D}, utils::Palette};
+use super::{Bloc, pos::{ChunkedPos, ColedPos}, utils::Palette};
 pub const CHUNK_S1: usize = 32;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
 pub const CHUNK_S3: usize = CHUNK_S1.pow(3);
@@ -36,7 +36,7 @@ impl Chunk {
         }
     }
 
-    pub fn top(&self, (x, z): ChunkedPos2D) -> (&Bloc, usize) {
+    pub fn top(&self, (x, z): ColedPos) -> (&Bloc, usize) {
         for y in (0..self.size).rev() {
             let b_idx = self.data.get(self.index(x, y, z));
             if b_idx > 0 {

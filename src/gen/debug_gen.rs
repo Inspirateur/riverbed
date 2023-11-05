@@ -1,7 +1,7 @@
 use crate::gen::terrain_gen::TerrainGen;
 use crate::blocs::{
     MAX_GEN_HEIGHT, CHUNK_S1,
-    Bloc, Soils, unchunked, Blocs, ChunkPos2D
+    Bloc, Soils, unchunked, Blocs, ColPos
 };
 use itertools::iproduct;
 use nd_interval::NdInterval;
@@ -38,7 +38,7 @@ impl DebugGen {
 }
 
 impl TerrainGen for DebugGen {
-    fn gen(&self, world: &mut Blocs, col: ChunkPos2D) {
+    fn gen(&self, world: &mut Blocs, col: ColPos) {
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (x, z) = (unchunked(col.x, dx), unchunked(col.z, dz));
             let (y, t, h) = values(x, z);

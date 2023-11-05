@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use crate::blocs::{Blocs, ChunkPos2D, Realm};
+use crate::blocs::{Blocs, ColPos, Realm};
 use crate::gen::Generators;
 use itertools::Itertools;
 use bevy::prelude::*;
@@ -8,9 +8,9 @@ use bevy::prelude::*;
 #[derive(Resource)]
 pub struct LoadedCols {
     // a hashmap of chunk columns and their players
-    cols: HashMap<ChunkPos2D, HashSet<u32>>,
-    pub loads: Vec<ChunkPos2D>,
-    pub unloads: Vec<ChunkPos2D>,
+    cols: HashMap<ColPos, HashSet<u32>>,
+    pub loads: Vec<ColPos>,
+    pub unloads: Vec<ColPos>,
 }
 
 impl LoadedCols {
@@ -22,13 +22,13 @@ impl LoadedCols {
         }
     }
 
-    pub fn in_player_range(&self, pos: ChunkPos2D) -> bool {
+    pub fn in_player_range(&self, pos: ColPos) -> bool {
         self.cols.contains_key(&pos)
     }
 
     pub fn register(&mut self, to_load: Vec<(i32, i32)>, realm: Realm, player: u32) {
         for (x, z) in to_load.into_iter() {
-            let pos = ChunkPos2D { realm, x, z };
+            let pos = ColPos { realm, x, z };
             let players = self.cols.entry(pos).or_insert_with(|| HashSet::new());
             if players.len() == 0 {
                 self.loads.push(pos);
@@ -39,7 +39,7 @@ impl LoadedCols {
 
     pub fn unregister(&mut self, to_unload: Vec<(i32, i32)>, realm: Realm, player: u32) {
         for (x, z) in to_unload.into_iter() {
-            let pos = ChunkPos2D { realm, x, z };
+            let pos = ColPos { realm, x, z };
             let players = self.cols.entry(pos).or_insert_with(|| HashSet::new());
             players.remove(&player);
             if players.len() == 0 {
@@ -57,7 +57,7 @@ impl LoadedCols {
 
 
 #[derive(Event)]
-pub struct ColUnloadEvent(pub ChunkPos2D);
+pub struct ColUnloadEvent(pub ColPos);
 
 
 pub fn pull_orders(

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
-use crate::blocs::{Pos, Blocs, Bloc};
+use crate::blocs::{Blocs, Bloc};
 use crate::agents::{Dir, TargetBloc};
 
 fn setup_crosshair(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -64,12 +64,12 @@ fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn debug_display(
     mut text_query: Query<&mut Text, With<DebugText>>, 
-    player_query: Query<(&Pos, &TargetBloc), With<ActionState<Dir>>>,
+    player_query: Query<(&Transform, &TargetBloc), With<ActionState<Dir>>>,
     world: Res<Blocs>,
 ) {
-    let (pos, target_bloc) = player_query.single();
+    let (transform, target_bloc) = player_query.single();
     let mut text = text_query.single_mut();
-    text.sections[0].value = format!("p: {:.1}; {:.1}; {:.1}\n", pos.x, pos.y, pos.z);
+    text.sections[0].value = format!("p: {:.1}; {:.1}; {:.1}\n", transform.translation.x, transform.translation.y, transform.translation.z);
     let bloc = if let Some(raycast_hit) = &target_bloc.0 {
         world.get_block_safe(raycast_hit.pos)
     } else {

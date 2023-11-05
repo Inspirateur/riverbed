@@ -1,5 +1,5 @@
 use crate::gen::{earth_gen::Earth, debug_gen::DebugGen};
-use crate::blocs::{Realm, ChunkPos2D, Blocs};
+use crate::blocs::{Realm, ColPos, Blocs};
 use bevy::prelude::Resource;
 use std::collections::HashMap;
 
@@ -8,7 +8,7 @@ pub trait TerrainGen: Send + Sync {
 
     fn set_seed(&mut self, seed: u32);
 
-    fn gen(&self, world: &mut Blocs, col: ChunkPos2D);
+    fn gen(&self, world: &mut Blocs, col: ColPos);
 }
 
 #[derive(Resource)]
@@ -23,7 +23,7 @@ impl Generators {
         Generators { data: gens }
     }
 
-    pub fn gen(&self, world: &mut Blocs, pos: ChunkPos2D) {
+    pub fn gen(&self, world: &mut Blocs, pos: ColPos) {
         self.data.get(&Realm::Overworld).unwrap().gen(world, pos)
     }
 }
