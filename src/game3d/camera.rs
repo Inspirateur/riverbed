@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 use crate::GameState;
-use crate::agents::{AABB, Dir};
+use crate::agents::{AABB, PlayerSpawn, PlayerControlled};
 use leafwing_input_manager::prelude::*;
 
 const CAMERA_PAN_RATE: f32 = 0.1;
@@ -17,10 +17,14 @@ pub struct FpsCam {
     pub pitch: f32,
 }
 
-pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0., 150., 10.)
-            .looking_at(Vec3 {x: 0., y: 150., z: 0.}, Vec3::Y),
+#[derive(SystemSet, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct CameraSpawn;
+
+pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player_query: Query<(Entity, &AABB), With<PlayerControlled>>) {
+    let (player, aabb) = player_query.get_single().unwrap();
+    let cam = commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(aabb.0.x/2., 2., aabb.0.z/2.)
+            .looking_at(Vec3 {x: 0., y: 0., z: 1.}, Vec3::Y),
         ..Default::default()
     })
     .insert(InputManagerBundle::<CameraMovement> {
@@ -30,7 +34,8 @@ pub fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
             .insert(DualAxis::mouse_motion(), CameraMovement::Pan)
             .build(),
         ..default()
-    }).insert(FpsCam::default());
+    }).insert(FpsCam::default()).id();
+    commands.entity(player).add_child(cam);
     let mut window = windows.single_mut();
     window.cursor.grab_mode = CursorGrabMode::Locked;
     window.cursor.visible = false;
@@ -57,7 +62,8 @@ impl Plugin for Camera3dPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins(InputManagerPlugin::<CameraMovement>::default())
-            .add_systems(Startup, setup)
+            .add_systems(Startup, 
+                (cam_setup, apply_deferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
             .add_systems(Update, apply_fps_cam)
             .add_systems(Update, pan_camera.run_if(in_state(GameState::Game)))
         ;

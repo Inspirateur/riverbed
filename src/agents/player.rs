@@ -9,6 +9,9 @@ use bevy::{
 use leafwing_input_manager::prelude::*;
 
 #[derive(Component)]
+pub struct PlayerControlled;
+
+#[derive(Component)]
 pub struct TargetBloc(pub Option<BlocRayCastHit>);
 
 #[derive(Actionlike, TypePath, PartialEq, Clone, Copy, Debug, Hash)]
@@ -49,8 +52,8 @@ pub enum UIAction {
 pub fn spawn_player(mut commands: Commands) {    
     let spawn = Vec3 { x: 0., y: 250., z: 0.};
     let realm = Realm::Overworld;
-    let transform = Transform {
-        translation: spawn,
+    let transform = TransformBundle {
+        local: Transform {translation: spawn, ..default()},
         ..default()
     };
     commands
@@ -67,6 +70,7 @@ pub fn spawn_player(mut commands: Commands) {
                 dist: 6,
             },
             TargetBloc(None),
+            PlayerControlled
         ))
         .insert(InputManagerBundle::<Dir> {
             action_state: ActionState::default(),
@@ -118,6 +122,9 @@ pub fn move_player(
     heading.0.y = f32::NAN;
 }
 
+#[derive(SystemSet, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct PlayerSpawn;
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -126,7 +133,7 @@ impl Plugin for PlayerPlugin {
             .add_plugins(InputManagerPlugin::<Dir>::default())
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<UIAction>::default())
-            .add_systems(Startup, spawn_player)
+            .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
             .add_systems(Update, move_player)
         ;
     }

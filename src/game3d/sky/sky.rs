@@ -1,6 +1,8 @@
 use std::f32::consts::PI;
 use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*};
 use bevy_mod_billboard::prelude::*;
+
+use crate::game3d::camera::{CameraSpawn, FpsCam};
 const TIME_FACTOR: f32 = 20.;
 
 #[derive(Resource)]
@@ -9,8 +11,9 @@ struct Hour(f32);
 #[derive(Component)]
 struct Sun;
 
-fn spawn_sun(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn_sun(mut commands: Commands, asset_server: Res<AssetServer>, cam_query: Query<Entity, With<FpsCam>>) {
     let angle = Vec3::new(1., 1., 0.1).normalize();
+    let cam = cam_query.get_single().unwrap();
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             shadows_enabled: true,
@@ -27,9 +30,9 @@ fn spawn_sun(mut commands: Commands, asset_server: Res<AssetServer>) {
         cascade_shadow_config: CascadeShadowConfigBuilder::default()
         .into(),
         ..default()
-    }).insert(BillboardTextBundle {
-        transform: Transform::from_translation(Vec3::new(0., 2., 0.))
-            .with_scale(Vec3::splat(0.0085)),
+    }).insert(Sun);
+    let sun = commands.spawn(BillboardTextBundle {
+        transform: Transform::from_translation(Vec3::new(0., 100., 0.)),
         text: Text::from_sections([
             TextSection {
                 value: "SUN".to_string(),
@@ -42,7 +45,8 @@ fn spawn_sun(mut commands: Commands, asset_server: Res<AssetServer>) {
         ]).with_alignment(TextAlignment::Center),
         ..default()
     })
-    .insert(Sun);
+    .insert(Sun).id();
+    // commands.entity(cam).add_child(sun);
 }
 
 fn update_hour(mut hour: ResMut<Hour>, time: Res<Time>) {
@@ -65,7 +69,7 @@ impl Plugin for SkyPlugin {
         app
             .add_plugins(BillboardPlugin)
             .insert_resource(Hour(0.))
-            .add_systems(Startup, spawn_sun)
+            .add_systems(Startup, spawn_sun.after(CameraSpawn))
             .add_systems(Update, update_hour)
             .add_systems(Update, rotate_sun)
             .add_systems(Update, update_sunlight)

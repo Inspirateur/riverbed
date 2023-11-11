@@ -38,9 +38,9 @@ fn main() {
             }),
             ..default()
         }).set(ImagePlugin::default_nearest()))
+        .add_plugins(PlayerPlugin)
         .add_plugins(UIPlugin)
         .add_plugins(MenuPlugin)
-        .add_plugins(PlayerPlugin)
         .add_plugins(MovementPlugin)
         .add_plugins(GenPlugin)
         .add_plugins(Game3d)
