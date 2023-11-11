@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bevy = { version = "*", features = ["trace", "trace_tracy"] }
 bevy_mod_billboard = "*"
+bevy_atmosphere = "*"
 rand = "*"
 indexmap = "*"
 itertools = "*"
