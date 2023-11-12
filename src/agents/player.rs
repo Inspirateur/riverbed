@@ -14,7 +14,7 @@ pub struct PlayerControlled;
 #[derive(Component)]
 pub struct TargetBloc(pub Option<BlocRayCastHit>);
 
-#[derive(Actionlike, TypePath, PartialEq, Clone, Copy, Debug, Hash)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 pub enum Dir {
     Front,
     Back,

@@ -15,7 +15,7 @@ pub fn create_tex_arr(
     todo!()
 }
 
-#[derive(AsBindGroup, Debug, Clone, TypeUuid, TypePath)]
+#[derive(Asset, AsBindGroup, Debug, Clone, TypeUuid, TypePath)]
 #[uuid = "9c5a0ddf-1eaf-41b4-9832-ed736fd26af3"]
 pub struct ArrayTextureMaterial {
     #[texture(0, dimension = "2d_array")]

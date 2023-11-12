@@ -10,7 +10,7 @@ pub fn on_col_unload(
     mut ev_unload: EventReader<ColUnloadEvent>,
     mut chunk_ents: ResMut<ChunkEntities>,
 ) {
-    for col_ev in ev_unload.iter() {
+    for col_ev in ev_unload.read() {
         for i in 0..Y_CHUNKS {
             if let Some(ent) = chunk_ents.0.remove(&ChunkPos {
                 x: col_ev.0.x,
@@ -38,7 +38,7 @@ pub fn process_bloc_changes(
         if !loaded_cols.in_player_range(chunk.into()) { return; }
         if let Some(ent) = chunk_ents.0.get(&chunk) {
             if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
-                if let Some(mesh) = meshes.get_mut(&handle) {
+                if let Some(mesh) = meshes.get_mut(handle) {
                     blocs.update_mesh(chunk, mesh, &texture_map);
                 }
             } else {

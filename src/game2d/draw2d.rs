@@ -38,7 +38,7 @@ pub fn on_col_unload(
     mut ev_unload: EventReader<ColUnloadEvent>,
     mut col_ents: ResMut<ColEntities>,
 ) {
-    for col_ev in ev_unload.iter() {
+    for col_ev in ev_unload.read() {
         if let Some(ent) = col_ents.0.remove(&col_ev.0) {
             commands.entity(ent).despawn();
         }
@@ -59,7 +59,7 @@ pub fn process_chunk_changes(
         if !loaded_cols.in_player_range(col) { return; }
         if let Some(ent) = col_ents.0.get(&col) {
             if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent) {
-                if let Some(image) = images.get_mut(&handle) {
+                if let Some(image) = images.get_mut(handle) {
                     blocs.update_image(chunk.into(), image, &soil_color);
                 }
             } else {

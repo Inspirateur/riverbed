@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_atmosphere::{prelude::{AtmospherePlugin, AtmosphereCamera, Nishita, AtmosphereModel}, system_param::AtmosphereMut};
 use crate::game3d::camera::{CameraSpawn, FpsCam};
-const DAY_LENGTH_MINUTES: f32 = 5.;
+const DAY_LENGTH_MINUTES: f32 = 0.2;
 const C: f32 = DAY_LENGTH_MINUTES*120.*PI;
 
 // Timer for updating the daylight cycle (updating the atmosphere every frame is slow, so it's better to do incremental changes)
@@ -51,6 +51,8 @@ impl Plugin for SkyPlugin {
     fn build(&self, app: &mut App) {
         app        
             .insert_resource(AtmosphereModel::new(Nishita {
+                rayleigh_coefficient: Vec3::new(5.5e-6, 4.0e-6, 22.4e-6),
+                mie_coefficient: 15e-6,
                 ..default()
             }))
             .insert_resource(CycleTimer(Timer::new(
