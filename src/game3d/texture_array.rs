@@ -1,6 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ffi::OsStr, str::FromStr};
 use bevy::{prelude::*, reflect::{TypeUuid, TypePath}, render::render_resource::{ShaderRef, AsBindGroup, Extent3d, TextureDimension}, asset::LoadedFolder};
-use crate::{blocs::{Bloc, Face}, GameState};
+use crate::blocs::{Bloc, Face};
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum FaceSpecifier {
+    Specific(Face),
+    Side,
+    All
+}
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum TexState {
@@ -13,7 +20,26 @@ pub enum TexState {
 struct TextureFolder(Handle<LoadedFolder>);
 
 #[derive(Resource)]
-pub struct TextureMap(pub HashMap<(Bloc, Face), usize>);
+pub struct TextureMap(pub HashMap<(Bloc, FaceSpecifier), usize>);
+
+impl TextureMap {
+    fn get(&self, bloc: Bloc, face: Face) -> Option<usize> {
+        if let Some(i) = self.0.get(&(bloc, FaceSpecifier::Specific(face))) {
+            return Some(*i);
+        }
+        if matches!(face, Face::Front | Face::Back | Face::Left | Face::Right) {
+            if let Some(i) = self.0.get(&(bloc, FaceSpecifier::Side)) {
+                return Some(*i);
+            }
+        }
+        if face == Face::Down {
+            if let Some(i) = self.0.get(&(bloc, FaceSpecifier::Specific(Face::Up))) {
+                return Some(*i);
+            }
+        }
+        self.0.get(&(bloc, FaceSpecifier::All)).copied()
+    }
+}
 
 fn load_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
     // load multiple, individual sprites from a folder
@@ -33,7 +59,28 @@ fn check_textures(
     }
 }
 
+fn parse_bloc_name(blocname: &str) -> Option<Bloc> {
+    Bloc::from_str(&blocname.replace("_", "")).ok()
+}
+
+fn parse_tex_name(filename: &OsStr) -> Option<(Bloc, FaceSpecifier)> {
+    let filename = filename.to_str()?;
+    let Some((bloc, face)) = filename.rsplit_once("_") else {
+        return Some((parse_bloc_name(filename)?, FaceSpecifier::All));
+    };
+    match face {
+        "side" => Some((parse_bloc_name(bloc)?, FaceSpecifier::Side)),
+        "bottom" => Some((parse_bloc_name(bloc)?, FaceSpecifier::Specific(Face::Down))),
+        "top" => Some((parse_bloc_name(bloc)?, FaceSpecifier::Specific(Face::Up))),
+        "front" => Some((parse_bloc_name(bloc)?, FaceSpecifier::Specific(Face::Front))),
+        "side1" => Some((parse_bloc_name(bloc)?, FaceSpecifier::Specific(Face::Left))),
+        "side2" => Some((parse_bloc_name(bloc)?, FaceSpecifier::Specific(Face::Right))),
+        _ => Some((parse_bloc_name(filename)?, FaceSpecifier::All))
+    }
+}
+
 fn setup(
+    mut commands: Commands,
     textures_handles: Res<TextureFolder>,
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut textures: ResMut<Assets<Image>>,
@@ -53,12 +100,18 @@ fn setup(
             continue;
         };
         let filename = handle.path().unwrap().path().file_stem().unwrap();
+        let Some((bloc, face_specifier)) = parse_tex_name(filename) else {
+            continue;
+        };
         println!(
             "loaded texture {:?} {}x{}", 
             filename,
             texture.width(),
             texture.height()
         );
+        println!("\tparsed: {:?} {:?}", bloc, face_specifier);
+        texture_map.0.insert((bloc, face_specifier), texture_list.len());
+
         texture_list.push(texture);
     }
     if texture_list.len() == 0 {
@@ -75,10 +128,15 @@ fn setup(
         model.texture_descriptor.format
     );
     let handle = textures.add(array_tex);
-    materials.add(ArrayTextureMaterial {
+    let handle = materials.add(ArrayTextureMaterial {
         array_texture: handle,
     });
+    commands.insert_resource(BlocTextureArray(handle));
 }
+
+
+#[derive(Resource)]
+pub struct BlocTextureArray(pub Handle<ArrayTextureMaterial>);
 
 #[derive(Asset, AsBindGroup, Debug, Clone, TypeUuid, TypePath)]
 #[uuid = "9c5a0ddf-1eaf-41b4-9832-ed736fd26af3"]

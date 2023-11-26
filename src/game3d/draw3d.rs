@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
 use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{LoadedCols, ColUnloadEvent};
+use super::texture_array::{ArrayTextureMaterial, BlocTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 
 pub fn on_col_unload(
@@ -32,7 +33,7 @@ pub fn process_bloc_changes(
     mut meshes: ResMut<Assets<Mesh>>,
     mut chunk_ents: ResMut<ChunkEntities>,
     texture_map: Res<TextureMap>,
-    mut materials: ResMut<Assets<StandardMaterial>>
+    bloc_tex_array: Res<BlocTextureArray>,
 ) {
     if let Some(chunk) = blocs.changes.pop() {
         if !loaded_cols.in_player_range(chunk.into()) { return; }
@@ -46,13 +47,9 @@ pub fn process_bloc_changes(
                 blocs.changes.insert(chunk);
             }
         } else {
-            let ent = commands.spawn(PbrBundle {
+            let ent = commands.spawn(MaterialMeshBundle {
                 mesh: meshes.add(blocs.create_mesh(chunk, &texture_map)),
-                material: materials.add(Color::rgb(
-                    if chunk.x % 2 == 0 { 0.8 } else { 0.4 }, 
-                    if chunk.y % 2 == 0 { 0.8 } else { 0.4 }, 
-                    if chunk.z % 2 == 0 { 0.8 } else { 0.4 }
-                ).into()),
+                material: bloc_tex_array.0.clone(),
                 transform: Transform::from_translation(
                     Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
                 ),
@@ -81,7 +78,7 @@ impl Plugin for Draw3d {
             .add_plugins(TextureArrayPlugin)
             .insert_resource(ChunkEntities::new())
             .add_systems(Update, on_col_unload)
-            .add_systems(Update, process_bloc_changes)
+            .add_systems(Update, process_bloc_changes.run_if(in_state(TexState::Finished)))
             ;
     }
 }

@@ -6,12 +6,12 @@ pub fn grow_spruce(world: &mut Blocs, pos: BlocPos, seed: i32, dist: f32) {
     let mut pos = pos;
     for i in 0..height {
         if i >= 3 && i % 2 == height % 2 {
-            leaf_disk(world, pos, ((height-i+2)/2) as u32, Bloc::SpruceLeave)
+            leaf_disk(world, pos, ((height-i+2)/2) as u32, Bloc::SpruceLeaves)
         }
-        world.set_bloc(pos, Bloc::SpruceWood);
+        world.set_bloc(pos, Bloc::SpruceLog);
         pos.y += 1;
     }
-    leaf_disk(world, pos, 1, Bloc::SpruceLeave);
+    leaf_disk(world, pos, 1, Bloc::SpruceLeaves);
     pos.y += 1;
-    world.set_bloc(pos, Bloc::SpruceLeave);
+    world.set_bloc(pos, Bloc::SpruceLeaves);
 }

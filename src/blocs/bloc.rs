@@ -13,14 +13,14 @@ pub enum Bloc {
     Grass,
     Glass,
     Stone,
-    BirchWood,
-    BirchLeave,
-    OakWood,
-    OakLeave,
-    SpruceWood,
-    SpruceLeave,
-    SequoiaWood,
-    SequoiaLeave,
+    BirchLog,
+    BirchLeaves,
+    OakLog,
+    OakLeaves,
+    SpruceLog,
+    SpruceLeaves,
+    SequoiaLog,
+    SequoiaLeaves,
     Sand,
     Ice,
     Snow,
@@ -53,7 +53,7 @@ impl Bloc {
     }
 }
 
-#[derive(EnumIter)]
+#[derive(EnumIter, PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum Face {
     Up,
     Down,
@@ -67,7 +67,7 @@ impl Voxel for Bloc {
     fn get_visibility(&self) -> VoxelVisibility {
         match self {
             Bloc::Air => VoxelVisibility::Empty,
-            Bloc::Glass | Bloc::OakLeave | Bloc::SpruceLeave => VoxelVisibility::Translucent,
+            Bloc::Glass | Bloc::OakLeaves | Bloc::SpruceLeaves => VoxelVisibility::Translucent,
             _ => VoxelVisibility::Opaque
         }
     }
