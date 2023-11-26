@@ -1,10 +1,10 @@
 use std::ops::Range;
 use block_mesh::{VoxelVisibility, Voxel, MergeVoxel};
 use serde::{Deserialize, Serialize};
-use strum_macros::EnumString;
+use strum_macros::{EnumString, EnumIter};
 use super::{Blocs, BlocPos, growables::*};
 
-#[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, EnumString, Hash)]
+#[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, EnumString, EnumIter, Hash)]
 #[strum(ascii_case_insensitive)]
 pub enum Bloc {
     #[default]
@@ -53,6 +53,7 @@ impl Bloc {
     }
 }
 
+#[derive(EnumIter)]
 pub enum Face {
     Up,
     Down,

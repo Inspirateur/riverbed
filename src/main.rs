@@ -13,6 +13,7 @@ use agents::{MovementPlugin, PlayerPlugin};
 use gen::GenPlugin;
 use ui::UIPlugin;
 
+
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum GameState {
     #[default]
