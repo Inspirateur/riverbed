@@ -2,6 +2,8 @@ use std::{collections::HashMap, ffi::OsStr, str::FromStr};
 use bevy::{prelude::*, reflect::{TypeUuid, TypePath}, render::render_resource::{ShaderRef, AsBindGroup, Extent3d, TextureDimension}, asset::LoadedFolder};
 use crate::blocs::{Bloc, Face};
 
+use super::render3d::ATTRIBUTE_TEXTURE_LAYER;
+
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum FaceSpecifier {
     Specific(Face),
@@ -23,7 +25,11 @@ struct TextureFolder(Handle<LoadedFolder>);
 pub struct TextureMap(pub HashMap<(Bloc, FaceSpecifier), usize>);
 
 impl TextureMap {
-    fn get(&self, bloc: Bloc, face: Face) -> Option<usize> {
+    // TODO: need to allow the user to create a json with "texture files links" such as:
+    // grass_block_bottom.png -> dirt.png
+    // furnace_bottom.png -> stone.png
+    // etc ...
+    pub fn get(&self, bloc: Bloc, face: Face) -> Option<usize> {
         if let Some(i) = self.0.get(&(bloc, FaceSpecifier::Specific(face))) {
             return Some(*i);
         }
@@ -103,15 +109,7 @@ fn setup(
         let Some((bloc, face_specifier)) = parse_tex_name(filename) else {
             continue;
         };
-        println!(
-            "loaded texture {:?} {}x{}", 
-            filename,
-            texture.width(),
-            texture.height()
-        );
-        println!("\tparsed: {:?} {:?}", bloc, face_specifier);
         texture_map.0.insert((bloc, face_specifier), texture_list.len());
-
         texture_list.push(texture);
     }
     if texture_list.len() == 0 {
@@ -147,8 +145,28 @@ pub struct ArrayTextureMaterial {
 }
 
 impl Material for ArrayTextureMaterial {
+    fn vertex_shader() -> ShaderRef {
+        "shaders/chunk.wgsl".into()
+    }
+
     fn fragment_shader() -> ShaderRef {
-        "shaders/array_texture.wgsl".into()
+        "shaders/chunk.wgsl".into()
+    }
+
+    fn specialize(
+            pipeline: &bevy::pbr::MaterialPipeline<Self>,
+            descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
+            layout: &bevy::render::mesh::MeshVertexBufferLayout,
+            key: bevy::pbr::MaterialPipelineKey<Self>,
+        ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
+        let vertex_layout = layout.get_layout(&[
+            Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
+            Mesh::ATTRIBUTE_NORMAL.at_shader_location(1),
+            Mesh::ATTRIBUTE_UV_0.at_shader_location(2),
+            ATTRIBUTE_TEXTURE_LAYER.at_shader_location(3),
+        ])?;
+        descriptor.vertex.buffers = vec![vertex_layout];
+        Ok(())
     }
 }
 

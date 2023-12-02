@@ -87,6 +87,13 @@ impl Blocs {
         }
     }
 
+    pub fn get_block_chunked(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) -> Bloc {
+        match self.chunks.get(&chunk_pos) {
+            None => Bloc::default(),
+            Some(chunk) => chunk.get(chunked_pos).clone()
+        }
+    }
+
     pub fn get_block_safe(&self, pos: BlocPos) -> Bloc {
         if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 {
             Bloc::Air

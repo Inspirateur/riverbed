@@ -6,8 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.12", features = ["trace", "trace_tracy"] }
-bevy_atmosphere = { git = "https://github.com/elodin-sys/bevy_atmosphere" }
+bevy_ecs = "=0.12.0"
+bevy = { version = "=0.12.0", features = ["trace", "trace_tracy"] }
+bevy_atmosphere = "0.8"
 leafwing-input-manager = "0.11"
 rand = "*"
 indexmap = "*"

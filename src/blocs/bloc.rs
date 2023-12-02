@@ -10,7 +10,7 @@ pub enum Bloc {
     #[default]
     Air,
     Dirt,
-    Grass,
+    GrassBlock,
     Glass,
     Stone,
     BirchLog,
