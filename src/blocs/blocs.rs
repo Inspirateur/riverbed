@@ -61,7 +61,7 @@ impl Blocs {
         let (mut cy, mut dy) = chunked(top);
         while height > 0 && cy >= 0 {
             let chunk_pos = ChunkPos { x: col_pos.x, y: cy, z: col_pos.z, realm: col_pos.realm};
-            let h = height.min(dy);
+            let h = height.min(dy+1);
             self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set_yrange((x, dy, z), h, bloc);
             height -= h;
             cy -= 1;

@@ -31,7 +31,7 @@ impl Chunk {
     pub fn set_yrange(&mut self, (x, top, z): ChunkedPos, height: usize, bloc: Bloc) {
         let value = self.palette.index(bloc);
         let top = self.index(x, top, z);
-        for idx in (top-height)..=top {
+        for idx in (top-height+1)..=top {
             self.data.set(idx, value);
         }
     }

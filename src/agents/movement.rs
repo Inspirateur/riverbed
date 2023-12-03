@@ -1,7 +1,7 @@
 use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
 use crate::blocs::{Blocs, BlocPos, Realm};
-const SPEED: f32 = 10.;
+const SPEED: f32 = 50.;
 const ACC: f32 = 10.;
 
 #[derive(Component)]
@@ -79,7 +79,7 @@ pub fn apply_acc(
         let mut slowing: f32 = 0.;
         let below = transform.translation + Vec3::new(0., -0.001, 0.);
         for bloc in blocs_perp_y(below, *realm, aabb).map(|blocpos| blocs.get_block(blocpos)) {
-            friction = friction.max(bloc.slowing());
+            friction = friction.max(bloc.friction());
             slowing = slowing.max(bloc.slowing())
         }
         // applying slowing
