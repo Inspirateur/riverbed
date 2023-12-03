@@ -50,7 +50,7 @@ pub enum UIAction {
 }
 
 pub fn spawn_player(mut commands: Commands) {    
-    let spawn = Vec3 { x: 200., y: 250., z: 0.};
+    let spawn = Vec3 { x: 205., y: 250., z: 0.};
     let realm = Realm::Overworld;
     let transform = TransformBundle {
         local: Transform {translation: spawn, ..default()},
@@ -67,7 +67,7 @@ pub fn spawn_player(mut commands: Commands) {
             Velocity(Vec3::default()),
             LoadArea {
                 col: ColPos::from(<BlocPos2d>::from((spawn, realm))),
-                dist: 6,
+                dist: 12,
             },
             TargetBloc(None),
             PlayerControlled

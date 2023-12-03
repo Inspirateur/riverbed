@@ -82,7 +82,7 @@ impl TerrainGen for Earth {
             let h = (rng >> 5) & 0b11;
             let i = dx*CHUNK_S1 + dz;
             let y = ys[i];
-            if y >= WATER_H {
+            if y > WATER_H {
                 if let Some((tree, dist)) = self.trees.closest([
                     ts[i] as f32, 
                     hs[i] as f32, 

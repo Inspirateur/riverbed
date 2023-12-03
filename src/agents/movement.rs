@@ -1,8 +1,8 @@
 use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
 use crate::blocs::{Blocs, BlocPos, Realm};
-const SPEED: f32 = 15.;
-const ACC: f32 = 15.;
+const SPEED: f32 = 10.;
+const ACC: f32 = 10.;
 
 #[derive(Component)]
 pub struct Jumping {
