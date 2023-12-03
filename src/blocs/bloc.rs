@@ -51,6 +51,24 @@ impl Bloc {
             _ => false,
         }
     }
+
+    pub fn is_leaves(&self) -> bool {
+        match self {
+            Bloc::OakLeaves | Bloc::BirchLeaves | Bloc::SpruceLeaves | Bloc::SequoiaLeaves
+                => true,
+            _ => false
+        }
+    }
+
+    pub fn is_transluscent(&self) -> bool {
+        if self.is_leaves() {
+            return true;
+        }
+        match self {
+            Bloc::Glass => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(EnumIter, PartialEq, Eq, Hash, Debug, Clone, Copy)]
@@ -67,7 +85,7 @@ impl Voxel for Bloc {
     fn get_visibility(&self) -> VoxelVisibility {
         match self {
             Bloc::Air => VoxelVisibility::Empty,
-            Bloc::Glass | Bloc::OakLeaves | Bloc::SpruceLeaves => VoxelVisibility::Translucent,
+            bloc if bloc.is_transluscent() => VoxelVisibility::Translucent,
             _ => VoxelVisibility::Opaque
         }
     }

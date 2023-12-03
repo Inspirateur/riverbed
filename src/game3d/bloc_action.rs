@@ -1,4 +1,5 @@
 use std::iter::zip;
+use crate::GameState;
 use crate::blocs::{Blocs, Bloc, Realm};
 use crate::agents::{TargetBloc, Dir, Action, PlayerControlled};
 use super::camera::FpsCam;
@@ -75,8 +76,8 @@ impl Plugin for BlocActionPlugin {
         app
 			.add_systems(Update, target_bloc)
 			.add_systems(Update, bloc_outline)
-            .add_systems(Update, break_bloc)
-            .add_systems(Update, place_bloc)
+            .add_systems(Update, break_bloc.run_if(in_state(GameState::Game)))
+            .add_systems(Update, place_bloc.run_if(in_state(GameState::Game)))
 			;
     }
 }

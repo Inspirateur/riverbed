@@ -116,6 +116,7 @@ fn setup(
         return;
     }
     let model = texture_list[0];
+    println!("{:?}", model.texture_descriptor.format);
     let array_tex = Image::new(Extent3d {
             width: model.width(), 
             height: model.height(), 
@@ -163,7 +164,8 @@ impl Material for ArrayTextureMaterial {
             Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
             Mesh::ATTRIBUTE_NORMAL.at_shader_location(1),
             Mesh::ATTRIBUTE_UV_0.at_shader_location(2),
-            ATTRIBUTE_TEXTURE_LAYER.at_shader_location(3),
+            Mesh::ATTRIBUTE_COLOR.at_shader_location(3),
+            ATTRIBUTE_TEXTURE_LAYER.at_shader_location(4),
         ])?;
         descriptor.vertex.buffers = vec![vertex_layout];
         Ok(())

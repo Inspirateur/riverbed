@@ -98,6 +98,7 @@ impl Meshable for Blocs {
         let mut positions = Vec::with_capacity(num_vertices);
         let mut normals = Vec::with_capacity(num_vertices);
         let mut uvs = Vec::with_capacity(num_vertices);
+        let mut color = Vec::with_capacity(num_vertices);
         let mut layers = Vec::with_capacity(num_vertices);
         for (group, face) in buffer.groups.into_iter().zip(faces.into_iter()) {
             for quad in group.into_iter() {
@@ -114,6 +115,11 @@ impl Meshable for Blocs {
                 let bloc = self.get_block_chunked(chunk, chunked_pos);
                 let index = texture_map.get(bloc, bloc_face).unwrap_or(0) as u32;
                 layers.extend_from_slice(&[index; 4]);
+                color.extend_from_slice(&[match (bloc, bloc_face) {
+                    (Bloc::GrassBlock, Face::Up) => [0.2, 0.8, 0.3, 1.0],
+                    (bloc, _) if bloc.is_leaves() => [0.1, 0.6, 0.2, 0.5],
+                    _ => [1., 1., 1., 1.]
+                }; 4]);
             }
         }
         mesh.insert_attribute(
@@ -127,6 +133,10 @@ impl Meshable for Blocs {
         mesh.insert_attribute(
             Mesh::ATTRIBUTE_UV_0,
             VertexAttributeValues::Float32x2(uvs),
+        );
+        mesh.insert_attribute(
+            Mesh::ATTRIBUTE_COLOR,
+            VertexAttributeValues::Float32x4(color),
         );
         mesh.insert_attribute(ATTRIBUTE_TEXTURE_LAYER, layers);
         mesh.set_indices(Some(Indices::U32(indices.clone())));

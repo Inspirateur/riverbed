@@ -1,6 +1,6 @@
 #import bevy_pbr::{
     mesh_view_bindings::view,
-    pbr_types::{STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, PbrInput, pbr_input_new},
+    pbr_types::{STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND, PbrInput, pbr_input_new},
     pbr_functions as fns,
     mesh_functions::{get_model_matrix, mesh_position_local_to_clip},
 }
@@ -14,7 +14,8 @@ struct Vertex {
     @location(0) position: vec3<f32>,
     @location(1) normal: vec3<f32>,
     @location(2) uv: vec2<f32>,
-    @location(3) texture_layer: u32,
+    @location(3) color: vec4<f32>,
+    @location(4) texture_layer: u32,
 };
 
 struct VertexOutput {
@@ -22,7 +23,8 @@ struct VertexOutput {
     @location(0) world_position: vec4<f32>,
     @location(1) world_normal: vec3<f32>,
     @location(2) uv: vec2<f32>,
-    @location(3) texture_layer: u32,
+    @location(3) color: vec4<f32>,
+    @location(4) texture_layer: u32,
 };
 
 @vertex
@@ -35,6 +37,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
         get_model_matrix(vertex.instance_index),
         out.world_position
     );
+    out.color = vertex.color;
     out.texture_layer = vertex.texture_layer;
     return out;
 }
@@ -47,11 +50,11 @@ fn fragment(
     // Prepare a 'processed' StandardMaterial by sampling all textures to resolve
     // the material members
     var pbr_input: PbrInput = pbr_input_new();
-
+    pbr_input.material.flags = STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND;
+    pbr_input.material.perceptual_roughness = 1.0;
+    pbr_input.material.reflectance = 0.2;
     pbr_input.material.base_color = textureSample(my_array_texture, my_array_texture_sampler, mesh.uv, mesh.texture_layer);
-#ifdef VERTEX_COLORS
     pbr_input.material.base_color = pbr_input.material.base_color * mesh.color;
-#endif
 
     let double_sided = (pbr_input.material.flags & STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT) != 0u;
 

@@ -186,5 +186,4 @@ impl Plugin for MovementPlugin {
             .add_systems(Update, apply_speed)
             ;
     }
-
 }

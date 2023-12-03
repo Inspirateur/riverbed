@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::{gen::LoadArea, agents::{Gravity, Heading, AABB, Velocity, Jumping}, blocs::BlocPos2d};
+use crate::{gen::LoadArea, agents::{Gravity, Heading, AABB, Velocity, Jumping}, blocs::BlocPos2d, GameState};
 use crate::blocs::{ColPos, Realm, BlocRayCastHit};
 use bevy::{
     math::Vec3,
@@ -50,7 +50,7 @@ pub enum UIAction {
 }
 
 pub fn spawn_player(mut commands: Commands) {    
-    let spawn = Vec3 { x: 0., y: 250., z: 0.};
+    let spawn = Vec3 { x: 200., y: 250., z: 0.};
     let realm = Realm::Overworld;
     let transform = TransformBundle {
         local: Transform {translation: spawn, ..default()},
@@ -134,7 +134,7 @@ impl Plugin for PlayerPlugin {
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<UIAction>::default())
             .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
-            .add_systems(Update, move_player)
+            .add_systems(Update, move_player.run_if(in_state(GameState::Game)))
         ;
     }
 }
