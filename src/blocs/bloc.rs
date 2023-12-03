@@ -26,6 +26,7 @@ pub enum Bloc {
     Snow,
     Mud,
     Bedrock,
+    SeaBlock
 }
 
 
@@ -47,8 +48,15 @@ impl Bloc {
 
     pub fn traversable(&self) -> bool {
         match self {
-            Bloc::Air => true,
+            Bloc::Air | Bloc::SeaBlock => true,
             _ => false,
+        }
+    }
+
+    pub fn targetable(&self) -> bool {
+        match self {
+            Bloc::Air | Bloc::SeaBlock => false,
+            _ => true
         }
     }
 
@@ -65,7 +73,7 @@ impl Bloc {
             return true;
         }
         match self {
-            Bloc::Glass => true,
+            Bloc::Glass | Bloc::SeaBlock => true,
             _ => false
         }
     }

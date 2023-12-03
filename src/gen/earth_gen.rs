@@ -57,11 +57,20 @@ impl TerrainGen for Earth {
         let fill_span = info_span!("chunk filling", name = "chunk filling").entered();
         for (i, (dx, dz)) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1).enumerate() {
             let (y, t, h) = (ys[i], ts[i], hs[i]); 
-            let bloc = match self.soils.closest([t as f32, h as f32]) {
-                Some((bloc, _)) => *bloc,
-                None => Bloc::Dirt,
+            
+            let bloc = if y <= WATER_H {
+                Bloc::Sand       
+            } else {
+                match self.soils.closest([t as f32, h as f32]) {
+                    Some((bloc, _)) => *bloc,
+                    None => Bloc::Dirt,
+                }
             };
             world.set_yrange(col, (dx, dz), y, 5, bloc);
+            let water_height = WATER_H-y;
+            if water_height > 0 {
+                world.set_yrange(col, (dx, dz), WATER_H, water_height as usize, Bloc::SeaBlock);
+            }
         }
         fill_span.exit();
         let tree_span = info_span!("tree gen", name = "tree gen").entered();

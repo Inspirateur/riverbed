@@ -233,7 +233,7 @@ impl Blocs {
                     t_max_z += slope_z;
                 }
             }
-            if self.get_block_safe(pos) != Bloc::Air {
+            if self.get_block_safe(pos).targetable() {
                 return Some(BlocRayCastHit {
                     pos, normal: Vec3 { 
                         x: (last_pos.x-pos.x) as f32, 
