@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
 use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{LoadedCols, ColUnloadEvent};
-use super::texture_array::{ArrayTextureMaterial, BlocTextureArray, TexState};
+use super::texture_array::{BlocTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 
 pub fn on_col_unload(

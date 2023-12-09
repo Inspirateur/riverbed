@@ -1,17 +1,17 @@
-use bevy::{prelude::Mesh, render::{render_resource::{PrimitiveTopology, VertexFormat}, mesh::{VertexAttributeValues, Indices, MeshVertexAttribute}}};
-use block_mesh::{ndshape::{ConstShape, ConstShape3u32}, UnitQuadBuffer, RIGHT_HANDED_Y_UP_CONFIG, visible_block_faces};
-use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, BlocPos, ChunkedPos, Face};
+use bevy::{prelude::{Mesh, info_span}, render::{render_resource::{PrimitiveTopology, VertexFormat}, mesh::{VertexAttributeValues, Indices, MeshVertexAttribute}}};
+use block_mesh::{UnitQuadBuffer, RIGHT_HANDED_Y_UP_CONFIG, visible_block_faces};
+use itertools::iproduct;
+use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, ChunkedPos, Face, ColedPos, PaddedChunkShape, CHUNK_PADDED_S3, CHUNK_PADDED_S1};
 use super::texture_array::TextureMap;
-const CHUNK_S1I: i32 = CHUNK_S1 as i32;
-const CHUNK_PADDED: u32 = CHUNK_S1 as u32 + 2;
-type ChunkShape = ConstShape3u32<CHUNK_PADDED, CHUNK_PADDED, CHUNK_PADDED>;
 
 pub const ATTRIBUTE_TEXTURE_LAYER: MeshVertexAttribute = MeshVertexAttribute::new(
     "TextureLayer", 48757581, VertexFormat::Uint32
 );
 
 pub trait Meshable {
-    fn padded_bloc_data(&self, pos: ChunkPos) -> [Bloc; ChunkShape::SIZE as usize];
+    fn fill_padded_colum(&self, buffer: &mut [Bloc], chunk: ChunkPos, coled_pos: ColedPos);
+
+    fn padded_bloc_data(&self, chunk: ChunkPos) -> [Bloc; CHUNK_PADDED_S3 as usize];
 
     fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap) -> Mesh;
 
@@ -54,21 +54,72 @@ fn chunked_face_pos(quad_positions: &[[f32; 3]; 4], quad_normal: &[i32; 3]) -> (
 }
 
 impl Meshable for Blocs {
-    fn padded_bloc_data(&self, pos: ChunkPos) -> [Bloc; ChunkShape::SIZE as usize] {
-        // TODO: make this faster with ndcopy
-        let mut voxels = [Bloc::Air; ChunkShape::SIZE as usize];
-        for i in 0..ChunkShape::SIZE {
-            let [x, y, z] = ChunkShape::delinearize(i);
-            let y = y as i32 + pos.y*CHUNK_S1I -1;
-            if y >= 0 {
-                voxels[i as usize] = self.get_block(BlocPos {
-                    x: x as i32 + pos.x*CHUNK_S1I -1, 
-                    y, 
-                    z: z as i32 + pos.z*CHUNK_S1I -1, 
-                    realm: pos.realm
-                });
-            }
+    fn fill_padded_colum(&self, buffer: &mut [Bloc], chunk: ChunkPos, (x, z): ColedPos) {
+        let chunk_above = ChunkPos {
+            x: chunk.x,
+            y: chunk.y+1,
+            z: chunk.z,
+            realm: chunk.realm
+        };
+        buffer[0] = self.get_block_chunked(chunk_above, (x, 0, z));
+        self.copy_column(&mut buffer[1..], chunk, (x, z));
+        if chunk.y == 0 { return; }
+        let chunk_below = ChunkPos {
+            x: chunk.x,
+            y: chunk.y-1,
+            z: chunk.z,
+            realm: chunk.realm
+        };
+        buffer[CHUNK_S1+1] = self.get_block_chunked(chunk_below, (x, CHUNK_S1-1, z));
+    }
+
+    fn padded_bloc_data(&self, chunk: ChunkPos) -> [Bloc; CHUNK_PADDED_S3 as usize] {
+        let mut voxels = [Bloc::Air; CHUNK_PADDED_S3 as usize];
+        for (x, z) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
+            let i = PaddedChunkShape::linearize(x+1, 0, z+1);
+            self.fill_padded_colum(&mut voxels[i..], chunk, (x, z));
         }
+        /* TODO: neighbor information seems to mess it up ... figure out why
+        let neighbor_front = ChunkPos {
+            x: chunk.x,
+            y: chunk.y,
+            z: chunk.z + 1,
+            realm: chunk.realm
+        };
+        for x in 0..CHUNK_S1 {
+            let i = PaddedChunkShape::linearize(x+1, 0, CHUNK_PADDED_S1-1);
+            self.fill_padded_colum(&mut voxels[i..], neighbor_front, (x, 0));    
+        }
+        let neighbor_back = ChunkPos {
+            x: chunk.x,
+            y: chunk.y,
+            z: chunk.z - 1,
+            realm: chunk.realm
+        };
+        for x in 0..CHUNK_S1 {
+            let i = PaddedChunkShape::linearize(x+1, 0, 0);
+            self.fill_padded_colum(&mut voxels[i..], neighbor_back, (x, CHUNK_S1-1));    
+        }
+        let neighbor_right = ChunkPos {
+            x: chunk.x + 1,
+            y: chunk.y,
+            z: chunk.z,
+            realm: chunk.realm
+        };
+        for z in 0..CHUNK_S1 {
+            let i = PaddedChunkShape::linearize(CHUNK_PADDED_S1-1, 0, z+1);
+            self.fill_padded_colum(&mut voxels[i..], neighbor_right, (0, z));    
+        }
+        let neighbor_left = ChunkPos {
+            x: chunk.x - 1,
+            y: chunk.y,
+            z: chunk.z,
+            realm: chunk.realm
+        };
+        for z in 0..CHUNK_S1 {
+            let i = PaddedChunkShape::linearize(0, 0, z+1);
+            self.fill_padded_colum(&mut voxels[i..], neighbor_left, (CHUNK_S1-1, z));    
+        } */
         voxels
     }
 
@@ -81,12 +132,15 @@ impl Meshable for Blocs {
     fn update_mesh(
         &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap
     ) {
+        let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let voxels = self.padded_bloc_data(chunk);
+        mesh_data_span.exit();
+        let mesh_buil_span = info_span!("mesh build", name = "mesh build").entered();
         let mut buffer = UnitQuadBuffer::new();
         let faces = RIGHT_HANDED_Y_UP_CONFIG.faces;
         visible_block_faces(
             &voxels,
-            &ChunkShape {},
+            &PaddedChunkShape {},
             [0; 3],
             [CHUNK_S1 as u32+1; 3],
             &faces,
@@ -140,5 +194,6 @@ impl Meshable for Blocs {
         );
         mesh.insert_attribute(ATTRIBUTE_TEXTURE_LAYER, layers);
         mesh.set_indices(Some(Indices::U32(indices.clone())));
+        mesh_buil_span.exit();
     }
 }

@@ -12,8 +12,6 @@ pub struct BlocRayCastHit {
     pub normal: Vec3,
 }
 
-pub type Cols<E> = HashMap<ColPos, E>;
-
 pub trait HashMapUtils<K, V> {
     fn pop(&mut self) -> Option<(K, V)>;
 }
@@ -46,14 +44,14 @@ impl Blocs {
     pub fn set_bloc(&mut self, pos: BlocPos, bloc: Bloc) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         self.mark_change(chunk_pos, chunked_pos);
-        self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set(chunked_pos, bloc);
+        self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new()).set(chunked_pos, bloc);
     }
 
     pub fn set_bloc_safe(&mut self, pos: BlocPos, bloc: Bloc) {
         if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 { return; }
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         self.mark_change(chunk_pos, chunked_pos);
-        self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set(chunked_pos, bloc);
+        self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new()).set(chunked_pos, bloc);
     }
 
     pub fn set_yrange(&mut self, col_pos: ColPos, (x, z): ColedPos, top: i32, mut height: usize, bloc: Bloc) {
@@ -62,7 +60,7 @@ impl Blocs {
         while height > 0 && cy >= 0 {
             let chunk_pos = ChunkPos { x: col_pos.x, y: cy, z: col_pos.z, realm: col_pos.realm};
             let h = height.min(dy+1);
-            self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new(CHUNK_S1)).set_yrange((x, dy, z), h, bloc);
+            self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new()).set_yrange((x, dy, z), h, bloc);
             height -= h;
             cy -= 1;
             dy = CHUNK_S1-1;
@@ -72,7 +70,7 @@ impl Blocs {
     pub fn set_if_empty(&mut self, pos: BlocPos, bloc: Bloc) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         if self.chunks.entry(chunk_pos)
-            .or_insert_with(|| Chunk::new(CHUNK_S1))
+            .or_insert_with(|| Chunk::new())
             .set_if_empty(chunked_pos, bloc) 
         {
             self.mark_change(chunk_pos, chunked_pos);
@@ -85,6 +83,14 @@ impl Blocs {
             None => Bloc::default(),
             Some(chunk) => chunk.get(chunked_pos).clone()
         }
+    }
+
+    pub fn copy_column(&self, buffer: &mut [Bloc], chunk_pos: ChunkPos, (x, z): ColedPos) {
+        let Some(chunk) = self.chunks.get(&chunk_pos) else {
+            buffer.fill(Bloc::Air);
+            return;
+        };
+        chunk.copy_column(buffer, (x, z));
     }
 
     pub fn get_block_chunked(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) -> Bloc {

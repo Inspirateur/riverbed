@@ -3,7 +3,6 @@ use std::ops::{Add, BitXor};
 use bevy::prelude::Vec3;
 
 use super::pos::{Pos, Pos2D};
-const CHUNK_S1I: i32 = 32;
 
 pub type BlocPos = Pos<i32>;
 pub type BlocPos2D = Pos2D<i32>;

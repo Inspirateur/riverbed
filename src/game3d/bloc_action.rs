@@ -1,7 +1,7 @@
 use std::iter::zip;
 use crate::GameState;
 use crate::blocs::{Blocs, Bloc, Realm};
-use crate::agents::{TargetBloc, Dir, Action, PlayerControlled};
+use crate::agents::{TargetBloc, Action, PlayerControlled};
 use super::camera::FpsCam;
 use leafwing_input_manager::prelude::*;
 use bevy::prelude::*;
