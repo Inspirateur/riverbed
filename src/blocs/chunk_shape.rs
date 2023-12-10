@@ -22,7 +22,7 @@ impl<const SIZE1: usize, const SIZE2: usize, const SIZE3: usize> Shape<3> for YF
     }
 
     fn as_array(&self) -> [Self::Coord; 3] {
-        [SIZE3 as u32; 3]
+        [SIZE1 as u32; 3]
     }
 
     fn linearize(&self, p: [Self::Coord; 3]) -> Self::Coord {

@@ -87,7 +87,6 @@ impl Blocs {
 
     pub fn copy_column(&self, buffer: &mut [Bloc], chunk_pos: ChunkPos, (x, z): ColedPos) {
         let Some(chunk) = self.chunks.get(&chunk_pos) else {
-            buffer.fill(Bloc::Air);
             return;
         };
         chunk.copy_column(buffer, (x, z));

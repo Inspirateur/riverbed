@@ -79,7 +79,6 @@ impl Meshable for Blocs {
             let i = PaddedChunkShape::linearize(x+1, 0, z+1);
             self.fill_padded_colum(&mut voxels[i..], chunk, (x, z));
         }
-        /* TODO: neighbor information seems to mess it up ... figure out why
         let neighbor_front = ChunkPos {
             x: chunk.x,
             y: chunk.y,
@@ -87,8 +86,8 @@ impl Meshable for Blocs {
             realm: chunk.realm
         };
         for x in 0..CHUNK_S1 {
-            let i = PaddedChunkShape::linearize(x+1, 0, CHUNK_PADDED_S1-1);
-            self.fill_padded_colum(&mut voxels[i..], neighbor_front, (x, 0));    
+            let i = PaddedChunkShape::linearize(x+1, 1, CHUNK_PADDED_S1-1);
+            self.copy_column(&mut voxels[i..], neighbor_front, (x, 0));
         }
         let neighbor_back = ChunkPos {
             x: chunk.x,
@@ -97,8 +96,8 @@ impl Meshable for Blocs {
             realm: chunk.realm
         };
         for x in 0..CHUNK_S1 {
-            let i = PaddedChunkShape::linearize(x+1, 0, 0);
-            self.fill_padded_colum(&mut voxels[i..], neighbor_back, (x, CHUNK_S1-1));    
+            let i = PaddedChunkShape::linearize(x+1, 1, 0);
+            self.copy_column(&mut voxels[i..], neighbor_back, (x, CHUNK_S1-1));    
         }
         let neighbor_right = ChunkPos {
             x: chunk.x + 1,
@@ -107,8 +106,8 @@ impl Meshable for Blocs {
             realm: chunk.realm
         };
         for z in 0..CHUNK_S1 {
-            let i = PaddedChunkShape::linearize(CHUNK_PADDED_S1-1, 0, z+1);
-            self.fill_padded_colum(&mut voxels[i..], neighbor_right, (0, z));    
+            let i = PaddedChunkShape::linearize(CHUNK_PADDED_S1-1, 1, z+1);
+            self.copy_column(&mut voxels[i..], neighbor_right, (0, z));    
         }
         let neighbor_left = ChunkPos {
             x: chunk.x - 1,
@@ -117,9 +116,9 @@ impl Meshable for Blocs {
             realm: chunk.realm
         };
         for z in 0..CHUNK_S1 {
-            let i = PaddedChunkShape::linearize(0, 0, z+1);
-            self.fill_padded_colum(&mut voxels[i..], neighbor_left, (CHUNK_S1-1, z));    
-        } */
+            let i = PaddedChunkShape::linearize(0, 1, z+1);
+            self.copy_column(&mut voxels[i..], neighbor_left, (CHUNK_S1-1, z));    
+        } 
         voxels
     }
 
