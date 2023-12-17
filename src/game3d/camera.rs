@@ -6,7 +6,7 @@ use leafwing_input_manager::prelude::*;
 
 const CAMERA_PAN_RATE: f32 = 0.03;
 
-#[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect)]
+#[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect, Hash)]
 pub enum CameraMovement {
     Pan,
 }

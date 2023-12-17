@@ -5,7 +5,7 @@ pub fn grow_oak(world: &mut Blocs, pos: BlocPos, seed: i32, dist: f32) {
     let height = 10-(dist*7.) as i32;
     let mut pos = pos;
     for _ in 0..height {
-        world.set_bloc(pos, Bloc::OakLog);
+        world.set_bloc(pos, Bloc::OakLog, false);
         pos.y += 1;
     }
 

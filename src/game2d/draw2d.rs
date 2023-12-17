@@ -54,7 +54,7 @@ pub fn process_chunk_changes(
     mut col_ents: ResMut<ColEntities>,
     soil_color: Res<SoilColor>,
 ) {
-    if let Some(chunk) = blocs.changes.pop() {
+    if let Some(chunk) = blocs.changes.pop_front() {
         let col: ColPos = chunk.into();
         if !loaded_cols.in_player_range(col) { return; }
         if let Some(ent) = col_ents.0.get(&col) {
@@ -64,7 +64,7 @@ pub fn process_chunk_changes(
                 }
             } else {
                 // the entity is not instanciated yet, we put it back
-                blocs.changes.insert(chunk);
+                blocs.changes.push_back(chunk);
             }
         } else {
             let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;

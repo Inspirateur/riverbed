@@ -4,7 +4,6 @@ use crate::blocs::{ColPos, Realm, BlocRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
-    reflect::TypePath
 };
 use leafwing_input_manager::prelude::*;
 
@@ -37,13 +36,13 @@ impl From<Dir> for Vec3 {
     }
 }
 
-#[derive(Actionlike, TypePath, PartialEq, Clone, Copy, Debug, Hash)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Debug, Hash, Reflect)]
 pub enum Action {
     Action1,
     Action2,
 }
 
-#[derive(Actionlike, TypePath, PartialEq, Clone, Copy, Debug, Hash)]
+#[derive(Actionlike, Reflect, PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum UIAction {
     Escape,
     Inventory,

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
-use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, IndexSetUtils};
+use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{LoadedCols, ColUnloadEvent};
 use super::texture_array::{BlocTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
@@ -44,7 +44,7 @@ pub fn process_bloc_changes(
                 }
             } else {
                 // the entity is not instanciated yet, we put it back
-                blocs.changes.insert(chunk);
+                blocs.changes.push_back(chunk);
             }
         } else {
             let ent = commands.spawn(MaterialMeshBundle {

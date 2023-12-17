@@ -1,11 +1,10 @@
-use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, BuildHasher};
+use std::collections::HashMap;
+use std::hash::Hash;
 use bevy::prelude::{Resource, Vec3};
 use indexmap::IndexSet;
 use super::{
     CHUNK_S1, Y_CHUNKS,  MAX_HEIGHT, ChunkedPos, Chunk, ChunkPos, ColedPos, Realm, Bloc,
-    ColPos, BlocPos, BlocPos2d, chunked
+    ColPos, BlocPos, BlocPos2d, chunked, UniqDeque
 };
 
 pub struct BlocRayCastHit {
@@ -28,30 +27,27 @@ impl<V: Eq + PartialEq + Hash + Clone> IndexSetUtils<V> for IndexSet<V> {
 #[derive(Resource)]
 pub struct Blocs {
     pub chunks: HashMap<ChunkPos, Chunk>,
-    // using index map because we want to preserve insertion order here
-    pub changes: IndexSet<ChunkPos>,
-    pub tracking: HashSet<ChunkPos>,
+    pub changes: UniqDeque<ChunkPos>,
 }
 
 impl Blocs {
     pub fn new() -> Self {
         Blocs {
             chunks: HashMap::new(),
-            changes: IndexSet::new(),
-            tracking: HashSet::new(),
+            changes: UniqDeque::new(),
         }
     }
 
-    pub fn set_bloc(&mut self, pos: BlocPos, bloc: Bloc) {
+    pub fn set_bloc(&mut self, pos: BlocPos, bloc: Bloc, prioritised: bool) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
-        self.mark_change(chunk_pos, chunked_pos);
+        self.mark_change(chunk_pos, chunked_pos, prioritised);
         self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new()).set(chunked_pos, bloc);
     }
 
-    pub fn set_bloc_safe(&mut self, pos: BlocPos, bloc: Bloc) {
+    pub fn set_bloc_safe(&mut self, pos: BlocPos, bloc: Bloc, prioritised: bool) {
         if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 { return; }
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
-        self.mark_change(chunk_pos, chunked_pos);
+        self.mark_change(chunk_pos, chunked_pos, prioritised);
         self.chunks.entry(chunk_pos).or_insert_with(|| Chunk::new()).set(chunked_pos, bloc);
     }
 
@@ -74,7 +70,7 @@ impl Blocs {
             .or_insert_with(|| Chunk::new())
             .set_if_empty(chunked_pos, bloc) 
         {
-            self.mark_change(chunk_pos, chunked_pos);
+            self.mark_change(chunk_pos, chunked_pos, false);
         }
     }
     
@@ -143,7 +139,6 @@ impl Blocs {
             let chunk_pos = ChunkPos {x: col.x, y, z: col.z, realm: col.realm };
             self.chunks.remove(&chunk_pos);
             self.changes.remove(&chunk_pos);
-            self.tracking.remove(&chunk_pos);
         }
     }
 
@@ -151,16 +146,15 @@ impl Blocs {
         // Used by terrain generation to batch register chunks for efficiency
         for y in 0..Y_CHUNKS as i32 {
             let chunk_pos = ChunkPos {x: col.x, y, z: col.z, realm: col.realm };
-            self.tracking.insert(chunk_pos);
-            if self.chunks.contains_key(&chunk_pos) {
-                self.changes.insert(chunk_pos);
-            }
+            self.changes.push_back(chunk_pos);
         }
     }
 
-    fn _mark_change_single(&mut self, chunk_pos: ChunkPos) {
-        if self.tracking.contains(&chunk_pos) {
-            self.changes.insert(chunk_pos);
+    fn _mark_change_single(&mut self, chunk_pos: ChunkPos, prioritised: bool) {
+        if prioritised {
+            self.changes.push_front(chunk_pos);
+        } else {
+            self.changes.push_back(chunk_pos);
         }
     }
 
@@ -168,28 +162,28 @@ impl Blocs {
         if coord == 0 { -1 } else if coord == CHUNK_S1 -1 { 1 } else { 0 }
     }
 
-    fn mark_change(&mut self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) {
-        self._mark_change_single(chunk_pos);
+    fn mark_change(&mut self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, prioritised: bool) {
+        self._mark_change_single(chunk_pos, prioritised);
         // register change for neighboring chunks
         let border_sign_x = Blocs::border_sign(chunked_pos.0); 
         if border_sign_x != 0 {
             let mut neighbor = chunk_pos;
             neighbor.x += border_sign_x;
-            self._mark_change_single(neighbor);
+            self._mark_change_single(neighbor, prioritised);
         }
         let border_sign_y = Blocs::border_sign(chunked_pos.1); 
         if border_sign_y != 0 {
             let mut neighbor = chunk_pos;
             neighbor.y += border_sign_y;
         	if neighbor.y >= 0 && neighbor.y < Y_CHUNKS as i32 {
-                self._mark_change_single(neighbor);
+                self._mark_change_single(neighbor, prioritised);
             }
         }
         let border_sign_z = Blocs::border_sign(chunked_pos.2); 
         if border_sign_z != 0 {
             let mut neighbor = chunk_pos;
             neighbor.z += border_sign_z;
-            self._mark_change_single(neighbor);
+            self._mark_change_single(neighbor, prioritised);
         }
     }
 

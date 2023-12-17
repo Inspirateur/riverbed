@@ -8,10 +8,10 @@ pub fn grow_spruce(world: &mut Blocs, pos: BlocPos, seed: i32, dist: f32) {
         if i >= 3 && i % 2 == height % 2 {
             leaf_disk(world, pos, ((height-i+2)/2) as u32, Bloc::SpruceLeaves)
         }
-        world.set_bloc(pos, Bloc::SpruceLog);
+        world.set_bloc(pos, Bloc::SpruceLog, false);
         pos.y += 1;
     }
     leaf_disk(world, pos, 1, Bloc::SpruceLeaves);
     pos.y += 1;
-    world.set_bloc(pos, Bloc::SpruceLeaves);
+    world.set_bloc(pos, Bloc::SpruceLeaves, false);
 }

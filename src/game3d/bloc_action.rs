@@ -53,7 +53,7 @@ pub fn break_bloc(mut world: ResMut<Blocs>, bloc_action_query: Query<(&TargetBlo
     for (target_bloc_opt, action) in bloc_action_query.iter() {
         if action.just_pressed(Action::Action1) {
             if let Some(target_bloc) = &target_bloc_opt.0 {
-                world.set_bloc(target_bloc.pos, Bloc::Air);
+                world.set_bloc(target_bloc.pos, Bloc::Air, true);
             }    
         }
     }
@@ -63,7 +63,7 @@ pub fn place_bloc(mut world: ResMut<Blocs>, bloc_action_query: Query<(&TargetBlo
     for (target_bloc_opt, action) in bloc_action_query.iter() {
         if action.just_pressed(Action::Action2) {
             if let Some(target_bloc) = &target_bloc_opt.0 {
-                world.set_bloc_safe(target_bloc.pos+target_bloc.normal, Bloc::Stone);
+                world.set_bloc_safe(target_bloc.pos+target_bloc.normal, Bloc::Stone, true);
             }
         }
     }   
