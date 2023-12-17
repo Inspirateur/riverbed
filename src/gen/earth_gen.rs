@@ -38,9 +38,9 @@ impl TerrainGen for Earth {
         let range = pos_to_range(col);
         let gen_span = info_span!("noise gen", name = "noise gen").entered();
         let mut n = NoiseSource::new(range, self.seed, 1);
-        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4) as f64;
-        let cont = (n.simplex(0.5) + n.simplex(2.) * 0.4).normalize();
-        let land = (cont.clone() + n.simplex(9.)*0.1).normalize().mask(landratio);
+        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.5) as f64;
+        let cont = (n.simplex(0.1) + n.simplex(0.5) * 0.4).normalize();
+        let land = (cont.clone() + n.simplex(3.)*0.2 + n.simplex(9.)*0.1).normalize().mask(landratio);
         let ocean = !cont.pos();
         // WATER_R is used to level land just above water level
         let ys = 0.009 + land.clone()*WATER_R + land*n.simplex(1.).pos().powi(3)*0.4;

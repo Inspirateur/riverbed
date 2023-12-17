@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use crate::blocs::{Blocs, ColPos, Realm};
 use crate::gen::Generators;
 use itertools::Itertools;
@@ -9,7 +9,7 @@ use bevy::prelude::*;
 pub struct LoadedCols {
     // a hashmap of chunk columns and their players
     cols: HashMap<ColPos, HashSet<u32>>,
-    pub loads: Vec<ColPos>,
+    pub loads: VecDeque<ColPos>,
     pub unloads: Vec<ColPos>,
 }
 
@@ -17,7 +17,7 @@ impl LoadedCols {
     pub fn new() -> Self {
         LoadedCols {
             cols: HashMap::new(),
-            loads: Vec::new(),
+            loads: VecDeque::new(),
             unloads: Vec::new(),
         }
     }
@@ -31,7 +31,7 @@ impl LoadedCols {
             let pos = ColPos { realm, x, z };
             let players = self.cols.entry(pos).or_insert_with(|| HashSet::new());
             if players.len() == 0 {
-                self.loads.push(pos);
+                self.loads.push_back(pos);
             }
             players.insert(player);
         }
@@ -72,7 +72,7 @@ pub fn pull_orders(
         ev_unload.send(ColUnloadEvent(col));
     }
     // take 1 generation order at a time to spread the work over multiple frames
-    if let Some(col) = col_commands.loads.pop() {
+    if let Some(col) = col_commands.loads.pop_front() {
         gens.gen(&mut blocs, col);
         blocs.register(col)
     }

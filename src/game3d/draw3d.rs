@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
-use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
+use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS, IndexSetUtils};
 use crate::gen::{LoadedCols, ColUnloadEvent};
 use super::texture_array::{BlocTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
@@ -35,7 +35,7 @@ pub fn process_bloc_changes(
     texture_map: Res<TextureMap>,
     bloc_tex_array: Res<BlocTextureArray>,
 ) {
-    if let Some(chunk) = blocs.changes.pop() {
+    if let Some(chunk) = blocs.changes.pop_front() {
         if !loaded_cols.in_player_range(chunk.into()) { return; }
         if let Some(ent) = chunk_ents.0.get(&chunk) {
             if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {

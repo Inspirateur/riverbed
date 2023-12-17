@@ -1,5 +1,6 @@
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
-use std::hash::Hash;
+use std::hash::{Hash, BuildHasher};
 use bevy::prelude::{Resource, Vec3};
 use indexmap::IndexSet;
 use super::{
@@ -12,15 +13,15 @@ pub struct BlocRayCastHit {
     pub normal: Vec3,
 }
 
-pub trait HashMapUtils<K, V> {
-    fn pop(&mut self) -> Option<(K, V)>;
+pub trait IndexSetUtils<V> {
+    fn pop_front(&mut self) -> Option<V>;
 }
 
-impl<K: Eq + PartialEq + Hash + Clone, V> HashMapUtils<K, V> for HashMap<K, V> {
-    fn pop(&mut self) -> Option<(K, V)> {
-        let key = self.keys().next().cloned()?;
-        let value = self.remove(&key)?;
-        Some((key, value))
+impl<V: Eq + PartialEq + Hash + Clone> IndexSetUtils<V> for IndexSet<V> {
+    fn pop_front(&mut self) -> Option<V> {
+        let value = self.first().cloned()?;
+        self.shift_remove(&value);
+        Some(value)
     }
 }
 
