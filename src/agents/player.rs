@@ -66,7 +66,7 @@ pub fn spawn_player(mut commands: Commands) {
             Velocity(Vec3::default()),
             LoadArea {
                 col: ColPos::from(<BlocPos2d>::from((spawn, realm))),
-                dist: 6,
+                dist: 12,
             },
             TargetBloc(None),
             PlayerControlled

@@ -73,7 +73,7 @@ impl Deref for LoadAreaOld {
     }
 }
 
-pub fn load_order(
+pub fn compute_load_orders(
     mut commands: Commands,
     mut query: Query<(&LoadArea, Option<&mut LoadAreaOld>, Entity), Changed<LoadArea>>,
     mut world: ResMut<LoadedCols>,

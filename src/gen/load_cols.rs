@@ -59,11 +59,9 @@ impl LoadedCols {
 #[derive(Event)]
 pub struct ColUnloadEvent(pub ColPos);
 
-
-pub fn pull_orders(
+pub fn process_unload_orders(
     mut col_commands: ResMut<LoadedCols>,
     mut blocs: ResMut<Blocs>,
-    gens: Res<Generators>,
     mut ev_unload: EventWriter<ColUnloadEvent>,
 ) {
     // PROCESS UNLOAD ORDERS
@@ -71,6 +69,13 @@ pub fn pull_orders(
         blocs.unload_col(col);
         ev_unload.send(ColUnloadEvent(col));
     }
+}
+
+pub fn process_load_order(
+    mut col_commands: ResMut<LoadedCols>,
+    mut blocs: ResMut<Blocs>,
+    gens: Res<Generators>,
+) {
     // take 1 generation order at a time to spread the work over multiple frames
     if let Some(col) = col_commands.loads.pop_front() {
         gens.gen(&mut blocs, col);
