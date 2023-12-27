@@ -3,7 +3,7 @@ use bevy::{prelude::{Image, Vec3}, render::{render_resource::Extent3d, texture::
 use colorsys::{Rgb, ColorTransform};
 use itertools::iproduct;
 use crate::blocs::{BlocPos, BlocPos2d, ColPos, Blocs, Bloc, CHUNK_S2, CHUNK_S1};
-use crate::{agents::Dir, gen::WATER_H};
+use crate::agents::Dir;
 use super::draw2d::SoilColor;
 
 fn image_to_2d(i: usize) -> (usize, usize) {
@@ -57,25 +57,19 @@ impl Render2D for Blocs {
 
     fn bloc_color(&self, pos: BlocPos2d, soil_color: &SoilColor) -> Rgb {
         let (bloc, y) = self.top_block(pos);
-        if y >= WATER_H {
-            let mut color = soil_color.0.get(&bloc).unwrap().clone();
-            let blocpos = BlocPos {
-                realm: pos.realm,
-                x: pos.x,
-                y,
-                z: pos.z,
-            };
-            color.lighten(self.bloc_shade(blocpos));
-            color
-        } else if y > WATER_H - 15 {
-            Rgb::new(10., 180., 250., None)
-        } else {
-            Rgb::new(5., 150., 230., None)
-        }
+        let mut color = soil_color.0.get(&bloc).unwrap_or(&Rgb::new(1.0, 0.0, 1.0, None)).clone();
+        let blocpos = BlocPos {
+            realm: pos.realm,
+            x: pos.x,
+            y,
+            z: pos.z,
+        };
+        color.lighten(self.bloc_shade(blocpos));
+        color
     }
 
     fn create_image(&self, col: ColPos, soil_color: &SoilColor) -> Image {
-        let mut data = vec![255; CHUNK_S2 * 4];
+        let data = vec![255; CHUNK_S2 * 4];
         let mut image = Image::new(
             Extent3d {
                 width: CHUNK_S1 as u32,

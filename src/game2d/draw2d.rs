@@ -1,36 +1,28 @@
 use crate::blocs::{CHUNK_S1, Bloc, Blocs, ColPos};
 use crate::gen::{ColUnloadEvent, LoadedCols};
-use crate::agents::Dir;
+use crate::agents::{PlayerControlled, PlayerSpawn, AABB};
 use anyhow::Result;
 use bevy::prelude::*;
 use colorsys::Rgb;
-use leafwing_input_manager::prelude::ActionState;
 use std::collections::HashMap;
 use std::str::FromStr;
 use super::render2d::Render2D;
 
-pub fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle {
+#[derive(SystemSet, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct CameraSpawn;
+
+pub fn setup(mut commands: Commands, player_query: Query<(Entity, &AABB), With<PlayerControlled>>) {
+    let (player, aabb) = player_query.get_single().unwrap();
+    let cam = commands.spawn(Camera2dBundle {
         projection: OrthographicProjection {
             scale: 0.5,
             ..Default::default()
         },
-        transform: Transform::from_xyz(0., 50., 10.)
-            .looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(aabb.0.x/2., 2., aabb.0.z/2.)
+            .looking_at(Vec3::new(aabb.0.x/2., 0., aabb.0.z/2.), Vec3::Y),
         ..Default::default()
-    });
-}
-
-pub fn update_cam(
-    mut cam_query: Query<&mut Transform, With<Camera>>,
-    player_query: Query<&Transform, (With<ActionState<Dir>>, Changed<Transform>)>,
-) {
-    if let Ok(mut cam_pos) = cam_query.get_single_mut() {
-        if let Ok(player_transform) = player_query.get_single() {
-            cam_pos.translation.x = player_transform.translation.x;
-            cam_pos.translation.z = player_transform.translation.z;
-        }
-    }
+    }).id();
+    commands.entity(player).add_child(cam);
 }
 
 pub fn on_col_unload(
@@ -91,7 +83,11 @@ impl SoilColor {
         for record in reader.records() {
             let record = record?;
             let color = Rgb::from_hex_str(&record[1].trim())?;
-            data.insert(Bloc::from_str(&record[0]).unwrap(), color);
+            if let Ok(bloc) = Bloc::from_str(&record[0]) {
+                data.insert(bloc, color);
+            } else {
+                warn!(target: "ourcraft", "Bloc '{}' from soil_color.csv doesn't exist", &record[0]);
+            }
         }
         Ok(SoilColor(data))
     }
@@ -112,8 +108,8 @@ impl Plugin for Draw2d {
     fn build(&self, app: &mut App) {
         app.insert_resource(SoilColor::from_csv("assets/data/soils_color.csv").unwrap())
             .insert_resource(ColEntities::new())
-            .add_systems(Startup, setup)
-            .add_systems(Update, update_cam)
+            .add_systems(Startup, 
+                (setup, apply_deferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
             .add_systems(Update, on_col_unload)
             .add_systems(Update, process_chunk_changes)
             ;

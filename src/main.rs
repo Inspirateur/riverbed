@@ -29,7 +29,7 @@ fn main() {
             primary_window: Some(Window {
                 title: "OurCraft".into(),
                 resolution: (1280., 720.).into(),
-                present_mode: PresentMode::Fifo,
+                present_mode: PresentMode::Immediate,
                 // Tells wasm to resize the window according to the available canvas
                 fit_canvas_to_parent: true,
                 // Tells wasm not to override default event handling, like F5, Ctrl+R etc.
