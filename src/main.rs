@@ -44,6 +44,6 @@ fn main() {
         .add_plugins(MenuPlugin)
         .add_plugins(MovementPlugin)
         .add_plugins(GenPlugin)
-        .add_plugins(Game3d)
+        .add_plugins(Game2d)
         .run();
 }

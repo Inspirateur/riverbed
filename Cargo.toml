@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-env_logger = "*"
 bevy_ecs = "0.12.0"
 bevy = { version = "0.12.0", features = ["trace", "trace_tracy"] }
 bevy_atmosphere = "0.8"
