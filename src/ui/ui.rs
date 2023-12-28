@@ -39,7 +39,6 @@ fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
             TextSection::new(
                 "p: \n",
                 TextStyle {
-                    // This font is loaded and will be used instead of the default font.
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"),
                     font_size: 20.0,
                     color: Color::BEIGE,
@@ -48,12 +47,19 @@ fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
             TextSection::new(
                 "bloc: \n",
                 TextStyle {
-                    // This font is loaded and will be used instead of the default font.
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"),
                     font_size: 20.0,
                     color: Color::BEIGE,
                 },
             ),
+            TextSection::new(
+                "E: \n",
+                TextStyle {
+                    font: asset_server.load("fonts/RobotoMono-Light.ttf"),
+                    font_size: 20.0,
+                    color: Color::BEIGE,
+                },
+            )
         ]).with_style(Style {
             position_type: PositionType::Absolute,
             ..Default::default()
@@ -65,6 +71,7 @@ fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn debug_display(
     mut text_query: Query<&mut Text, With<DebugText>>, 
     player_query: Query<(&Transform, &TargetBloc), With<ActionState<Dir>>>,
+    ent_query: Query<Entity, With<Transform>>,
     world: Res<Blocs>,
 ) {
     let (transform, target_bloc) = player_query.single();
@@ -75,7 +82,9 @@ fn debug_display(
     } else {
         Bloc::Air
     };
-    text.sections[1].value = format!("bloc: {bloc:?}");
+    text.sections[1].value = format!("bloc: {bloc:?}\n");
+    let ent_count = ent_query.iter().count();
+    text.sections[2].value = format!("E: {ent_count}\n");
 }
 
 pub struct UIPlugin;
