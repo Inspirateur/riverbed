@@ -46,14 +46,14 @@ impl TerrainGen for Earth {
         let moutain = (n.simplex(0.3) + n.simplex(1.)*0.3)
         .normalize().pos().threshold(0.95)*base_land.clone();
 
-        let ys = base_land*WATER_R + moutain.clone()*(1.-WATER_R);
+        let ys = base_land*WATER_R + moutain.clone()*(0.8-WATER_R);
         let ts = (n.simplex(0.1) + n.simplex(0.3)*0.3).normalize().pos();
         // closer to the ocean => more humidity
         // lower temp => less humidity
         let hs = (!ts.clone()*0.5 + !continentalness*0.5 + n.simplex(0.4).pos()).normalize();
         let ph = (n.simplex(0.5) + n.simplex(2.)*0.2).normalize().pos();
         // convert y to convenient values
-        let ys = ys.map(|y| (y.clamp(0., 1.) * MAX_GEN_HEIGHT as f32) as i32);
+        let ys = ys.map(|y| (y * MAX_GEN_HEIGHT as f32) as i32);
         gen_span.exit();
         let fill_span = info_span!("chunk filling", name = "chunk filling").entered();
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
