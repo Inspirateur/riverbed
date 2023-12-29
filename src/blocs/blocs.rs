@@ -146,7 +146,9 @@ impl Blocs {
         // Used by terrain generation to batch register chunks for efficiency
         for y in 0..Y_CHUNKS as i32 {
             let chunk_pos = ChunkPos {x: col.x, y, z: col.z, realm: col.realm };
-            self.changes.push_back(chunk_pos);
+            if self.chunks.contains_key(&chunk_pos) {
+                self.changes.push_back(chunk_pos);
+            }
         }
     }
 

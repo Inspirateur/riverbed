@@ -51,7 +51,7 @@ impl TerrainGen for Earth {
         // closer to the ocean => more humidity
         // lower temp => less humidity
         let hs = (!ts.clone()*0.5 + !continentalness*0.5 + n.simplex(0.4).pos()).normalize();
-        let ph = (n.simplex(0.5) + n.simplex(2.)*0.2).normalize().pos();
+        let ph = (n.simplex(0.5) + n.simplex(4.)*0.2).normalize().pos();
         // convert y to convenient values
         let ys = ys.map(|y| (y * MAX_GEN_HEIGHT as f32) as i32);
         gen_span.exit();

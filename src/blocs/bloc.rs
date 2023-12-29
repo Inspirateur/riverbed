@@ -33,8 +33,8 @@ pub enum Bloc {
 impl Bloc {
     pub fn friction(&self) -> f32 {
         match self {
-            Bloc::Air => 0.2,
-            Bloc::Ice => 0.3,
+            Bloc::Air => 0.1,
+            Bloc::Ice => 0.05,
             _ => 1.
         }
     }

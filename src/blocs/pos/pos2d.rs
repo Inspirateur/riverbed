@@ -17,11 +17,15 @@ impl<const U: usize> Pos2d<U> {
         (self.x - other.x).abs()
             .max((self.z - other.z).abs())
     }
-    
-    pub fn prng(&self, seed: i32) -> usize {
-        (seed as usize)
+    fn _prng(&self, seed: usize) -> usize {
+        (seed)
             .rotate_left(5).bitxor(self.x as usize).wrapping_mul(K)
             .rotate_left(5).bitxor(self.z as usize).wrapping_mul(K)
+    }
+
+    pub fn prng(&self, seed: i32) -> usize {
+        let n = self._prng(seed as usize);
+        self._prng(n)
     }
 }
 

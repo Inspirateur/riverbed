@@ -77,7 +77,7 @@ pub fn apply_acc(
         // get the bloc the entity is standing on if the entity has an AABB
         let mut friction: f32 = 0.;
         let mut slowing: f32 = 0.;
-        let below = transform.translation + Vec3::new(0., -0.001, 0.);
+        let below = transform.translation + Vec3::new(0., -0.01, 0.);
         for bloc in blocs_perp_y(below, *realm, aabb).map(|blocpos| blocs.get_block(blocpos)) {
             friction = friction.max(bloc.friction());
             slowing = slowing.max(bloc.slowing())
@@ -85,12 +85,16 @@ pub fn apply_acc(
         // applying slowing
         let heading = heading.0*slowing;
         // make velocity inch towards heading
-        let speed = heading.length();
-        let diff = heading-velocity.0;
-        let mut acc: Vec3 = (ACC*time.delta_seconds()).min(1.)*diff/(diff.length()*speed*friction).max(1.);
-        if acc.y.is_nan() {
-            acc.y = 0.;
+        let mut diff = heading-velocity.0;
+        if diff.y.is_nan() {
+            diff.y = 0.;
         }
+        let diff_len = diff.length();
+        if diff_len == 0. {
+            continue;
+        }
+        let c = ACC*time.delta_seconds()*friction;
+        let acc: Vec3 = c*diff/diff_len.max(c);
         velocity.0 += acc;
     }
 }
