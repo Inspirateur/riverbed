@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::{gen::LoadArea, agents::{Gravity, Heading, AABB, Velocity, Jumping}, blocs::BlocPos2d, GameState};
+use crate::{gen::{LoadArea, RenderDistance}, agents::{Gravity, Heading, AABB, Velocity, Jumping}, GameState};
 use crate::blocs::{ColPos, Realm, BlocRayCastHit};
 use bevy::{
     math::Vec3,
@@ -55,19 +55,17 @@ pub fn spawn_player(mut commands: Commands) {
         local: Transform {translation: spawn, ..default()},
         ..default()
     };
+    let rd = RenderDistance(12);
     commands
         .spawn((
             transform,
-            Realm::Overworld,
+            realm,
             Gravity(3.),
             Heading(Vec3::default()),
             Jumping {force: 1., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
-            LoadArea {
-                col: ColPos::from(<BlocPos2d>::from((spawn, realm))),
-                dist: 12,
-            },
+            rd,
             TargetBloc(None),
             PlayerControlled
         ))

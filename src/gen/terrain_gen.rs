@@ -1,4 +1,4 @@
-use crate::gen::{earth_gen::Earth, debug_gen::DebugGen};
+use crate::gen::earth_gen::Earth;
 use crate::blocs::{Realm, ColPos, Blocs};
 use bevy::prelude::Resource;
 use std::collections::HashMap;

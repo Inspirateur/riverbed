@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
+use crate::agents::PlayerControlled;
 use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
-use crate::gen::{LoadedCols, ColUnloadEvent};
+use crate::gen::{ColUnloadEvent, LoadArea};
 use super::texture_array::{BlocTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 
@@ -26,17 +27,21 @@ pub fn on_col_unload(
 }
 
 pub fn process_bloc_changes(
-    loaded_cols: Res<LoadedCols>,
     mut commands: Commands,
-    mut blocs: ResMut<Blocs>, 
     mesh_query: Query<&Handle<Mesh>>,
+    load_area_query: Query<&LoadArea, With<PlayerControlled>>,
+    mut blocs: ResMut<Blocs>, 
     mut meshes: ResMut<Assets<Mesh>>,
     mut chunk_ents: ResMut<ChunkEntities>,
     texture_map: Res<TextureMap>,
     bloc_tex_array: Res<BlocTextureArray>,
 ) {
+    let Ok(load_area) = load_area_query.get_single() else {
+        return;
+    };
+
     if let Some(chunk) = blocs.changes.pop_front() {
-        if !loaded_cols.in_player_range(chunk.into()) { return; }
+        if !load_area.col_dists.contains_key(&chunk.into()) { return; }
         if let Some(ent) = chunk_ents.0.get(&chunk) {
             if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
                 if let Some(mesh) = meshes.get_mut(handle) {

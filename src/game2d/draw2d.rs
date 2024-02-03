@@ -1,5 +1,5 @@
 use crate::blocs::{CHUNK_S1, Bloc, Blocs, ColPos};
-use crate::gen::{ColUnloadEvent, LoadedCols};
+use crate::gen::{ColUnloadEvent, LoadArea};
 use crate::agents::{PlayerControlled, PlayerSpawn, AABB};
 use anyhow::Result;
 use bevy::prelude::*;
@@ -38,17 +38,21 @@ pub fn on_col_unload(
 }
 
 pub fn process_chunk_changes(
-    loaded_cols: Res<LoadedCols>,
     mut commands: Commands,
-    mut blocs: ResMut<Blocs>, 
+    load_area_query: Query<&LoadArea, With<PlayerControlled>>,
     im_query: Query<&Handle<Image>>,
+    mut blocs: ResMut<Blocs>, 
     mut images: ResMut<Assets<Image>>,
     mut col_ents: ResMut<ColEntities>,
     soil_color: Res<SoilColor>,
 ) {
+    let Ok(load_area) = load_area_query.get_single() else {
+        return;
+    };
+
     if let Some(chunk) = blocs.changes.pop_front() {
         let col: ColPos = chunk.into();
-        if !loaded_cols.in_player_range(col) { return; }
+        if !load_area.col_dists.contains_key(&col) { return; }
         if let Some(ent) = col_ents.0.get(&col) {
             if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent) {
                 if let Some(image) = images.get_mut(handle) {

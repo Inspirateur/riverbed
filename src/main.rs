@@ -4,6 +4,7 @@ mod gen;
 mod game2d;
 mod game3d;
 mod agents;
+use std::env;
 use bevy::{prelude::*, window::{PresentMode, WindowTheme}};
 use blocs::Blocs;
 use ui::MenuPlugin;
@@ -22,8 +23,9 @@ pub enum GameState {
 }
 
 fn main() {
-    App::new()
-        .insert_resource(Blocs::new())
+    let mut app = App::new();
+
+    app.insert_resource(Blocs::new())
         .add_state::<GameState>()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -43,7 +45,11 @@ fn main() {
         .add_plugins(UIPlugin)
         .add_plugins(MenuPlugin)
         .add_plugins(MovementPlugin)
-        .add_plugins(GenPlugin)
-        .add_plugins(Game3d)
-        .run();
+        .add_plugins(GenPlugin);
+
+    if env::args().skip(1).any(|arg| arg == "2d") {
+        app.add_plugins(Game2d).run();
+    } else {
+        app.add_plugins(Game3d).run();
+    }
 }

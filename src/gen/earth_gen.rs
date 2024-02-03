@@ -105,11 +105,11 @@ impl TerrainGen for Earth {
         tree_span.exit();
     }
 
-    fn set_config(&mut self, config: HashMap<String, f32>) {
+    fn set_config(&mut self, _config: HashMap<String, f32>) {
         todo!()
     }
 
-    fn set_seed(&mut self, seed: u32) {
+    fn set_seed(&mut self, _seed: u32) {
         todo!()
     }
 }

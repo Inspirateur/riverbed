@@ -1,7 +1,7 @@
 use crate::blocs::{BlocPos, Blocs, Bloc};
 use super::utils::leaf_disk;
 
-pub fn grow_spruce(world: &mut Blocs, pos: BlocPos, seed: i32, dist: f32) {
+pub fn grow_spruce(world: &mut Blocs, pos: BlocPos, _seed: i32, dist: f32) {
     let height = 11-(dist*4.) as i32;
     let mut pos = pos;
     for i in 0..height {

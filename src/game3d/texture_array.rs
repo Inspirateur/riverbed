@@ -155,10 +155,10 @@ impl Material for ArrayTextureMaterial {
     }
 
     fn specialize(
-            pipeline: &bevy::pbr::MaterialPipeline<Self>,
+            _pipeline: &bevy::pbr::MaterialPipeline<Self>,
             descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
             layout: &bevy::render::mesh::MeshVertexBufferLayout,
-            key: bevy::pbr::MaterialPipelineKey<Self>,
+            _key: bevy::pbr::MaterialPipelineKey<Self>,
         ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
         let vertex_layout = layout.get_layout(&[
             Mesh::ATTRIBUTE_POSITION.at_shader_location(0),

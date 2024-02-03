@@ -51,11 +51,11 @@ impl TerrainGen for DebugGen {
         // col.fill_up(Bloc::Stone);
     }
 
-    fn set_config(&mut self, config: HashMap<String, f32>) {
+    fn set_config(&mut self, _config: HashMap<String, f32>) {
         todo!()
     }
 
-    fn set_seed(&mut self, seed: u32) {
+    fn set_seed(&mut self, _seed: u32) {
         todo!()
     }
 }

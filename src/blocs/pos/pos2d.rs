@@ -94,3 +94,9 @@ impl From<BlocPos> for ColPos {
         }
     }
 }
+
+impl From<(Vec3, Realm)> for ColPos {
+    fn from(value: (Vec3, Realm)) -> Self {
+        ColPos::from(BlocPos::from(value))
+    }
+}
