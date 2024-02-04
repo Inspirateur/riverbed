@@ -13,6 +13,22 @@ const CHUNK_AABB: Aabb = Aabb {
     half_extents: Vec3A::new(CHUNK_S1_HF, CHUNK_S1_HF, CHUNK_S1_HF)
 };
 
+#[derive(Debug, Component)]
+pub struct LOD(pub u32);
+
+fn choose_lod_level(chunk_dist: u32) -> u32 {
+    if chunk_dist < 8 {
+        return 1;
+    }
+    if chunk_dist < 16 {
+        return 2;
+    }
+    if chunk_dist < 32 {
+        return 4;
+    }
+    return 8;
+}
+
 pub fn on_col_unload(
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
@@ -47,11 +63,12 @@ pub fn process_bloc_changes(
     };
 
     if let Some(chunk) = blocs.changes.pop_front() {
-        if !load_area.col_dists.contains_key(&chunk.into()) { return; }
+        let Some(col_dist) = load_area.col_dists.get(&chunk.into()) else { return; };
+        let lod = choose_lod_level(*col_dist);
         if let Some(ent) = chunk_ents.0.get(&chunk) {
             if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
                 if let Some(mesh) = meshes.get_mut(handle) {
-                    blocs.update_mesh(chunk, mesh, &texture_map);
+                    blocs.update_mesh(chunk, mesh, &texture_map, lod);
                 }
             } else {
                 // the entity is not instanciated yet, we put it back
@@ -59,13 +76,13 @@ pub fn process_bloc_changes(
             }
         } else {
             let ent = commands.spawn(MaterialMeshBundle {
-                mesh: meshes.add(blocs.create_mesh(chunk, &texture_map)),
+                mesh: meshes.add(blocs.create_mesh(chunk, &texture_map, lod)),
                 material: bloc_tex_array.0.clone(),
                 transform: Transform::from_translation(
                     Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
                 ),
                 ..Default::default()
-            }).insert(CHUNK_AABB).id();
+            }).insert(CHUNK_AABB).insert(LOD(lod)).id();
             chunk_ents.0.insert(chunk, ent);
         }
     }

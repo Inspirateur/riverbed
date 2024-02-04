@@ -9,14 +9,14 @@ pub const ATTRIBUTE_TEXTURE_LAYER: MeshVertexAttribute = MeshVertexAttribute::ne
 );
 
 pub trait Meshable {
-    fn fill_padded_colum(&self, buffer: &mut [Bloc], chunk: ChunkPos, coled_pos: ColedPos);
+    fn fill_padded_bloc_column(&self, buffer: &mut [Bloc], chunk: ChunkPos, coled_pos: ColedPos);
 
-    fn padded_bloc_data(&self, chunk: ChunkPos) -> [Bloc; CHUNK_PADDED_S3 as usize];
+    fn fill_padded_chunk(&self, buffer: &mut [Bloc], chunk: ChunkPos, lod: u32);
 
-    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap) -> Mesh;
+    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap, lod: u32) -> Mesh;
 
     fn update_mesh(
-        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap
+        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap, lod: u32
     );
 }
 
@@ -54,7 +54,7 @@ fn chunked_face_pos(quad_positions: &[[f32; 3]; 4], quad_normal: &[i32; 3]) -> (
 }
 
 impl Meshable for Blocs {
-    fn fill_padded_colum(&self, buffer: &mut [Bloc], chunk: ChunkPos, (x, z): ColedPos) {
+    fn fill_padded_bloc_column(&self, buffer: &mut [Bloc], chunk: ChunkPos, (x, z): ColedPos) {
         let chunk_above = ChunkPos {
             x: chunk.x,
             y: chunk.y+1,
@@ -73,11 +73,10 @@ impl Meshable for Blocs {
         buffer[CHUNK_S1+1] = self.get_block_chunked(chunk_below, (x, CHUNK_S1-1, z));
     }
 
-    fn padded_bloc_data(&self, chunk: ChunkPos) -> [Bloc; CHUNK_PADDED_S3 as usize] {
-        let mut voxels = [Bloc::Air; CHUNK_PADDED_S3 as usize];
+    fn fill_padded_chunk(&self, buffer: &mut [Bloc], chunk: ChunkPos, lod: u32) {
         for (x, z) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let i = PaddedChunkShape::linearize(x+1, 0, z+1);
-            self.fill_padded_colum(&mut voxels[i..], chunk, (x, z));
+            self.fill_padded_bloc_column(&mut buffer[i..], chunk, (x, z));
         }
         let neighbor_front = ChunkPos {
             x: chunk.x,
@@ -87,7 +86,7 @@ impl Meshable for Blocs {
         };
         for x in 0..CHUNK_S1 {
             let i = PaddedChunkShape::linearize(x+1, 1, CHUNK_PADDED_S1-1);
-            self.copy_column(&mut voxels[i..], neighbor_front, (x, 0));
+            self.copy_column(&mut buffer[i..], neighbor_front, (x, 0));
         }
         let neighbor_back = ChunkPos {
             x: chunk.x,
@@ -97,7 +96,7 @@ impl Meshable for Blocs {
         };
         for x in 0..CHUNK_S1 {
             let i = PaddedChunkShape::linearize(x+1, 1, 0);
-            self.copy_column(&mut voxels[i..], neighbor_back, (x, CHUNK_S1-1));    
+            self.copy_column(&mut buffer[i..], neighbor_back, (x, CHUNK_S1-1));    
         }
         let neighbor_right = ChunkPos {
             x: chunk.x + 1,
@@ -107,7 +106,7 @@ impl Meshable for Blocs {
         };
         for z in 0..CHUNK_S1 {
             let i = PaddedChunkShape::linearize(CHUNK_PADDED_S1-1, 1, z+1);
-            self.copy_column(&mut voxels[i..], neighbor_right, (0, z));    
+            self.copy_column(&mut buffer[i..], neighbor_right, (0, z));    
         }
         let neighbor_left = ChunkPos {
             x: chunk.x - 1,
@@ -117,22 +116,22 @@ impl Meshable for Blocs {
         };
         for z in 0..CHUNK_S1 {
             let i = PaddedChunkShape::linearize(0, 1, z+1);
-            self.copy_column(&mut voxels[i..], neighbor_left, (CHUNK_S1-1, z));    
+            self.copy_column(&mut buffer[i..], neighbor_left, (CHUNK_S1-1, z));    
         } 
-        voxels
     }
 
-    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap) -> Mesh {
+    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap, lod: u32) -> Mesh {
         let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
-        self.update_mesh(chunk, &mut render_mesh, texture_map);
+        self.update_mesh(chunk, &mut render_mesh, texture_map, lod);
         render_mesh
     }
 
     fn update_mesh(
-        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap
+        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap, lod: u32
     ) {
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
-        let voxels = self.padded_bloc_data(chunk);
+        let mut voxels = [Bloc::Air; CHUNK_PADDED_S3 as usize];
+        self.fill_padded_chunk(&mut voxels, chunk, lod);
         mesh_data_span.exit();
         let mesh_buil_span = info_span!("mesh build", name = "mesh build").entered();
         let mut buffer = UnitQuadBuffer::new();
