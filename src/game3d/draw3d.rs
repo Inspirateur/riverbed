@@ -1,11 +1,17 @@
 use std::collections::HashMap;
+use bevy::math::Vec3A;
 use bevy::prelude::*;
-use bevy::render::view::NoFrustumCulling;
+use bevy::render::primitives::Aabb;
 use crate::agents::PlayerControlled;
 use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{ColUnloadEvent, LoadArea};
 use super::texture_array::{BlocTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
+const CHUNK_S1_HF: f32 = (CHUNK_S1/2) as f32;
+const CHUNK_AABB: Aabb = Aabb {
+    center: Vec3A::new(CHUNK_S1_HF, CHUNK_S1_HF, CHUNK_S1_HF),
+    half_extents: Vec3A::new(CHUNK_S1_HF, CHUNK_S1_HF, CHUNK_S1_HF)
+};
 
 pub fn on_col_unload(
     mut commands: Commands,
@@ -59,7 +65,7 @@ pub fn process_bloc_changes(
                     Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
                 ),
                 ..Default::default()
-            }).insert(NoFrustumCulling).id();
+            }).insert(CHUNK_AABB).id();
             chunk_ents.0.insert(chunk, ent);
         }
     }
