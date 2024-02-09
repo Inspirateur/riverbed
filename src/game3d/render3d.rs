@@ -1,7 +1,7 @@
 use bevy::{prelude::{Mesh, info_span}, render::{render_resource::{PrimitiveTopology, VertexFormat}, mesh::{VertexAttributeValues, Indices, MeshVertexAttribute}}};
 use block_mesh::{UnitQuadBuffer, RIGHT_HANDED_Y_UP_CONFIG, visible_block_faces};
 use itertools::iproduct;
-use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, ChunkedPos, Face, ColedPos, PaddedChunkShape, CHUNK_PADDED_S3, CHUNK_PADDED_S1};
+use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, ChunkedPos, Face, ColedPos, CHUNK_PADDED_S1, YFirstShape};
 use super::texture_array::TextureMap;
 
 pub const ATTRIBUTE_TEXTURE_LAYER: MeshVertexAttribute = MeshVertexAttribute::new(
@@ -9,14 +9,14 @@ pub const ATTRIBUTE_TEXTURE_LAYER: MeshVertexAttribute = MeshVertexAttribute::ne
 );
 
 pub trait Meshable {
-    fn fill_padded_bloc_column(&self, buffer: &mut [Bloc], chunk: ChunkPos, coled_pos: ColedPos);
+    fn fill_padded_bloc_column(&self, buffer: &mut [Bloc], chunk: ChunkPos, coled_pos: ColedPos, buffer_shape: &YFirstShape);
 
-    fn fill_padded_chunk(&self, buffer: &mut [Bloc], chunk: ChunkPos, lod: u32);
+    fn fill_padded_chunk(&self, buffer: &mut [Bloc], chunk: ChunkPos, buffer_shape: &YFirstShape);
 
-    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap, lod: u32) -> Mesh;
+    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap, lod: usize) -> Mesh;
 
     fn update_mesh(
-        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap, lod: u32
+        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap, lod: usize
     );
 }
 
@@ -54,7 +54,9 @@ fn chunked_face_pos(quad_positions: &[[f32; 3]; 4], quad_normal: &[i32; 3]) -> (
 }
 
 impl Meshable for Blocs {
-    fn fill_padded_bloc_column(&self, buffer: &mut [Bloc], chunk: ChunkPos, (x, z): ColedPos) {
+    fn fill_padded_bloc_column(&self, buffer: &mut [Bloc], chunk: ChunkPos, (x, z): ColedPos, buffer_shape: &YFirstShape) {
+        self.copy_column(&mut buffer[1..], chunk, (x, z), buffer_shape.lod);
+        if buffer_shape.lod != 1 { return; }
         let chunk_above = ChunkPos {
             x: chunk.x,
             y: chunk.y+1,
@@ -62,7 +64,6 @@ impl Meshable for Blocs {
             realm: chunk.realm
         };
         buffer[0] = self.get_block_chunked(chunk_above, (x, 0, z));
-        self.copy_column(&mut buffer[1..], chunk, (x, z));
         if chunk.y == 0 { return; }
         let chunk_below = ChunkPos {
             x: chunk.x,
@@ -73,11 +74,12 @@ impl Meshable for Blocs {
         buffer[CHUNK_S1+1] = self.get_block_chunked(chunk_below, (x, CHUNK_S1-1, z));
     }
 
-    fn fill_padded_chunk(&self, buffer: &mut [Bloc], chunk: ChunkPos, lod: u32) {
-        for (x, z) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
-            let i = PaddedChunkShape::linearize(x+1, 0, z+1);
-            self.fill_padded_bloc_column(&mut buffer[i..], chunk, (x, z));
+    fn fill_padded_chunk(&self, buffer: &mut [Bloc], chunk: ChunkPos, buffer_shape: &YFirstShape) {
+        for (x, z) in iproduct!((0..CHUNK_S1).step_by(buffer_shape.lod), (0..CHUNK_S1).step_by(buffer_shape.lod)) {
+            let i = buffer_shape.linearize(x/buffer_shape.lod+1, 0, z/buffer_shape.lod+1);
+            self.fill_padded_bloc_column(&mut buffer[i..], chunk, (x, z), buffer_shape);
         }
+        if buffer_shape.lod != 1 { return; }
         let neighbor_front = ChunkPos {
             x: chunk.x,
             y: chunk.y,
@@ -85,8 +87,8 @@ impl Meshable for Blocs {
             realm: chunk.realm
         };
         for x in 0..CHUNK_S1 {
-            let i = PaddedChunkShape::linearize(x+1, 1, CHUNK_PADDED_S1-1);
-            self.copy_column(&mut buffer[i..], neighbor_front, (x, 0));
+            let i = buffer_shape.linearize(x+1, 1, CHUNK_PADDED_S1-1);
+            self.copy_column(&mut buffer[i..], neighbor_front, (x, 0), 1);
         }
         let neighbor_back = ChunkPos {
             x: chunk.x,
@@ -95,8 +97,8 @@ impl Meshable for Blocs {
             realm: chunk.realm
         };
         for x in 0..CHUNK_S1 {
-            let i = PaddedChunkShape::linearize(x+1, 1, 0);
-            self.copy_column(&mut buffer[i..], neighbor_back, (x, CHUNK_S1-1));    
+            let i = buffer_shape.linearize(x+1, 1, 0);
+            self.copy_column(&mut buffer[i..], neighbor_back, (x, CHUNK_S1-1), 1);    
         }
         let neighbor_right = ChunkPos {
             x: chunk.x + 1,
@@ -105,8 +107,8 @@ impl Meshable for Blocs {
             realm: chunk.realm
         };
         for z in 0..CHUNK_S1 {
-            let i = PaddedChunkShape::linearize(CHUNK_PADDED_S1-1, 1, z+1);
-            self.copy_column(&mut buffer[i..], neighbor_right, (0, z));    
+            let i = buffer_shape.linearize(CHUNK_PADDED_S1-1, 1, z+1);
+            self.copy_column(&mut buffer[i..], neighbor_right, (0, z), 1);    
         }
         let neighbor_left = ChunkPos {
             x: chunk.x - 1,
@@ -115,32 +117,33 @@ impl Meshable for Blocs {
             realm: chunk.realm
         };
         for z in 0..CHUNK_S1 {
-            let i = PaddedChunkShape::linearize(0, 1, z+1);
-            self.copy_column(&mut buffer[i..], neighbor_left, (CHUNK_S1-1, z));    
+            let i = buffer_shape.linearize(0, 1, z+1);
+            self.copy_column(&mut buffer[i..], neighbor_left, (CHUNK_S1-1, z), 1);    
         } 
     }
 
-    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap, lod: u32) -> Mesh {
+    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap, lod: usize) -> Mesh {
         let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
         self.update_mesh(chunk, &mut render_mesh, texture_map, lod);
         render_mesh
     }
 
     fn update_mesh(
-        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap, lod: u32
+        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap, lod: usize
     ) {
+        let padded_chunk_shape = YFirstShape::new_padded(lod);
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
-        let mut voxels = [Bloc::Air; CHUNK_PADDED_S3 as usize];
-        self.fill_padded_chunk(&mut voxels, chunk, lod);
+        let mut voxels = vec![Bloc::Air; (2+CHUNK_S1/lod as usize).pow(3)];
+        self.fill_padded_chunk(&mut voxels, chunk, &padded_chunk_shape);
         mesh_data_span.exit();
         let mesh_buil_span = info_span!("mesh build", name = "mesh build").entered();
         let mut buffer = UnitQuadBuffer::new();
         let faces = RIGHT_HANDED_Y_UP_CONFIG.faces;
         visible_block_faces(
             &voxels,
-            &PaddedChunkShape {},
+            &padded_chunk_shape,
             [0; 3],
-            [CHUNK_S1 as u32+1; 3],
+            [(CHUNK_S1/lod) as u32+1; 3],
             &faces,
             &mut buffer
         );

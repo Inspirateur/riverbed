@@ -82,11 +82,11 @@ impl Blocs {
         }
     }
 
-    pub fn copy_column(&self, buffer: &mut [Bloc], chunk_pos: ChunkPos, (x, z): ColedPos) {
+    pub fn copy_column(&self, buffer: &mut [Bloc], chunk_pos: ChunkPos, (x, z): ColedPos, lod: usize) {
         let Some(chunk) = self.chunks.get(&chunk_pos) else {
             return;
         };
-        chunk.copy_column(buffer, (x, z));
+        chunk.copy_column(buffer, (x, z), lod);
     }
 
     pub fn get_block_chunked(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) -> Bloc {

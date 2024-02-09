@@ -14,9 +14,9 @@ const CHUNK_AABB: Aabb = Aabb {
 };
 
 #[derive(Debug, Component)]
-pub struct LOD(pub u32);
+pub struct LOD(pub usize);
 
-fn choose_lod_level(chunk_dist: u32) -> u32 {
+fn choose_lod_level(chunk_dist: u32) -> usize {
     if chunk_dist < 8 {
         return 1;
     }
@@ -80,7 +80,7 @@ pub fn process_bloc_changes(
                 material: bloc_tex_array.0.clone(),
                 transform: Transform::from_translation(
                     Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
-                ),
+                ).with_scale(Vec3::ONE*lod as f32),
                 ..Default::default()
             }).insert(CHUNK_AABB).insert(LOD(lod)).id();
             chunk_ents.0.insert(chunk, ent);
