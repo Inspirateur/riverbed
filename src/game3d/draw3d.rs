@@ -8,10 +8,7 @@ use crate::gen::{ColUnloadEvent, LoadArea};
 use super::texture_array::{BlocTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 const CHUNK_S1_HF: f32 = (CHUNK_S1/2) as f32;
-const CHUNK_AABB: Aabb = Aabb {
-    center: Vec3A::new(CHUNK_S1_HF, CHUNK_S1_HF, CHUNK_S1_HF),
-    half_extents: Vec3A::new(CHUNK_S1_HF, CHUNK_S1_HF, CHUNK_S1_HF)
-};
+
 
 #[derive(Debug, Component)]
 pub struct LOD(pub usize);
@@ -75,6 +72,11 @@ pub fn process_bloc_changes(
                 blocs.changes.push_back(chunk);
             }
         } else {
+            let chunk_s1_hf = CHUNK_S1_HF/lod as f32;
+            let chunk_aabb = Aabb {
+                center: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf),
+                half_extents: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf)
+            };
             let unit = Vec3::ONE*lod as f32;
             let ent = commands.spawn(MaterialMeshBundle {
                 mesh: meshes.add(blocs.create_mesh(chunk, &texture_map, lod)),
@@ -83,7 +85,7 @@ pub fn process_bloc_changes(
                     Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - unit,
                 ).with_scale(unit),
                 ..Default::default()
-            }).insert(CHUNK_AABB).insert(LOD(lod)).id();
+            }).insert(chunk_aabb).insert(LOD(lod)).id();
             chunk_ents.0.insert(chunk, ent);
         }
     }

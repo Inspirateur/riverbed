@@ -1,13 +1,12 @@
 use crate::gen::terrain_gen::TerrainGen;
 use bevy::prelude::info_span;
 use crate::blocs::{CHUNK_S1, ColPos, Blocs, BlocPos2d, BlocPos, CHUNK_S1I};
-use crate::blocs::{MAX_GEN_HEIGHT, Bloc, Soils, Trees};
+use crate::blocs::{MAX_GEN_HEIGHT, WATER_H, Bloc, Soils, Trees};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
 use nd_interval::NdInterval;
-pub const WATER_R: f32 = 0.3;
-pub const WATER_H: i32 = (crate::blocs::MAX_GEN_HEIGHT as f32*WATER_R) as i32-7;
+pub const WATER_R: f32 = WATER_H as f32/MAX_GEN_HEIGHT as f32;
 
 pub struct Earth {
     soils: Soils,

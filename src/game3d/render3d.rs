@@ -1,7 +1,7 @@
 use bevy::{prelude::{Mesh, info_span}, render::{render_resource::{PrimitiveTopology, VertexFormat}, mesh::{VertexAttributeValues, Indices, MeshVertexAttribute}}};
 use block_mesh::{UnitQuadBuffer, RIGHT_HANDED_Y_UP_CONFIG, visible_block_faces};
 use itertools::iproduct;
-use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, ChunkedPos, Face, ColedPos, CHUNK_PADDED_S1, YFirstShape};
+use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, Face, ColedPos, CHUNK_PADDED_S1, YFirstShape};
 use super::texture_array::TextureMap;
 
 pub const ATTRIBUTE_TEXTURE_LAYER: MeshVertexAttribute = MeshVertexAttribute::new(

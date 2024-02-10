@@ -20,8 +20,9 @@ pub const CHUNK_S3: usize = CHUNK_S1.pow(3);
 pub const CHUNK_PADDED_S1: usize = CHUNK_S1 + 2;
 pub const CHUNK_S1I: i32 = CHUNK_S1 as i32;
 
-pub const MAX_GEN_HEIGHT: usize = 400;
 pub const MAX_HEIGHT: usize = 512;
+pub const MAX_GEN_HEIGHT: usize = 400;
+pub const WATER_H: i32 = 127;
 pub const Y_CHUNKS: usize = MAX_HEIGHT/CHUNK_S1;
 
 lazy_static! {
