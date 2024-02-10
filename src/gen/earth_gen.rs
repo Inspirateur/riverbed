@@ -7,7 +7,7 @@ use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
 use nd_interval::NdInterval;
 pub const WATER_R: f32 = 0.3;
-pub const WATER_H: i32 = (crate::blocs::MAX_GEN_HEIGHT as f32*WATER_R) as i32-8;
+pub const WATER_H: i32 = (crate::blocs::MAX_GEN_HEIGHT as f32*WATER_R) as i32-7;
 
 pub struct Earth {
     soils: Soils,

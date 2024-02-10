@@ -20,7 +20,7 @@ pub trait Meshable {
     );
 }
 
-fn chunked_face_pos(quad_positions: &[[f32; 3]; 4], quad_normal: &[i32; 3]) -> (ChunkedPos, Face) {
+fn chunked_face_pos(buffer: &[Bloc], quad_positions: &[[f32; 3]; 4], quad_normal: &[i32; 3], buffer_shape: &YFirstShape) -> (Bloc, Face) {
     let face_delta = [
         quad_normal[0].max(0) as usize, 
         quad_normal[1].max(0) as usize, 
@@ -36,10 +36,10 @@ fn chunked_face_pos(quad_positions: &[[f32; 3]; 4], quad_normal: &[i32; 3]) -> (
         }
     );
 
-    let chunked_pos = (
-        min_face_pos[0] as usize - face_delta[0]-1,
-        min_face_pos[1] as usize - face_delta[1]-1,
-        min_face_pos[2] as usize - face_delta[2]-1,
+    let (x, y, z) = (
+        min_face_pos[0] as usize - face_delta[0],
+        min_face_pos[1] as usize - face_delta[1],
+        min_face_pos[2] as usize - face_delta[2],
     );
     let bloc_face = match quad_normal {
         [-1, 0, 0] => Face::Left,
@@ -50,7 +50,7 @@ fn chunked_face_pos(quad_positions: &[[f32; 3]; 4], quad_normal: &[i32; 3]) -> (
         [0, 0, 1] => Face::Back,
         _ => unreachable!()
     };
-    (chunked_pos, bloc_face)
+    (buffer[buffer_shape.linearize(x, y, z)], bloc_face)
 }
 
 impl Meshable for Blocs {
@@ -133,7 +133,7 @@ impl Meshable for Blocs {
     ) {
         let padded_chunk_shape = YFirstShape::new_padded(lod);
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
-        let mut voxels = vec![Bloc::Air; (2+CHUNK_S1/lod as usize).pow(3)];
+        let mut voxels = vec![Bloc::Air; padded_chunk_shape.size3];
         self.fill_padded_chunk(&mut voxels, chunk, &padded_chunk_shape);
         mesh_data_span.exit();
         let mesh_buil_span = info_span!("mesh build", name = "mesh build").entered();
@@ -163,11 +163,12 @@ impl Meshable for Blocs {
                 positions.extend_from_slice(mesh_positions);
                 normals.extend_from_slice(mesh_normals);
                 uvs.extend_from_slice(&face.tex_coords(RIGHT_HANDED_Y_UP_CONFIG.u_flip_face, true, &quad.into()));
-                let (chunked_pos, bloc_face) = chunked_face_pos(
+                let (bloc, bloc_face) = chunked_face_pos(
+                    &voxels,
                     mesh_positions, 
-                    &[mesh_normals[0][0] as i32, mesh_normals[0][1] as i32, mesh_normals[0][2] as i32]
+                    &[mesh_normals[0][0] as i32, mesh_normals[0][1] as i32, mesh_normals[0][2] as i32],
+                    &padded_chunk_shape
                 );
-                let bloc = self.get_block_chunked(chunk, chunked_pos);
                 let index = texture_map.get(bloc, bloc_face).unwrap_or(0) as u32;
                 layers.extend_from_slice(&[index; 4]);
                 color.extend_from_slice(&[match (bloc, bloc_face) {

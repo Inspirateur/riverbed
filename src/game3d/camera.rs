@@ -4,7 +4,7 @@ use crate::GameState;
 use crate::agents::{AABB, PlayerSpawn, PlayerControlled};
 use leafwing_input_manager::prelude::*;
 
-const CAMERA_PAN_RATE: f32 = 0.03;
+const CAMERA_PAN_RATE: f32 = 0.06;
 
 #[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect, Hash)]
 pub enum CameraMovement {

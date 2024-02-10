@@ -1,6 +1,6 @@
 use std::time::Duration;
-use crate::{gen::{LoadArea, RenderDistance}, agents::{Gravity, Heading, AABB, Velocity, Jumping}, GameState};
-use crate::blocs::{ColPos, Realm, BlocRayCastHit};
+use crate::{gen::RenderDistance, agents::{Gravity, Heading, AABB, Velocity, Jumping}, GameState};
+use crate::blocs::{Realm, BlocRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
@@ -49,13 +49,13 @@ pub enum UIAction {
 }
 
 pub fn spawn_player(mut commands: Commands) {    
-    let spawn = Vec3 { x: 320., y: 250., z: 16.};
+    let spawn = Vec3 { x: 510., y: 250., z: 120.};
     let realm = Realm::Overworld;
     let transform = TransformBundle {
         local: Transform {translation: spawn, ..default()},
         ..default()
     };
-    let rd = RenderDistance(12);
+    let rd = RenderDistance(32);
     commands
         .spawn((
             transform,

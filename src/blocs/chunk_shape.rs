@@ -3,9 +3,9 @@ use block_mesh::ndshape::Shape;
 use super::CHUNK_S1;
 
 pub struct YFirstShape {
-    size1: usize,
-    size2: usize,
-    size3: usize,
+    pub size1: usize,
+    pub size2: usize,
+    pub size3: usize,
     pub lod: usize
 }
 

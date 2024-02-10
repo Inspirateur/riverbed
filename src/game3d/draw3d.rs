@@ -75,12 +75,13 @@ pub fn process_bloc_changes(
                 blocs.changes.push_back(chunk);
             }
         } else {
+            let unit = Vec3::ONE*lod as f32;
             let ent = commands.spawn(MaterialMeshBundle {
                 mesh: meshes.add(blocs.create_mesh(chunk, &texture_map, lod)),
                 material: bloc_tex_array.0.clone(),
                 transform: Transform::from_translation(
-                    Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - Vec3::new(1., 1., 1.),
-                ).with_scale(Vec3::ONE*lod as f32),
+                    Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - unit,
+                ).with_scale(unit),
                 ..Default::default()
             }).insert(CHUNK_AABB).insert(LOD(lod)).id();
             chunk_ents.0.insert(chunk, ent);
