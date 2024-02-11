@@ -63,7 +63,7 @@ impl Meshable for Blocs {
             z: chunk.z,
             realm: chunk.realm
         };
-        buffer[0] = self.get_block_chunked(chunk_above, (x, 0, z));
+        buffer[CHUNK_S1+1] = self.get_block_chunked(chunk_above, (x, 0, z));
         if chunk.y == 0 { return; }
         let chunk_below = ChunkPos {
             x: chunk.x,
@@ -71,7 +71,7 @@ impl Meshable for Blocs {
             z: chunk.z,
             realm: chunk.realm
         };
-        buffer[CHUNK_S1+1] = self.get_block_chunked(chunk_below, (x, CHUNK_S1-1, z));
+        buffer[0] = self.get_block_chunked(chunk_below, (x, CHUNK_S1-1, z));
     }
 
     fn fill_padded_chunk(&self, buffer: &mut [Bloc], chunk: ChunkPos, buffer_shape: &YFirstShape) {
@@ -136,7 +136,7 @@ impl Meshable for Blocs {
         let mut voxels = vec![Bloc::Air; padded_chunk_shape.size3];
         self.fill_padded_chunk(&mut voxels, chunk, &padded_chunk_shape);
         mesh_data_span.exit();
-        let mesh_buil_span = info_span!("mesh build", name = "mesh build").entered();
+        let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
         let mut buffer = UnitQuadBuffer::new();
         let faces = RIGHT_HANDED_Y_UP_CONFIG.faces;
         visible_block_faces(
@@ -196,6 +196,6 @@ impl Meshable for Blocs {
         );
         mesh.insert_attribute(ATTRIBUTE_TEXTURE_LAYER, layers);
         mesh.set_indices(Some(Indices::U32(indices.clone())));
-        mesh_buil_span.exit();
+        mesh_build_span.exit();
     }
 }

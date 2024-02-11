@@ -49,7 +49,7 @@ pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>,
     let c = time.delta_seconds() * CAMERA_PAN_RATE;
     fpscam.yaw -= c*camera_pan_vector.x();
     fpscam.pitch -= c*camera_pan_vector.y();
-    fpscam.pitch = fpscam.pitch.clamp(-1.4, 1.4);
+    fpscam.pitch = fpscam.pitch.clamp(-1.5, 1.5);
 }
 
 pub fn apply_fps_cam(mut query: Query<(&mut Transform, &FpsCam)>) {

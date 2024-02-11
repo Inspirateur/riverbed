@@ -68,9 +68,9 @@ impl TerrainGen for Earth {
             };
             if moutain[[dx, dz]] > 0.2 {
                 world.set_yrange(col, (dx, dz), y, 1, bloc);
-                world.set_yrange(col, (dx, dz), y-1, 4, Bloc::Stone);
+                world.set_yrange(col, (dx, dz), y-1, 7, Bloc::Stone);
             } else {
-                world.set_yrange(col, (dx, dz), y, 3, bloc);
+                world.set_yrange(col, (dx, dz), y, 8, bloc);
             }
             let water_height = WATER_H-y;
             if water_height > 0 {

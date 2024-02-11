@@ -20,9 +20,9 @@ impl Chunk {
 
     pub fn set_yrange(&mut self, (x, top, z): ChunkedPos, height: usize, bloc: Bloc) {
         let value = self.palette.index(bloc);
-        let top = CHUNK_SHAPE.linearize(x, top, z);
-        let bottom = top - height + 1;
-        self.data.set_range(bottom, top + 1, value);
+        let top = CHUNK_SHAPE.linearize(x, top, z) + 1;
+        let bottom = top - height;
+        self.data.set_range(bottom, top, value);
     }
 
     /// Used for efficient construction of mesh data
