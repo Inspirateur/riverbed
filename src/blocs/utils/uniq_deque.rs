@@ -16,21 +16,18 @@ impl<T: PartialEq + Eq + Hash + Clone> UniqDeque<T> {
 	pub fn push_front(&mut self, elem: T) {
 		if self.set.insert(elem.clone()) {
 			self.deque.push_front(elem);
-			println!("uniq_deque push_front {}", self.deque.len());
 		}
 	}
 
 	pub fn push_back(&mut self, elem: T) {
 		if self.set.insert(elem.clone()) {
 			self.deque.push_back(elem);
-			println!("uniq_deque push_back {}", self.deque.len());
 		}
 	}
 
 	pub fn pop_front(&mut self) -> Option<T> {
 		let res = self.deque.pop_front()?;
 		self.set.remove(&res);
-		println!("uniq_deque pop_front {}", self.deque.len());
 		Some(res)
 	}
 
@@ -38,7 +35,6 @@ impl<T: PartialEq + Eq + Hash + Clone> UniqDeque<T> {
 		if self.set.remove(elem) {
 			let i = self.deque.iter().position(|other| other == elem).unwrap();
 			self.deque.remove(i);
-			println!("uniq_deque remove {}", self.deque.len());
 		}
 	}
 }

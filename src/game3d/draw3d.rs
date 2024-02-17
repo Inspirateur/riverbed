@@ -42,7 +42,6 @@ pub fn on_col_unload(
                 commands.entity(ent).despawn();
             }
         }
-        println!("removed chunk ent (count: {})", chunk_ents.0.len());
     }
 }
 
@@ -61,7 +60,6 @@ pub fn process_bloc_changes(
     };
 
     if let Some(chunk) = blocs.changes.pop_front() {
-        println!("pulled a bloc change");
         let Some(col_dist) = load_area.col_dists.get(&chunk.into()) else { return; };
         let lod = choose_lod_level(*col_dist);
         if let Some(ent) = chunk_ents.0.get(&chunk) {
@@ -89,7 +87,6 @@ pub fn process_bloc_changes(
                 ..Default::default()
             }).insert(chunk_aabb).insert(LOD(lod)).id();
             chunk_ents.0.insert(chunk, ent);
-            println!("added chunk ent (count: {})", chunk_ents.0.len());
         }
     }
 }
