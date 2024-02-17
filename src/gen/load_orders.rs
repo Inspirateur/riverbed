@@ -139,6 +139,7 @@ pub fn process_load_order(
 ) {
     // take 1 generation order at a time to spread the work over multiple frames
     if let Some((col, _)) = col_orders.to_generate.pop() {
+        println!("got load order");
         gens.gen(&mut blocs, col);
         blocs.register(col)
     }

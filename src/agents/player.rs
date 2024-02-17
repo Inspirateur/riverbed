@@ -49,13 +49,13 @@ pub enum UIAction {
 }
 
 pub fn spawn_player(mut commands: Commands) {    
-    let spawn = Vec3 { x: 510., y: 250., z: 120.};
+    let spawn = Vec3 { x: 540., y: 250., z: 130.};
     let realm = Realm::Overworld;
     let transform = TransformBundle {
         local: Transform {translation: spawn, ..default()},
         ..default()
     };
-    let rd = RenderDistance(16);
+    let rd = RenderDistance(2);
     commands
         .spawn((
             transform,
