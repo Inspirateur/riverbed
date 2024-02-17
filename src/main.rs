@@ -25,27 +25,25 @@ pub enum GameState {
 fn main() {
     let mut app = App::new();
 
-    app.insert_resource(Blocs::new())
+    app
+        .insert_resource(Blocs::new())
         .add_state::<GameState>()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "OurCraft".into(),
-                resolution: (1280., 720.).into(),
-                present_mode: PresentMode::Immediate,
-                // Tells wasm to resize the window according to the available canvas
-                fit_canvas_to_parent: true,
-                // Tells wasm not to override default event handling, like F5, Ctrl+R etc.
-                prevent_default_event_handling: false,
-                window_theme: Some(WindowTheme::Dark),
+        .add_plugins(
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "OurCraft".into(),
+                    ..default()
+                }),
                 ..default()
-            }),
-            ..default()
-        }).set(ImagePlugin::default_nearest()))
+            })
+            .set(ImagePlugin::default_nearest())
+        )
         .add_plugins(PlayerPlugin)
-        // .add_plugins(UIPlugin)
-        // .add_plugins(MenuPlugin)
-        // .add_plugins(MovementPlugin)
-        .add_plugins(GenPlugin);
+        .add_plugins(UIPlugin)
+        .add_plugins(MenuPlugin)
+        .add_plugins(MovementPlugin)
+        .add_plugins(GenPlugin)
+        ;
 
     if env::args().skip(1).any(|arg| arg == "2d") {
         app.add_plugins(Game2d).run();

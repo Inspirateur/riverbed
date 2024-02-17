@@ -55,7 +55,7 @@ pub fn spawn_player(mut commands: Commands) {
         local: Transform {translation: spawn, ..default()},
         ..default()
     };
-    let rd = RenderDistance(2);
+    let rd = RenderDistance(8);
     commands
         .spawn((
             transform,
@@ -101,7 +101,11 @@ pub fn move_player(
     mut player_query: Query<(&mut Heading, &mut Jumping, &ActionState<Dir>)>, 
     cam_query: Query<&Transform, With<Camera>>, 
 ) {
-    let cam_transform = cam_query.single();
+    let cam_transform = if let Ok(ct) = cam_query.get_single() {
+        *ct
+    } else {
+        Transform::default()
+    };
     let (mut heading, mut jumping, action_state) = player_query.single_mut();
     jumping.intent = false;
     let mut movement = Vec3::default();

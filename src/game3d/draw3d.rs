@@ -114,7 +114,6 @@ impl Plugin for Draw3d {
             .add_systems(Update, on_col_unload)
             // TODO: need to thread this so it can run as fast as possible but in the meantime running it twice is decent
             .add_systems(Update, process_bloc_changes.run_if(in_state(TexState::Finished)))
-            .add_systems(Update, process_bloc_changes.run_if(in_state(TexState::Finished)))
             ;
     }
 }

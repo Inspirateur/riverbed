@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::hash::Hash;
 use bevy::prelude::{Resource, Vec3};
+use dashmap::DashMap;
 use indexmap::IndexSet;
 use super::{
     CHUNK_S1, Y_CHUNKS,  MAX_HEIGHT, ChunkedPos, Chunk, ChunkPos, ColedPos, Realm, Bloc,
@@ -26,14 +26,14 @@ impl<V: Eq + PartialEq + Hash + Clone> IndexSetUtils<V> for IndexSet<V> {
 
 #[derive(Resource)]
 pub struct Blocs {
-    pub chunks: HashMap<ChunkPos, Chunk>,
+    pub chunks: DashMap<ChunkPos, Chunk>,
     pub changes: UniqDeque<ChunkPos>,
 }
 
 impl Blocs {
     pub fn new() -> Self {
         Blocs {
-            chunks: HashMap::new(),
+            chunks: DashMap::new(),
             changes: UniqDeque::new(),
         }
     }
