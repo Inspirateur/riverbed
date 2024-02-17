@@ -5,7 +5,7 @@ mod game2d;
 mod game3d;
 mod agents;
 use std::env;
-use bevy::{prelude::*, window::{PresentMode, WindowTheme}};
+use bevy::prelude::*;
 use blocs::Blocs;
 use ui::MenuPlugin;
 use game2d::Game2d;
