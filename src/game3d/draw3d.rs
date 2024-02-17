@@ -14,6 +14,8 @@ const CHUNK_S1_HF: f32 = (CHUNK_S1/2) as f32;
 pub struct LOD(pub usize);
 
 fn choose_lod_level(chunk_dist: u32) -> usize {
+    // temporarily disabling LODs
+    return 1;
     if chunk_dist < 8 {
         return 1;
     }
