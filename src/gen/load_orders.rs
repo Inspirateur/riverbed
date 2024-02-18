@@ -85,7 +85,7 @@ impl LoadOrders {
 
 pub fn assign_load_area(
     mut commands: Commands,
-    mut query: Query<(Entity, &Transform, &Realm, &RenderDistance), Without<LoadArea>>, 
+    mut query: Query<(Entity, &Transform, &Realm, &RenderDistance)>, 
     mut col_orders: ResMut<LoadOrders>
 ) {
     for (player, transform, realm, render_dist) in query.iter_mut() {
@@ -93,12 +93,16 @@ pub fn assign_load_area(
         let old_load_area = LoadArea::empty();
         let new_load_area = LoadArea::new( col, *render_dist);
         col_orders.on_load_area_change(player.index(), &old_load_area, &new_load_area);
-        commands.entity(player).insert(new_load_area);
+        commands.insert_resource(new_load_area.clone());        
     }
 }
 
-pub fn update_load_area(mut query: Query<(Entity, &Transform, &Realm, &RenderDistance, &mut LoadArea)>, mut col_orders: ResMut<LoadOrders>) {
-    for (player, transform, realm, render_dist, mut load_area) in query.iter_mut() {
+pub fn update_load_area(
+    mut query: Query<(Entity, &Transform, &Realm, &RenderDistance)>, 
+    mut col_orders: ResMut<LoadOrders>, 
+    mut load_area: ResMut<LoadArea>
+) {
+    for (player, transform, realm, render_dist) in query.iter_mut() {
         let col = ColPos::from((transform.translation, *realm));
         // we're checking before modifying to avoid triggering unnecessary Change detection
         if col != load_area.center {
@@ -109,8 +113,11 @@ pub fn update_load_area(mut query: Query<(Entity, &Transform, &Realm, &RenderDis
     }
 }
 
-pub fn on_render_distance_change(mut query: Query<(Entity, &RenderDistance, &mut LoadArea), Changed<RenderDistance>>, mut col_orders: ResMut<LoadOrders>) {
-    for (player, render_dist, mut load_area) in query.iter_mut() {
+pub fn on_render_distance_change(
+    mut query: Query<(Entity, &RenderDistance), Changed<RenderDistance>>, 
+    mut col_orders: ResMut<LoadOrders>, 
+    mut load_area: ResMut<LoadArea>) {
+    for (player, render_dist) in query.iter_mut() {
         let new_load_area = LoadArea::new( load_area.center, *render_dist);
         col_orders.on_load_area_change(player.index(), &load_area, &new_load_area);
         *load_area = new_load_area;
@@ -122,7 +129,7 @@ pub struct ColUnloadEvent(pub ColPos);
 
 pub fn process_unload_orders(
     mut col_orders: ResMut<LoadOrders>,
-    mut blocs: ResMut<Blocs>,
+    blocs: ResMut<Blocs>,
     mut ev_unload: EventWriter<ColUnloadEvent>,
 ) {
     // PROCESS UNLOAD ORDERS
@@ -134,12 +141,11 @@ pub fn process_unload_orders(
 
 pub fn process_load_order(
     mut col_orders: ResMut<LoadOrders>,
-    mut blocs: ResMut<Blocs>,
+    blocs: ResMut<Blocs>,
     gens: Res<Generators>,
 ) {
     // take 1 generation order at a time to spread the work over multiple frames
     if let Some((col, _)) = col_orders.to_generate.pop() {
-        gens.gen(&mut blocs, col);
-        blocs.register(col)
+        gens.gen(&blocs, col);
     }
 }

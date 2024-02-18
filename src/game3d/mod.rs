@@ -4,6 +4,7 @@ mod render3d;
 mod texture_array;
 mod bloc_action;
 mod sky;
+mod shared_load_area;
 use bevy::prelude::Plugin;
 
 pub struct Game3d;

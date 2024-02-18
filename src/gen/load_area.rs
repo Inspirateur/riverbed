@@ -1,12 +1,13 @@
-use crate::blocs::ColPos;
+use crate::blocs::{pos2d::chunks_in_col, ChunkPos, ColPos, TrackedChunk};
 use bevy::prelude::*;
+use dashmap::DashMap;
 use itertools::iproduct;
 use std::collections::HashMap;
 
 #[derive(Component, Clone, Copy)]
 pub struct RenderDistance(pub u32);
 
-#[derive(Component)]
+#[derive(Resource, Clone)]
 pub struct LoadArea {
     pub center: ColPos,
     pub col_dists: HashMap<ColPos, u32>,
@@ -33,5 +34,19 @@ impl LoadArea {
             center: ColPos::default(),
             col_dists: HashMap::new()
         }
+    }
+
+    pub fn closest_change(&self, chunks: &DashMap<ChunkPos, TrackedChunk>) -> Option<(ChunkPos, u32)> {
+        self.col_dists.iter()
+            .flat_map(|(col_pos, dist)| 
+                chunks_in_col(col_pos)
+                .into_iter()
+                .filter(|chunk_pos| if let Some(chunk) = chunks.get(chunk_pos) {
+                    chunk.changed
+                } else {
+                    false
+                })
+                .map(|chunk_pos| (chunk_pos, *dist)))
+            .min_by_key(|(_, dist)| *dist)
     }
 }

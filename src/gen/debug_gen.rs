@@ -38,7 +38,7 @@ impl DebugGen {
 }
 
 impl TerrainGen for DebugGen {
-    fn gen(&self, world: &mut Blocs, col: ColPos) {
+    fn gen(&self, world: &Blocs, col: ColPos) {
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (x, z) = (unchunked(col.x, dx), unchunked(col.z, dz));
             let (y, t, h) = values(x, z);

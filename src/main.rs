@@ -44,7 +44,7 @@ fn main() {
         .add_plugins(MovementPlugin)
         .add_plugins(GenPlugin)
         ;
-
+    
     if env::args().skip(1).any(|arg| arg == "2d") {
         app.add_plugins(Game2d).run();
     } else {

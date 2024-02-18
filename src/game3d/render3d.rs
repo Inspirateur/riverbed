@@ -1,22 +1,27 @@
 use bevy::{prelude::{Mesh, info_span}, render::{render_resource::{PrimitiveTopology, VertexFormat}, mesh::{VertexAttributeValues, Indices, MeshVertexAttribute}}};
 use block_mesh::{UnitQuadBuffer, RIGHT_HANDED_Y_UP_CONFIG, visible_block_faces};
+use dashmap::DashMap;
 use itertools::iproduct;
-use crate::blocs::{Blocs, CHUNK_S1, Bloc, ChunkPos, Face, ColedPos, CHUNK_PADDED_S1, YFirstShape};
-use super::texture_array::TextureMap;
+use crate::blocs::{Bloc, ChunkPos, ChunkedPos, ColedPos, Face, TrackedChunk, YFirstShape, CHUNK_PADDED_S1, CHUNK_S1};
+use super::texture_array::{FaceSpecifier, TextureMapTrait};
 
 pub const ATTRIBUTE_TEXTURE_LAYER: MeshVertexAttribute = MeshVertexAttribute::new(
     "TextureLayer", 48757581, VertexFormat::Uint32
 );
 
 pub trait Meshable {
+    fn copy_column(&self, buffer: &mut [Bloc], chunk_pos: ChunkPos, coled_pos: ColedPos, lod: usize);
+
+    fn get_block_chunked(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) -> Bloc;
+
     fn fill_padded_bloc_column(&self, buffer: &mut [Bloc], chunk: ChunkPos, coled_pos: ColedPos, buffer_shape: &YFirstShape);
 
     fn fill_padded_chunk(&self, buffer: &mut [Bloc], chunk: ChunkPos, buffer_shape: &YFirstShape);
 
-    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap, lod: usize) -> Mesh;
+    fn create_mesh(&self, chunk: ChunkPos, texture_map: &DashMap<(Bloc, FaceSpecifier), usize>, lod: usize) -> Mesh;
 
     fn update_mesh(
-        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap, lod: usize
+        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &DashMap<(Bloc, FaceSpecifier), usize>, lod: usize
     );
 }
 
@@ -53,7 +58,21 @@ fn chunked_face_pos(buffer: &[Bloc], quad_positions: &[[f32; 3]; 4], quad_normal
     (buffer[buffer_shape.linearize(x, y, z)], bloc_face)
 }
 
-impl Meshable for Blocs {
+impl Meshable for DashMap<ChunkPos, TrackedChunk> {
+    fn copy_column(&self, buffer: &mut [Bloc], chunk_pos: ChunkPos, (x, z): ColedPos, lod: usize) {
+        let Some(chunk) = self.get(&chunk_pos) else {
+            return;
+        };
+        chunk.copy_column(buffer, (x, z), lod);
+    }
+
+    fn get_block_chunked(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) -> Bloc {
+        match self.get(&chunk_pos) {
+            None => Bloc::default(),
+            Some(chunk) => chunk.get(chunked_pos).clone()
+        }
+    }
+
     fn fill_padded_bloc_column(&self, buffer: &mut [Bloc], chunk: ChunkPos, (x, z): ColedPos, buffer_shape: &YFirstShape) {
         self.copy_column(&mut buffer[1..], chunk, (x, z), buffer_shape.lod);
         if buffer_shape.lod != 1 { return; }
@@ -122,14 +141,14 @@ impl Meshable for Blocs {
         } 
     }
 
-    fn create_mesh(&self, chunk: ChunkPos, texture_map: &TextureMap, lod: usize) -> Mesh {
+    fn create_mesh(&self, chunk: ChunkPos, texture_map: &DashMap<(Bloc, FaceSpecifier), usize>, lod: usize) -> Mesh {
         let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
         self.update_mesh(chunk, &mut render_mesh, texture_map, lod);
         render_mesh
     }
 
     fn update_mesh(
-        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &TextureMap, lod: usize
+        &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &DashMap<(Bloc, FaceSpecifier), usize>, lod: usize
     ) {
         let padded_chunk_shape = YFirstShape::new_padded(lod);
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
@@ -169,7 +188,7 @@ impl Meshable for Blocs {
                     &[mesh_normals[0][0] as i32, mesh_normals[0][1] as i32, mesh_normals[0][2] as i32],
                     &padded_chunk_shape
                 );
-                let index = texture_map.get(bloc, bloc_face).unwrap_or(0) as u32;
+                let index = texture_map.get_texture_index(bloc, bloc_face).unwrap_or(0) as u32;
                 layers.extend_from_slice(&[index; 4]);
                 color.extend_from_slice(&[match (bloc, bloc_face) {
                     (Bloc::GrassBlock, Face::Up) => [0.2, 0.8, 0.3, 1.0],

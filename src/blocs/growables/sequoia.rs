@@ -2,14 +2,14 @@ use crate::blocs::{BlocPos, Blocs, Bloc};
 use super::utils::leaf_disk;
 const DIRS: [(i32, i32); 8] = [(-1, 1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
 
-fn sequoia_leaves(world: &mut Blocs, pos: BlocPos, dir_x: i32, dir_z: i32, size: usize) {
+fn sequoia_leaves(world: &Blocs, pos: BlocPos, dir_x: i32, dir_z: i32, size: usize) {
     let pos = pos + (if dir_x == 1 {2} else {-1}, 0, if dir_z == 1 {2} else {-1});
-    world.set_bloc(pos, Bloc::SequoiaLog, false);
+    world.set_bloc(pos, Bloc::SequoiaLog);
     leaf_disk(world, pos + (0, -1, 0), 1, Bloc::SequoiaLeaves);
     leaf_disk(world, pos + (dir_x, 0, dir_z), size as u32, Bloc::SequoiaLeaves);
 }
 
-pub fn grow_sequoia(world: &mut Blocs, pos: BlocPos, seed: i32, dist: f32) {
+pub fn grow_sequoia(world: &Blocs, pos: BlocPos, seed: i32, dist: f32) {
     let height = 30-(dist*6.) as i32;
     let mut pos = pos;
     let rng = pos.prng(seed);
@@ -31,11 +31,11 @@ pub fn grow_sequoia(world: &mut Blocs, pos: BlocPos, seed: i32, dist: f32) {
                 );
             }
         }
-        world.set_bloc(pos, Bloc::SequoiaLog, false);
-        world.set_bloc(pos + (1, 0, 0), Bloc::SequoiaLog, false);
-        world.set_bloc(pos + (0, 0, 1), Bloc::SequoiaLog, false);
-        world.set_bloc(pos + (1, 0, 1), Bloc::SequoiaLog, false);
+        world.set_bloc(pos, Bloc::SequoiaLog);
+        world.set_bloc(pos + (1, 0, 0), Bloc::SequoiaLog);
+        world.set_bloc(pos + (0, 0, 1), Bloc::SequoiaLog);
+        world.set_bloc(pos + (1, 0, 1), Bloc::SequoiaLog);
         pos.y += 1;
     }
-    world.set_bloc(pos, Bloc::SpruceLeaves, false);
+    world.set_bloc(pos, Bloc::SpruceLeaves);
 }

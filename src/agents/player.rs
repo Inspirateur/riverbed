@@ -6,6 +6,7 @@ use bevy::{
     prelude::*,
 };
 use leafwing_input_manager::prelude::*;
+const SPAWN: Vec3 = Vec3 { x: 540., y: 250., z: 130.};
 
 #[derive(Component)]
 pub struct PlayerControlled;
@@ -49,10 +50,9 @@ pub enum UIAction {
 }
 
 pub fn spawn_player(mut commands: Commands) {    
-    let spawn = Vec3 { x: 540., y: 250., z: 130.};
     let realm = Realm::Overworld;
     let transform = TransformBundle {
-        local: Transform {translation: spawn, ..default()},
+        local: Transform {translation: SPAWN, ..default()},
         ..default()
     };
     let rd = RenderDistance(8);
@@ -123,7 +123,7 @@ pub fn move_player(
     heading.0.y = f32::NAN;
 }
 
-#[derive(SystemSet, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 pub struct PlayerSpawn;
 
 pub struct PlayerPlugin;

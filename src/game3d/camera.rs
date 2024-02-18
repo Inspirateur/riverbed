@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 use crate::GameState;
-use crate::agents::{AABB, PlayerSpawn, PlayerControlled};
+use crate::agents::{PlayerControlled, PlayerSpawn, AABB};
 use leafwing_input_manager::prelude::*;
 
 const CAMERA_PAN_RATE: f32 = 0.06;
@@ -64,8 +64,7 @@ impl Plugin for Camera3dPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins(InputManagerPlugin::<CameraMovement>::default())
-            .add_systems(Startup, 
-                (cam_setup, apply_deferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
+            .add_systems(Startup, (cam_setup, apply_deferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
             .add_systems(Update, apply_fps_cam)
             .add_systems(Update, pan_camera.run_if(in_state(GameState::Game)))
         ;

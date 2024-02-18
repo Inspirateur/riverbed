@@ -1,5 +1,6 @@
-use std::{collections::HashMap, ffi::OsStr, str::FromStr};
+use std::{ffi::OsStr, str::FromStr, sync::Arc};
 use bevy::{prelude::*, reflect::{TypeUuid, TypePath}, render::render_resource::{ShaderRef, AsBindGroup, Extent3d, TextureDimension}, asset::LoadedFolder};
+use dashmap::DashMap;
 use crate::blocs::{Bloc, Face};
 
 use super::render3d::ATTRIBUTE_TEXTURE_LAYER;
@@ -22,28 +23,37 @@ pub enum TexState {
 struct TextureFolder(Handle<LoadedFolder>);
 
 #[derive(Resource)]
-pub struct TextureMap(pub HashMap<(Bloc, FaceSpecifier), usize>);
+pub struct TextureMap(pub Arc<DashMap<(Bloc, FaceSpecifier), usize>>);
 
-impl TextureMap {
+pub trait TextureMapTrait {
+    fn get_texture_index(&self, bloc: Bloc, face: Face) -> Option<usize>;
+}
+
+
+impl TextureMapTrait for DashMap<(Bloc, FaceSpecifier), usize> {
     // TODO: need to allow the user to create a json with "texture files links" such as:
     // grass_block_bottom.png -> dirt.png
     // furnace_bottom.png -> stone.png
     // etc ...
-    pub fn get(&self, bloc: Bloc, face: Face) -> Option<usize> {
-        if let Some(i) = self.0.get(&(bloc, FaceSpecifier::Specific(face))) {
+    fn get_texture_index(&self, bloc: Bloc, face: Face) -> Option<usize> {
+        if let Some(i) = self.get(&(bloc, FaceSpecifier::Specific(face))) {
             return Some(*i);
         }
         if matches!(face, Face::Front | Face::Back | Face::Left | Face::Right) {
-            if let Some(i) = self.0.get(&(bloc, FaceSpecifier::Side)) {
+            if let Some(i) = self.get(&(bloc, FaceSpecifier::Side)) {
                 return Some(*i);
             }
         }
         if face == Face::Down {
-            if let Some(i) = self.0.get(&(bloc, FaceSpecifier::Specific(Face::Up))) {
+            if let Some(i) = self.get(&(bloc, FaceSpecifier::Specific(Face::Up))) {
                 return Some(*i);
             }
         }
-        self.0.get(&(bloc, FaceSpecifier::All)).copied()
+        if let Some(res) = self.get(&(bloc, FaceSpecifier::All)) {
+            Some(*res)
+        } else {
+            None
+        }
     }
 }
 
@@ -90,7 +100,7 @@ fn setup(
     textures_handles: Res<TextureFolder>,
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut textures: ResMut<Assets<Image>>,
-    mut texture_map: ResMut<TextureMap>,
+    texture_map: Res<TextureMap>,
     mut materials: ResMut<Assets<ArrayTextureMaterial>>,
 ) {
     // Build a `TextureAtlas` using the individual sprites
@@ -176,7 +186,7 @@ pub struct TextureArrayPlugin;
 impl Plugin for TextureArrayPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<TexState>()
-            .insert_resource(TextureMap(HashMap::new()))
+            .insert_resource(TextureMap(Arc::new(DashMap::new())))
             .add_plugins(MaterialPlugin::<ArrayTextureMaterial>::default())
             .add_systems(OnEnter(TexState::Setup), load_textures)
             .add_systems(Update, check_textures.run_if(in_state(TexState::Setup)))

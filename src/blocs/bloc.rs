@@ -125,7 +125,7 @@ pub enum Tree {
 }
 
 impl Tree {
-    pub fn grow(&self, world: &mut Blocs, pos: BlocPos, seed: i32, dist: f32) {
+    pub fn grow(&self, world: &Blocs, pos: BlocPos, seed: i32, dist: f32) {
         match self {
             Tree::Spruce => grow_spruce(world, pos, seed, dist),
             Tree::Birch => grow_birch(world, pos, seed, dist),

@@ -1,6 +1,6 @@
 use crate::blocs::{CHUNK_S1, Bloc, Blocs, ColPos};
 use crate::gen::{ColUnloadEvent, LoadArea};
-use crate::agents::{PlayerControlled, PlayerSpawn, AABB};
+use crate::agents::{PlayerControlled, AABB};
 use anyhow::Result;
 use bevy::prelude::*;
 use colorsys::Rgb;
@@ -36,12 +36,12 @@ pub fn on_col_unload(
         }
     }
 }
-
+/* 
 pub fn process_chunk_changes(
     mut commands: Commands,
     load_area_query: Query<&LoadArea, With<PlayerControlled>>,
     im_query: Query<&Handle<Image>>,
-    mut blocs: ResMut<Blocs>, 
+    blocs: ResMut<Blocs>, 
     mut images: ResMut<Assets<Image>>,
     mut col_ents: ResMut<ColEntities>,
     soil_color: Res<SoilColor>,
@@ -50,7 +50,7 @@ pub fn process_chunk_changes(
         return;
     };
 
-    if let Some(chunk) = blocs.changes.pop_front() {
+    if let Some(chunk) = blocs.changes.pop() {
         let col: ColPos = chunk.into();
         if !load_area.col_dists.contains_key(&col) { return; }
         if let Some(ent) = col_ents.0.get(&col) {
@@ -60,7 +60,7 @@ pub fn process_chunk_changes(
                 }
             } else {
                 // the entity is not instanciated yet, we put it back
-                blocs.changes.push_back(chunk);
+                blocs.changes.push(chunk);
             }
         } else {
             let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
@@ -75,7 +75,7 @@ pub fn process_chunk_changes(
             col_ents.0.insert(col, ent);
         }
     }
-}
+}*/
 
 #[derive(Resource)]
 pub struct SoilColor(pub HashMap<Bloc, Rgb>);
@@ -112,10 +112,9 @@ impl Plugin for Draw2d {
     fn build(&self, app: &mut App) {
         app.insert_resource(SoilColor::from_csv("assets/data/soils_color.csv").unwrap())
             .insert_resource(ColEntities::new())
-            .add_systems(Startup, 
-                (setup, apply_deferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
+            .add_systems(Startup, setup)
             .add_systems(Update, on_col_unload)
-            .add_systems(Update, process_chunk_changes)
+            //.add_systems(Update, process_chunk_changes)
             ;
     }
 }

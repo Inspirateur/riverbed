@@ -33,7 +33,7 @@ impl Earth {
 }
 
 impl TerrainGen for Earth {
-    fn gen(&self, world: &mut Blocs, col: ColPos) {
+    fn gen(&self, world: &Blocs, col: ColPos) {
         let range = pos_to_range(col);
         let gen_span = info_span!("noise gen", name = "noise gen").entered();
         let mut n = NoiseSource::new(range, self.seed, 1);

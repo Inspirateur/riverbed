@@ -1,7 +1,7 @@
 use std::ops::BitXor;
 use bevy::prelude::Vec3;
-use crate::blocs::{Realm, CHUNK_S1};
-use super::{unchunked, chunked, CHUNK_S1I, pos3d::Pos3d, BlocPos};
+use crate::blocs::{Realm, CHUNK_S1, Y_CHUNKS};
+use super::{chunked, pos3d::Pos3d, unchunked, BlocPos, ChunkPos, CHUNK_S1I};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash)]
 pub struct Pos2d<const U: usize> {
@@ -99,4 +99,13 @@ impl From<(Vec3, Realm)> for ColPos {
     fn from(value: (Vec3, Realm)) -> Self {
         ColPos::from(BlocPos::from(value))
     }
+}
+
+pub fn chunks_in_col(col_pos: &ColPos) -> [ChunkPos; Y_CHUNKS] {
+    std::array::from_fn(|y| ChunkPos {
+        x: col_pos.x,
+        y: y as i32,
+        z: col_pos.z,
+        realm: col_pos.realm
+    })
 }

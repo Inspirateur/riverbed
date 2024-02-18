@@ -1,10 +1,13 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 use bevy::math::Vec3A;
 use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
-use crate::agents::PlayerControlled;
+use bevy::tasks::AsyncComputeTaskPool;
+use crossbeam::channel::{unbounded, Receiver};
 use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
-use crate::gen::{ColUnloadEvent, LoadArea};
+use crate::gen::{ColUnloadEvent, LoadAreaAssigned};
+use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
 use super::texture_array::{BlocTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 const CHUNK_S1_HF: f32 = (CHUNK_S1/2) as f32;
@@ -14,7 +17,6 @@ const CHUNK_S1_HF: f32 = (CHUNK_S1/2) as f32;
 pub struct LOD(pub usize);
 
 fn choose_lod_level(chunk_dist: u32) -> usize {
-    // temporarily disabling LODs
     return 1;
     if chunk_dist < 8 {
         return 1;
@@ -26,6 +28,73 @@ fn choose_lod_level(chunk_dist: u32) -> usize {
         return 4;
     }
     return 8;
+}
+
+
+#[derive(Resource)]
+pub struct MeshReciever(Receiver<(Mesh, ChunkPos, LOD)>);
+
+fn setup_mesh_thread(mut commands: Commands, blocs: Res<Blocs>, shared_load_area: Res<SharedLoadArea>, texture_map: Res<TextureMap>) {
+    let thread_pool = AsyncComputeTaskPool::get();
+    let chunks = Arc::clone(&blocs.chunks);
+    let (mesh_sender, mesh_reciever) = unbounded();
+    commands.insert_resource(MeshReciever(mesh_reciever));
+    let shared_load_area = Arc::clone(&shared_load_area.0);
+    let texture_map = Arc::clone(&texture_map.0);
+    thread_pool.spawn(
+        async move {
+            loop {
+                let Some((chunk_pos, dist)) = shared_load_area.try_read().ok().and_then(|ld| ld.closest_change(&chunks)) else {
+                    continue;
+                };
+                let lod = choose_lod_level(dist);
+                let mesh = chunks.create_mesh(chunk_pos, &texture_map, lod);
+                chunks.get_mut(&chunk_pos).unwrap().changed = false;
+                let _ = mesh_sender.send((mesh, chunk_pos, LOD(lod)));
+            }
+        }
+    ).detach();
+}
+
+pub fn pull_meshes(
+    mut commands: Commands, 
+    mesh_reciever: Res<MeshReciever>, 
+    mut chunk_ents: ResMut<ChunkEntities>, 
+    mut mesh_query: Query<(&Handle<Mesh>, &mut LOD, &mut Transform, &mut Aabb)>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    bloc_tex_array: Res<BlocTextureArray>
+) {
+    for (mesh, chunk_pos, lod) in mesh_reciever.0.try_iter() {
+        let unit = Vec3::ONE*lod.0 as f32;
+        let chunk_s1_hf = CHUNK_S1_HF/lod.0 as f32;
+        let chunk_aabb = Aabb {
+            center: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf),
+            half_extents: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf)
+        };
+        if let Some(ent) = chunk_ents.0.get(&chunk_pos) {
+            if let Ok((handle, mut old_lod, mut transform, mut aabb)) = mesh_query.get_mut(*ent) {
+                if let Some(old_mesh) = meshes.get_mut(handle) {
+                    *old_mesh = mesh;
+                    transform.scale = unit;
+                    *old_lod = lod;
+                    *aabb = chunk_aabb;
+                }
+            } else {
+                // the entity is not instanciated yet, we put it back
+                println!("entity wasn't ready to recieve updated mesh");
+            }
+        } else {
+            let ent = commands.spawn(MaterialMeshBundle {
+                mesh: meshes.add(mesh),
+                material: bloc_tex_array.0.clone(),
+                transform: Transform::from_translation(
+                    Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32 - unit,
+                ).with_scale(unit),
+                ..Default::default()
+            }).insert(chunk_aabb).insert(lod).id();
+            chunk_ents.0.insert(chunk_pos, ent);
+        }
+    }
 }
 
 pub fn on_col_unload(
@@ -47,52 +116,6 @@ pub fn on_col_unload(
     }
 }
 
-pub fn process_bloc_changes(
-    mut commands: Commands,
-    mesh_query: Query<&Handle<Mesh>>,
-    load_area_query: Query<&LoadArea, With<PlayerControlled>>,
-    mut blocs: ResMut<Blocs>, 
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut chunk_ents: ResMut<ChunkEntities>,
-    texture_map: Res<TextureMap>,
-    bloc_tex_array: Res<BlocTextureArray>,
-) {
-    let Ok(load_area) = load_area_query.get_single() else {
-        return;
-    };
-
-    if let Some(chunk) = blocs.changes.pop_front() {
-        let Some(col_dist) = load_area.col_dists.get(&chunk.into()) else { return; };
-        let lod = choose_lod_level(*col_dist);
-        if let Some(ent) = chunk_ents.0.get(&chunk) {
-            if let Ok(handle) = mesh_query.get_component::<Handle<Mesh>>(*ent) {
-                if let Some(mesh) = meshes.get_mut(handle) {
-                    blocs.update_mesh(chunk, mesh, &texture_map, lod);
-                }
-            } else {
-                // the entity is not instanciated yet, we put it back
-                blocs.changes.push_back(chunk);
-            }
-        } else {
-            let chunk_s1_hf = CHUNK_S1_HF/lod as f32;
-            let chunk_aabb = Aabb {
-                center: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf),
-                half_extents: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf)
-            };
-            let unit = Vec3::ONE*lod as f32;
-            let ent = commands.spawn(MaterialMeshBundle {
-                mesh: meshes.add(blocs.create_mesh(chunk, &texture_map, lod)),
-                material: bloc_tex_array.0.clone(),
-                transform: Transform::from_translation(
-                    Vec3::new(chunk.x as f32, chunk.y as f32, chunk.z as f32) * CHUNK_S1 as f32 - unit,
-                ).with_scale(unit),
-                ..Default::default()
-            }).insert(chunk_aabb).insert(LOD(lod)).id();
-            chunk_ents.0.insert(chunk, ent);
-        }
-    }
-}
-
 
 #[derive(Resource)]
 pub struct ChunkEntities(pub HashMap::<ChunkPos, Entity>);
@@ -110,9 +133,15 @@ impl Plugin for Draw3d {
         app
             .add_plugins(TextureArrayPlugin)
             .insert_resource(ChunkEntities::new())
+            .add_systems(Startup, 
+                (setup_shared_load_area, apply_deferred, setup_mesh_thread, apply_deferred)
+                .chain()
+                .after(LoadAreaAssigned)
+                .after(in_state(TexState::Finished))
+            )
+            .add_systems(Update, update_shared_load_area)
+            .add_systems(Update, pull_meshes.run_if(in_state(TexState::Finished)))
             .add_systems(Update, on_col_unload)
-            // TODO: need to thread this so it can run as fast as possible but in the meantime running it twice is decent
-            .add_systems(Update, process_bloc_changes.run_if(in_state(TexState::Finished)))
             ;
     }
 }
