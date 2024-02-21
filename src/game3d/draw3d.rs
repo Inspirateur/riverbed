@@ -67,10 +67,11 @@ pub fn pull_meshes(
     mut chunk_ents: ResMut<ChunkEntities>, 
     mut mesh_query: Query<(&Handle<Mesh>, &mut LOD, &mut Transform, &mut Aabb)>,
     mut meshes: ResMut<Assets<Mesh>>,
-    bloc_tex_array: Res<BlocTextureArray>
+    bloc_tex_array: Res<BlocTextureArray>,
+    blocs: Res<Blocs>
 ) {
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter().collect();
-    for (mesh, chunk_pos, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, _)| *pos) {
+    for (mesh, chunk_pos, lod) in received_meshes.into_iter().unique_by(|(_, pos, _)| *pos) {
         let unit = Vec3::ONE*lod.0 as f32;
         let chunk_s1_hf = CHUNK_S1_HF/lod.0 as f32;
         let chunk_aabb = Aabb {
@@ -89,7 +90,7 @@ pub fn pull_meshes(
                 // the entity is not instanciated yet, we put it back
                 println!("entity wasn't ready to recieve updated mesh");
             }
-        } else {
+        } else if blocs.chunks.contains_key(&chunk_pos) {
             let ent = commands.spawn(MaterialMeshBundle {
                 mesh: meshes.add(mesh),
                 material: bloc_tex_array.0.clone(),
