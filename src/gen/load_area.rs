@@ -36,17 +36,23 @@ impl LoadArea {
         }
     }
 
-    pub fn closest_change(&self, chunks: &DashMap<ChunkPos, TrackedChunk>) -> Option<(ChunkPos, u32)> {
-        self.col_dists.iter()
+    pub fn pop_closest_change(&self, chunks: &DashMap<ChunkPos, TrackedChunk>) -> Option<(ChunkPos, u32)> {
+        let res = self.col_dists.iter()
             .flat_map(|(col_pos, dist)| 
                 chunks_in_col(col_pos)
                 .into_iter()
-                .filter(|chunk_pos| if let Some(chunk) = chunks.get(chunk_pos) {
-                    chunk.changed
-                } else {
-                    false
+                .filter_map(|chunk_pos| {
+                    let chunk = chunks.get(&chunk_pos)?;
+                    if chunk.changed {
+                        Some((chunk_pos, *dist))
+                    } else {
+                        None
+                    }
                 })
-                .map(|chunk_pos| (chunk_pos, *dist)))
-            .min_by_key(|(_, dist)| *dist)
+            )
+            .min_by_key(|(_, dist)| *dist)?;
+        let mut chunk = chunks.get_mut(&res.0)?;
+        chunk.changed = false;
+        Some(res)
     }
 }

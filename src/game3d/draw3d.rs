@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::thread::yield_now;
 use bevy::math::Vec3A;
 use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver};
+use itertools::Itertools;
 use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{ColUnloadEvent, LoadAreaAssigned};
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
@@ -35,7 +37,7 @@ fn choose_lod_level(chunk_dist: u32) -> usize {
 pub struct MeshReciever(Receiver<(Mesh, ChunkPos, LOD)>);
 
 fn setup_mesh_thread(mut commands: Commands, blocs: Res<Blocs>, shared_load_area: Res<SharedLoadArea>, texture_map: Res<TextureMap>) {
-    let thread_pool = AsyncComputeTaskPool::get();
+let thread_pool = AsyncComputeTaskPool::get();
     let chunks = Arc::clone(&blocs.chunks);
     let (mesh_sender, mesh_reciever) = unbounded();
     commands.insert_resource(MeshReciever(mesh_reciever));
@@ -43,13 +45,16 @@ fn setup_mesh_thread(mut commands: Commands, blocs: Res<Blocs>, shared_load_area
     let texture_map = Arc::clone(&texture_map.0);
     thread_pool.spawn(
         async move {
+            while texture_map.len() == 0 {
+                yield_now()
+            }
             loop {
-                let Some((chunk_pos, dist)) = shared_load_area.try_read().ok().and_then(|ld| ld.closest_change(&chunks)) else {
+                let Some((chunk_pos, dist)) = shared_load_area.read().pop_closest_change(&chunks) else {
+                    yield_now();
                     continue;
                 };
                 let lod = choose_lod_level(dist);
                 let mesh = chunks.create_mesh(chunk_pos, &texture_map, lod);
-                chunks.get_mut(&chunk_pos).unwrap().changed = false;
                 let _ = mesh_sender.send((mesh, chunk_pos, LOD(lod)));
             }
         }
@@ -64,7 +69,8 @@ pub fn pull_meshes(
     mut meshes: ResMut<Assets<Mesh>>,
     bloc_tex_array: Res<BlocTextureArray>
 ) {
-    for (mesh, chunk_pos, lod) in mesh_reciever.0.try_iter() {
+    let received_meshes: Vec<_> = mesh_reciever.0.try_iter().collect();
+    for (mesh, chunk_pos, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, _)| *pos) {
         let unit = Vec3::ONE*lod.0 as f32;
         let chunk_s1_hf = CHUNK_S1_HF/lod.0 as f32;
         let chunk_aabb = Aabb {
@@ -136,9 +142,7 @@ impl Plugin for Draw3d {
             .add_systems(Startup, 
                 (setup_shared_load_area, apply_deferred, setup_mesh_thread, apply_deferred)
                 .chain()
-                .after(LoadAreaAssigned)
-                .after(in_state(TexState::Finished))
-            )
+                .after(LoadAreaAssigned))
             .add_systems(Update, update_shared_load_area)
             .add_systems(Update, pull_meshes.run_if(in_state(TexState::Finished)))
             .add_systems(Update, on_col_unload)

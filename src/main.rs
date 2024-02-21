@@ -26,8 +26,8 @@ fn main() {
     let mut app = App::new();
 
     app
-        .insert_resource(Blocs::new())
         .add_state::<GameState>()
+        .insert_resource(Blocs::new())
         .add_plugins(
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {

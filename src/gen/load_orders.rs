@@ -88,14 +88,14 @@ pub fn assign_load_area(
     mut query: Query<(Entity, &Transform, &Realm, &RenderDistance)>, 
     mut col_orders: ResMut<LoadOrders>
 ) {
-    for (player, transform, realm, render_dist) in query.iter_mut() {
-        let col = ColPos::from((transform.translation, *realm));
-        let old_load_area = LoadArea::empty();
-        let new_load_area = LoadArea::new( col, *render_dist);
-        col_orders.on_load_area_change(player.index(), &old_load_area, &new_load_area);
-        commands.insert_resource(new_load_area.clone());        
-    }
-}
+    let (player, transform, realm, render_dist) = query.single_mut();
+    let col = ColPos::from((transform.translation, *realm));
+    let old_load_area = LoadArea::empty();
+    let new_load_area = LoadArea::new( col, *render_dist);
+    col_orders.on_load_area_change(player.index(), &old_load_area, &new_load_area);
+    commands.insert_resource(new_load_area.clone());  
+}      
+
 
 pub fn update_load_area(
     mut query: Query<(Entity, &Transform, &Realm, &RenderDistance)>, 
