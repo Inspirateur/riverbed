@@ -166,7 +166,7 @@ impl Plugin for Draw3d {
             .add_systems(Update, update_shared_load_area)
             .add_systems(Update, pull_meshes.run_if(in_state(TexState::Finished)))
             .add_systems(Update, on_col_unload)
-            .add_systems(Update, chunk_aabb_gizmos)
+            // .add_systems(Update, chunk_aabb_gizmos)
             ;
     }
 }
