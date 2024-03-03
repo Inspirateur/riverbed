@@ -4,7 +4,7 @@ mod earth_gen;
 mod load_area;
 mod load_orders;
 pub use terrain_gen::Generators;
-pub use load_area::{LoadArea, RenderDistance};
+pub use load_area::{LoadArea, RenderDistance, range_around};
 pub use load_orders::{LoadOrders, ColUnloadEvent};
 use bevy::{app::Startup, ecs::schedule::{apply_deferred, IntoSystemConfigs, SystemSet}, prelude::{Plugin, Update}};
 use crate::agents::PlayerSpawn;

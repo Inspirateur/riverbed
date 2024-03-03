@@ -1,3 +1,5 @@
+use std::f32::consts::FRAC_PI_2;
+
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 use crate::GameState;
@@ -26,7 +28,11 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
         transform: Transform::from_xyz(aabb.0.x/2., 2., aabb.0.z/2.)
             .looking_at(Vec3 {x: 0., y: 0., z: 1.}, Vec3::Y),
         // we put the far clipping plane very far because we don't want any chunks behind it anyway
-        projection: Projection::Perspective(PerspectiveProjection { far: 10000., ..Default::default() }),
+        projection: Projection::Perspective(PerspectiveProjection { 
+            far: 10000.,
+            fov: FRAC_PI_2 * 9./16., 
+            ..Default::default() 
+        }),
         ..Default::default()
     })
     .insert(InputManagerBundle::<CameraMovement> {

@@ -147,5 +147,6 @@ pub fn process_load_order(
     // take 1 generation order at a time to spread the work over multiple frames
     if let Some((col, _)) = col_orders.to_generate.pop() {
         gens.gen(&blocs, col);
+        blocs.mark_change_col(col);
     }
 }

@@ -2,7 +2,7 @@ use crate::blocs::{pos2d::chunks_in_col, ChunkPos, ColPos, TrackedChunk};
 use bevy::prelude::*;
 use dashmap::DashMap;
 use itertools::iproduct;
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::{Range, RangeInclusive}};
 
 #[derive(Component, Clone, Copy)]
 pub struct RenderDistance(pub u32);
@@ -13,14 +13,18 @@ pub struct LoadArea {
     pub col_dists: HashMap<ColPos, u32>,
 }
 
+pub fn range_around(a: i32, dist: i32) -> RangeInclusive<i32> {
+    (a-dist)..=(a+dist)
+}
+
 impl LoadArea {
     pub fn new(center: ColPos, render_dist: RenderDistance) -> Self {
         let dist = render_dist.0 as i32;
         Self {
             center: center,
             col_dists: iproduct!(
-                (center.x - dist)..=(center.x + dist),
-                (center.z - dist)..=(center.z + dist)
+                range_around(center.x, dist),
+                range_around(center.z, dist)
             ).map(|(x, z)| (
                 ColPos {
                     x, z, realm: center.realm
@@ -51,7 +55,10 @@ impl LoadArea {
                 })
             )
             .min_by_key(|(_, dist)| *dist)?;
-        let mut chunk = chunks.get_mut(&res.0)?;
+        let Some(mut chunk) = chunks.get_mut(&res.0) else {
+            println!("couldn't get_mut chunk {:?}", res.0);
+            return None
+        };
         chunk.changed = false;
         Some(res)
     }

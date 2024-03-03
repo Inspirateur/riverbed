@@ -2,8 +2,7 @@ use std::{ops::{Deref, DerefMut}, sync::Arc};
 use bevy::prelude::{Resource, Vec3};
 use dashmap::DashMap;
 use super::{
-    CHUNK_S1, Y_CHUNKS,  MAX_HEIGHT, ChunkedPos, Chunk, ChunkPos, ColedPos, Realm, Bloc,
-    ColPos, BlocPos, BlocPos2d, chunked
+    chunked, pos2d::chunks_in_col, Bloc, BlocPos, BlocPos2d, Chunk, ChunkPos, ChunkedPos, ColPos, ColedPos, Realm, CHUNK_S1, MAX_HEIGHT, Y_CHUNKS
 };
 
 pub struct TrackedChunk {
@@ -15,7 +14,7 @@ impl TrackedChunk {
     pub fn new() -> Self {
         Self {
             chunk: Chunk::new(),
-            changed: true
+            changed: false,
         }
     }
 }
@@ -65,6 +64,7 @@ impl Blocs {
     }
 
     pub fn set_yrange(&self, col_pos: ColPos, (x, z): ColedPos, top: i32, mut height: usize, bloc: Bloc) {
+        // USED BY TERRAIN GENERATION - bypasses change detection for efficiency
         let (mut cy, mut dy) = chunked(top);
         while height > 0 && cy >= 0 {
             let chunk_pos = ChunkPos { x: col_pos.x, y: cy, z: col_pos.z, realm: col_pos.realm};
@@ -132,6 +132,13 @@ impl Blocs {
         false
     }
     
+    pub fn mark_change_col(&self, col_pos: ColPos) {
+        // USE BY TERRAIN GEN to mass mark change on chunks for efficiency
+        for chunk_pos in chunks_in_col(&col_pos) {
+            self.mark_change_single(chunk_pos);
+        }
+    }
+
     pub fn unload_col(&self, col: ColPos) {
         for y in 0..Y_CHUNKS as i32 {
             let chunk_pos = ChunkPos {x: col.x, y, z: col.z, realm: col.realm };

@@ -6,14 +6,14 @@ use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver};
-use itertools::Itertools;
+use itertools::{iproduct, Itertools};
 use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
-use crate::gen::{ColUnloadEvent, LoadAreaAssigned};
+use crate::gen::{range_around, ColUnloadEvent, LoadArea, LoadAreaAssigned};
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
 use super::texture_array::{BlocTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 const CHUNK_S1_HF: f32 = (CHUNK_S1/2) as f32;
-
+const GRID_GIZMO_LEN: i32 = 4;
 
 #[derive(Debug, Component)]
 pub struct LOD(pub usize);
@@ -32,6 +32,23 @@ fn choose_lod_level(chunk_dist: u32) -> usize {
     return 8;
 }
 
+fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<LoadArea>) {
+    for (x, y) in iproduct!(range_around(load_area.center.x, GRID_GIZMO_LEN), 0..=Y_CHUNKS) {
+        let start = Vec3::new(x as f32, y as f32, (load_area.center.z-GRID_GIZMO_LEN) as f32)*CHUNK_S1 as f32;
+        let end = Vec3::new(x as f32, y as f32, (load_area.center.z+GRID_GIZMO_LEN) as f32)*CHUNK_S1 as f32;
+        gizmos.line(start, end, Color::YELLOW);
+    }
+    for (z, y) in iproduct!(range_around(load_area.center.z, GRID_GIZMO_LEN), 0..=Y_CHUNKS) {
+        let start = Vec3::new((load_area.center.x-GRID_GIZMO_LEN) as f32, y as f32, z as f32)*CHUNK_S1 as f32;
+        let end = Vec3::new((load_area.center.x+GRID_GIZMO_LEN) as f32, y as f32, z as f32)*CHUNK_S1 as f32;
+        gizmos.line(start, end, Color::YELLOW);
+    }
+    for (x, z) in iproduct!(range_around(load_area.center.x, GRID_GIZMO_LEN), range_around(load_area.center.z, GRID_GIZMO_LEN)) {
+        let start = Vec3::new(x as f32, 0., z as f32)*CHUNK_S1 as f32;
+        let end = Vec3::new(x as f32, Y_CHUNKS as f32, z as f32)*CHUNK_S1 as f32;
+        gizmos.line(start, end, Color::YELLOW);
+    }
+}
 
 #[derive(Resource)]
 pub struct MeshReciever(Receiver<(Mesh, ChunkPos, LOD)>);
@@ -55,7 +72,9 @@ let thread_pool = AsyncComputeTaskPool::get();
                 };
                 let lod = choose_lod_level(dist);
                 let mesh = chunks.create_mesh(chunk_pos, &texture_map, lod);
-                let _ = mesh_sender.send((mesh, chunk_pos, LOD(lod)));
+                if mesh_sender.send((mesh, chunk_pos, LOD(lod))).is_err() {
+                    println!("mesh for {:?} couldn't be sent", chunk_pos)
+                };
             }
         }
     ).detach();
@@ -71,7 +90,7 @@ pub fn pull_meshes(
     blocs: Res<Blocs>
 ) {
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter().collect();
-    for (mesh, chunk_pos, lod) in received_meshes.into_iter().unique_by(|(_, pos, _)| *pos) {
+    for (mesh, chunk_pos, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, _)| *pos) {
         let unit = Vec3::ONE*lod.0 as f32;
         let chunk_s1_hf = CHUNK_S1_HF/lod.0 as f32;
         let chunk_aabb = Aabb {
@@ -95,8 +114,8 @@ pub fn pull_meshes(
                 mesh: meshes.add(mesh),
                 material: bloc_tex_array.0.clone(),
                 transform: Transform::from_translation(
-                    Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32 - unit,
-                ).with_scale(unit),
+                    Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32,
+                ),
                 ..Default::default()
             }).insert(chunk_aabb).insert(lod).id();
             chunk_ents.0.insert(chunk_pos, ent);
@@ -147,6 +166,7 @@ impl Plugin for Draw3d {
             .add_systems(Update, update_shared_load_area)
             .add_systems(Update, pull_meshes.run_if(in_state(TexState::Finished)))
             .add_systems(Update, on_col_unload)
+            .add_systems(Update, chunk_aabb_gizmos)
             ;
     }
 }

@@ -55,7 +55,7 @@ fn chunked_face_pos(buffer: &[Bloc], quad_positions: &[[f32; 3]; 4], quad_normal
         [0, 0, 1] => Face::Back,
         _ => unreachable!()
     };
-    (buffer[buffer_shape.linearize(x, y, z)], bloc_face)
+    (buffer[buffer_shape.linearize(x+buffer_shape.lod, y+buffer_shape.lod, z+buffer_shape.lod)], bloc_face)
 }
 
 impl Meshable for DashMap<ChunkPos, TrackedChunk> {
@@ -174,10 +174,11 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
         let mut uvs = Vec::with_capacity(num_vertices);
         let mut color = Vec::with_capacity(num_vertices);
         let mut layers = Vec::with_capacity(num_vertices);
+        let lodf32 = lod as f32;
         for (group, face) in buffer.groups.into_iter().zip(faces.into_iter()) {
             for quad in group.into_iter() {
                 indices.extend_from_slice(&face.quad_mesh_indices(positions.len() as u32));
-                let mesh_positions = &face.quad_mesh_positions(&quad.into(), 1.0);
+                let mesh_positions = &face.quad_mesh_positions(&quad.into(), lodf32).map(|[x, y, z]| [x-lodf32, y-lodf32, z-lodf32]);
                 let mesh_normals = &face.quad_mesh_normals();
                 positions.extend_from_slice(mesh_positions);
                 normals.extend_from_slice(mesh_normals);
