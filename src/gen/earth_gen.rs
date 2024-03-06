@@ -38,14 +38,14 @@ impl TerrainGen for Earth {
         let gen_span = info_span!("noise gen", name = "noise gen").entered();
         let mut n = NoiseSource::new(range, self.seed, 1);
         let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4);
-        let continentalness = (n.simplex(0.1) + n.simplex(1.) * 0.3).normalize().pos();
+        let continentalness = (n.simplex(0.1) + n.simplex(0.8) * 0.3).normalize().pos();
         let base_land = continentalness.clone().threshold(1.-landratio) 
-            + n.simplex(5.)*0.1 
-            + n.simplex(20.)*0.02;
-        let moutain = (n.simplex(0.3) + n.simplex(1.)*0.3 + n.simplex(3.)*0.1)
+            + n.simplex(5.)*0.05 
+            + n.simplex(30.)*n.simplex(0.3)*0.01;
+        let moutain = (n.simplex(0.3) + n.simplex(1.)*0.3 + n.simplex(5.)*0.1)
         .normalize().pos().threshold(0.95)*base_land.clone();
 
-        let ys = base_land*WATER_R + moutain.clone()*(0.8-WATER_R);
+        let ys = base_land*(WATER_R+0.04) + moutain.clone()*(0.8-WATER_R);
         let ts = (n.simplex(0.1) + n.simplex(0.3)*0.3).normalize().pos();
         // closer to the ocean => more humidity
         // lower temp => less humidity

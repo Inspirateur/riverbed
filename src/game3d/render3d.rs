@@ -55,7 +55,8 @@ fn chunked_face_pos(buffer: &[Bloc], quad_positions: &[[f32; 3]; 4], quad_normal
         [0, 0, 1] => Face::Back,
         _ => unreachable!()
     };
-    (buffer[buffer_shape.linearize(x+buffer_shape.lod, y+buffer_shape.lod, z+buffer_shape.lod)], bloc_face)
+    // TODO: doesn't work with LODs, need inspection
+    (buffer[buffer_shape.linearize(x+1, y+1, z+1)], bloc_face)
 }
 
 impl Meshable for DashMap<ChunkPos, TrackedChunk> {

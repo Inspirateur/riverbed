@@ -12,7 +12,6 @@ pub fn setup_shared_load_area(mut commands: Commands, load_area: Res<LoadArea>) 
 }
 
 pub fn update_shared_load_area(load_area: Res<LoadArea>, shared_load_area: Res<SharedLoadArea>) {
-    if load_area.is_changed() {
-        *shared_load_area.0.write() = load_area.clone();
-    }
+    if !load_area.is_changed() { return; }
+    *shared_load_area.0.write() = load_area.clone();
 }

@@ -7,6 +7,7 @@ use bevy::render::primitives::Aabb;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver};
 use itertools::{iproduct, Itertools};
+use crate::blocs::pos2d::chunks_in_col;
 use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{range_around, ColUnloadEvent, LoadArea, LoadAreaAssigned};
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
@@ -19,17 +20,41 @@ const GRID_GIZMO_LEN: i32 = 4;
 pub struct LOD(pub usize);
 
 fn choose_lod_level(chunk_dist: u32) -> usize {
-    return 1;
-    if chunk_dist < 8 {
+    if chunk_dist < 16 {
         return 1;
     }
-    if chunk_dist < 16 {
+    if chunk_dist < 32 {
         return 2;
     }
-    if chunk_dist < 32 {
+    if chunk_dist < 64 {
         return 4;
     }
     return 8;
+}
+
+
+fn mark_lod_remesh(
+    load_area: Res<LoadArea>, 
+    chunk_ents: ResMut<ChunkEntities>, 
+    lods: Query<&LOD>, 
+    blocs: ResMut<Blocs>
+) {
+    if !load_area.is_changed() { return; }
+    for (chunk_pos, entity) in chunk_ents.0.iter() {
+        let Some(dist) =  load_area.col_dists.get(&(*chunk_pos).into()) else {
+            continue;
+        };
+        let new_lod = choose_lod_level(*dist);
+        let Ok(old_lod) = lods.get(*entity) else {
+            continue;
+        };
+        if new_lod != old_lod.0 {
+            let Some(mut chunk) = blocs.chunks.get_mut(chunk_pos) else {
+                continue;
+            };
+            chunk.changed = true;
+        }
+    }
 }
 
 fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<LoadArea>) {
@@ -87,9 +112,10 @@ pub fn pull_meshes(
     mut mesh_query: Query<(&Handle<Mesh>, &mut LOD, &mut Transform, &mut Aabb)>,
     mut meshes: ResMut<Assets<Mesh>>,
     bloc_tex_array: Res<BlocTextureArray>,
+    load_area: Res<LoadArea>,
     blocs: Res<Blocs>
 ) {
-    let received_meshes: Vec<_> = mesh_reciever.0.try_iter().collect();
+    let received_meshes: Vec<_> = mesh_reciever.0.try_iter().filter(|(_, chunk_pos, _)| load_area.col_dists.contains_key(&(*chunk_pos).into())).collect();
     for (mesh, chunk_pos, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, _)| *pos) {
         let unit = Vec3::ONE*lod.0 as f32;
         let chunk_s1_hf = CHUNK_S1_HF/lod.0 as f32;
@@ -129,13 +155,8 @@ pub fn on_col_unload(
     mut chunk_ents: ResMut<ChunkEntities>,
 ) {
     for col_ev in ev_unload.read() {
-        for i in 0..Y_CHUNKS {
-            if let Some(ent) = chunk_ents.0.remove(&ChunkPos {
-                x: col_ev.0.x,
-                y: i as i32,
-                z: col_ev.0.z,
-                realm: col_ev.0.realm
-            }) {
+        for chunk_pos in chunks_in_col(&col_ev.0) {
+            if let Some(ent) = chunk_ents.0.remove(&chunk_pos) {
                 commands.entity(ent).despawn();
             }
         }
@@ -164,6 +185,7 @@ impl Plugin for Draw3d {
                 .chain()
                 .after(LoadAreaAssigned))
             .add_systems(Update, update_shared_load_area)
+            .add_systems(Update, mark_lod_remesh)
             .add_systems(Update, pull_meshes.run_if(in_state(TexState::Finished)))
             .add_systems(Update, on_col_unload)
             // .add_systems(Update, chunk_aabb_gizmos)
