@@ -50,6 +50,12 @@ impl Blocs {
         }
     }
 
+    pub fn new_with(chunks: Arc<DashMap<ChunkPos, TrackedChunk>>) -> Self {
+        Blocs {
+            chunks
+        }
+    }
+
     pub fn set_bloc(&self, pos: BlocPos, bloc: Bloc) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         self.mark_change(chunk_pos, chunked_pos);

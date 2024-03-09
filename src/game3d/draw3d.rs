@@ -79,7 +79,7 @@ fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<LoadArea>) {
 pub struct MeshReciever(Receiver<(Mesh, ChunkPos, LOD)>);
 
 fn setup_mesh_thread(mut commands: Commands, blocs: Res<Blocs>, shared_load_area: Res<SharedLoadArea>, texture_map: Res<TextureMap>) {
-let thread_pool = AsyncComputeTaskPool::get();
+    let thread_pool = AsyncComputeTaskPool::get();
     let chunks = Arc::clone(&blocs.chunks);
     let (mesh_sender, mesh_reciever) = unbounded();
     commands.insert_resource(MeshReciever(mesh_reciever));

@@ -1,4 +1,3 @@
-use crate::gen::terrain_gen::TerrainGen;
 use crate::blocs::{
     MAX_GEN_HEIGHT, CHUNK_S1,
     Bloc, Soils, unchunked, Blocs, ColPos
@@ -35,10 +34,8 @@ impl DebugGen {
             soils: Soils::from_csv(Path::new("assets/data/soils_condition.csv")).unwrap(),
         }
     }
-}
 
-impl TerrainGen for DebugGen {
-    fn gen(&self, world: &Blocs, col: ColPos) {
+    pub fn gen(&self, world: &Blocs, col: ColPos) {
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (x, z) = (unchunked(col.x, dx), unchunked(col.z, dz));
             let (y, t, h) = values(x, z);
@@ -49,13 +46,5 @@ impl TerrainGen for DebugGen {
         }
         // this is a bit too slow so we don't bother with it for now
         // col.fill_up(Bloc::Stone);
-    }
-
-    fn set_config(&mut self, _config: HashMap<String, f32>) {
-        todo!()
-    }
-
-    fn set_seed(&mut self, _seed: u32) {
-        todo!()
     }
 }

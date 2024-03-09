@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use crate::blocs::{Blocs, ColPos, Realm, ReinsertTrait};
-use crate::gen::Generators;
 use itertools::Itertools;
 use bevy::prelude::*;
+use super::terrain_gen::LoadOrderSender;
 use super::{LoadArea, RenderDistance};
 
 
@@ -94,8 +94,7 @@ pub fn assign_load_area(
     let new_load_area = LoadArea::new( col, *render_dist);
     col_orders.on_load_area_change(player.index(), &old_load_area, &new_load_area);
     commands.insert_resource(new_load_area.clone());  
-}      
-
+}
 
 pub fn update_load_area(
     mut query: Query<(Entity, &Transform, &Realm, &RenderDistance)>, 
@@ -141,12 +140,14 @@ pub fn process_unload_orders(
 
 pub fn process_load_order(
     mut col_orders: ResMut<LoadOrders>,
-    blocs: ResMut<Blocs>,
-    gens: Res<Generators>,
+    order_queue: Res<LoadOrderSender>,
 ) {
-    // take 1 generation order at a time to spread the work over multiple frames
-    if let Some((col, _)) = col_orders.to_generate.pop() {
-        gens.gen(&blocs, col);
-        blocs.mark_change_col(col);
+    let mut failed_sends = Vec::new();
+    for (col, p) in col_orders.to_generate.drain(..) {
+        if order_queue.0.try_send(col).is_err() {
+            println!("failed to send load order for {:?}", col);
+            failed_sends.push((col, p));
+        }
     }
+    col_orders.to_generate.extend(&failed_sends);
 }

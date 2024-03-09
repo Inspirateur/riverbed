@@ -1,4 +1,3 @@
-use crate::gen::terrain_gen::TerrainGen;
 use bevy::prelude::info_span;
 use crate::blocs::{CHUNK_S1, ColPos, Blocs, BlocPos2d, BlocPos, CHUNK_S1I};
 use crate::blocs::{MAX_GEN_HEIGHT, WATER_H, Bloc, Soils, Trees};
@@ -30,10 +29,8 @@ impl Earth {
             config
         }
     }
-}
 
-impl TerrainGen for Earth {
-    fn gen(&self, world: &Blocs, col: ColPos) {
+    pub fn gen(&self, world: &Blocs, col: ColPos) {
         let range = pos_to_range(col);
         let gen_span = info_span!("noise gen", name = "noise gen").entered();
         let mut n = NoiseSource::new(range, self.seed, 1);
@@ -102,13 +99,5 @@ impl TerrainGen for Earth {
             }
         }
         tree_span.exit();
-    }
-
-    fn set_config(&mut self, _config: HashMap<String, f32>) {
-        todo!()
-    }
-
-    fn set_seed(&mut self, _seed: u32) {
-        todo!()
     }
 }

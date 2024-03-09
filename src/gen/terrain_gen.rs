@@ -1,29 +1,39 @@
+use crate::blocs::pos2d::Pos2d;
 use crate::gen::earth_gen::Earth;
-use crate::blocs::{Realm, ColPos, Blocs};
+use crate::blocs::{Blocs, CHUNK_S1};
+use bevy::ecs::system::{Commands, Res};
 use bevy::prelude::Resource;
+use bevy::tasks::AsyncComputeTaskPool;
+use crossbeam::channel::{unbounded, Sender};
 use std::collections::HashMap;
-
-pub trait TerrainGen: Send + Sync {
-    fn set_config(&mut self, config: HashMap<String, f32>);
-
-    fn set_seed(&mut self, seed: u32);
-
-    fn gen(&self, world: &Blocs, col: ColPos);
-}
+use std::sync::Arc;
+use std::thread::yield_now;
 
 #[derive(Resource)]
-pub struct Generators {
-    data: HashMap<Realm, Box<dyn TerrainGen>>,
-}
+pub struct Seed(pub u32);
 
-impl Generators {
-    pub fn new(seed: u32) -> Self {
-        let mut gens: HashMap<Realm, Box<dyn TerrainGen>> = HashMap::new();
-        gens.insert(Realm::Overworld, Box::new(Earth::new(seed, HashMap::new())));
-        Generators { data: gens }
-    }
+#[derive(Resource)]
+pub struct LoadOrderSender(pub Sender<Pos2d<CHUNK_S1>>);
 
-    pub fn gen(&self, world: &Blocs, pos: ColPos) {
-        self.data.get(&Realm::Overworld).unwrap().gen(world, pos)
-    }
+
+pub fn setup_gen_thread(mut commands: Commands, blocs: Res<Blocs>, seed: Res<Seed>) {
+    let thread_pool = AsyncComputeTaskPool::get();
+    let (load_order_sender, load_order_reciever) = unbounded();
+    let chunks = Arc::clone(&blocs.chunks);
+    commands.insert_resource(LoadOrderSender(load_order_sender));
+    let seed_value = seed.0;
+    thread_pool.spawn(
+        async move {
+            let gen = Earth::new(seed_value, HashMap::new());
+            let world = Blocs::new_with(chunks);
+            loop {
+                let Ok(col_pos) = load_order_reciever.try_recv() else {
+                    yield_now();
+                    continue;
+                };
+                gen.gen(&world, col_pos);
+                world.mark_change_col(col_pos);
+            }
+        }
+    ).detach();
 }
