@@ -20,13 +20,13 @@ const GRID_GIZMO_LEN: i32 = 4;
 pub struct LOD(pub usize);
 
 fn choose_lod_level(chunk_dist: u32) -> usize {
-    if chunk_dist < 16 {
+    if chunk_dist < 8 {
         return 1;
     }
-    if chunk_dist < 32 {
+    if chunk_dist < 16 {
         return 2;
     }
-    if chunk_dist < 64 {
+    if chunk_dist < 32 {
         return 4;
     }
     return 8;
@@ -127,7 +127,6 @@ pub fn pull_meshes(
             if let Ok((handle, mut old_lod, mut transform, mut aabb)) = mesh_query.get_mut(*ent) {
                 if let Some(old_mesh) = meshes.get_mut(handle) {
                     *old_mesh = mesh;
-                    transform.scale = unit;
                     *old_lod = lod;
                     *aabb = chunk_aabb;
                 }
