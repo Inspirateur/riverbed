@@ -109,7 +109,7 @@ pub fn pull_meshes(
     mut commands: Commands, 
     mesh_reciever: Res<MeshReciever>, 
     mut chunk_ents: ResMut<ChunkEntities>, 
-    mut mesh_query: Query<(&Handle<Mesh>, &mut LOD, &mut Transform, &mut Aabb)>,
+    mut mesh_query: Query<(&Handle<Mesh>, &mut LOD, &mut Aabb)>,
     mut meshes: ResMut<Assets<Mesh>>,
     bloc_tex_array: Res<BlocTextureArray>,
     load_area: Res<LoadArea>,
@@ -117,14 +117,13 @@ pub fn pull_meshes(
 ) {
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter().filter(|(_, chunk_pos, _)| load_area.col_dists.contains_key(&(*chunk_pos).into())).collect();
     for (mesh, chunk_pos, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, _)| *pos) {
-        let unit = Vec3::ONE*lod.0 as f32;
         let chunk_s1_hf = CHUNK_S1_HF/lod.0 as f32;
         let chunk_aabb = Aabb {
             center: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf),
             half_extents: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf)
         };
         if let Some(ent) = chunk_ents.0.get(&chunk_pos) {
-            if let Ok((handle, mut old_lod, mut transform, mut aabb)) = mesh_query.get_mut(*ent) {
+            if let Ok((handle, mut old_lod, mut aabb)) = mesh_query.get_mut(*ent) {
                 if let Some(old_mesh) = meshes.get_mut(handle) {
                     *old_mesh = mesh;
                     *old_lod = lod;
