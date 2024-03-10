@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use bevy::{prelude::{Image, Vec3}, render::{render_resource::Extent3d, texture::BevyDefault}};
+use bevy::{prelude::{Image, Vec3}, render::{render_asset::RenderAssetUsages, render_resource::Extent3d, texture::BevyDefault}};
 use colorsys::{Rgb, ColorTransform};
 use itertools::iproduct;
 use crate::blocs::{BlocPos, BlocPos2d, ColPos, Blocs, Bloc, CHUNK_S2, CHUNK_S1};
@@ -79,6 +79,7 @@ impl Render2D for Blocs {
             bevy::render::render_resource::TextureDimension::D2,
             data,
             BevyDefault::bevy_default(),
+            RenderAssetUsages::default()
         );
         self.update_image(col, &mut image, soil_color);
         image

@@ -1,4 +1,4 @@
-use bevy::{prelude::{Mesh, info_span}, render::{render_resource::{PrimitiveTopology, VertexFormat}, mesh::{VertexAttributeValues, Indices, MeshVertexAttribute}}};
+use bevy::{prelude::{info_span, Mesh}, render::{mesh::{Indices, MeshVertexAttribute, VertexAttributeValues}, render_asset::RenderAssetUsages, render_resource::{PrimitiveTopology, VertexFormat}}};
 use block_mesh::{UnitQuadBuffer, RIGHT_HANDED_Y_UP_CONFIG, visible_block_faces};
 use dashmap::DashMap;
 use itertools::iproduct;
@@ -143,7 +143,7 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
     }
 
     fn create_mesh(&self, chunk: ChunkPos, texture_map: &DashMap<(Bloc, FaceSpecifier), usize>, lod: usize) -> Mesh {
-        let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
+        let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
         self.update_mesh(chunk, &mut render_mesh, texture_map, lod);
         render_mesh
     }
@@ -217,7 +217,7 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
             VertexAttributeValues::Float32x4(color),
         );
         mesh.insert_attribute(ATTRIBUTE_TEXTURE_LAYER, layers);
-        mesh.set_indices(Some(Indices::U32(indices.clone())));
+        mesh.insert_indices(Indices::U32(indices.clone()));
         mesh_build_span.exit();
     }
 }

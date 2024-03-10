@@ -51,7 +51,7 @@ pub fn bloc_outline(mut gizmos: Gizmos, target_bloc_query: Query<&TargetBloc>) {
 
 pub fn break_bloc(world: Res<Blocs>, bloc_action_query: Query<(&TargetBloc, &ActionState<Action>)>) {
     for (target_bloc_opt, action) in bloc_action_query.iter() {
-        if action.just_pressed(Action::Action1) {
+        if action.just_pressed(&Action::Action1) {
             if let Some(target_bloc) = &target_bloc_opt.0 {
                 world.set_bloc(target_bloc.pos, Bloc::Air);
             }    
@@ -61,7 +61,7 @@ pub fn break_bloc(world: Res<Blocs>, bloc_action_query: Query<(&TargetBloc, &Act
 
 pub fn place_bloc(world: Res<Blocs>, bloc_action_query: Query<(&TargetBloc, &ActionState<Action>)>) {
     for (target_bloc_opt, action) in bloc_action_query.iter() {
-        if action.just_pressed(Action::Action2) {
+        if action.just_pressed(&Action::Action2) {
             if let Some(target_bloc) = &target_bloc_opt.0 {
                 world.set_bloc_safe(target_bloc.pos+target_bloc.normal, Bloc::Stone);
             }

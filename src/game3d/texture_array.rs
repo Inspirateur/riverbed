@@ -1,5 +1,5 @@
 use std::{ffi::OsStr, str::FromStr, sync::Arc};
-use bevy::{prelude::*, reflect::{TypeUuid, TypePath}, render::render_resource::{ShaderRef, AsBindGroup, Extent3d, TextureDimension}, asset::LoadedFolder};
+use bevy::{asset::LoadedFolder, prelude::*, reflect::TypePath, render::{render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
 use dashmap::DashMap;
 use crate::blocs::{Bloc, Face};
 
@@ -133,7 +133,8 @@ fn setup(
         }, 
         TextureDimension::D2, 
         texture_list.into_iter().flat_map(|tex| tex.data.clone()).collect(), 
-        model.texture_descriptor.format
+        model.texture_descriptor.format,
+        RenderAssetUsages::default()
     );
     let handle = textures.add(array_tex);
     let handle = materials.add(ArrayTextureMaterial {
@@ -146,8 +147,7 @@ fn setup(
 #[derive(Resource)]
 pub struct BlocTextureArray(pub Handle<ArrayTextureMaterial>);
 
-#[derive(Asset, AsBindGroup, Debug, Clone, TypeUuid, TypePath)]
-#[uuid = "9c5a0ddf-1eaf-41b4-9832-ed736fd26af3"]
+#[derive(Asset, AsBindGroup, Debug, Clone, TypePath)]
 pub struct ArrayTextureMaterial {
     #[texture(0, dimension = "2d_array")]
     #[sampler(1)]
@@ -185,7 +185,7 @@ pub struct TextureArrayPlugin;
 
 impl Plugin for TextureArrayPlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<TexState>()
+        app.init_state::<TexState>()
             .insert_resource(TextureMap(Arc::new(DashMap::new())))
             .add_plugins(MaterialPlugin::<ArrayTextureMaterial>::default())
             .add_systems(OnEnter(TexState::Setup), load_textures)

@@ -72,27 +72,27 @@ pub fn spawn_player(mut commands: Commands) {
         .insert(InputManagerBundle::<Dir> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
-                (KeyCode::W, Dir::Front),
-                (KeyCode::A, Dir::Left),
-                (KeyCode::S, Dir::Back),
-                (KeyCode::D, Dir::Right),
-                (KeyCode::Z, Dir::Front),
-                (KeyCode::Q, Dir::Left),
-                (KeyCode::ShiftLeft, Dir::Down),
-                (KeyCode::Space, Dir::Up)
+                (Dir::Front, KeyCode::KeyW),
+                (Dir::Left, KeyCode::KeyA),
+                (Dir::Back, KeyCode::KeyS),
+                (Dir::Right, KeyCode::KeyD),
+                (Dir::Front, KeyCode::KeyZ),
+                (Dir::Left, KeyCode::KeyQ),
+                (Dir::Down, KeyCode::ShiftLeft),
+                (Dir::Up, KeyCode::Space)
             ]),
         })
         .insert(InputManagerBundle::<UIAction> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
-                (KeyCode::Escape, UIAction::Escape),
+                (UIAction::Escape, KeyCode::Escape),
             ]),
         })
         .insert(InputManagerBundle::<Action> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
-                (MouseButton::Left, Action::Action1),
-                (MouseButton::Right, Action::Action2),
+                (Action::Action1, MouseButton::Left),
+                (Action::Action2, MouseButton::Right),
             ])
         });
 }
@@ -117,7 +117,7 @@ pub fn move_player(
             jumping.intent = true;
         }
         movement = movement.normalize();
-        movement = Vec3::Y.cross(cam_transform.right())*movement.z + cam_transform.right()*movement.x + movement.y * Vec3::Y;
+        movement = Vec3::Y.cross(*cam_transform.right())*movement.z + cam_transform.right()*movement.x + movement.y * Vec3::Y;
     }
     heading.0 = movement;
     heading.0.y = f32::NAN;

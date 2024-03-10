@@ -23,6 +23,12 @@ pub struct FpsCam {
 pub struct CameraSpawn;
 
 pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player_query: Query<(Entity, &AABB), With<PlayerControlled>>) {
+    let input_map = InputMap::new([
+        // This will capture the total continuous value, for direct use.
+        // Note that you can also use discrete gesture-like motion,
+        // via the `MouseMotionDirection` enum.
+        (CameraMovement::Pan, DualAxis::mouse_motion()),
+    ]);
     let (player, aabb) = player_query.get_single().unwrap();
     let cam = commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(aabb.0.x/2., 2., aabb.0.z/2.)
@@ -36,11 +42,7 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
         ..Default::default()
     })
     .insert(InputManagerBundle::<CameraMovement> {
-        input_map: InputMap::default()
-            // This will capture the total continuous value, for direct use.
-            // Note that you can also use discrete gesture-like motion, via the `MouseMotionDirection` enum.
-            .insert(DualAxis::mouse_motion(), CameraMovement::Pan)
-            .build(),
+        input_map,
         ..default()
     }).insert(FpsCam::default()).id();
     commands.entity(player).add_child(cam);
@@ -51,7 +53,7 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
 
 pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>, time: Res<Time>) {
     let (action_state, mut fpscam) = query.single_mut();
-    let camera_pan_vector = action_state.axis_pair(CameraMovement::Pan).unwrap();
+    let camera_pan_vector = action_state.axis_pair(&CameraMovement::Pan).unwrap();
     let c = time.delta_seconds() * CAMERA_PAN_RATE;
     fpscam.yaw -= c*camera_pan_vector.x();
     fpscam.pitch -= c*camera_pan_vector.y();
