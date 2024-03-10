@@ -54,11 +54,10 @@ impl Plugin for SkyPlugin {
         app   
             .insert_resource(AmbientLight {
                 color: Color::WHITE,
-                brightness: 0.2,
+                brightness: 500.0,
             })     
             .insert_resource(AtmosphereModel::new(Nishita {
                 // rayleigh_coefficient: Vec3::new(5.5e-6, 4.0e-6, 22.4e-6),
-                mie_coefficient: 15e-6,
                 ..default()
             }))
             .insert_resource(CycleTimer(Timer::new(
