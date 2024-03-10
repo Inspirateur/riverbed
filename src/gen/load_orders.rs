@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use crate::blocs::{Blocs, ColPos, Realm, ReinsertTrait};
 use itertools::Itertools;
 use bevy::prelude::*;
-use super::terrain_gen::LoadOrderSender;
+use parking_lot::RwLock;
 use super::{LoadArea, RenderDistance};
 
 
@@ -11,7 +12,7 @@ pub struct LoadOrders {
     // { column: { player } }
     player_cols: HashMap<ColPos, HashSet<u32>>,
     // [(column, min dist to player)]
-    pub to_generate: Vec<(ColPos, u32)>,
+    pub to_generate: Arc<RwLock<Vec<(ColPos, u32)>>>,
     pub to_unload: Vec<ColPos>,
 }
 
@@ -19,40 +20,46 @@ impl LoadOrders {
     pub fn new() -> Self {
         LoadOrders {
             player_cols: HashMap::new(),
-            to_generate: Vec::new(),
+            to_generate: Arc::new(RwLock::new(Vec::new())),
             to_unload: Vec::new(),
         }
     }
 
     fn unload_col(&mut self, col_pos: ColPos) {
         self.player_cols.remove(&col_pos);
-        if let Some((i, _)) = self.to_generate.iter().find_position(|(pos_, _)| *pos_ == col_pos) {
+        // NOTE: very important to store this in an intermediary variable 
+        // or else the read lock leaves long enough that we reach the write lock in the if
+        let generate_order_opt = self.to_generate.read_arc()
+            .iter()
+            .find_position(|(pos_, _)| *pos_ == col_pos)
+            .and_then(|(i, _)| Some(i));
+        if let Some(i) = generate_order_opt {
             // the column was still waiting for load
-            self.to_generate.remove(i);
+            self.to_generate.write_arc().remove(i);
         } else {
             self.to_unload.push(col_pos);
-        }        
+        }
     }
 
     fn add_gen_order(&mut self, col_pos: ColPos, dist: u32) {
         // col_pos should *not* be present in to_generate
-        let i = match self.to_generate.binary_search_by(|(_, other_dist)| dist.cmp(other_dist)) {
+        let i = match self.to_generate.read_arc().binary_search_by(|(_, other_dist)| dist.cmp(other_dist)) {
             Ok(i) => i,
             Err(i) => i
         };
-        self.to_generate.insert(i, (col_pos, dist));
+        self.to_generate.write_arc().insert(i, (col_pos, dist));
     }
 
     fn update_gen_order(&mut self, col_pos: &ColPos, dist: u32) {
         // col_pos may be present in to_generate
-        let Some(old_i) = self.to_generate.iter().position(|(other_col, _)| other_col == col_pos) else {
+        let Some(old_i) = self.to_generate.read_arc().iter().position(|(other_col, _)| other_col == col_pos) else {
             return;
         };
-        let new_i = match self.to_generate.binary_search_by(|(_, other_dist)| dist.cmp(other_dist)) {
+        let new_i = match self.to_generate.read_arc().binary_search_by(|(_, other_dist)| dist.cmp(other_dist)) {
             Ok(i) => i,
             Err(i) => i
         };
-        self.to_generate.reinsert(old_i, new_i);
+        self.to_generate.write_arc().reinsert(old_i, new_i);
     }
 
     pub fn on_load_area_change(&mut self, player_id: u32, old_load_area: &LoadArea, new_load_area: &LoadArea) {
@@ -136,18 +143,4 @@ pub fn process_unload_orders(
         blocs.unload_col(col);
         ev_unload.send(ColUnloadEvent(col));
     }
-}
-
-pub fn process_load_order(
-    mut col_orders: ResMut<LoadOrders>,
-    order_queue: Res<LoadOrderSender>,
-) {
-    let mut failed_sends = Vec::new();
-    for (col, p) in col_orders.to_generate.drain(..) {
-        if order_queue.0.try_send(col).is_err() {
-            println!("failed to send load order for {:?}", col);
-            failed_sends.push((col, p));
-        }
-    }
-    col_orders.to_generate.extend(&failed_sends);
 }

@@ -9,7 +9,7 @@ use bevy::{app::Startup, ecs::schedule::{apply_deferred, IntoSystemConfigs, Syst
 use crate::agents::PlayerSpawn;
 
 use self::{load_orders::{
-	assign_load_area, on_render_distance_change, process_load_order, process_unload_orders, update_load_area
+	assign_load_area, on_render_distance_change, process_unload_orders, update_load_area
 }, terrain_gen::{setup_gen_thread, Seed}};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
@@ -28,7 +28,6 @@ impl Plugin for GenPlugin {
 			.add_systems(Update, update_load_area)
 			.add_systems(Update, on_render_distance_change)
 			.add_systems(Update, process_unload_orders)
-			.add_systems(Update, process_load_order)
 		;
 	}
 }

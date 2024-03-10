@@ -2,7 +2,7 @@ use crate::blocs::{pos2d::chunks_in_col, ChunkPos, ColPos, TrackedChunk};
 use bevy::prelude::*;
 use dashmap::DashMap;
 use itertools::iproduct;
-use std::{collections::HashMap, ops::{Range, RangeInclusive}};
+use std::{collections::HashMap, ops::RangeInclusive};
 
 #[derive(Component, Clone, Copy)]
 pub struct RenderDistance(pub u32);

@@ -32,7 +32,7 @@ impl Earth {
 
     pub fn gen(&self, world: &Blocs, col: ColPos) {
         let range = pos_to_range(col);
-        let gen_span = info_span!("noise gen", name = "noise gen").entered();
+        // let gen_span = info_span!("noise gen", name = "noise gen").entered();
         let mut n = NoiseSource::new(range, self.seed, 1);
         let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4);
         let continentalness = (n.simplex(0.1) + n.simplex(0.8) * 0.3).normalize().pos();
@@ -50,8 +50,8 @@ impl Earth {
         let ph = (n.simplex(0.5) + n.simplex(4.)*0.2).normalize().pos();
         // convert y to convenient values
         let ys = ys.map(|y| (y * MAX_GEN_HEIGHT as f32) as i32);
-        gen_span.exit();
-        let fill_span = info_span!("chunk filling", name = "chunk filling").entered();
+        // gen_span.exit();
+        // let fill_span = info_span!("chunk filling", name = "chunk filling").entered();
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (y, t, h) = (ys[[dx, dz]], ts[[dx, dz]], hs[[dx, dz]]); 
             
@@ -74,7 +74,7 @@ impl Earth {
                 world.set_yrange(col, (dx, dz), WATER_H, water_height as usize, Bloc::SeaBlock);
             }
         }
-        fill_span.exit();
+        // fill_span.exit();
         let tree_span = info_span!("tree gen", name = "tree gen").entered();
         let tree_spots = [(0, 0), (16, 0), (8, 16), (24, 16)];
         for spot in tree_spots {
