@@ -40,12 +40,12 @@ impl Earth {
         let continentalness = n.simplex(0.2);
         let cont = (n.simplex(1.)*0.3 + n.simplex(5.)*0.1 + n.simplex(20.)*0.05 + &continentalness).normalize().cap(CONT_R);
         let rockyness = n.simplex(0.2);
-        let rocks = !(n.simplex(2.)*0.3 + n.simplex(10.)*0.1 + n.simplex(100.)*0.04 + &rockyness).normalize().cap(0.06);
+        let rocks = !(n.simplex(0.5)*0.6 + n.simplex(10.)*0.1 + n.simplex(100.)*0.04 + &rockyness).normalize().cap(0.08);
 
         let ts = (n.simplex(0.1) + n.simplex(0.4)*0.15 + n.simplex(8.)*0.06 + n.simplex(100.)*0.015).normalize();
         
         let roughness = (n.simplex(1.0)*0.2 + !ts.powi(2) + &rockyness).normalize().powi(2);
-        let mountain = (n.ridge(0.3).powi(2) + n.simplex(3.)*0.1 + n.simplex(30.)*0.005).normalize()*&roughness;
+        let mountain = (n.ridge(0.3).powi(2) + n.simplex(3.)*0.05 + n.simplex(20.)*0.002).normalize()*&roughness;
         
         let hs = (n.simplex(0.1) + !continentalness*0.5 + n.simplex(10.)*0.1 + n.simplex(60.)*0.04).normalize();
         let ph = (n.simplex(1.) + n.simplex(4.)*0.2 + n.simplex(40.)*0.1).normalize();

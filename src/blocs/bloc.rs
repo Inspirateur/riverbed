@@ -64,7 +64,7 @@ impl Bloc {
 
     pub fn is_soil(&self) -> bool {
         match self {
-            Bloc::GrassBlock | Bloc::Podzol
+            Bloc::GrassBlock | Bloc::Podzol | Bloc::Snow
                 => true,
             _ => false
         }
