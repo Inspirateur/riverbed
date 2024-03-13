@@ -117,10 +117,9 @@ pub fn pull_meshes(
 ) {
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter().filter(|(_, chunk_pos, _)| load_area.col_dists.contains_key(&(*chunk_pos).into())).collect();
     for (mesh, chunk_pos, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, _)| *pos) {
-        let chunk_s1_hf = CHUNK_S1_HF/lod.0 as f32;
         let chunk_aabb = Aabb {
-            center: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf),
-            half_extents: Vec3A::new(chunk_s1_hf, chunk_s1_hf, chunk_s1_hf)
+            center: Vec3A::new(CHUNK_S1_HF, CHUNK_S1_HF, CHUNK_S1_HF),
+            half_extents: Vec3A::new(CHUNK_S1_HF, CHUNK_S1_HF, CHUNK_S1_HF)
         };
         if let Some(ent) = chunk_ents.0.get(&chunk_pos) {
             if let Ok((handle, mut old_lod, mut aabb)) = mesh_query.get_mut(*ent) {

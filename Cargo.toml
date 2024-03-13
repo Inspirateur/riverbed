@@ -27,7 +27,7 @@ array-macro = "*"
 packed-uints = "*"
 block-mesh = "*"
 lazy_static = "*"
-noise-algebra = { git = "https://github.com/Inspirateur/noise-algebra" }
+noise-algebra = "*"
 nd-interval = { git = "https://github.com/Inspirateur/nd-interval" }
 
 [profile.dev]

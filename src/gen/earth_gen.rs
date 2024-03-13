@@ -6,6 +6,8 @@ use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
 use nd_interval::NdInterval;
 pub const WATER_R: f32 = WATER_H as f32/MAX_GEN_HEIGHT as f32;
+pub const CONT_R: f32 = (WATER_H+2) as f32/MAX_GEN_HEIGHT as f32;
+pub const CONT_COMPL: f32 = 1.-CONT_R;
 
 pub struct Earth {
     soils: Soils,
@@ -31,23 +33,15 @@ impl Earth {
     }
 
     pub fn gen(&self, world: &Blocs, col: ColPos) {
+        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4);
         let range = pos_to_range(col);
         // let gen_span = info_span!("noise gen", name = "noise gen").entered();
         let mut n = NoiseSource::new(range, self.seed, 1);
-        let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4);
-        let continentalness = (n.simplex(0.1) + n.simplex(0.8) * 0.3).normalize().pos();
-        let base_land = continentalness.clone().threshold(1.-landratio) 
-            + n.simplex(5.)*0.05 
-            + n.simplex(30.)*n.simplex(0.3)*0.01;
-        let moutain = (n.simplex(0.3) + n.simplex(1.)*0.3 + n.simplex(5.)*0.1)
-        .normalize().pos().threshold(0.95)*base_land.clone();
-
-        let ys = base_land*(WATER_R+0.04) + moutain.clone()*(0.8-WATER_R);
-        let ts = (n.simplex(0.1) + n.simplex(0.3)*0.3).normalize().pos();
-        // closer to the ocean => more humidity
-        // lower temp => less humidity
-        let hs = (!ts.clone()*0.5 + !continentalness*0.5 + n.simplex(0.4).pos()).normalize();
-        let ph = (n.simplex(0.5) + n.simplex(4.)*0.2).normalize().pos();
+        let cont = (n.simplex(0.2) + n.simplex(1.)*0.3 + n.simplex(5.)*0.1 + n.simplex(20.)*0.05).normalize().min(CONT_R);
+        let ys = cont;
+        let ts = n.constant(0.5);
+        let hs = n.constant(0.5);
+        let ph = n.constant(0.5);
         // convert y to convenient values
         let ys = ys.map(|y| (y * MAX_GEN_HEIGHT as f32) as i32);
         // gen_span.exit();
@@ -63,12 +57,7 @@ impl Earth {
                     None => Bloc::Dirt,
                 }
             };
-            if moutain[[dx, dz]] > 0.2 {
-                world.set_yrange(col, (dx, dz), y, 1, bloc);
-                world.set_yrange(col, (dx, dz), y-1, 7, Bloc::Stone);
-            } else {
-                world.set_yrange(col, (dx, dz), y, 8, bloc);
-            }
+            world.set_yrange(col, (dx, dz), y, 8, bloc);
             let water_height = WATER_H-y;
             if water_height > 0 {
                 world.set_yrange(col, (dx, dz), WATER_H, water_height as usize, Bloc::SeaBlock);
@@ -83,8 +72,7 @@ impl Earth {
             let dz = spot.1 + ((rng >> 3) & 0b111);
             let h = (rng >> 5) & 0b11;
             let y = ys[[dx, dz]];
-            let m = moutain[[dx, dz]];
-            if y > WATER_H && (m < 0.1 || m > 0.7) {
+            if y > WATER_H {
                 if let Some((tree, dist)) = self.trees.closest([
                     ts[[dx, dz]], 
                     hs[[dx, dz]], 

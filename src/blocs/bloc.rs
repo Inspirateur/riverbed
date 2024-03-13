@@ -60,6 +60,14 @@ impl Bloc {
         }
     }
 
+    pub fn is_soil(&self) -> bool {
+        match self {
+            Bloc::Dirt | Bloc::GrassBlock
+                => true,
+            _ => false
+        }
+    }
+
     pub fn is_leaves(&self) -> bool {
         match self {
             Bloc::OakLeaves | Bloc::BirchLeaves | Bloc::SpruceLeaves | Bloc::SequoiaLeaves
@@ -126,6 +134,7 @@ pub enum Tree {
 
 impl Tree {
     pub fn grow(&self, world: &Blocs, pos: BlocPos, seed: i32, dist: f32) {
+        if !world.get_block_safe(pos).is_soil() { return; }
         match self {
             Tree::Spruce => grow_spruce(world, pos, seed, dist),
             Tree::Birch => grow_birch(world, pos, seed, dist),
