@@ -6,7 +6,7 @@ use super::camera::FpsCam;
 use leafwing_input_manager::prelude::*;
 use bevy::prelude::*;
 
-const TARGET_DIST: f32 = 8.;
+const TARGET_DIST: f32 = 10.;
 const EDGES_ANCHORS: [Vec3; 4] = [
     Vec3::ZERO,
     Vec3::new(1., 1., 0.),

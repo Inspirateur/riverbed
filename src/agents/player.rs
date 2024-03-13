@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
 };
 use leafwing_input_manager::prelude::*;
-const SPAWN: Vec3 = Vec3 { x: 540., y: 250., z: 130.};
+const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
 
 #[derive(Component)]
 pub struct PlayerControlled;

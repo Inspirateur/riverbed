@@ -43,11 +43,13 @@ impl LoadOrders {
 
     fn add_gen_order(&mut self, col_pos: ColPos, dist: u32) {
         // col_pos should *not* be present in to_generate
-        let i = match self.to_generate.read_arc().binary_search_by(|(_, other_dist)| dist.cmp(other_dist)) {
+        // need to take a write lock before doing read and write or else to_generate could change between the read and the write
+        let mut wlock = self.to_generate.write_arc();
+        let i = match wlock.binary_search_by(|(_, other_dist)| dist.cmp(other_dist)) {
             Ok(i) => i,
             Err(i) => i
         };
-        self.to_generate.write_arc().insert(i, (col_pos, dist));
+        wlock.insert(i, (col_pos, dist));
     }
 
     fn update_gen_order(&mut self, col_pos: &ColPos, dist: u32) {

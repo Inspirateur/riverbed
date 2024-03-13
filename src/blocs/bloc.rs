@@ -9,6 +9,7 @@ use super::{Blocs, BlocPos, growables::*};
 pub enum Bloc {
     #[default]
     Air,
+    CoarseDirt,
     Dirt,
     GrassBlock,
     Glass,
@@ -17,6 +18,7 @@ pub enum Bloc {
     BirchLeaves,
     OakLog,
     OakLeaves,
+    Podzol,
     SpruceLog,
     SpruceLeaves,
     SequoiaLog,
@@ -62,7 +64,7 @@ impl Bloc {
 
     pub fn is_soil(&self) -> bool {
         match self {
-            Bloc::Dirt | Bloc::GrassBlock
+            Bloc::GrassBlock | Bloc::Podzol
                 => true,
             _ => false
         }
