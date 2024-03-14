@@ -41,7 +41,7 @@ fn daylight_cycle(
 
         if let Some((mut light_trans, mut directional)) = query.single_mut().into() {
             light_trans.rotation = Quat::from_rotation_x(-t);
-            directional.illuminance = t.sin().max(0.0).powf(2.0) * 100000.0;
+            directional.illuminance = t.sin().max(0.0).powf(2.0) * 50_000.0;
         }
     }
 }
@@ -54,10 +54,9 @@ impl Plugin for SkyPlugin {
         app   
             .insert_resource(AmbientLight {
                 color: Color::WHITE,
-                brightness: 500.0,
+                brightness: 1000.0,
             })     
             .insert_resource(AtmosphereModel::new(Nishita {
-                // rayleigh_coefficient: Vec3::new(5.5e-6, 4.0e-6, 22.4e-6),
                 ..default()
             }))
             .insert_resource(CycleTimer(Timer::new(

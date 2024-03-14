@@ -9,26 +9,30 @@ use super::{Blocs, BlocPos, growables::*};
 pub enum Bloc {
     #[default]
     Air,
+    AcaciaLeaves,
+    AcaciaLog,
+    Bedrock,
+    BirchLeaves,
+    BirchLog,
     CoarseDirt,
+    Cobblestone,
     Dirt,
+    Endstone,
     GrassBlock,
     Glass,
-    Stone,
-    BirchLog,
-    BirchLeaves,
-    OakLog,
-    OakLeaves,
-    Podzol,
-    SpruceLog,
-    SpruceLeaves,
-    SequoiaLog,
-    SequoiaLeaves,
-    Sand,
     Ice,
-    Snow,
     Mud,
-    Bedrock,
-    SeaBlock
+    OakLeaves,
+    OakLog,
+    Podzol,
+    Sand,
+    SequoiaLeaves,
+    SequoiaLog,
+    SpruceLeaves,
+    SpruceLog,
+    Snow,
+    SeaBlock,
+    Stone,
 }
 
 
@@ -141,8 +145,10 @@ impl Tree {
             Tree::Spruce => grow_spruce(world, pos, seed, dist),
             Tree::Birch => grow_birch(world, pos, seed, dist),
             Tree::Cypress => grow_cypress(world, pos, seed, dist),
-            Tree::Oak | Tree::Chestnut | Tree::Ironwood | Tree::Acacia => grow_oak(world, pos, seed, dist),
-            Tree::Sequoia | Tree::Palm | Tree::Baobab => grow_sequoia(world, pos, seed, dist),
+            Tree::Oak | Tree::Chestnut | Tree::Ironwood => grow_oak(world, pos, seed, dist),
+            Tree::Acacia => grow_acacia(world, pos, seed, dist),
+            Tree::Sequoia => grow_sequoia(world, pos, seed, dist),
+            Tree::Palm | Tree::Baobab => grow_baobab(world, pos, seed, dist),
             _ => {}
         }
     }

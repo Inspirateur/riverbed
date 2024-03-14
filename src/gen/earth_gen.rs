@@ -5,7 +5,6 @@ use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
 use nd_interval::NdInterval;
-pub const WATER_R: f32 = WATER_H as f32/MAX_GEN_HEIGHT as f32;
 pub const CONT_R: f32 = (WATER_H+2) as f32/MAX_GEN_HEIGHT as f32;
 pub const CONT_COMPL: f32 = 1.-CONT_R;
 
@@ -39,25 +38,23 @@ impl Earth {
         let mut n = NoiseSource::new(range, self.seed, 1);
         let continentalness = n.simplex(0.2);
         let cont = (n.simplex(1.)*0.3 + n.simplex(5.)*0.1 + n.simplex(20.)*0.05 + &continentalness).normalize().cap(CONT_R);
-        let rockyness = n.simplex(0.2);
-        let rocks = !(n.simplex(0.5)*0.6 + n.simplex(10.)*0.1 + n.simplex(100.)*0.04 + &rockyness).normalize().cap(0.08);
 
-        let ts = (n.simplex(0.1) + n.simplex(0.4)*0.15 + n.simplex(8.)*0.06 + n.simplex(100.)*0.015).normalize();
-        
-        let roughness = (n.simplex(1.0)*0.2 + !ts.powi(2) + &rockyness).normalize().powi(2);
-        let mountain = (n.ridge(0.3).powi(2) + n.simplex(3.)*0.05 + n.simplex(20.)*0.002).normalize()*&roughness;
+        let rocks = !(n.simplex(0.5) + n.simplex(4.)*0.2 + n.simplex(16.)*0.1 + n.simplex(80.)*0.05).normalize().cap(0.08);
+        let mountain_control = n.ridge(0.2);
+        let mountain = (n.simplex(2.) + n.simplex(10.)*0.1 + n.simplex(50.)*0.005).normalize()*mountain_control.powi(2);
+        let ts = (n.simplex(0.05) + n.simplex(0.4)*0.1 + n.simplex(8.)*0.05 + n.simplex(100.)*0.01).normalize();
         
         let hs = (n.simplex(0.1) + !continentalness*0.5 + n.simplex(10.)*0.1 + n.simplex(60.)*0.04).normalize();
         let ph = (n.simplex(1.) + n.simplex(4.)*0.2 + n.simplex(40.)*0.1).normalize();
-        let trees = (n.simplex(2.) + &hs*0.3 + n.simplex(10.)*0.4 + n.simplex(40.)*0.2).normalize();
-        let ys = cont + mountain*CONT_COMPL + &rocks;
+        let trees = (n.simplex(1.) + &hs*0.3 + n.simplex(5.)*0.4 + n.simplex(20.)*0.2).normalize();
+        let ys = cont + &mountain*CONT_COMPL + &rocks;
         // convert y to convenient values
         let ys = ys.map(|y| (y * MAX_GEN_HEIGHT as f32) as i32);
         // gen_span.exit();
         // let fill_span = info_span!("chunk filling", name = "chunk filling").entered();
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
-            let (y, t, h, rock) = (ys[[dx, dz]], ts[[dx, dz]], hs[[dx, dz]], rocks[[dx, dz]]); 
-            let bloc = if rock > 0.001 {
+            let (y, t, h, rocks) = (ys[[dx, dz]], ts[[dx, dz]], hs[[dx, dz]], rocks[[dx, dz]]); 
+            let bloc = if rocks > 0.001 {
                 Bloc::Stone
             } else if y <= WATER_H {
                 Bloc::Sand

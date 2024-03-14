@@ -126,6 +126,7 @@ fn setup(
         return;
     }
     let model = texture_list[0];
+    println!("{:?}", model.texture_descriptor.format);
     let array_tex = Image::new(Extent3d {
             width: model.width(), 
             height: model.height(), 

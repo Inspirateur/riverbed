@@ -1,9 +1,13 @@
 mod utils;
+mod acacia;
+mod baobab;
 mod oak;
 mod spruce;
 mod sequoia;
 mod birch;
 mod cypress;
+pub use acacia::*;
+pub use baobab::*;
 pub use oak::*;
 pub use spruce::*;
 pub use sequoia::*;
