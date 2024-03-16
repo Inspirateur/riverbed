@@ -169,11 +169,11 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
         &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &DashMap<(Bloc, FaceSpecifier), usize>, lod: usize
     ) {
         let padded_chunk_shape = YFirstShape::new_padded(lod);
-        // let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
+        let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let mut voxels = vec![Bloc::Air; padded_chunk_shape.size3];
         self.fill_padded_chunk(&mut voxels, chunk, &padded_chunk_shape);
-        // mesh_data_span.exit();
-        // let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
+        mesh_data_span.exit();
+        let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
         let mut buffer = GreedyQuadsBuffer::new(padded_chunk_shape.size3);
         let faces = RIGHT_HANDED_Y_UP_CONFIG.faces;
         greedy_quads(
@@ -232,6 +232,6 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
             voxel_data,
         );
         mesh.insert_indices(Indices::U32(indices));
-        // mesh_build_span.exit();
+        mesh_build_span.exit();
     }
 }

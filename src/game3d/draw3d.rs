@@ -29,7 +29,10 @@ fn choose_lod_level(chunk_dist: u32) -> usize {
     if chunk_dist < 32 {
         return 4;
     }
-    return 8;
+    if chunk_dist < 64 {
+        return 8;
+    }
+    return 16;
 }
 
 
