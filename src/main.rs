@@ -5,7 +5,7 @@ mod game2d;
 mod game3d;
 mod agents;
 use std::env;
-use bevy::prelude::*;
+use bevy::{prelude::*, render::texture::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}};
 use blocs::Blocs;
 use ui::MenuPlugin;
 use game2d::Game2d;
@@ -36,7 +36,16 @@ fn main() {
                 }),
                 ..default()
             })
-            .set(ImagePlugin::default_nearest())
+            .set(ImagePlugin {
+                default_sampler: ImageSamplerDescriptor {
+                    address_mode_u: ImageAddressMode::Repeat,
+                    address_mode_v: ImageAddressMode::Repeat,
+                    mag_filter: ImageFilterMode::Nearest,
+                    min_filter: ImageFilterMode::Nearest,
+                    mipmap_filter: ImageFilterMode::Nearest,
+                    ..default()
+                },
+            })
         )
         .add_plugins(PlayerPlugin)
         .add_plugins(UIPlugin)

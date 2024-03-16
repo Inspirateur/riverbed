@@ -3,7 +3,7 @@ use bevy::{asset::LoadedFolder, prelude::*, reflect::TypePath, render::{render_a
 use dashmap::DashMap;
 use crate::blocs::{Bloc, Face};
 
-use super::render3d::ATTRIBUTE_TEXTURE_LAYER;
+use super::render3d::ATTRIBUTE_VOXEL_DATA;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum FaceSpecifier {
@@ -170,15 +170,9 @@ impl Material for ArrayTextureMaterial {
             layout: &bevy::render::mesh::MeshVertexBufferLayout,
             _key: bevy::pbr::MaterialPipelineKey<Self>,
         ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
-        let vertex_layout = layout.get_layout(&[
-            Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
-            Mesh::ATTRIBUTE_NORMAL.at_shader_location(1),
-            Mesh::ATTRIBUTE_UV_0.at_shader_location(2),
-            Mesh::ATTRIBUTE_COLOR.at_shader_location(3),
-            ATTRIBUTE_TEXTURE_LAYER.at_shader_location(4),
-        ])?;
-        descriptor.vertex.buffers = vec![vertex_layout];
-        Ok(())
+            let vertex_layout = layout.get_layout(&[ATTRIBUTE_VOXEL_DATA.at_shader_location(0)])?;
+            descriptor.vertex.buffers = vec![vertex_layout];
+            Ok(())
     }
 }
 

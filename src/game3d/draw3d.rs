@@ -150,10 +150,15 @@ pub fn on_col_unload(
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
     mut chunk_ents: ResMut<ChunkEntities>,
+    mesh_query: Query<&Handle<Mesh>>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for col_ev in ev_unload.read() {
         for chunk_pos in chunks_in_col(&col_ev.0) {
             if let Some(ent) = chunk_ents.0.remove(&chunk_pos) {
+                if let Ok(handle) = mesh_query.get(ent) {
+                    meshes.remove(handle);
+                }
                 commands.entity(ent).despawn();
             }
         }

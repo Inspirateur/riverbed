@@ -51,11 +51,11 @@ pub enum UIAction {
 
 pub fn spawn_player(mut commands: Commands) {    
     let realm = Realm::Overworld;
-    let transform = TransformBundle {
-        local: Transform {translation: SPAWN, ..default()},
+    let transform = SpatialBundle {
+        transform: Transform {translation: SPAWN, ..default()},
         ..default()
     };
-    let rd = RenderDistance(32);
+    let rd = RenderDistance(128);
     commands
         .spawn((
             transform,

@@ -1,13 +1,29 @@
-use bevy::{prelude::{info_span, Mesh}, render::{mesh::{Indices, MeshVertexAttribute, VertexAttributeValues}, render_asset::RenderAssetUsages, render_resource::{PrimitiveTopology, VertexFormat}}};
-use block_mesh::{UnitQuadBuffer, RIGHT_HANDED_Y_UP_CONFIG, visible_block_faces};
+use bevy::{
+    log::info_span, prelude::Mesh, render::{mesh::{Indices, MeshVertexAttribute}, render_asset::RenderAssetUsages, render_resource::{PrimitiveTopology, VertexFormat}}
+};
+use block_mesh::{greedy_quads, GreedyQuadsBuffer, RIGHT_HANDED_Y_UP_CONFIG};
 use dashmap::DashMap;
 use itertools::iproduct;
 use crate::blocs::{Bloc, ChunkPos, ChunkedPos, ColedPos, Face, TrackedChunk, YFirstShape, CHUNK_PADDED_S1, CHUNK_S1};
 use super::texture_array::{FaceSpecifier, TextureMapTrait};
 
-pub const ATTRIBUTE_TEXTURE_LAYER: MeshVertexAttribute = MeshVertexAttribute::new(
-    "TextureLayer", 48757581, VertexFormat::Uint32
-);
+/// ## Compressed voxel vertex data
+/// first u32:
+///     - chunk position: 3x6 bits (33 values)
+///     - normals: 3 bits (6 values)
+///     - ambiant occlusion: 2 bits (4 values)
+///     - color: 9 bits (3 r, 3 g, 3 b)
+/// `0bxxxxxx_yyyyyy_zzzzzz_nnn_ao_ccccccccc`
+///
+/// second u32:
+///     - texture coords: 2x6 bits (33 values)
+///     - light level: 4 bits (16 value)
+///     - texture layer: 16 bits
+///
+/// `0buuuuuu_vvvvvv_llll_iiiiiiiiiiiiiiii`
+pub const ATTRIBUTE_VOXEL_DATA: MeshVertexAttribute =
+    MeshVertexAttribute::new("VoxelData", 48757581, VertexFormat::Uint32x2);
+
 
 pub trait Meshable {
     fn copy_column(&self, buffer: &mut [Bloc], chunk_pos: ChunkPos, coled_pos: ColedPos, lod: usize);
@@ -58,6 +74,7 @@ fn chunked_face_pos(buffer: &[Bloc], quad_positions: &[[f32; 3]; 4], quad_normal
     // TODO: doesn't work with LODs, need inspection
     (buffer[buffer_shape.linearize(x/buffer_shape.lod+1, y/buffer_shape.lod+1, z/buffer_shape.lod+1)], bloc_face)
 }
+
 
 impl Meshable for DashMap<ChunkPos, TrackedChunk> {
     fn copy_column(&self, buffer: &mut [Bloc], chunk_pos: ChunkPos, (x, z): ColedPos, lod: usize) {
@@ -152,39 +169,38 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
         &self, chunk: ChunkPos, mesh: &mut Mesh, texture_map: &DashMap<(Bloc, FaceSpecifier), usize>, lod: usize
     ) {
         let padded_chunk_shape = YFirstShape::new_padded(lod);
-        let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
+        // let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let mut voxels = vec![Bloc::Air; padded_chunk_shape.size3];
         self.fill_padded_chunk(&mut voxels, chunk, &padded_chunk_shape);
-        mesh_data_span.exit();
-        let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
-        let mut buffer = UnitQuadBuffer::new();
+        // mesh_data_span.exit();
+        // let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
+        let mut buffer = GreedyQuadsBuffer::new(padded_chunk_shape.size3);
         let faces = RIGHT_HANDED_Y_UP_CONFIG.faces;
-        visible_block_faces(
-            &voxels,
+        greedy_quads(
+            voxels.as_slice(),
             &padded_chunk_shape,
             [0; 3],
             [(CHUNK_S1/lod) as u32+1; 3],
             &faces,
-            &mut buffer
+            &mut buffer,
         );
-        let num_indices = buffer.num_quads() * 6;
-        let num_vertices = buffer.num_quads() * 4;
-        let mut indices = Vec::with_capacity(num_indices);
-        let mut positions = Vec::with_capacity(num_vertices);
-        let mut normals = Vec::with_capacity(num_vertices);
-        let mut uvs = Vec::with_capacity(num_vertices);
-        let mut color = Vec::with_capacity(num_vertices);
-        let mut layers = Vec::with_capacity(num_vertices);
+        let num_quads = buffer.quads.num_quads();
+        let mut indices = Vec::with_capacity(num_quads * 6);
+        let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(num_quads * 4);
         let lodf32 = lod as f32;
-        for (group, face) in buffer.groups.into_iter().zip(faces.into_iter()) {
-            for quad in group.into_iter() {
-                indices.extend_from_slice(&face.quad_mesh_indices(positions.len() as u32));
-                let mesh_positions = &face.quad_mesh_positions(&quad.into(), lodf32)
+        for (normal, (group, face)) in buffer
+            .quads
+            .groups
+            .iter()
+            .zip(RIGHT_HANDED_Y_UP_CONFIG.faces.iter())
+            .enumerate()
+        {
+            let n = normal as u32;
+            for quad in group {
+                let mesh_positions = &face.quad_mesh_positions(quad.into(), lodf32)
                     .map(|[x, y, z]| [x-lodf32, y-lodf32, z-lodf32]);
                 let mesh_normals = &face.quad_mesh_normals();
-                positions.extend_from_slice(mesh_positions);
-                normals.extend_from_slice(mesh_normals);
-                uvs.extend_from_slice(&face.tex_coords(RIGHT_HANDED_Y_UP_CONFIG.u_flip_face, true, &quad.into()));
+                let uvs = face.tex_coords(RIGHT_HANDED_Y_UP_CONFIG.u_flip_face, true, &quad);
                 let (bloc, bloc_face) = chunked_face_pos(
                     &voxels,
                     mesh_positions, 
@@ -192,32 +208,30 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
                     &padded_chunk_shape
                 );
                 let index = texture_map.get_texture_index(bloc, bloc_face).unwrap_or(0) as u32;
-                layers.extend_from_slice(&[index; 4]);
-                color.extend_from_slice(&[match (bloc, bloc_face) {
-                    (Bloc::GrassBlock, Face::Up) => [0.2, 0.8, 0.3, 1.0],
-                    (bloc, _) if bloc.is_leaves() => [0.1, 0.6, 0.2, 0.5],
-                    _ => [1., 1., 1., 1.]
-                }; 4]);
+                let layer = index;
+                let color = match (bloc, bloc_face) {
+                    (Bloc::GrassBlock, Face::Up) => 0b011_111_001,
+                    (bloc, _) if bloc.is_leaves() => 0b010_101_001,
+                    _ => 0b111_111_111
+                };
+                let light = 0u32;
+                indices.extend_from_slice(&face.quad_mesh_indices(voxel_data.len() as u32));
+                voxel_data.extend(mesh_positions.into_iter().zip(uvs.into_iter()).map(|(pos, uv)| {
+                    let [x, y, z] = [pos[0] as u32, pos[1] as u32, pos[2] as u32];
+                    let [u, v] = uv;
+                    let first = x | (y << 6) | (z << 12) | (n << 18) | (color << 23);
+                    let u = u as u32;
+                    let v = v as u32;
+                    let second = u | (v << 6) | (light << 12) | (layer << 16);
+                    [first, second]
+                }));
             }
         }
         mesh.insert_attribute(
-            Mesh::ATTRIBUTE_POSITION,
-            VertexAttributeValues::Float32x3(positions),
+            ATTRIBUTE_VOXEL_DATA,
+            voxel_data,
         );
-        mesh.insert_attribute(
-            Mesh::ATTRIBUTE_NORMAL, 
-            VertexAttributeValues::Float32x3(normals)
-        );
-        mesh.insert_attribute(
-            Mesh::ATTRIBUTE_UV_0,
-            VertexAttributeValues::Float32x2(uvs),
-        );
-        mesh.insert_attribute(
-            Mesh::ATTRIBUTE_COLOR,
-            VertexAttributeValues::Float32x4(color),
-        );
-        mesh.insert_attribute(ATTRIBUTE_TEXTURE_LAYER, layers);
-        mesh.insert_indices(Indices::U32(indices.clone()));
-        mesh_build_span.exit();
+        mesh.insert_indices(Indices::U32(indices));
+        // mesh_build_span.exit();
     }
 }
