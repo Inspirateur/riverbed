@@ -7,11 +7,11 @@ use bevy::render::primitives::Aabb;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver};
 use itertools::{iproduct, Itertools};
-use crate::blocs::pos2d::chunks_in_col;
-use crate::blocs::{Blocs, ChunkPos, CHUNK_S1, Y_CHUNKS};
+use crate::blocks::pos2d::chunks_in_col;
+use crate::blocks::{Blocks, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{range_around, ColUnloadEvent, LoadArea, LoadAreaAssigned};
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
-use super::texture_array::{BlocTextureArray, TexState};
+use super::texture_array::{BlockTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 const CHUNK_S1_HF: f32 = (CHUNK_S1/2) as f32;
 const GRID_GIZMO_LEN: i32 = 4;
@@ -40,7 +40,7 @@ fn mark_lod_remesh(
     load_area: Res<LoadArea>, 
     chunk_ents: ResMut<ChunkEntities>, 
     lods: Query<&LOD>, 
-    blocs: ResMut<Blocs>
+    blocks: ResMut<Blocks>
 ) {
     if !load_area.is_changed() { return; }
     for (chunk_pos, entity) in chunk_ents.0.iter() {
@@ -52,7 +52,7 @@ fn mark_lod_remesh(
             continue;
         };
         if new_lod != old_lod.0 {
-            let Some(mut chunk) = blocs.chunks.get_mut(chunk_pos) else {
+            let Some(mut chunk) = blocks.chunks.get_mut(chunk_pos) else {
                 continue;
             };
             chunk.changed = true;
@@ -81,9 +81,9 @@ fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<LoadArea>) {
 #[derive(Resource)]
 pub struct MeshReciever(Receiver<(Mesh, ChunkPos, LOD)>);
 
-fn setup_mesh_thread(mut commands: Commands, blocs: Res<Blocs>, shared_load_area: Res<SharedLoadArea>, texture_map: Res<TextureMap>) {
+fn setup_mesh_thread(mut commands: Commands, blocks: Res<Blocks>, shared_load_area: Res<SharedLoadArea>, texture_map: Res<TextureMap>) {
     let thread_pool = AsyncComputeTaskPool::get();
-    let chunks = Arc::clone(&blocs.chunks);
+    let chunks = Arc::clone(&blocks.chunks);
     let (mesh_sender, mesh_reciever) = unbounded();
     commands.insert_resource(MeshReciever(mesh_reciever));
     let shared_load_area = Arc::clone(&shared_load_area.0);
@@ -114,9 +114,9 @@ pub fn pull_meshes(
     mut chunk_ents: ResMut<ChunkEntities>, 
     mut mesh_query: Query<(&Handle<Mesh>, &mut LOD, &mut Aabb)>,
     mut meshes: ResMut<Assets<Mesh>>,
-    bloc_tex_array: Res<BlocTextureArray>,
+    block_tex_array: Res<BlockTextureArray>,
     load_area: Res<LoadArea>,
-    blocs: Res<Blocs>
+    blocks: Res<Blocks>
 ) {
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter().filter(|(_, chunk_pos, _)| load_area.col_dists.contains_key(&(*chunk_pos).into())).collect();
     for (mesh, chunk_pos, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, _)| *pos) {
@@ -135,10 +135,10 @@ pub fn pull_meshes(
                 // the entity is not instanciated yet, we put it back
                 println!("entity wasn't ready to recieve updated mesh");
             }
-        } else if blocs.chunks.contains_key(&chunk_pos) {
+        } else if blocks.chunks.contains_key(&chunk_pos) {
             let ent = commands.spawn(MaterialMeshBundle {
                 mesh: meshes.add(mesh),
-                material: bloc_tex_array.0.clone(),
+                material: block_tex_array.0.clone(),
                 transform: Transform::from_translation(
                     Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32,
                 ),

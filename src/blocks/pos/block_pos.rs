@@ -4,8 +4,8 @@ use bevy::prelude::Vec3;
 
 use super::pos::{Pos, Pos2D};
 
-pub type BlocPos = Pos<i32>;
-pub type BlocPos2D = Pos2D<i32>;
+pub type BlockPos = Pos<i32>;
+pub type BlockPos2D = Pos2D<i32>;
 pub type ChunkPos = Pos<i32>;
 pub type ColPos = Pos2D<i32>;
 pub type ChunkedPos = (usize, usize, usize);
@@ -32,14 +32,14 @@ impl From<Pos<f32>> for ColPos {
     }
 }
 
-impl From<BlocPos> for Vec3 {
-    fn from(value: BlocPos) -> Self {
+impl From<BlockPos> for Vec3 {
+    fn from(value: BlockPos) -> Self {
         Vec3 { x: value.x as f32, y: value.y as f32, z: value.z as f32 }
     }
 }
 
-impl From<BlocPos> for (ChunkPos, ChunkedPos) {
-    fn from(pos: BlocPos) -> Self {
+impl From<BlockPos> for (ChunkPos, ChunkedPos) {
+    fn from(pos: BlockPos) -> Self {
         let (cx, dx) = chunked(pos.x);
         let (cy, dy) = chunked(pos.y);
         let (cz, dz) = chunked(pos.z);
@@ -47,17 +47,17 @@ impl From<BlocPos> for (ChunkPos, ChunkedPos) {
     }
 }
 
-impl From<BlocPos> for (ColPos, ColedPos) {
-    fn from(pos: BlocPos) -> Self {
+impl From<BlockPos> for (ColPos, ColedPos) {
+    fn from(pos: BlockPos) -> Self {
         let (cx, dx) = chunked(pos.x);
         let (cz, dz) = chunked(pos.z);
         (ColPos { realm: pos.realm, x: cx, z: cz}, (dx, pos.y, dz))
     }
 }
 
-impl From<(ChunkPos, ChunkedPos)> for BlocPos {
+impl From<(ChunkPos, ChunkedPos)> for BlockPos {
     fn from((chunk, (dx, dy, dz)): (ChunkPos, ChunkedPos)) -> Self {
-        BlocPos {
+        BlockPos {
             realm: chunk.realm,
             x: unchunked(chunk.x, dx),
             y: unchunked(chunk.y, dy),
@@ -66,17 +66,17 @@ impl From<(ChunkPos, ChunkedPos)> for BlocPos {
     }
 }
 
-impl From<BlocPos2D> for (ColPos, ColedPos) {
-    fn from(pos: BlocPos2D) -> Self {
+impl From<BlockPos2D> for (ColPos, ColedPos) {
+    fn from(pos: BlockPos2D) -> Self {
         let (cx, dx) = chunked(pos.x);
         let (cz, dz) = chunked(pos.z);
         (ColPos { realm: pos.realm, x: cx, z: cz}, (dx, dz))
     }
 }
 
-impl From<(ColPos, ColedPos)> for BlocPos2D {
+impl From<(ColPos, ColedPos)> for BlockPos2D {
     fn from((col, (dx, dz)): (ColPos, ColedPos)) -> Self {
-        BlocPos2D {
+        BlockPos2D {
             realm: col.realm,
             x: unchunked(col.x, dx),
             z: unchunked(col.z, dz),
@@ -131,18 +131,18 @@ impl Add<(i32, i32)> for Pos2D<i32> {
 
 #[cfg(test)]
 mod tests {
-    use crate::blocs::realm::Realm;
-    use super::{BlocPos, ChunkPos, ChunkedPos};
+    use crate::blocks::realm::Realm;
+    use super::{BlockPos, ChunkPos, ChunkedPos};
     use super::CHUNK_S1I;
 
     #[test]
     fn roundtrip() {
-        let pos = BlocPos {
+        let pos = BlockPos {
             realm: Realm::Overworld,
             x: -1,
             y: 57,
             z: CHUNK_S1I,
         };
-        assert_eq!(pos, BlocPos::from(<(ChunkPos, ChunkedPos)>::from(pos)));
+        assert_eq!(pos, BlockPos::from(<(ChunkPos, ChunkedPos)>::from(pos)));
     }
 }

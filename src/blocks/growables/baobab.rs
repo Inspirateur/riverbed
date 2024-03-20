@@ -1,15 +1,15 @@
-use crate::blocs::{BlocPos, Blocs, Bloc};
+use crate::blocks::{BlockPos, Blocks, Block};
 use super::utils::leaf_disk;
 const DIRS: [(i32, i32); 8] = [(-1, 1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
 
-fn baobab_leaves(world: &Blocs, pos: BlocPos, dir_x: i32, dir_z: i32, size: usize) {
+fn baobab_leaves(world: &Blocks, pos: BlockPos, dir_x: i32, dir_z: i32, size: usize) {
     let pos = pos + (if dir_x == 1 {2} else {-1}, 0, if dir_z == 1 {2} else {-1});
-    world.set_bloc(pos, Bloc::AcaciaLog);
-    leaf_disk(world, pos + (0, -1, 0), 1, Bloc::AcaciaLeaves);
-    leaf_disk(world, pos + (dir_x, 0, dir_z), size as u32, Bloc::AcaciaLeaves);
+    world.set_block(pos, Block::AcaciaLog);
+    leaf_disk(world, pos + (0, -1, 0), 1, Block::AcaciaLeaves);
+    leaf_disk(world, pos + (dir_x, 0, dir_z), size as u32, Block::AcaciaLeaves);
 }
 
-pub fn grow_baobab(world: &Blocs, pos: BlocPos, seed: i32, dist: f32) {
+pub fn grow_baobab(world: &Blocks, pos: BlockPos, seed: i32, dist: f32) {
     let height = 30-(dist*6.) as i32;
     let mut pos = pos;
     let rng = pos.prng(seed);
@@ -31,11 +31,11 @@ pub fn grow_baobab(world: &Blocs, pos: BlocPos, seed: i32, dist: f32) {
                 );
             }
         }
-        world.set_bloc(pos, Bloc::AcaciaLog);
-        world.set_bloc(pos + (1, 0, 0), Bloc::AcaciaLog);
-        world.set_bloc(pos + (0, 0, 1), Bloc::AcaciaLog);
-        world.set_bloc(pos + (1, 0, 1), Bloc::AcaciaLog);
+        world.set_block(pos, Block::AcaciaLog);
+        world.set_block(pos + (1, 0, 0), Block::AcaciaLog);
+        world.set_block(pos + (0, 0, 1), Block::AcaciaLog);
+        world.set_block(pos + (1, 0, 1), Block::AcaciaLog);
         pos.y += 1;
     }
-    world.set_bloc(pos, Bloc::SpruceLeaves);
+    world.set_block(pos, Block::SpruceLeaves);
 }

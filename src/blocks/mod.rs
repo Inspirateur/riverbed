@@ -1,14 +1,14 @@
 mod utils;
 mod chunk;
 mod chunk_shape;
-mod blocs;
+mod blocks;
 mod pos;
-mod bloc;
+mod block;
 mod realm;
 pub mod growables;
-pub use bloc::*;
+pub use block::*;
 pub use realm::*;
-pub use blocs::*;
+pub use blocks::*;
 pub use chunk::*;
 pub use chunk_shape::*;
 pub use pos::*;

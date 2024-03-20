@@ -2,11 +2,11 @@ use std::ops::Range;
 use block_mesh::{VoxelVisibility, Voxel, MergeVoxel};
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumString, EnumIter};
-use super::{Blocs, BlocPos, growables::*};
+use super::{Blocks, BlockPos, growables::*};
 
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, EnumString, EnumIter, Hash)]
 #[strum(ascii_case_insensitive)]
-pub enum Bloc {
+pub enum Block {
     #[default]
     Air,
     AcaciaLeaves,
@@ -36,39 +36,39 @@ pub enum Bloc {
 }
 
 
-impl Bloc {
+impl Block {
     pub fn friction(&self) -> f32 {
         match self {
-            Bloc::Air => 0.1,
-            Bloc::Ice => 0.05,
+            Block::Air => 0.1,
+            Block::Ice => 0.05,
             _ => 1.
         }
     }
 
     pub fn slowing(&self) -> f32 {
         match self {
-            Bloc::Mud => 0.8,
+            Block::Mud => 0.8,
             _ => 1.
         }
     }
 
     pub fn traversable(&self) -> bool {
         match self {
-            Bloc::Air | Bloc::SeaBlock => true,
+            Block::Air | Block::SeaBlock => true,
             _ => false,
         }
     }
 
     pub fn targetable(&self) -> bool {
         match self {
-            Bloc::Air | Bloc::SeaBlock => false,
+            Block::Air | Block::SeaBlock => false,
             _ => true
         }
     }
 
     pub fn is_soil(&self) -> bool {
         match self {
-            Bloc::GrassBlock | Bloc::Podzol | Bloc::Snow
+            Block::GrassBlock | Block::Podzol | Block::Snow
                 => true,
             _ => false
         }
@@ -76,7 +76,7 @@ impl Bloc {
 
     pub fn is_leaves(&self) -> bool {
         match self {
-            Bloc::OakLeaves | Bloc::BirchLeaves | Bloc::SpruceLeaves | Bloc::SequoiaLeaves
+            Block::OakLeaves | Block::BirchLeaves | Block::SpruceLeaves | Block::SequoiaLeaves
                 => true,
             _ => false
         }
@@ -87,7 +87,7 @@ impl Bloc {
             return true;
         }
         match self {
-            Bloc::Glass | Bloc::SeaBlock => true,
+            Block::Glass | Block::SeaBlock => true,
             _ => false
         }
     }
@@ -103,17 +103,17 @@ pub enum Face {
     Back
 }
 
-impl Voxel for Bloc {
+impl Voxel for Block {
     fn get_visibility(&self) -> VoxelVisibility {
         match self {
-            Bloc::Air => VoxelVisibility::Empty,
-            bloc if bloc.is_transluscent() => VoxelVisibility::Translucent,
+            Block::Air => VoxelVisibility::Empty,
+            block if block.is_transluscent() => VoxelVisibility::Translucent,
             _ => VoxelVisibility::Opaque
         }
     }
 }
 
-impl MergeVoxel for Bloc {
+impl MergeVoxel for Block {
     type MergeValue = Self;
 
     fn merge_value(&self) -> Self::MergeValue {
@@ -139,7 +139,7 @@ pub enum Tree {
 }
 
 impl Tree {
-    pub fn grow(&self, world: &Blocs, pos: BlocPos, seed: i32, dist: f32) {
+    pub fn grow(&self, world: &Blocks, pos: BlockPos, seed: i32, dist: f32) {
         if !world.get_block_safe(pos).is_soil() { return; }
         match self {
             Tree::Spruce => grow_spruce(world, pos, seed, dist),
@@ -154,5 +154,5 @@ impl Tree {
     }
 }
 
-pub type Soils = Vec<([Range<f32>; 2], Bloc)>;
+pub type Soils = Vec<([Range<f32>; 2], Block)>;
 pub type Trees = Vec<([Range<f32>; 4], Tree)>;

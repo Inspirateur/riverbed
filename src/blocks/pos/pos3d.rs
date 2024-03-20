@@ -1,6 +1,6 @@
 use std::ops::{Add, BitXor};
 use bevy::prelude::Vec3;
-use crate::blocs::{Realm, CHUNK_S1};
+use crate::blocks::{Realm, CHUNK_S1};
 use super::{unchunked, chunked, CHUNK_S1I};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash)]
@@ -33,13 +33,13 @@ impl<const U: usize> Pos3d<U> {
     }
 }
 
-pub type BlocPos = Pos3d<1>;
+pub type BlockPos = Pos3d<1>;
 pub type ChunkPos = Pos3d<CHUNK_S1>;
 pub type ChunkedPos = (usize, usize, usize);
 
-impl From<(Vec3, Realm)> for BlocPos {
+impl From<(Vec3, Realm)> for BlockPos {
     fn from((pos, realm): (Vec3, Realm)) -> Self {
-        BlocPos {
+        BlockPos {
             x: pos.x.floor() as i32,
             y: pos.y.floor() as i32,
             z: pos.z.floor() as i32,
@@ -48,21 +48,21 @@ impl From<(Vec3, Realm)> for BlocPos {
     }
 }
 
-impl From<BlocPos> for Vec3 {
-    fn from(bloc_pos: BlocPos) -> Self {
+impl From<BlockPos> for Vec3 {
+    fn from(block_pos: BlockPos) -> Self {
         Vec3 {
-            x: bloc_pos.x as f32, 
-            y: bloc_pos.y as f32, 
-            z: bloc_pos.z as f32
+            x: block_pos.x as f32, 
+            y: block_pos.y as f32, 
+            z: block_pos.z as f32
         }
     }
 }
 
-impl Add<Vec3> for BlocPos {
-    type Output = BlocPos;
+impl Add<Vec3> for BlockPos {
+    type Output = BlockPos;
 
     fn add(self, rhs: Vec3) -> Self::Output {
-        BlocPos {
+        BlockPos {
             x: self.x + rhs.x.floor() as i32,
             y: self.y + rhs.y.floor() as i32,
             z: self.z + rhs.z.floor() as i32,
@@ -71,11 +71,11 @@ impl Add<Vec3> for BlocPos {
     }
 }
 
-impl Add<(i32, i32, i32)> for BlocPos {
-    type Output = BlocPos;
+impl Add<(i32, i32, i32)> for BlockPos {
+    type Output = BlockPos;
 
     fn add(self, (dx, dy, dz): (i32, i32, i32)) -> Self::Output {
-        BlocPos {
+        BlockPos {
             x: self.x + dx,
             y: self.y + dy,
             z: self.z + dz,
@@ -84,9 +84,9 @@ impl Add<(i32, i32, i32)> for BlocPos {
     }
 }
 
-impl From<(ChunkPos, ChunkedPos)> for BlocPos {
+impl From<(ChunkPos, ChunkedPos)> for BlockPos {
     fn from((chunk_pos, (dx, dy, dz)): (ChunkPos, ChunkedPos)) -> Self {
-        BlocPos {
+        BlockPos {
             x: unchunked(chunk_pos.x, dx),
             y: unchunked(chunk_pos.y, dy),
             z: unchunked(chunk_pos.z, dz),
@@ -95,30 +95,30 @@ impl From<(ChunkPos, ChunkedPos)> for BlocPos {
     }
 }
 
-impl From<BlocPos> for (ChunkPos, ChunkedPos) {
-    fn from(bloc_pos: BlocPos) -> Self {
-        let (cx, dx) = chunked(bloc_pos.x);
-        let (cy, dy) = chunked(bloc_pos.y);
-        let (cz, dz) = chunked(bloc_pos.z);
+impl From<BlockPos> for (ChunkPos, ChunkedPos) {
+    fn from(block_pos: BlockPos) -> Self {
+        let (cx, dx) = chunked(block_pos.x);
+        let (cy, dy) = chunked(block_pos.y);
+        let (cz, dz) = chunked(block_pos.z);
         (ChunkPos {
             x: cx,
             y: cy,
             z: cz,
-            realm: bloc_pos.realm
+            realm: block_pos.realm
         }, (dx, dy, dz))
     }
 }
 
-impl From<BlocPos> for ChunkPos {
-    fn from(bloc_pos: BlocPos) -> Self {
-        let cx = bloc_pos.x/CHUNK_S1I;
-        let cy = bloc_pos.y/CHUNK_S1I;
-        let cz = bloc_pos.z/CHUNK_S1I;
+impl From<BlockPos> for ChunkPos {
+    fn from(block_pos: BlockPos) -> Self {
+        let cx = block_pos.x/CHUNK_S1I;
+        let cy = block_pos.y/CHUNK_S1I;
+        let cz = block_pos.z/CHUNK_S1I;
         ChunkPos {
             x: cx,
             y: cy,
             z: cz,
-            realm: bloc_pos.realm
+            realm: block_pos.realm
         }
     }
 }

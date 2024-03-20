@@ -1,6 +1,6 @@
 use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
-use crate::blocs::{Blocs, BlocPos, Realm};
+use crate::blocks::{Blocks, BlockPos, Realm};
 const SPEED: f32 = 50.;
 const ACC: f32 = 10.;
 
@@ -34,30 +34,30 @@ fn extent(v: f32, size: f32) -> Vec<i32> {
     }
 }
 
-fn blocs_perp_y(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlocPos> {
-    iproduct!(extent(pos.x, aabb.0.x) , extent(pos.z, aabb.0.z)).map(move |(x, z)| BlocPos {
+fn blocks_perp_y(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
+    iproduct!(extent(pos.x, aabb.0.x) , extent(pos.z, aabb.0.z)).map(move |(x, z)| BlockPos {
         x, y: pos.y.floor() as i32, z, realm: realm
     })
 }
 
-fn blocs_perp_z(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlocPos> {
-    iproduct!(extent(pos.x, aabb.0.x) , extent(pos.y, aabb.0.y)).map(move |(x, y)| BlocPos {
+fn blocks_perp_z(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
+    iproduct!(extent(pos.x, aabb.0.x) , extent(pos.y, aabb.0.y)).map(move |(x, y)| BlockPos {
         x, y, z: pos.z.floor() as i32, realm: realm
     })
 }
 
-fn blocs_perp_x(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlocPos> {
-    iproduct!(extent(pos.y, aabb.0.y) , extent(pos.z, aabb.0.z)).map(move |(y, z)| BlocPos {
+fn blocks_perp_x(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
+    iproduct!(extent(pos.y, aabb.0.y) , extent(pos.z, aabb.0.z)).map(move |(y, z)| BlockPos {
         x: pos.x.floor() as i32, y, z, realm: realm
     })
 }
 
-pub fn process_jumps(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &AABB, &mut Jumping, &mut Velocity)>) {
+pub fn process_jumps(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &AABB, &mut Jumping, &mut Velocity)>) {
     for (transform, realm, aabb, mut jumping, mut velocity) in query.iter_mut() {
         jumping.cd.tick(time.delta());
         if jumping.intent && jumping.cd.finished() {
             let below = transform.translation + Vec3::new(0., -0.01, 0.);
-            if blocs_perp_y(below, *realm, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
+            if blocks_perp_y(below, *realm, aabb).any(|pos| !blocks.get_block(pos).traversable()) {
                 velocity.0.y += jumping.force;
                 jumping.cd.reset();
             }
@@ -66,21 +66,21 @@ pub fn process_jumps(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Tran
 }
 
 pub fn apply_acc(
-    blocs: Res<Blocs>,
+    blocks: Res<Blocks>,
     time: Res<Time>,
     mut query: Query<(&Heading, &mut Velocity, &Transform, &Realm, &AABB)>
 ) {
     for (heading, mut velocity, transform, realm, aabb) in query.iter_mut() {
-        if !blocs.is_col_loaded(transform.translation, *realm) {
+        if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
         }
-        // get the bloc the entity is standing on if the entity has an AABB
+        // get the block the entity is standing on if the entity has an AABB
         let mut friction: f32 = 0.;
         let mut slowing: f32 = 0.;
         let below = transform.translation + Vec3::new(0., -0.01, 0.);
-        for bloc in blocs_perp_y(below, *realm, aabb).map(|blocpos| blocs.get_block(blocpos)) {
-            friction = friction.max(bloc.friction());
-            slowing = slowing.max(bloc.slowing())
+        for block in blocks_perp_y(below, *realm, aabb).map(|blockpos| blocks.get_block(blockpos)) {
+            friction = friction.max(block.friction());
+            slowing = slowing.max(block.slowing())
         }
         // applying slowing
         let heading = heading.0*slowing;
@@ -99,18 +99,18 @@ pub fn apply_acc(
     }
 }
 
-pub fn apply_gravity(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &mut Velocity, &Gravity)>) {
+pub fn apply_gravity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &mut Velocity, &Gravity)>) {
     for (transform, realm, mut velocity, gravity) in query.iter_mut() {
-        if !blocs.is_col_loaded(transform.translation, *realm) {
+        if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
         }
         velocity.0 += Vec3::new(0., -gravity.0*time.delta_seconds(), 0.);
     }
 }
 
-pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>) {
+pub fn apply_speed(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>) {
     for (mut velocity, mut transform, realm, aabb) in query.iter_mut() {
-        if !blocs.is_col_loaded(transform.translation, *realm) {
+        if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
         }
         let applied_velocity = velocity.0*time.delta_seconds()*SPEED;
@@ -120,7 +120,7 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Ve
         let mut stopped = false;
         for x in extent(xpos, applied_velocity.x).into_iter().skip(1) {
             let pos_x = Vec3 { x: x as f32, y: transform.translation.y, z: transform.translation.z };
-            if blocs_perp_x(pos_x, *realm, aabb).any(|pos| !blocs.get_block(pos).traversable()) 
+            if blocks_perp_x(pos_x, *realm, aabb).any(|pos| !blocks.get_block(pos).traversable()) 
             {
                 // there's a collision in this direction, stop at the block limit
                 if applied_velocity.x > 0. { 
@@ -141,7 +141,7 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Ve
         let mut stopped = false;
         for y in extent(ypos, applied_velocity.y).into_iter().skip(1) {
             let pos_y = Vec3 {x: transform.translation.x, y: y as f32, z: transform.translation.z };
-            if blocs_perp_y(pos_y, *realm, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
+            if blocks_perp_y(pos_y, *realm, aabb).any(|pos| !blocks.get_block(pos).traversable()) {
                 // there's a collision in this direction, stop at the block limit
                 if applied_velocity.y > 0. {
                     transform.translation.y = pos_y.y - aabb.0.y - 0.001;
@@ -161,7 +161,7 @@ pub fn apply_speed(blocs: Res<Blocs>, time: Res<Time>, mut query: Query<(&mut Ve
         let mut stopped = false;
         for z in extent(zpos, applied_velocity.z).into_iter().skip(1) {
             let pos_z = Vec3 {x: transform.translation.x, y: transform.translation.y, z: z as f32 };
-            if blocs_perp_z(pos_z, *realm, aabb).any(|pos| !blocs.get_block(pos).traversable()) {
+            if blocks_perp_z(pos_z, *realm, aabb).any(|pos| !blocks.get_block(pos).traversable()) {
                 // there's a collision in this direction, stop at the block limit
                 if applied_velocity.z > 0. { 
                     transform.translation.z = pos_z.z - aabb.0.z - 0.001;

@@ -1,7 +1,7 @@
 pub mod pos3d;
 pub mod pos2d;
-pub use pos3d::{BlocPos, ChunkPos, ChunkedPos};
-pub use pos2d::{BlocPos2d, ColPos, ColedPos};
+pub use pos3d::{BlockPos, ChunkPos, ChunkedPos};
+pub use pos2d::{BlockPos2d, ColPos, ColedPos};
 
 use super::CHUNK_S1I;
 

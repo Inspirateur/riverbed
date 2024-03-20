@@ -1,7 +1,7 @@
-use crate::blocs::{BlocPos, Blocs, Bloc};
+use crate::blocks::{BlockPos, Blocks, Block};
 
 pub trait Growable: Send + Sync {
-    fn grow(&self, dist: f32, pos: BlocPos, world: &Blocs);
+    fn grow(&self, dist: f32, pos: BlockPos, world: &Blocks);
 }
 
 #[inline]
@@ -15,13 +15,13 @@ fn signed_comb(x: i32, z: i32) -> Vec<(i32, i32)> {
 }
 
 #[inline]
-pub fn leaf_disk(world: &Blocs, center: BlocPos, dist: u32, leaf: Bloc) {
+pub fn leaf_disk(world: &Blocks, center: BlockPos, dist: u32, leaf: Block) {
     let dist = dist as i32;
     for z in 0..=dist {
         let max_x = ((dist.pow(2)-z.pow(2)) as f32).sqrt() as i32;
         for x in 0..=max_x {
             for (dx, dz) in signed_comb(x, z) {
-                world.set_if_empty(BlocPos {
+                world.set_if_empty(BlockPos {
                     realm: center.realm, 
                     x: center.x + dx,
                     y: center.y,

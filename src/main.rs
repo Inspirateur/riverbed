@@ -1,4 +1,4 @@
-mod blocs;
+mod blocks;
 mod ui;
 mod gen;
 mod game2d;
@@ -6,7 +6,7 @@ mod game3d;
 mod agents;
 use std::env;
 use bevy::{prelude::*, render::texture::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}};
-use blocs::Blocs;
+use blocks::Blocks;
 use ui::MenuPlugin;
 use game2d::Game2d;
 use game3d::Game3d;
@@ -27,7 +27,7 @@ fn main() {
 
     app
         .init_state::<GameState>()
-        .insert_resource(Blocs::new())
+        .insert_resource(Blocks::new())
         .add_plugins(
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {

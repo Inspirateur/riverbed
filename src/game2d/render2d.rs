@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use bevy::{prelude::{Image, Vec3}, render::{render_asset::RenderAssetUsages, render_resource::Extent3d, texture::BevyDefault}};
 use colorsys::{Rgb, ColorTransform};
 use itertools::iproduct;
-use crate::blocs::{BlocPos, BlocPos2d, ColPos, Blocs, Bloc, CHUNK_S2, CHUNK_S1};
+use crate::blocks::{BlockPos, BlockPos2d, ColPos, Blocks, Block, CHUNK_S2, CHUNK_S1};
 use crate::agents::Dir;
 use super::draw2d::SoilColor;
 
@@ -24,28 +24,28 @@ impl ImageUtils for Image {
 }
 
 pub trait Render2D {
-    fn bloc_y_cmp(&self, pos: BlocPos, dir: Dir) -> Ordering;
-    fn bloc_shade(&self, pos: BlocPos) -> f64;
-    fn bloc_color(&self, pos: BlocPos2d, soil_color: &SoilColor) -> Rgb;
+    fn block_y_cmp(&self, pos: BlockPos, dir: Dir) -> Ordering;
+    fn block_shade(&self, pos: BlockPos) -> f64;
+    fn block_color(&self, pos: BlockPos2d, soil_color: &SoilColor) -> Rgb;
     fn create_image(&self, col: ColPos, soil_color: &SoilColor) -> Image;
     fn update_image(&self, col: ColPos, image: &mut Image, soil_color: &SoilColor);
     fn update_side(&self, col: ColPos, image: &mut Image, soil_color: &SoilColor);
 }
 
-impl Render2D for Blocs {
-    fn bloc_y_cmp(&self, pos: BlocPos, dir: Dir) -> Ordering {
+impl Render2D for Blocks {
+    fn block_y_cmp(&self, pos: BlockPos, dir: Dir) -> Ordering {
         let opos = pos + <Vec3>::from(dir);
-        if self.get_block(opos + <Vec3>::from(Dir::Up)) != Bloc::Air {
+        if self.get_block(opos + <Vec3>::from(Dir::Up)) != Block::Air {
             Ordering::Less
-        } else if self.get_block(opos) != Bloc::Air {
+        } else if self.get_block(opos) != Block::Air {
             Ordering::Equal
         } else {
             Ordering::Greater
         }
     }
 
-    fn bloc_shade(&self, pos: BlocPos) -> f64 {
-        let up_cmp = self.bloc_y_cmp(pos, Dir::Front);
+    fn block_shade(&self, pos: BlockPos) -> f64 {
+        let up_cmp = self.block_y_cmp(pos, Dir::Front);
         if up_cmp == Ordering::Greater {
             10.
         } else if up_cmp == Ordering::Less {
@@ -55,16 +55,16 @@ impl Render2D for Blocs {
         }
     }
 
-    fn bloc_color(&self, pos: BlocPos2d, soil_color: &SoilColor) -> Rgb {
-        let (bloc, y) = self.top_block(pos);
-        let mut color = soil_color.0.get(&bloc).unwrap_or(&Rgb::new(1.0, 0.0, 1.0, None)).clone();
-        let blocpos = BlocPos {
+    fn block_color(&self, pos: BlockPos2d, soil_color: &SoilColor) -> Rgb {
+        let (block, y) = self.top_block(pos);
+        let mut color = soil_color.0.get(&block).unwrap_or(&Rgb::new(1.0, 0.0, 1.0, None)).clone();
+        let blockpos = BlockPos {
             realm: pos.realm,
             x: pos.x,
             y,
             z: pos.z,
         };
-        color.lighten(self.bloc_shade(blocpos));
+        color.lighten(self.block_shade(blockpos));
         color
     }
 
@@ -88,8 +88,8 @@ impl Render2D for Blocs {
     fn update_image(&self, col: ColPos, image: &mut Image, soil_color: &SoilColor) {
         for (i, (dx, dz)) in iproduct!((0..CHUNK_S1).rev(), (0..CHUNK_S1).rev()).enumerate() {
             let i = i*4;
-            let color = self.bloc_color(
-                BlocPos2d::from((col, (dx, dz))),
+            let color = self.block_color(
+                BlockPos2d::from((col, (dx, dz))),
                 soil_color,
             );
             image.data[i] = color.red() as u8;
@@ -101,8 +101,8 @@ impl Render2D for Blocs {
     fn update_side(&self, col: ColPos, image: &mut Image, soil_color: &SoilColor) {
         for i in (0..CHUNK_S1 * 4).step_by(4) {
             let (dx, dz) = image_to_2d(i);
-            let color = self.bloc_color(
-                BlocPos2d::from((col, (dx, dz))),
+            let color = self.block_color(
+                BlockPos2d::from((col, (dx, dz))),
                 soil_color,
             );
             image.data[i] = color.red() as u8;

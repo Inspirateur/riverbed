@@ -1,6 +1,6 @@
-use crate::blocs::{
+use crate::blocks::{
     MAX_GEN_HEIGHT, CHUNK_S1,
-    Bloc, Soils, unchunked, Blocs, ColPos
+    Block, Soils, unchunked, Blocks, ColPos
 };
 use itertools::iproduct;
 use nd_interval::NdInterval;
@@ -35,16 +35,16 @@ impl DebugGen {
         }
     }
 
-    pub fn gen(&self, world: &Blocs, col: ColPos) {
+    pub fn gen(&self, world: &Blocks, col: ColPos) {
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (x, z) = (unchunked(col.x, dx), unchunked(col.z, dz));
             let (y, t, h) = values(x, z);
             let y = (y * MAX_GEN_HEIGHT as f32) as i32;
             assert!(y >= 0);
-            let bloc = *self.soils.closest([t as f32, h as f32]).unwrap_or((&Bloc::Dirt, 0.)).0;
-            world.set_yrange(col, (dx, dz), y, 3, bloc);
+            let block = *self.soils.closest([t as f32, h as f32]).unwrap_or((&Block::Dirt, 0.)).0;
+            world.set_yrange(col, (dx, dz), y, 3, block);
         }
         // this is a bit too slow so we don't bother with it for now
-        // col.fill_up(Bloc::Stone);
+        // col.fill_up(Block::Stone);
     }
 }

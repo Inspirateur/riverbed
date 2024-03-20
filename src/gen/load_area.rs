@@ -1,4 +1,4 @@
-use crate::blocs::{pos2d::chunks_in_col, ChunkPos, ColPos, TrackedChunk};
+use crate::blocks::{pos2d::chunks_in_col, ChunkPos, ColPos, TrackedChunk};
 use bevy::prelude::*;
 use dashmap::DashMap;
 use itertools::iproduct;

@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use crate::blocs::pos2d::Pos2d;
-use crate::blocs::{Blocs, ColPos, Realm, ReinsertTrait};
+use crate::blocks::pos2d::Pos2d;
+use crate::blocks::{Blocks, ColPos, Realm, ReinsertTrait};
 use itertools::Itertools;
 use bevy::prelude::*;
 use parking_lot::lock_api::ArcRwLockWriteGuard;
@@ -140,12 +140,12 @@ pub struct ColUnloadEvent(pub ColPos);
 
 pub fn process_unload_orders(
     mut col_orders: ResMut<LoadOrders>,
-    blocs: ResMut<Blocs>,
+    blocks: ResMut<Blocks>,
     mut ev_unload: EventWriter<ColUnloadEvent>,
 ) {
     // PROCESS UNLOAD ORDERS
     for col in col_orders.to_unload.drain(..) {
-        blocs.unload_col(col);
+        blocks.unload_col(col);
         ev_unload.send(ColUnloadEvent(col));
     }
 }

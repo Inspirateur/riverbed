@@ -1,6 +1,6 @@
 use bevy::prelude::info_span;
-use crate::blocs::{CHUNK_S1, ColPos, Blocs, BlocPos2d, BlocPos, CHUNK_S1I};
-use crate::blocs::{MAX_GEN_HEIGHT, WATER_H, Bloc, Soils, Trees};
+use crate::blocks::{CHUNK_S1, ColPos, Blocks, BlockPos2d, BlockPos, CHUNK_S1I};
+use crate::blocks::{MAX_GEN_HEIGHT, WATER_H, Block, Soils, Trees};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
@@ -31,7 +31,7 @@ impl Earth {
         }
     }
 
-    pub fn gen(&self, world: &Blocs, col: ColPos) {
+    pub fn gen(&self, world: &Blocks, col: ColPos) {
         let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4);
         let range = pos_to_range(col);
         let gen_span = info_span!("noise gen", name = "noise gen").entered();
@@ -54,27 +54,27 @@ impl Earth {
         let fill_span = info_span!("chunk filling", name = "chunk filling").entered();
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (y, t, h, rocks) = (ys[[dx, dz]], ts[[dx, dz]], hs[[dx, dz]], rocks[[dx, dz]]); 
-            let bloc = if rocks > 0.001 {
-                Bloc::Stone
+            let block = if rocks > 0.001 {
+                Block::Stone
             } else if y <= WATER_H {
-                Bloc::Sand
+                Block::Sand
             } else {
                 match self.soils.closest([t, h]) {
-                    Some((bloc, _)) => *bloc,
-                    None => Bloc::Dirt,
+                    Some((block, _)) => *block,
+                    None => Block::Dirt,
                 }
             };
-            world.set_yrange(col, (dx, dz), y, 16, bloc);
+            world.set_yrange(col, (dx, dz), y, 16, block);
             let water_height = WATER_H-y;
             if water_height > 0 {
-                world.set_yrange(col, (dx, dz), WATER_H, water_height as usize, Bloc::SeaBlock);
+                world.set_yrange(col, (dx, dz), WATER_H, water_height as usize, Block::SeaBlock);
             }
         }
         fill_span.exit();
         let tree_span = info_span!("tree gen", name = "tree gen").entered();
         let tree_spots = [(0, 0), (16, 0), (8, 16), (24, 16)];
         for spot in tree_spots {
-            let rng = <BlocPos2d>::from((col, spot)).prng(self.seed);
+            let rng = <BlockPos2d>::from((col, spot)).prng(self.seed);
             let dx = spot.0 + (rng & 0b111);
             let dz = spot.1 + ((rng >> 3) & 0b111);
             let tree = trees[[dx, dz]];
@@ -88,7 +88,7 @@ impl Earth {
                     ph[[dx, dz]], 
                     y as f32/MAX_GEN_HEIGHT as f32
                 ]) {
-                    let pos = BlocPos {
+                    let pos = BlockPos {
                         x: col.x*CHUNK_S1I+dx as i32, y, z: col.z*CHUNK_S1I+dz as i32, realm: col.realm
                     };
                     tree.grow(world, pos, self.seed, dist+h as f32/10.);

@@ -2,7 +2,7 @@ mod camera;
 mod draw3d;
 mod render3d;
 mod texture_array;
-mod bloc_action;
+mod block_action;
 mod sky;
 mod shared_load_area;
 use bevy::prelude::Plugin;
@@ -15,7 +15,7 @@ impl Plugin for Game3d {
 			.add_plugins(draw3d::Draw3d)
 			.add_plugins(sky::SkyPlugin)
 			.add_plugins(camera::Camera3dPlugin)
-			.add_plugins(bloc_action::BlocActionPlugin)
+			.add_plugins(block_action::BlockActionPlugin)
 			;
     }
 }

@@ -1,6 +1,6 @@
 use std::time::Duration;
 use crate::{gen::RenderDistance, agents::{Gravity, Heading, AABB, Velocity, Jumping}, GameState};
-use crate::blocs::{Realm, BlocRayCastHit};
+use crate::blocks::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
@@ -12,7 +12,7 @@ const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
 pub struct PlayerControlled;
 
 #[derive(Component)]
-pub struct TargetBloc(pub Option<BlocRayCastHit>);
+pub struct TargetBlock(pub Option<BlockRayCastHit>);
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 pub enum Dir {
@@ -66,7 +66,7 @@ pub fn spawn_player(mut commands: Commands) {
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
             rd,
-            TargetBloc(None),
+            TargetBlock(None),
             PlayerControlled
         ))
         .insert(InputManagerBundle::<Dir> {

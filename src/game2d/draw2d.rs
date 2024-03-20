@@ -1,4 +1,4 @@
-use crate::blocs::{CHUNK_S1, Bloc, Blocs, ColPos};
+use crate::blocks::{CHUNK_S1, Block, Blocks, ColPos};
 use crate::gen::{ColUnloadEvent, LoadArea};
 use crate::agents::{PlayerControlled, AABB};
 use anyhow::Result;
@@ -41,7 +41,7 @@ pub fn process_chunk_changes(
     mut commands: Commands,
     load_area_query: Query<&LoadArea, With<PlayerControlled>>,
     im_query: Query<&Handle<Image>>,
-    blocs: ResMut<Blocs>, 
+    blocks: ResMut<Blocks>, 
     mut images: ResMut<Assets<Image>>,
     mut col_ents: ResMut<ColEntities>,
     soil_color: Res<SoilColor>,
@@ -50,23 +50,23 @@ pub fn process_chunk_changes(
         return;
     };
 
-    if let Some(chunk) = blocs.changes.pop() {
+    if let Some(chunk) = blocks.changes.pop() {
         let col: ColPos = chunk.into();
         if !load_area.col_dists.contains_key(&col) { return; }
         if let Some(ent) = col_ents.0.get(&col) {
             if let Ok(handle) = im_query.get_component::<Handle<Image>>(*ent) {
                 if let Some(image) = images.get_mut(handle) {
-                    blocs.update_image(chunk.into(), image, &soil_color);
+                    blocks.update_image(chunk.into(), image, &soil_color);
                 }
             } else {
                 // the entity is not instanciated yet, we put it back
-                blocs.changes.push(chunk);
+                blocks.changes.push(chunk);
             }
         } else {
             let trans = Vec3::new(col.x as f32, 0., col.z as f32) * CHUNK_S1 as f32;
             let ent = commands
                 .spawn(SpriteBundle {
-                    texture: images.add(blocs.create_image(col, &soil_color)),
+                    texture: images.add(blocks.create_image(col, &soil_color)),
                     transform: Transform::from_translation(trans)
                         .looking_at(trans + Vec3::Y, Vec3::Y),
                     ..default()
@@ -78,7 +78,7 @@ pub fn process_chunk_changes(
 }*/
 
 #[derive(Resource)]
-pub struct SoilColor(pub HashMap<Bloc, Rgb>);
+pub struct SoilColor(pub HashMap<Block, Rgb>);
 
 impl SoilColor {
     pub fn from_csv(path: &str) -> Result<Self> {
@@ -87,10 +87,10 @@ impl SoilColor {
         for record in reader.records() {
             let record = record?;
             let color = Rgb::from_hex_str(&record[1].trim())?;
-            if let Ok(bloc) = Bloc::from_str(&record[0]) {
-                data.insert(bloc, color);
+            if let Ok(block) = Block::from_str(&record[0]) {
+                data.insert(block, color);
             } else {
-                warn!(target: "ourcraft", "Bloc '{}' from soil_color.csv doesn't exist", &record[0]);
+                warn!(target: "ourcraft", "Block '{}' from soil_color.csv doesn't exist", &record[0]);
             }
         }
         Ok(SoilColor(data))

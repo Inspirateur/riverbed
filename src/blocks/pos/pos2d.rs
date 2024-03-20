@@ -1,7 +1,7 @@
 use std::ops::BitXor;
 use bevy::prelude::Vec3;
-use crate::blocs::{Realm, CHUNK_S1, Y_CHUNKS};
-use super::{chunked, pos3d::Pos3d, unchunked, BlocPos, ChunkPos, CHUNK_S1I};
+use crate::blocks::{Realm, CHUNK_S1, Y_CHUNKS};
+use super::{chunked, pos3d::Pos3d, unchunked, BlockPos, ChunkPos, CHUNK_S1I};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash)]
 pub struct Pos2d<const U: usize> {
@@ -35,13 +35,13 @@ impl<const U: usize> From<Pos3d<U>> for Pos2d<U> {
     }
 }
 
-pub type BlocPos2d = Pos2d<1>;
+pub type BlockPos2d = Pos2d<1>;
 pub type ColPos = Pos2d<CHUNK_S1>;
 pub type ColedPos = (usize, usize);
 
-impl From<(Vec3, Realm)> for BlocPos2d {
+impl From<(Vec3, Realm)> for BlockPos2d {
     fn from((pos, realm): (Vec3, Realm)) -> Self {
-        BlocPos2d {
+        BlockPos2d {
             x: pos.x.floor() as i32,
             z: pos.z.floor() as i32,
             realm: realm
@@ -49,9 +49,9 @@ impl From<(Vec3, Realm)> for BlocPos2d {
     }
 }
 
-impl From<(ColPos, ColedPos)> for BlocPos2d {
+impl From<(ColPos, ColedPos)> for BlockPos2d {
     fn from((chunk_pos, (dx, dz)): (ColPos, ColedPos)) -> Self {
-        BlocPos2d {
+        BlockPos2d {
             x: unchunked(chunk_pos.x, dx),
             z: unchunked(chunk_pos.z, dz),
             realm: chunk_pos.realm
@@ -59,45 +59,45 @@ impl From<(ColPos, ColedPos)> for BlocPos2d {
     }
 }
 
-impl From<BlocPos2d> for (ColPos, ColedPos) {
-    fn from(bloc_pos: BlocPos2d) -> Self {
-        let (cx, dx) = chunked(bloc_pos.x);
-        let (cz, dz) = chunked(bloc_pos.z);
+impl From<BlockPos2d> for (ColPos, ColedPos) {
+    fn from(block_pos: BlockPos2d) -> Self {
+        let (cx, dx) = chunked(block_pos.x);
+        let (cz, dz) = chunked(block_pos.z);
         (ColPos {
             x: cx,
             z: cz,
-            realm: bloc_pos.realm
+            realm: block_pos.realm
         }, (dx, dz))
     }
 }
 
-impl From<BlocPos2d> for ColPos {
-    fn from(bloc_pos2d: BlocPos2d) -> Self {
-        let cx = bloc_pos2d.x/CHUNK_S1I;
-        let cz = bloc_pos2d.z/CHUNK_S1I;
+impl From<BlockPos2d> for ColPos {
+    fn from(block_pos2d: BlockPos2d) -> Self {
+        let cx = block_pos2d.x/CHUNK_S1I;
+        let cz = block_pos2d.z/CHUNK_S1I;
         ColPos {
             x: cx,
             z: cz,
-            realm: bloc_pos2d.realm
+            realm: block_pos2d.realm
         }
     }
 }
 
-impl From<BlocPos> for ColPos {
-    fn from(bloc_pos: BlocPos) -> Self {
-        let cx = bloc_pos.x/CHUNK_S1I;
-        let cz = bloc_pos.z/CHUNK_S1I;
+impl From<BlockPos> for ColPos {
+    fn from(block_pos: BlockPos) -> Self {
+        let cx = block_pos.x/CHUNK_S1I;
+        let cz = block_pos.z/CHUNK_S1I;
         ColPos {
             x: cx,
             z: cz,
-            realm: bloc_pos.realm
+            realm: block_pos.realm
         }
     }
 }
 
 impl From<(Vec3, Realm)> for ColPos {
     fn from(value: (Vec3, Realm)) -> Self {
-        ColPos::from(BlocPos::from(value))
+        ColPos::from(BlockPos::from(value))
     }
 }
 
