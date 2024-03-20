@@ -138,7 +138,7 @@ pub fn pull_meshes(
         } else if blocks.chunks.contains_key(&chunk_pos) {
             let ent = commands.spawn(MaterialMeshBundle {
                 mesh: meshes.add(mesh),
-                material: block_tex_array.0.clone(),
+                material: block_tex_array.0.clone_weak(),
                 transform: Transform::from_translation(
                     Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32,
                 ),
