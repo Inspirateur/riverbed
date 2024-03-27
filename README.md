@@ -48,4 +48,4 @@ I mean for the project to stay open source and be an inspiration and learning re
 - [@Involture](https://github.com/Involture): contributed to the efficient packing of chunk data in RAM  
 *one of the many invisible optimisations required to make such a game work*
 
-I'm also very grateful for Bevy - the engine powering the game - and the open source Rust ecosystem as a whole which this project contributes back to.
+I'm also very grateful for Bevy - the engine powering the game - and the open source Rust ecosystem as a whole, which Riverbed (hopefully) will contribute back to.
