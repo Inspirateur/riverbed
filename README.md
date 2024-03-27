@@ -7,6 +7,7 @@ Open source Minecraft-inspired game made with [Bevy](https://bevyengine.org/) in
 
 ## Goals
 Riverbed doesn't aim to be a Minecraft clone - even though it's definitely the case for now - below are some distinctive aspects planned in the future.  
+
 *most of these features are faraway dreams for now but this is the spirit of the project*
 
 ### Push the player to work with the environment
