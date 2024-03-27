@@ -22,7 +22,7 @@ Ourcraft doesn't aim to be a Minecraft clone - even though it's definitely the c
 
 ### Push the RPG aspect but don't shove it in the player's face
 - 👹 generate mobs in special mob structures, but spawn very few mob outside of it  
-  *-> if the player decides to spend a few hours building something, let them be. They will need to fight for special craft ingredients anyway.*
+  *-> if the player decides to spend a few hours building something, let them be; they will need to fight for special craft ingredients anyway.*
 - ⚔️ make interesting with multiple weapon types, varied enchantments, stamina, dodge and hit mechanics 
 - 💰 generate good loot that the player will actually want to find (in mob structures, ruins, etc.)
 - 📈 work on a good progression curve, the player shouldn't be able to reach the best metal/mineral in a few minutes
