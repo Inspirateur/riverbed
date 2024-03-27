@@ -2,7 +2,7 @@
 Open source Minecraft-inspired game made with [Bevy](https://bevyengine.org/) in Rust.
 
 ## Current state
-![game_screenshot](https://github.com/Inspirateur/ourcraft/assets/22746898/c95d2555-3311-4431-981d-21f5283011cf)
+![game_screenshot_fog](https://github.com/Inspirateur/riverbed/assets/22746898/49501ffd-d6f7-4d23-84ab-aef415d7e3be)
 *featured on this screenshot is an infinitely generated, editable terrain, and a 4km render distance (equivalent to 256 in Minecraft)*  
 Single-player for now but it will be multi-player eventually ...
 
