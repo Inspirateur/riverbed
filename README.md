@@ -36,7 +36,7 @@ There's a plethora of invisible features that makes a game enjoyable, Ourcraft s
 Hi, [@Inspirateur](https://github.com/Inspirateur) writing.
 Ourcraft is a personal project so I plan to stay [BDFL](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life), I have a job to pay for bills 4 days a week, leaving me time to work on the game the remaining days (when I can). 
 
-I'm the primary contributor for now but if you vibe with the philosophy don't hesitate to contribute!  
+I'm the primary contributor for now but if you agree with the game vision don't hesitate to contribute!  
 I mean for the project to stay open source and be an inspiration and learning resource for others, and will do my best to keep it well organized, with independant parts of the code published as crates for maximum reusability.
 
 ### Thanks
