@@ -40,11 +40,11 @@ I'm the primary contributor for now but if you agree with the game vision don't 
 I mean for the project to stay open source and be an inspiration and learning resource for others, and will do my best to keep it well organized, with independant parts of the code published as crates for maximum reusability.
 
 ### Thanks
-- [@kokounet](https://github.com/kokounet): major contributions on rendering
+- [@kokounet](https://github.com/kokounet): major contributions on rendering  
 *he's a big part of why we're able to reach 4km of render distance, many thanks!*
-- [Denis Périce](https://denis-perice.github.io/): helping me find the ideal water sim
+- [Denis Périce](https://denis-perice.github.io/): helping me find the ideal water sim  
 *it's a work in progress but I'm very glad to have his help*
-- [@Involture](https://github.com/Involture): contributed to the efficient packing of chunk data in RAM
+- [@Involture](https://github.com/Involture): contributed to the efficient packing of chunk data in RAM  
 *one of the many invisible optimisations required to make such a game work*
 
 I'm also very grateful for Bevy - the engine powering the game - and the open source Rust ecosystem as a whole which this project contributes back to.
