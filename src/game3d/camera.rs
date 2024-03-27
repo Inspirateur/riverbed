@@ -30,7 +30,7 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
         (CameraMovement::Pan, DualAxis::mouse_motion()),
     ]);
     let (player, aabb) = player_query.get_single().unwrap();
-    let cam = commands.spawn(Camera3dBundle {
+    let cam = commands.spawn((Camera3dBundle {
         transform: Transform::from_xyz(aabb.0.x/2., 2., aabb.0.z/2.)
             .looking_at(Vec3 {x: 0., y: 0., z: 1.}, Vec3::Y),
         // we put the far clipping plane very far because we don't want any chunks behind it anyway
@@ -40,7 +40,15 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
             ..Default::default() 
         }),
         ..Default::default()
-    })
+    },
+    FogSettings {
+        color: Color::rgba(0.70, 0.85, 0.95, 1.0),
+        falloff: FogFalloff::Linear {
+            start: 100.0,
+            end: 5000.0,
+        },
+        ..default()
+    }))
     .insert(InputManagerBundle::<CameraMovement> {
         input_map,
         ..default()

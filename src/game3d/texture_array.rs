@@ -1,5 +1,5 @@
 use std::{ffi::OsStr, str::FromStr, sync::Arc};
-use bevy::{asset::LoadedFolder, prelude::*, reflect::TypePath, render::{render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
+use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
 use dashmap::DashMap;
 use crate::blocks::{Block, Face};
 
@@ -101,7 +101,7 @@ fn setup(
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut textures: ResMut<Assets<Image>>,
     texture_map: Res<TextureMap>,
-    mut materials: ResMut<Assets<ArrayTextureMaterial>>,
+    mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
 ) {
     // Build a `TextureAtlas` using the individual sprites
     let mut texture_list: Vec<&Image> = Vec::new();
@@ -138,24 +138,31 @@ fn setup(
         RenderAssetUsages::default()
     );
     let handle = textures.add(array_tex);
-    let handle = materials.add(ArrayTextureMaterial {
-        array_texture: handle,
+    let handle = materials.add(ExtendedMaterial {
+        base: StandardMaterial {
+            perceptual_roughness: 0.9,
+            reflectance: 0.2,
+            ..Default::default()
+        },
+        extension: ArrayTextureMaterial {
+            array_texture: handle,
+        }
     });
     commands.insert_resource(BlockTextureArray(handle));
 }
 
 
 #[derive(Resource)]
-pub struct BlockTextureArray(pub Handle<ArrayTextureMaterial>);
+pub struct BlockTextureArray(pub Handle<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>);
 
 #[derive(Asset, AsBindGroup, Debug, Clone, TypePath)]
 pub struct ArrayTextureMaterial {
-    #[texture(0, dimension = "2d_array")]
-    #[sampler(1)]
+    #[texture(100, dimension = "2d_array")]
+    #[sampler(101)]
     array_texture: Handle<Image>,
 }
 
-impl Material for ArrayTextureMaterial {
+impl MaterialExtension for ArrayTextureMaterial {
     fn vertex_shader() -> ShaderRef {
         "shaders/chunk.wgsl".into()
     }
@@ -165,10 +172,10 @@ impl Material for ArrayTextureMaterial {
     }
 
     fn specialize(
-            _pipeline: &bevy::pbr::MaterialPipeline<Self>,
+            _pipeline: &MaterialExtensionPipeline,
             descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
             layout: &bevy::render::mesh::MeshVertexBufferLayout,
-            _key: bevy::pbr::MaterialPipelineKey<Self>,
+            _key: MaterialExtensionKey<ArrayTextureMaterial>,
         ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
             let vertex_layout = layout.get_layout(&[ATTRIBUTE_VOXEL_DATA.at_shader_location(0)])?;
             descriptor.vertex.buffers = vec![vertex_layout];
@@ -182,7 +189,7 @@ impl Plugin for TextureArrayPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<TexState>()
             .insert_resource(TextureMap(Arc::new(DashMap::new())))
-            .add_plugins(MaterialPlugin::<ArrayTextureMaterial>::default())
+            .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>::default())
             .add_systems(OnEnter(TexState::Setup), load_textures)
             .add_systems(Update, check_textures.run_if(in_state(TexState::Setup)))
             .add_systems(OnEnter(TexState::Finished), setup)

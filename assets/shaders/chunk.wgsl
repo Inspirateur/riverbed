@@ -1,4 +1,5 @@
 #import bevy_pbr::{
+    pbr_fragment::pbr_input_from_standard_material,
     mesh_view_bindings::view,
     pbr_types::{STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND, PbrInput, pbr_input_new},
     pbr_functions as fns,
@@ -6,8 +7,20 @@
 }
 #import bevy_core_pipeline::tonemapping::tone_mapping
 
-@group(2) @binding(0) var texture_pack: texture_2d_array<f32>;
-@group(2) @binding(1) var texture_sampler: sampler;
+#ifdef PREPASS_PIPELINE
+#import bevy_pbr::{
+    prepass_io::{VertexOutput, FragmentOutput},
+    pbr_deferred_functions::deferred_output,
+}
+#else
+#import bevy_pbr::{
+    forward_io::{VertexOutput, FragmentOutput},
+    pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing},
+}
+#endif
+
+@group(2) @binding(100) var texture_pack: texture_2d_array<f32>;
+@group(2) @binding(101) var texture_sampler: sampler;
 
 const MASK2: u32 = 3;
 const MASK3: u32 = 7;
@@ -21,7 +34,7 @@ struct VertexInput {
     @location(0) voxel_data: vec2<u32>,
 };
 
-struct VertexOutput {
+struct CustomVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) world_position: vec4<f32>,
     @location(1) world_normal: vec3<f32>,
@@ -85,7 +98,9 @@ fn color_from_id(id: u32) -> vec4<f32> {
 }
 
 @vertex
-fn vertex(vertex: VertexInput) -> VertexOutput {
+fn vertex(vertex: VertexInput) -> CustomVertexOutput {
+    var out: CustomVertexOutput;
+
     var first = vertex.voxel_data.x;
     var x = f32(first & MASK6);
     var y = f32((first >> 6) & MASK6);
@@ -104,7 +119,6 @@ fn vertex(vertex: VertexInput) -> VertexOutput {
     var light = f32((second >> 12) & MASK4) / f32(MASK4);
     var texture_layer = second >> 16;
 
-    var out: VertexOutput;
     out.position = mesh_position_local_to_clip(
         get_model_matrix(vertex.instance_index),
         position,
@@ -123,46 +137,43 @@ fn vertex(vertex: VertexInput) -> VertexOutput {
 
 @fragment
 fn fragment(
+    in: CustomVertexOutput,
     @builtin(front_facing) is_front: bool,
-    mesh: VertexOutput,
-) -> @location(0) vec4<f32> {
-    // Prepare a 'processed' StandardMaterial by sampling all textures to resolve
-    // the material members
-    var pbr_input: PbrInput = pbr_input_new();
-    pbr_input.material.flags = STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND;
-    pbr_input.material.perceptual_roughness = 1.0;
-    pbr_input.material.reflectance = 0.2;
-    pbr_input.material.base_color = textureSampleBias(texture_pack, texture_sampler, mesh.uv, mesh.texture_layer, view.mip_bias);
-    pbr_input.material.base_color = pbr_input.material.base_color * mesh.color * mesh.face_light;
-
-    let double_sided = (pbr_input.material.flags & STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT) != 0u;
-
-    pbr_input.frag_coord = mesh.position;
-    pbr_input.world_position = mesh.world_position;
-    pbr_input.world_normal = fns::prepare_world_normal(
-        mesh.world_normal,
-        double_sided,
-        is_front,
-    );
-
-    pbr_input.is_orthographic = view.projection[3].w == 1.0;
-
-    pbr_input.N = fns::apply_normal_mapping(
-        pbr_input.material.flags,
-        mesh.world_normal,
-        double_sided,
-        is_front,
-#ifdef VERTEX_TANGENTS
-#ifdef STANDARD_MATERIAL_NORMAL_MAP
-        mesh.world_tangent,
-#endif
-#endif
+) -> FragmentOutput {
+    var vertex_output: VertexOutput;
+    vertex_output.position = in.position;
+    vertex_output.world_position = in.world_position;
+    vertex_output.world_normal = in.world_normal;
 #ifdef VERTEX_UVS
-        mesh.uv,
-#endif // VERTEX_UVS
-        view.mip_bias,
-    );
-    pbr_input.V = fns::calculate_view(mesh.world_position, pbr_input.is_orthographic);
+    vertex_output.uv = in.uv;
+#endif
+#ifdef VERTEX_UVS_B
+    vertex_output.uv_b = in.uv;
+#endif
+#ifdef VERTEX_COLORS
+    vertex_output.color = in.color;
+#endif
+    // generate a PbrInput struct from the StandardMaterial bindings
+    var pbr_input = pbr_input_from_standard_material(vertex_output, is_front);
+    
+    // sample texture
+    pbr_input.material.base_color = in.color * in.face_light * textureSampleBias(texture_pack, texture_sampler, in.uv, in.texture_layer, view.mip_bias);
+    
+    // alpha discard
+    pbr_input.material.base_color = fns::alpha_discard(pbr_input.material, pbr_input.material.base_color);
 
-    return tone_mapping(fns::apply_pbr_lighting(pbr_input), view.color_grading);
+#ifdef PREPASS_PIPELINE
+    // in deferred mode we can't modify anything after that, as lighting is run in a separate fullscreen shader.
+    let out = deferred_output(in, pbr_input);
+#else
+    var out: FragmentOutput;
+    // apply lighting
+    out.color = apply_pbr_lighting(pbr_input);
+
+    // apply in-shader post processing (fog, alpha-premultiply, and also tonemapping, debanding if the camera is non-hdr)
+    // note this does not include fullscreen postprocessing effects like bloom.
+    out.color = main_pass_post_lighting_processing(pbr_input, out.color);
+#endif
+
+    return out;
 }
