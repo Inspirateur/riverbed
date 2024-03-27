@@ -1,2 +1,50 @@
 # Ourcraft
-Experiments on Minecraft type games
+Open source Minecraft-inspired game made with [Bevy](https://bevyengine.org/) in Rust (name is temporary).
+
+### Screenshot
+![game_screenshot](https://github.com/Inspirateur/ourcraft/assets/22746898/c95d2555-3311-4431-981d-21f5283011cf)
+*featured on this screenshot are an infinite terrain generation and a 4km render distance (equivalent to 256 in Minecraft)*
+
+## Goals
+Ourcraft doesn't aim to be a Minecraft clone - even though it's definitely the case for now - below are some distinctive aspects planned in the future.  
+*most of these features are faraway dreams for now but this is the spirit of the project*
+
+### Push the player to work with the environment
+- 🌊 implement flowing rivers without infinite water creation  
+  *-> will force the player to divert river flow for irrigation*
+- 🌏 implement meaningful biomes, with a real impact on various plant growth  
+  *-> the player will need to be smart about cultivation*
+- 𓍢ִ໋🌷͙֒ make every plant useful, by giving them various effect in a BOTW-inspired cooking system and requiring them in some craft recipies
+- 🚂 make trains the fastest way of transportation (no elytras but gliders are cool)  
+  *-> finaly giving a player a reason to build the pretty train circuits they always wanted to build*
+- 💎 make ores renewable  
+  *-> mines will be an asset that the player will want to manage, creating railways, lights, etc.*
+
+### Push the RPG aspect but don't shove it in the player's face
+- 👹 generate mobs in special mob structures, but spawn very few mob outside of it  
+  *-> if the player decides to spend a few hours building something, let them be. They will need to fight for special craft ingredients anyway.*
+- ⚔️ make interesting with multiple weapon types, varied enchantments, stamina, dodge and hit mechanics 
+- 💰 generate good loot that the player will actually want to find (in mob structures, ruins, etc.)
+- 📈 work on a good progression curve, the player shouldn't be able to reach the best metal/mineral in a few minutes
+
+### Quality of life
+Big render distance, pretty by default, no cap on items stack, etc.  
+There's a plethora of invisible features that makes a game enjoyable, Ourcraft shall pay attention to them!
+
+## Development
+### Word from the author
+Hi, [@Inspirateur](https://github.com/Inspirateur) writing.
+Ourcraft is a personal project so I plan to stay [BDFL](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life), I have a job to pay for bills 4 days a week, leaving me time to work on the game the remaining days (when I can). 
+
+I'm the primary contributor for now but if you vibe with the philosophy don't hesitate to contribute!  
+I mean for the project to stay open source and be an inspiration and learning resource for others, and will do my best to keep it well organized, with independant parts of the code published as crates for maximum reusability.
+
+### Thanks
+- [@kokounet](https://github.com/kokounet): major contributions on rendering
+*he's a big part of why we're able to reach 4km of render distance, many thanks!*
+- [Denis Périce](https://denis-perice.github.io/): helping me find the ideal water sim
+*it's a work in progress but I'm very glad to have his help*
+- [@Involture](https://github.com/Involture): contributed to the efficient packing of chunk data in RAM
+*one of the many invisible optimisations required to make such a game work*
+
+I'm also very grateful for Bevy - the engine powering the game - and the open source Rust ecosystem as a whole which this project contributes back to.
