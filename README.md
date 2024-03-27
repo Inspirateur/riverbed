@@ -6,7 +6,7 @@ Open source Minecraft-inspired game made with [Bevy](https://bevyengine.org/) in
 *featured on this screenshot are an infinite terrain generation and a 4km render distance (equivalent to 256 in Minecraft)*
 
 ## Hopes and dreams
-Riverbed doesn't aim to be a Minecraft clone - even though it's definitely the case for now - below are some distinctive aspects planned in the (far) future.
+Riverbed doesn't aim to be a Minecraft clone - even though it totaly is atm - below are some distinctive aspects planned in the (far) future.
 
 ### Push the player to work with the environment
 - 🌊 implement flowing rivers without infinite water creation  
