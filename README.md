@@ -1,7 +1,7 @@
 # Riverbed
 Open source Minecraft-inspired game made with [Bevy](https://bevyengine.org/) in Rust.
 
-### Current state screenshot
+## Current state
 ![game_screenshot](https://github.com/Inspirateur/ourcraft/assets/22746898/c95d2555-3311-4431-981d-21f5283011cf)
 *featured on this screenshot are an infinite terrain generation and a 4km render distance (equivalent to 256 in Minecraft)*
 
