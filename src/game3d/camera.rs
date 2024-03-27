@@ -45,7 +45,7 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
         color: Color::rgba(0.70, 0.85, 0.95, 1.0),
         falloff: FogFalloff::Linear {
             start: 100.0,
-            end: 5000.0,
+            end: 6000.0,
         },
         ..default()
     }))

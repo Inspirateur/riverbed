@@ -31,7 +31,7 @@ fn main() {
         .add_plugins(
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    title: "OurCraft".into(),
+                    title: "Riverbed".into(),
                     ..default()
                 }),
                 ..default()
