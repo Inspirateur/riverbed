@@ -10,18 +10,18 @@ Riverbed doesn't aim to be a Minecraft clone - even though it totaly is atm - be
 
 ### Push the player to work with the environment
 - 🌊 implement flowing rivers without infinite water creation  
-  *-> will force the player to divert river flow for irrigation*
+  *→ will force the player to divert river flow for irrigation*
 - 🌏 implement meaningful biomes, with a real impact on various plant growth  
-  *-> the player will need to be smart about cultivation*
+  *→ the player will need to be smart about cultivation*
 - 𓍢ִ໋🌷͙֒ make every plant useful, by giving them various effect in a BOTW-inspired cooking system and requiring them in some craft recipies
 - 🚂 make trains the fastest way of transportation (no elytras but gliders are cool)  
-  *-> finaly giving players a reason to build the pretty train circuits they always wanted to build*
+  *→ finaly giving players a reason to build the pretty train circuits they always wanted to build*
 - 💎 make ores renewable  
-  *-> mines will be an asset that the player will want to manage, creating railways, lights, etc.*
+  *→ mines will be an asset that the player will want to manage, creating railways, lights, etc.*
 
 ### Push the RPG aspect but don't shove it in the player's face
 - 👹 generate mobs in special mob structures, but spawn very few mob outside of it  
-  *-> if the player decides to spend a few hours building something, let them be; they will need to fight for special craft ingredients anyway.*
+  *→ if the player decides to spend a few hours building something, let them be; they will need to fight for special craft ingredients anyway.*
 - ⚔️ make fighting interesting with multiple weapon types, varied enchantments, stamina, dodge and hit mechanics 
 - 💰 generate good loot that the player will actually want to find (in mob structures, ruins, etc.)
 - 📈 work on a good progression curve, the player shouldn't be able to reach the best metal/mineral in a few minutes
