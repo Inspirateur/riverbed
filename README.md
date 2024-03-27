@@ -17,7 +17,7 @@ Riverbed doesn't aim to be a Minecraft clone - even though it's definitely the c
   *-> the player will need to be smart about cultivation*
 - 𓍢ִ໋🌷͙֒ make every plant useful, by giving them various effect in a BOTW-inspired cooking system and requiring them in some craft recipies
 - 🚂 make trains the fastest way of transportation (no elytras but gliders are cool)  
-  *-> finaly giving a player a reason to build the pretty train circuits they always wanted to build*
+  *-> finaly giving players a reason to build the pretty train circuits they always wanted to build*
 - 💎 make ores renewable  
   *-> mines will be an asset that the player will want to manage, creating railways, lights, etc.*
 
