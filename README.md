@@ -1,12 +1,12 @@
-# Ourcraft
-Open source Minecraft-inspired game made with [Bevy](https://bevyengine.org/) in Rust (name is temporary).
+# Riverbed
+Open source Minecraft-inspired game made with [Bevy](https://bevyengine.org/) in Rust.
 
 ### Screenshot
 ![game_screenshot](https://github.com/Inspirateur/ourcraft/assets/22746898/c95d2555-3311-4431-981d-21f5283011cf)
 *featured on this screenshot are an infinite terrain generation and a 4km render distance (equivalent to 256 in Minecraft)*
 
 ## Goals
-Ourcraft doesn't aim to be a Minecraft clone - even though it's definitely the case for now - below are some distinctive aspects planned in the future.  
+Riverbed doesn't aim to be a Minecraft clone - even though it's definitely the case for now - below are some distinctive aspects planned in the future.  
 *most of these features are faraway dreams for now but this is the spirit of the project*
 
 ### Push the player to work with the environment
@@ -29,19 +29,19 @@ Ourcraft doesn't aim to be a Minecraft clone - even though it's definitely the c
 
 ### Quality of life
 Big render distance, pretty by default, no cap on items stack, etc.  
-There's a plethora of invisible features that makes a game enjoyable, Ourcraft shall pay attention to them!
+There's a plethora of subtle features that makes a game enjoyable, Riverbed shall pay attention to them!
 
 ## Development
 ### Word from the author
 Hi, [@Inspirateur](https://github.com/Inspirateur) writing.
-Ourcraft is a personal project so I plan to stay [BDFL](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life), I have a job to pay for bills 4 days a week, leaving me time to work on the game the remaining days (when I can). 
+Riverbed is a personal project so I plan to stay [BDFL](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life), I have a job to pay for bills 4 days a week, leaving me time to work on the game the remaining days (when I can). 
 
 I'm the primary contributor for now but if you agree with the game vision don't hesitate to contribute!  
 I mean for the project to stay open source and be an inspiration and learning resource for others, and will do my best to keep it well organized, with independant parts of the code published as crates for maximum reusability.
 
 ### Thanks
 - [@kokounet](https://github.com/kokounet): major contributions on rendering  
-*he's a big part of why we're able to reach 4km of render distance, many thanks!*
+*he's a big part of why Riverbed is able to reach 4km of render distance, many thanks!*
 - [Denis Périce](https://denis-perice.github.io/): helping me find the ideal water sim  
 *it's a work in progress but I'm very glad to have his help*
 - [@Involture](https://github.com/Involture): contributed to the efficient packing of chunk data in RAM  
