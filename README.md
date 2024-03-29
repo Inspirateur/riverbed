@@ -39,8 +39,7 @@ Riverbed is a personal project so I plan to stay [BDFL](https://en.wikipedia.org
 
 I mean for the project to stay open source, to be an inspiration and learning resource for others, and will do my best to keep it well organized, with independant parts of the code published as crates for maximum reusability.
 
-I'm the primary contributor for now but if you agree with the game vision you're very welcomed to contribute :)  
-Even without contributing to the codebase, finding bugs, writing issues or giving some advice on existing issues is already very helpful!  
+I'm the primary contributor for now but if you agree with the game vision you're very welcomed to contribute, by creating PRs, issues or even simple comments with advice! 🙂  
 (you can contact me on discord at '**inspirateur**', and also check out the [developer wiki](https://github.com/Inspirateur/riverbed/wiki/Riverbed-Developer-Wiki))
 
 ### Thanks
