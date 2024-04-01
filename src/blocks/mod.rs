@@ -1,11 +1,13 @@
 mod utils;
 mod chunk;
 mod chunk_shape;
+mod face;
 mod blocks;
 mod pos;
 mod block;
 mod realm;
 pub mod growables;
+pub use face::*;
 pub use block::*;
 pub use realm::*;
 pub use blocks::*;

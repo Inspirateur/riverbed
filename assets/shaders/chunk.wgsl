@@ -91,9 +91,9 @@ fn light_from_id(id: u32) -> f32 {
 }
 
 fn color_from_id(id: u32) -> vec4<f32> {
-    var r = f32(id & MASK3)/7.0;
-    var g = f32((id >> 3) & MASK3)/7.0;
-    var b = f32((id >> 6) & MASK3)/7.0;
+    var r = f32(id & MASK3)/f32(MASK3);
+    var g = f32((id >> 3) & MASK3)/f32(MASK3);
+    var b = f32((id >> 6) & MASK3)/f32(MASK3);
     return vec4(r, g, b, 1.0);
 }
 

@@ -1,3 +1,4 @@
+mod chunk_culling;
 mod camera;
 mod draw3d;
 mod render3d;

@@ -93,16 +93,6 @@ impl Block {
     }
 }
 
-#[derive(EnumIter, PartialEq, Eq, Hash, Debug, Clone, Copy)]
-pub enum Face {
-    Up,
-    Down,
-    Left,
-    Right,
-    Front,
-    Back
-}
-
 impl Voxel for Block {
     fn get_visibility(&self) -> VoxelVisibility {
         match self {

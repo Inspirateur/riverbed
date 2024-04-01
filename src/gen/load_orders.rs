@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use crate::blocks::pos2d::Pos2d;
-use crate::blocks::{Blocks, ColPos, Realm, ReinsertTrait};
+use crate::blocks::{Blocks, ColPos, Realm, ReinsertTrait, CHUNK_S1};
 use itertools::Itertools;
 use bevy::prelude::*;
 use parking_lot::lock_api::ArcRwLockWriteGuard;
@@ -9,7 +9,7 @@ use parking_lot::{RawRwLock, RwLock};
 use super::{LoadArea, RenderDistance};
 
 
-fn add_gen_order(to_generate: &mut ArcRwLockWriteGuard<RawRwLock, Vec<(Pos2d<32>, u32)>>, col_pos: ColPos, dist: u32) {
+fn add_gen_order(to_generate: &mut ArcRwLockWriteGuard<RawRwLock, Vec<(Pos2d<CHUNK_S1>, u32)>>, col_pos: ColPos, dist: u32) {
     // col_pos should *not* be present in to_generate
     // need to take a write lock before doing read and write or else to_generate could change between the read and the write
     let i = match to_generate.binary_search_by(|(_, other_dist)| dist.cmp(other_dist)) {
@@ -19,7 +19,7 @@ fn add_gen_order(to_generate: &mut ArcRwLockWriteGuard<RawRwLock, Vec<(Pos2d<32>
     to_generate.insert(i, (col_pos, dist));
 }
 
-fn update_gen_order(to_generate: &mut ArcRwLockWriteGuard<RawRwLock, Vec<(Pos2d<32>, u32)>>, col_pos: &ColPos, dist: u32) {
+fn update_gen_order(to_generate: &mut ArcRwLockWriteGuard<RawRwLock, Vec<(Pos2d<CHUNK_S1>, u32)>>, col_pos: &ColPos, dist: u32) {
     // col_pos may be present in to_generate
     let Some(old_i) = to_generate.iter().position(|(other_col, _)| other_col == col_pos) else {
         return;
@@ -78,7 +78,7 @@ impl LoadOrders {
                 }
             }
         }
-        let mut wlock: ArcRwLockWriteGuard<RawRwLock, Vec<(Pos2d<32>, u32)>> = self.to_generate.write_arc();
+        let mut wlock: ArcRwLockWriteGuard<RawRwLock, Vec<(Pos2d<CHUNK_S1>, u32)>> = self.to_generate.write_arc();
         for (col_pos, dist) in new_load_area.col_dists.iter() {
             if old_load_area.col_dists.contains_key(col_pos) {
                 continue;

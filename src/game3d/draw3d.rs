@@ -1,19 +1,20 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::yield_now;
-use bevy::math::Vec3A;
 use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
+use bevy::render::view::NoFrustumCulling;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver};
 use itertools::{iproduct, Itertools};
+use strum::IntoEnumIterator;
 use crate::blocks::pos2d::chunks_in_col;
-use crate::blocks::{Blocks, ChunkPos, CHUNK_S1, Y_CHUNKS};
+use crate::blocks::{Blocks, ChunkPos, Face, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{range_around, ColUnloadEvent, LoadArea, LoadAreaAssigned};
+use super::chunk_culling::chunk_culling;
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
 use super::texture_array::{BlockTextureArray, TexState};
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
-const CHUNK_S1_HF: f32 = (CHUNK_S1/2) as f32;
 const GRID_GIZMO_LEN: i32 = 4;
 
 #[derive(Debug, Component)]
@@ -43,7 +44,7 @@ fn mark_lod_remesh(
     blocks: ResMut<Blocks>
 ) {
     if !load_area.is_changed() { return; }
-    for (chunk_pos, entity) in chunk_ents.0.iter() {
+    for ((chunk_pos, _), entity) in chunk_ents.0.iter().unique_by(|((chunk_pos, _), _)| chunk_pos) {
         let Some(dist) =  load_area.col_dists.get(&(*chunk_pos).into()) else {
             continue;
         };
@@ -79,7 +80,7 @@ fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<LoadArea>) {
 }
 
 #[derive(Resource)]
-pub struct MeshReciever(Receiver<(Mesh, ChunkPos, LOD)>);
+pub struct MeshReciever(Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
 
 fn setup_mesh_thread(mut commands: Commands, blocks: Res<Blocks>, shared_load_area: Res<SharedLoadArea>, texture_map: Res<TextureMap>) {
     let thread_pool = AsyncComputeTaskPool::get();
@@ -99,10 +100,13 @@ fn setup_mesh_thread(mut commands: Commands, blocks: Res<Blocks>, shared_load_ar
                     continue;
                 };
                 let lod = choose_lod_level(dist);
-                let mesh = chunks.create_mesh(chunk_pos, &texture_map, lod);
-                if mesh_sender.send((mesh, chunk_pos, LOD(lod))).is_err() {
-                    println!("mesh for {:?} couldn't be sent", chunk_pos)
-                };
+                let face_meshes = chunks.create_face_meshes(chunk_pos, &texture_map, lod);
+                for (i, face_mesh) in face_meshes.into_iter().enumerate() {
+                    let face = i.into();
+                    if mesh_sender.send((face_mesh, chunk_pos, face, LOD(lod))).is_err() {
+                        println!("mesh for {:?} couldn't be sent", chunk_pos)
+                    };
+                }
             }
         }
     ).detach();
@@ -112,39 +116,45 @@ pub fn pull_meshes(
     mut commands: Commands, 
     mesh_reciever: Res<MeshReciever>, 
     mut chunk_ents: ResMut<ChunkEntities>, 
-    mut mesh_query: Query<(&Handle<Mesh>, &mut LOD, &mut Aabb)>,
+    mut mesh_query: Query<(&mut Handle<Mesh>, &mut LOD)>,
     mut meshes: ResMut<Assets<Mesh>>,
     block_tex_array: Res<BlockTextureArray>,
     load_area: Res<LoadArea>,
     blocks: Res<Blocks>
 ) {
-    let received_meshes: Vec<_> = mesh_reciever.0.try_iter().filter(|(_, chunk_pos, _)| load_area.col_dists.contains_key(&(*chunk_pos).into())).collect();
-    for (mesh, chunk_pos, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, _)| *pos) {
-        let chunk_aabb = Aabb {
-            center: Vec3A::new(CHUNK_S1_HF, CHUNK_S1_HF, CHUNK_S1_HF),
-            half_extents: Vec3A::new(CHUNK_S1_HF, CHUNK_S1_HF, CHUNK_S1_HF)
+    let received_meshes: Vec<_> = mesh_reciever.0.try_iter().filter(|(_, chunk_pos, _, _)| load_area.col_dists.contains_key(&(*chunk_pos).into())).collect();
+    for (mesh_opt, chunk_pos, face, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, face, _)| (*pos, *face)) {
+        let Some(mesh) = mesh_opt else {
+            if let Some(ent) = chunk_ents.0.remove(&(chunk_pos, face)) {
+                commands.entity(ent).despawn();
+            }
+            continue;
         };
-        if let Some(ent) = chunk_ents.0.get(&chunk_pos) {
-            if let Ok((handle, mut old_lod, mut aabb)) = mesh_query.get_mut(*ent) {
-                if let Some(old_mesh) = meshes.get_mut(handle) {
-                    *old_mesh = mesh;
-                    *old_lod = lod;
-                    *aabb = chunk_aabb;
-                }
+        let chunk_aabb = Aabb::from_min_max(Vec3::ZERO, Vec3::splat(CHUNK_S1 as f32));
+        if let Some(ent) = chunk_ents.0.get(&(chunk_pos, face)) {
+            if let Ok((mut handle, mut old_lod)) = mesh_query.get_mut(*ent) {
+                *handle = meshes.add(mesh);
+                *old_lod = lod;
             } else {
                 // the entity is not instanciated yet, we put it back
                 println!("entity wasn't ready to recieve updated mesh");
             }
         } else if blocks.chunks.contains_key(&chunk_pos) {
-            let ent = commands.spawn(MaterialMeshBundle {
-                mesh: meshes.add(mesh),
-                material: block_tex_array.0.clone_weak(),
-                transform: Transform::from_translation(
-                    Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32,
-                ),
-                ..Default::default()
-            }).insert(chunk_aabb).insert(lod).id();
-            chunk_ents.0.insert(chunk_pos, ent);
+            let ent = commands.spawn((
+                MaterialMeshBundle {
+                    mesh: meshes.add(mesh),
+                    material: block_tex_array.0.clone_weak(),
+                    transform: Transform::from_translation(
+                        Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32,
+                    ),
+                    ..Default::default()
+                },
+                NoFrustumCulling,
+                chunk_aabb, 
+                lod, 
+                face
+            )).id();
+            chunk_ents.0.insert((chunk_pos, face), ent);
         }
     }
 }
@@ -158,11 +168,13 @@ pub fn on_col_unload(
 ) {
     for col_ev in ev_unload.read() {
         for chunk_pos in chunks_in_col(&col_ev.0) {
-            if let Some(ent) = chunk_ents.0.remove(&chunk_pos) {
-                if let Ok(handle) = mesh_query.get(ent) {
-                    meshes.remove(handle);
+            for face in Face::iter() {
+                if let Some(ent) = chunk_ents.0.remove(&(chunk_pos, face)) {
+                    if let Ok(handle) = mesh_query.get(ent) {
+                        meshes.remove(handle);
+                    }
+                    commands.entity(ent).despawn();
                 }
-                commands.entity(ent).despawn();
             }
         }
     }
@@ -170,7 +182,7 @@ pub fn on_col_unload(
 
 
 #[derive(Resource)]
-pub struct ChunkEntities(pub HashMap::<ChunkPos, Entity>);
+pub struct ChunkEntities(pub HashMap::<(ChunkPos, Face), Entity>);
 
 impl ChunkEntities {
     pub fn new() -> Self {
@@ -193,7 +205,8 @@ impl Plugin for Draw3d {
             .add_systems(Update, mark_lod_remesh)
             .add_systems(Update, pull_meshes.run_if(in_state(TexState::Finished)))
             .add_systems(Update, on_col_unload)
-            // .add_systems(Update, chunk_aabb_gizmos)
+            //.add_systems(Update, chunk_aabb_gizmos)
+            .add_systems(PostUpdate, chunk_culling)
             ;
     }
 }
