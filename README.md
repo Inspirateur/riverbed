@@ -2,7 +2,7 @@
 Open source Minecraft-inspired game made with [Bevy](https://bevyengine.org/) in Rust.
 
 ## Current state
-![game_screenshot](https://github.com/Inspirateur/ourcraft/assets/22746898/c95d2555-3311-4431-981d-21f5283011cf)
+![game_screenshot_fog](https://github.com/Inspirateur/riverbed/assets/22746898/49501ffd-d6f7-4d23-84ab-aef415d7e3be)
 *featured on this screenshot is an infinitely generated, editable terrain, and a 4km render distance (equivalent to 256 in Minecraft)*  
 Single-player for now but it will be multi-player eventually ...
 
@@ -14,7 +14,8 @@ Riverbed doesn't aim to be a Minecraft clone - even though it totaly is atm - be
   *→ will force the player to divert river flow for irrigation*
 - 🌏 implement meaningful biomes, with a real impact on various plant growth  
   *→ the player will need to be smart about cultivation*
-- 𓍢ִ໋🌷͙֒ make every plant useful, by giving them various effect in a BOTW-inspired cooking system and requiring them in some craft recipies
+- 𓍢ִ໋🌷͙֒ make every plant useful, by including them in a BOTW-inspired cooking system and some craft recipies  
+  *-→ the player will want a foothold in every biome*
 - 🚂 make trains the fastest way of transportation (no elytras but gliders are cool)  
   *→ finaly giving players a reason to build the pretty train circuits they always wanted to build*
 - 💎 make ores renewable  
@@ -36,10 +37,10 @@ There's a plethora of subtle features that makes a game enjoyable, Riverbed shal
 Hi, [@Inspirateur](https://github.com/Inspirateur) writing.
 Riverbed is a personal project so I plan to stay [BDFL](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life), I have a job to pay for bills 4 days a week, leaving me time to work on the game the remaining days (when I can). 
 
-I'm the primary contributor for now but if you agree with the game vision you're very welcomed to contribute :) !  
-(you can contact me on discord at 'inspirateur', and check out the [developer wiki](https://github.com/Inspirateur/riverbed/wiki/Riverbed-Developer-Wiki))
+I mean for the project to stay open source, to be an inspiration and learning resource for others, and will do my best to keep it well organized, with independant parts of the code published as crates for maximum reusability.
 
-I mean for the project to stay open source and be an inspiration and learning resource for others, and will do my best to keep it well organized, with independant parts of the code published as crates for maximum reusability.
+I'm the primary contributor for now but if you agree with the game vision you're very welcomed to contribute, by creating PRs, issues or even simple comments with advice! 🙂  
+*(contact me on discord at '**inspirateur**', or check out the [developer wiki](https://github.com/Inspirateur/riverbed/wiki/Riverbed-Developer-Wiki) if you're interested in the inner workings of the code)*
 
 ### Thanks
 - [@kokounet](https://github.com/kokounet): major contributions on rendering  
