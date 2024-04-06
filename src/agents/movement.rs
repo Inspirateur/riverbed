@@ -3,6 +3,13 @@ use itertools::{iproduct, Itertools};
 use crate::blocks::{Blocks, BlockPos, Realm};
 const SPEED: f32 = 50.;
 const ACC: f32 = 10.;
+const FREE_FLY_Y_SPEED: f32 = 40.;
+
+#[derive(Component)]
+pub struct Walking;
+
+#[derive(Component)]
+pub struct FreeFly;
 
 #[derive(Component)]
 pub struct Jumping {
@@ -10,6 +17,9 @@ pub struct Jumping {
     pub cd: Timer,
     pub intent: bool,
 }
+
+#[derive(Component)]
+pub struct Crouching(pub bool);
 
 #[derive(Component)]
 pub struct AABB(pub Vec3);
@@ -52,7 +62,7 @@ fn blocks_perp_x(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = B
     })
 }
 
-pub fn process_jumps(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &AABB, &mut Jumping, &mut Velocity)>) {
+pub fn process_jumps(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &AABB, &mut Jumping, &mut Velocity), With<Walking>>) {
     for (transform, realm, aabb, mut jumping, mut velocity) in query.iter_mut() {
         jumping.cd.tick(time.delta());
         if jumping.intent && jumping.cd.finished() {
@@ -62,6 +72,22 @@ pub fn process_jumps(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Tr
                 jumping.cd.reset();
             }
         }
+    }
+}
+
+pub fn process_freefly(time: Res<Time>, mut query: Query<(&mut Transform, &Jumping, &Crouching), With<FreeFly>>) {
+    let elapsed = time.delta().as_secs_f32();
+    for (mut transform, jumping, crouching) in query.iter_mut() {
+        transform.translation.y += (jumping.intent as i32 - crouching.0 as i32) as f32 * elapsed as f32 * FREE_FLY_Y_SPEED;
+    }
+}
+
+pub fn apply_gravity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &mut Velocity, &Gravity), With<Walking>>) {
+    for (transform, realm, mut velocity, gravity) in query.iter_mut() {
+        if !blocks.is_col_loaded(transform.translation, *realm) {
+            continue;
+        }
+        velocity.0 += Vec3::new(0., -gravity.0*time.delta_seconds(), 0.);
     }
 }
 
@@ -96,15 +122,6 @@ pub fn apply_acc(
         let c = ACC*time.delta_seconds()*friction;
         let acc: Vec3 = c*diff/diff_len.max(c);
         velocity.0 += acc;
-    }
-}
-
-pub fn apply_gravity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &mut Velocity, &Gravity)>) {
-    for (transform, realm, mut velocity, gravity) in query.iter_mut() {
-        if !blocks.is_col_loaded(transform.translation, *realm) {
-            continue;
-        }
-        velocity.0 += Vec3::new(0., -gravity.0*time.delta_seconds(), 0.);
     }
 }
 
@@ -185,6 +202,7 @@ impl Plugin for MovementPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Update, process_jumps)
+            .add_systems(Update, process_freefly)
             .add_systems(Update, apply_acc)
             .add_systems(Update, apply_gravity)
             .add_systems(Update, apply_speed)

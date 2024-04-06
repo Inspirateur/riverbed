@@ -4,7 +4,7 @@ use bevy::{
     render_asset::RenderAssetUsages, 
     render_resource::{PrimitiveTopology, VertexFormat}}
 };
-use block_mesh::{greedy_quads, GreedyQuadsBuffer, RIGHT_HANDED_Y_UP_CONFIG};
+use block_mesh::{greedy_quads, ndshape::Shape, GreedyQuadsBuffer, RIGHT_HANDED_Y_UP_CONFIG};
 use dashmap::DashMap;
 use itertools::iproduct;
 use crate::blocks::{Block, ChunkPos, ChunkedPos, ColedPos, Face, TrackedChunk, YFirstShape, CHUNK_PADDED_S1, CHUNK_S1};
@@ -152,11 +152,11 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
         let lodf32 = lod as f32;
         let padded_chunk_shape = YFirstShape::new_padded(lod);
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
-        let mut voxels = vec![Block::Air; padded_chunk_shape.size3];
+        let mut voxels = vec![Block::Air; padded_chunk_shape.usize()];
         self.fill_padded_chunk(&mut voxels, chunk, &padded_chunk_shape);
         mesh_data_span.exit();
         let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
-        let mut buffer = GreedyQuadsBuffer::new(padded_chunk_shape.size3);
+        let mut buffer = GreedyQuadsBuffer::new(padded_chunk_shape.usize());
         greedy_quads(
             &voxels,
             &padded_chunk_shape,

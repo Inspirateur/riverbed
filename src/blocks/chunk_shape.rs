@@ -1,21 +1,15 @@
-use block_mesh::ndshape::Shape;
-
+use block_mesh::ndshape::{RuntimeShape, Shape};
 use super::CHUNK_S1;
 
 pub struct YFirstShape {
-    pub size1: usize,
-    pub size2: usize,
-    pub size3: usize,
+    shape: RuntimeShape::<u32, 3>,
     pub lod: usize
 }
 
 impl YFirstShape {
     pub fn new() -> Self {
-        let size1: usize = CHUNK_S1;
         Self {
-            size1,
-            size2: size1*size1,
-            size3: size1*size1*size1,
+            shape: RuntimeShape::<u32, 3>::new([CHUNK_S1 as u32; 3]),
             lod: 1
         }
     }
@@ -23,16 +17,13 @@ impl YFirstShape {
     pub fn new_padded(lod: usize) -> Self {
         let size1: usize = CHUNK_S1/lod+2;
         Self {
-            size1,
-            size2: size1*size1,
-            size3: size1*size1*size1,
+            shape: RuntimeShape::<u32, 3>::new([size1 as u32; 3]),
             lod
         }
     }
 
-    #[inline]
     pub fn linearize(&self, x: usize, y: usize, z: usize) -> usize {
-        y + x * self.size1 + z * self.size2
+        self.shape.linearize([y as u32, x as u32, z as u32]) as usize
     }
 }
 
@@ -40,26 +31,23 @@ impl Shape<3> for YFirstShape {
     type Coord = u32;
 
     fn size(&self) -> Self::Coord {
-        self.size3 as u32
+        self.shape.size()
     }
 
     fn usize(&self) -> usize {
-        self.size3
+        self.shape.usize()
     }
 
     fn as_array(&self) -> [Self::Coord; 3] {
-        [self.size1 as u32; 3]
+        self.shape.as_array()
     }
 
-    fn linearize(&self, p: [Self::Coord; 3]) -> Self::Coord {
-        self.linearize(p[0] as usize, p[1] as usize, p[2] as usize) as u32
+    fn linearize(&self, [x, y, z]: [Self::Coord; 3]) -> Self::Coord {
+        self.shape.linearize([y, x, z])
     }
 
-    fn delinearize(&self, mut i: Self::Coord) -> [Self::Coord; 3] {
-        let z = i / self.size2 as u32;
-        i -= z * self.size2 as u32;
-        let x = i / self.size1 as u32;
-        let y = i % self.size1 as u32;
-        [x, y, z]
+    fn delinearize(&self, i: Self::Coord) -> [Self::Coord; 3] {
+        let [x, y, z] = self.shape.delinearize(i);
+        [y, x, z]
     }
 }

@@ -6,6 +6,8 @@ use bevy::{
     prelude::*,
 };
 use leafwing_input_manager::prelude::*;
+
+use super::{Crouching, FreeFly};
 const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
 
 #[derive(Component)]
@@ -63,10 +65,12 @@ pub fn spawn_player(mut commands: Commands) {
             Gravity(3.),
             Heading(Vec3::default()),
             Jumping {force: 1., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
+            Crouching(false),
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
             rd,
             TargetBlock(None),
+            FreeFly,
             PlayerControlled
         ))
         .insert(InputManagerBundle::<Dir> {
@@ -98,7 +102,7 @@ pub fn spawn_player(mut commands: Commands) {
 }
 
 pub fn move_player(
-    mut player_query: Query<(&mut Heading, &mut Jumping, &ActionState<Dir>)>, 
+    mut player_query: Query<(&mut Heading, &mut Jumping, &mut Crouching, &ActionState<Dir>)>, 
     cam_query: Query<&Transform, With<Camera>>, 
 ) {
     let cam_transform = if let Ok(ct) = cam_query.get_single() {
@@ -106,16 +110,21 @@ pub fn move_player(
     } else {
         Transform::default()
     };
-    let (mut heading, mut jumping, action_state) = player_query.single_mut();
+    let (mut heading, mut jumping, mut crouching, action_state) = player_query.single_mut();
     jumping.intent = false;
+    crouching.0 = false;
+
     let mut movement = Vec3::default();
     for action in action_state.get_pressed() {
-        movement += Vec3::from(action);
+        if action == Dir::Up {
+            jumping.intent = true;
+        } else if action == Dir::Down {
+            crouching.0 = true;
+        } else {
+            movement += Vec3::from(action);
+        }
     }
     if movement.length_squared() > 0. {
-        if movement.y > 0. {
-            jumping.intent = true;
-        }
         movement = movement.normalize();
         movement = Vec3::Y.cross(*cam_transform.right())*movement.z + cam_transform.right()*movement.x + movement.y * Vec3::Y;
     }
