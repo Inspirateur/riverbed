@@ -6,8 +6,11 @@ use bevy::{
     prelude::*,
 };
 use leafwing_input_manager::prelude::*;
+use super::{Crouching, FreeFly, Speed, Walking};
 
-use super::{Crouching, FreeFly};
+const WALK_SPEED: f32 = 15.;
+const FREE_FLY_X_SPEED: f32 = 80.;
+
 const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
 
 #[derive(Component)]
@@ -45,6 +48,11 @@ pub enum Action {
     Action2,
 }
 
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Debug, Hash, Reflect)]
+pub enum DevCommand {
+    ToggleFly,
+}
+
 #[derive(Actionlike, Reflect, PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum UIAction {
     Escape,
@@ -62,15 +70,16 @@ pub fn spawn_player(mut commands: Commands) {
         .spawn((
             transform,
             realm,
-            Gravity(3.),
+            Gravity(50.),
             Heading(Vec3::default()),
-            Jumping {force: 1., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
+            Walking,
+            Speed(WALK_SPEED),
+            Jumping {force: 13., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
             Crouching(false),
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
             rd,
             TargetBlock(None),
-            FreeFly,
             PlayerControlled
         ))
         .insert(InputManagerBundle::<Dir> {
@@ -98,11 +107,17 @@ pub fn spawn_player(mut commands: Commands) {
                 (Action::Action1, MouseButton::Left),
                 (Action::Action2, MouseButton::Right),
             ])
+        })
+        .insert(InputManagerBundle::<DevCommand> {
+            action_state: ActionState::default(),
+            input_map: InputMap::new([
+                (DevCommand::ToggleFly, KeyCode::F1)
+            ])
         });
 }
 
 pub fn move_player(
-    mut player_query: Query<(&mut Heading, &mut Jumping, &mut Crouching, &ActionState<Dir>)>, 
+    mut player_query: Query<(&mut Heading, &mut Jumping, &mut Crouching, &Speed, &ActionState<Dir>)>, 
     cam_query: Query<&Transform, With<Camera>>, 
 ) {
     let cam_transform = if let Ok(ct) = cam_query.get_single() {
@@ -110,7 +125,7 @@ pub fn move_player(
     } else {
         Transform::default()
     };
-    let (mut heading, mut jumping, mut crouching, action_state) = player_query.single_mut();
+    let (mut heading, mut jumping, mut crouching, speed, action_state) = player_query.single_mut();
     jumping.intent = false;
     crouching.0 = false;
 
@@ -128,8 +143,26 @@ pub fn move_player(
         movement = movement.normalize();
         movement = Vec3::Y.cross(*cam_transform.right())*movement.z + cam_transform.right()*movement.x + movement.y * Vec3::Y;
     }
-    heading.0 = movement;
+    heading.0 = movement*speed.0;
     heading.0.y = f32::NAN;
+}
+
+fn toggle_fly(
+    mut commands: Commands,
+    mut player_query: Query<(Entity, &mut Speed, &ActionState<DevCommand>, Option<&Walking>)>
+) {
+    let (entity, mut speed, action_state, walking_opt) = player_query.single_mut();
+    for dev_command in action_state.get_just_pressed() {
+        if dev_command == DevCommand::ToggleFly {
+            if walking_opt.is_some() {
+                commands.entity(entity).remove::<Walking>().insert(FreeFly);
+                speed.0 = FREE_FLY_X_SPEED;
+            } else {
+                commands.entity(entity).remove::<FreeFly>().insert(Walking);
+                speed.0 = WALK_SPEED;
+            }
+        }
+    }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
@@ -143,8 +176,10 @@ impl Plugin for PlayerPlugin {
             .add_plugins(InputManagerPlugin::<Dir>::default())
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<UIAction>::default())
+            .add_plugins(InputManagerPlugin::<DevCommand>::default())
             .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
             .add_systems(Update, move_player.run_if(in_state(GameState::Game)))
+            .add_systems(Update, toggle_fly.run_if(in_state(GameState::Game)))
         ;
     }
 }

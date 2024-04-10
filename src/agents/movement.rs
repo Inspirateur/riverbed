@@ -1,15 +1,17 @@
 use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
 use crate::blocks::{Blocks, BlockPos, Realm};
-const SPEED: f32 = 50.;
-const ACC: f32 = 10.;
-const FREE_FLY_Y_SPEED: f32 = 40.;
+const FREE_FLY_Y_SPEED: f32 = 60.;
+const ACC_MULT: f32 = 15.;
 
 #[derive(Component)]
 pub struct Walking;
 
 #[derive(Component)]
 pub struct FreeFly;
+
+#[derive(Component)]
+pub struct Speed(pub f32);
 
 #[derive(Component)]
 pub struct Jumping {
@@ -75,10 +77,9 @@ pub fn process_jumps(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Tr
     }
 }
 
-pub fn process_freefly(time: Res<Time>, mut query: Query<(&mut Transform, &Jumping, &Crouching), With<FreeFly>>) {
-    let elapsed = time.delta().as_secs_f32();
-    for (mut transform, jumping, crouching) in query.iter_mut() {
-        transform.translation.y += (jumping.intent as i32 - crouching.0 as i32) as f32 * elapsed as f32 * FREE_FLY_Y_SPEED;
+pub fn process_freefly(mut query: Query<(&mut Velocity, &Jumping, &Crouching), With<FreeFly>>) {
+    for (mut velocity, jumping, crouching) in query.iter_mut() {
+        velocity.0.y = (jumping.intent as i32 - crouching.0 as i32) as f32 * FREE_FLY_Y_SPEED;
     }
 }
 
@@ -94,7 +95,7 @@ pub fn apply_gravity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Tr
 pub fn apply_acc(
     blocks: Res<Blocks>,
     time: Res<Time>,
-    mut query: Query<(&Heading, &mut Velocity, &Transform, &Realm, &AABB)>
+    mut query: Query<(&Heading, &mut Velocity, &Transform, &Realm, &AABB), With<Walking>>
 ) {
     for (heading, mut velocity, transform, realm, aabb) in query.iter_mut() {
         if !blocks.is_col_loaded(transform.translation, *realm) {
@@ -119,18 +120,25 @@ pub fn apply_acc(
         if diff_len == 0. {
             continue;
         }
-        let c = ACC*time.delta_seconds()*friction;
-        let acc: Vec3 = c*diff/diff_len.max(c);
+        let c = (time.delta_seconds()*friction*ACC_MULT).min(1.0);
+        let acc: Vec3 = c*diff;
         velocity.0 += acc;
     }
 }
 
-pub fn apply_speed(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>) {
+pub fn apply_acc_free_fly(mut query: Query<(&Heading, &mut Velocity), With<FreeFly>>) {
+    for (heading, mut velocity) in query.iter_mut() {
+        velocity.0.x = heading.0.x;
+        velocity.0.z = heading.0.z;
+    }
+}
+
+pub fn apply_velocity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>) {
     for (mut velocity, mut transform, realm, aabb) in query.iter_mut() {
         if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
         }
-        let applied_velocity = velocity.0*time.delta_seconds()*SPEED;
+        let applied_velocity = velocity.0*time.delta_seconds();
         // split the motion on all 3 axis, check for collisions, adjust the final speed vector if there's any
         // x
         let xpos = if applied_velocity.x > 0. { aabb.0.x + transform.translation.x } else { transform.translation.x }; 
@@ -204,8 +212,9 @@ impl Plugin for MovementPlugin {
             .add_systems(Update, process_jumps)
             .add_systems(Update, process_freefly)
             .add_systems(Update, apply_acc)
+            .add_systems(Update, apply_acc_free_fly)
             .add_systems(Update, apply_gravity)
-            .add_systems(Update, apply_speed)
+            .add_systems(Update, apply_velocity)
             ;
     }
 }
