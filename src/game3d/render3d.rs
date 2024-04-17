@@ -232,9 +232,6 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
                     [first, second]
                 }));
             }
-            if indices.is_empty() {
-                return None;
-            }
 
             Some(
                 Mesh::new(
