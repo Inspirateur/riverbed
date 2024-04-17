@@ -63,7 +63,7 @@ pub fn place_block(world: Res<Blocks>, block_action_query: Query<(&TargetBlock, 
     for (target_block_opt, action) in block_action_query.iter() {
         if action.just_pressed(&Action::Action2) {
             if let Some(target_block) = &target_block_opt.0 {
-                world.set_block_safe(target_block.pos+target_block.normal, Block::Stone);
+                world.set_block_safe(target_block.pos+target_block.normal, Block::GrassBlock);
             }
         }
     }   

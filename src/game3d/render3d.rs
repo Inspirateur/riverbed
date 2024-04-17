@@ -4,11 +4,24 @@ use bevy::{
     render_asset::RenderAssetUsages, 
     render_resource::{PrimitiveTopology, VertexFormat}}
 };
-use block_mesh::{greedy_quads, ndshape::Shape, GreedyQuadsBuffer, RIGHT_HANDED_Y_UP_CONFIG};
+use block_mesh::{greedy_quads, ndshape::Shape, Axis, AxisPermutation, GreedyQuadsBuffer, OrientedBlockFace, QuadCoordinateConfig,
+RIGHT_HANDED_Y_UP_CONFIG};
 use dashmap::DashMap;
 use itertools::iproduct;
 use crate::blocks::{Block, ChunkPos, ChunkedPos, ColedPos, Face, TrackedChunk, YFirstShape, CHUNK_PADDED_S1, CHUNK_S1};
 use super::texture_array::{FaceSpecifier, TextureMapTrait};
+
+const Y_FIRST_RIGHT_HANDED_Y_UP_CONFIG: QuadCoordinateConfig = QuadCoordinateConfig {
+    faces: [
+        OrientedBlockFace::new(-1, AxisPermutation::Zxy),
+        OrientedBlockFace::new(-1, AxisPermutation::Xzy),
+        OrientedBlockFace::new(-1, AxisPermutation::Yzx),
+        OrientedBlockFace::new(1, AxisPermutation::Zxy),
+        OrientedBlockFace::new(1, AxisPermutation::Xzy),
+        OrientedBlockFace::new(1, AxisPermutation::Yzx),
+    ],
+    u_flip_face: Axis::X,
+};
 
 /// ## Compressed voxel vertex data
 /// first u32:
@@ -162,7 +175,7 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
             &padded_chunk_shape,
             [0; 3],
             [(CHUNK_S1/lod) as u32+1; 3],
-            &RIGHT_HANDED_Y_UP_CONFIG.faces,
+            &Y_FIRST_RIGHT_HANDED_Y_UP_CONFIG.faces,
             &mut buffer,
         );
         let num_quads = buffer.quads.num_quads();
@@ -173,14 +186,27 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
             indices.clear();
             voxel_data.clear();
             let n = i as u32;
-            let quad_face = &RIGHT_HANDED_Y_UP_CONFIG.faces[i];
+            let quad_face = &Y_FIRST_RIGHT_HANDED_Y_UP_CONFIG.faces[i];
             let face: Face = i.into();
             let face_normal = face.n();
             for quad in buffer.quads.groups[i].iter(){
                 let mesh_positions = &quad_face.quad_mesh_positions(quad.into(), lodf32)
-                    .map(|[x, y, z]| [x-lodf32, y-lodf32, z-lodf32]);
+                    .map(|[y, z, x]| [x-lodf32, y-lodf32, z-lodf32]);
 
-                let uvs = quad_face.tex_coords(RIGHT_HANDED_Y_UP_CONFIG.u_flip_face, true, &quad);
+                let mut uvs = quad_face.tex_coords(Y_FIRST_RIGHT_HANDED_Y_UP_CONFIG.u_flip_face, true, &quad);
+                // TODO: this hideous code is due to https://github.com/bonsairobo/block-mesh-rs/issues/29
+                // fixing this would probably require writing meshing code for Y first chunk shape ...
+                if face == Face::Left {
+                    uvs[0].swap(0, 1);
+                    uvs[1].swap(0, 1);
+                    uvs[2].swap(0, 1);
+                } else if face == Face::Right {
+                    uvs.swap(0, 1);
+                    uvs.swap(2, 3);
+                    uvs[0].swap(0, 1);
+                    uvs[1].swap(0, 1);
+                    uvs[2].swap(0, 1);
+                }
                 
                 let block = block_at_quad_pos(
                     &voxels,

@@ -35,7 +35,6 @@ pub enum Block {
     Stone,
 }
 
-
 impl Block {
     pub fn friction(&self) -> f32 {
         match self {

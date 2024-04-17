@@ -43,6 +43,9 @@ fn mark_lod_remesh(
     lods: Query<&LOD>, 
     blocks: ResMut<Blocks>
 ) {
+    // FIXME: this only remesh chunks that previously had a mesh 
+    // However in some rare cases a chunk with some blocs can produce an empty mesh at certain LODs 
+    // and never get remeshed even though it should
     if !load_area.is_changed() { return; }
     for ((chunk_pos, _), entity) in chunk_ents.0.iter().unique_by(|((chunk_pos, _), _)| chunk_pos) {
         let Some(dist) =  load_area.col_dists.get(&(*chunk_pos).into()) else {
@@ -205,7 +208,7 @@ impl Plugin for Draw3d {
             .add_systems(Update, mark_lod_remesh)
             .add_systems(Update, pull_meshes.run_if(in_state(TexState::Finished)))
             .add_systems(Update, on_col_unload)
-            //.add_systems(Update, chunk_aabb_gizmos)
+            .add_systems(Update, chunk_aabb_gizmos)
             .add_systems(PostUpdate, chunk_culling)
             ;
     }

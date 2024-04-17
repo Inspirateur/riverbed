@@ -36,10 +36,6 @@ fn main() {
                 }),
                 ..default()
             })
-            .set(AssetPlugin {
-                mode: AssetMode::Processed,
-                ..default()
-            })
             .set(ImagePlugin {
                 default_sampler: ImageSamplerDescriptor {
                     address_mode_u: ImageAddressMode::Repeat,

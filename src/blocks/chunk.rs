@@ -25,7 +25,7 @@ impl Chunk {
         self.data.set_range(bottom, top, value);
     }
 
-    /// Used for efficient construction of mesh data
+    // Used for efficient construction of mesh data
     pub fn copy_column(&self, buffer: &mut [Block], (x, z): ColedPos, lod: usize) {
         let start = CHUNK_SHAPE.linearize(x, 0, z);
         let mut i = 0;
