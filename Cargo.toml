@@ -28,6 +28,7 @@ packed-uints = "*"
 block-mesh = "*"
 lazy_static = "*"
 noise-algebra = "*"
+ron = "*"
 nd-interval = { git = "https://github.com/Inspirateur/nd-interval" }
 
 [profile.dev]

@@ -4,11 +4,15 @@ use bevy::{
     render_asset::RenderAssetUsages, 
     render_resource::{PrimitiveTopology, VertexFormat}}
 };
-use block_mesh::{greedy_quads, ndshape::Shape, Axis, AxisPermutation, GreedyQuadsBuffer, OrientedBlockFace, QuadCoordinateConfig,
-RIGHT_HANDED_Y_UP_CONFIG};
+use block_mesh::{
+    greedy_quads, ndshape::Shape, Axis, AxisPermutation, 
+    GreedyQuadsBuffer, MergeVoxel, OrientedBlockFace, QuadCoordinateConfig, Voxel, VoxelVisibility
+};
 use dashmap::DashMap;
 use itertools::iproduct;
-use crate::blocks::{Block, ChunkPos, ChunkedPos, ColedPos, Face, TrackedChunk, YFirstShape, CHUNK_PADDED_S1, CHUNK_S1};
+use crate::blocks::{
+    Block, ChunkPos, ChunkedPos, ColedPos, Face, TrackedChunk, YFirstShape, CHUNK_PADDED_S1, CHUNK_S1
+};
 use super::texture_array::{FaceSpecifier, TextureMapTrait};
 
 const Y_FIRST_RIGHT_HANDED_Y_UP_CONFIG: QuadCoordinateConfig = QuadCoordinateConfig {
@@ -40,6 +44,24 @@ const Y_FIRST_RIGHT_HANDED_Y_UP_CONFIG: QuadCoordinateConfig = QuadCoordinateCon
 pub const ATTRIBUTE_VOXEL_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("VoxelData", 48757581, VertexFormat::Uint32x2);
 
+
+impl Voxel for Block {
+    fn get_visibility(&self) -> VoxelVisibility {
+        match self {
+            Block::Air => VoxelVisibility::Empty,
+            block if block.is_transluscent() => VoxelVisibility::Translucent,
+            _ => VoxelVisibility::Opaque
+        }
+    }
+}
+
+impl MergeVoxel for Block {
+    type MergeValue = Self;
+
+    fn merge_value(&self) -> Self::MergeValue {
+        *self
+    }
+}
 
 pub trait Meshable {
     fn copy_column(&self, buffer: &mut [Block], chunk_pos: ChunkPos, coled_pos: ColedPos, lod: usize);
@@ -216,7 +238,7 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
                 );
                 let color = match (block, face) {
                     (Block::GrassBlock, Face::Up) => 0b011_111_001,
-                    (block, _) if block.is_leaves() => 0b010_101_001,
+                    (block, _) if block.is_foliage() => 0b010_101_001,
                     _ => 0b111_111_111
                 };
                 let layer = texture_map.get_texture_index(block, face).unwrap_or(0) as u32;

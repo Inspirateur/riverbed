@@ -1,0 +1,24 @@
+#![enable(implicit_some)]
+BlockBreaking({
+    Default: {
+        Stone: ( hardness: 7, drops: Rock, min: 4, max: 6 ), 
+        Limestone: ( hardness: 5.5, drops: Lime, min: 1, max: 2 ),
+        Log: ( hardness: 5, drops: Stick, min: 2, max: 3 ), 
+        // will fallback on 'log' family for the other info
+        Acacialog: ( hardness: 6 ),
+        // if no drop quantity is specified it defaults to 1
+        Soil: ( hardness: 3, drops: Self ),
+        Sand: ( hardness: 1.5 ),
+    },
+    Shovel: { 
+        Soil: ( hardness: 1.5 ), 
+        Sand: ( hardness: 0.75 ),
+    },
+    Pickaxe: { 
+        Stone: ( hardness: 2.5, drops: Self ), 
+        Glass: ( hardness: 1 ),
+    },
+    Axe: {
+        // you get the idea
+    },
+})

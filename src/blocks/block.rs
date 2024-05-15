@@ -1,11 +1,18 @@
-use std::ops::Range;
-use block_mesh::{VoxelVisibility, Voxel, MergeVoxel};
+use std::{ops::Range, str::FromStr};
+use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
-use strum_macros::{EnumString, EnumIter};
-use super::{Blocks, BlockPos, growables::*};
 
-#[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, EnumString, EnumIter, Hash)]
-#[strum(ascii_case_insensitive)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Hash)]
+#[serde(untagged)]
+pub enum BlockFamily {
+    Stone,
+    Log,
+    Foliage,
+    Soil,
+}
+
+#[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Hash)]
+#[serde(untagged)]
 pub enum Block {
     #[default]
     Air,
@@ -21,6 +28,7 @@ pub enum Block {
     GrassBlock,
     Glass,
     Ice,
+    Limestone,
     Mud,
     OakLeaves,
     OakLog,
@@ -64,25 +72,9 @@ impl Block {
             _ => true
         }
     }
-
-    pub fn is_soil(&self) -> bool {
-        match self {
-            Block::GrassBlock | Block::Podzol | Block::Snow
-                => true,
-            _ => false
-        }
-    }
-
-    pub fn is_leaves(&self) -> bool {
-        match self {
-            Block::OakLeaves | Block::BirchLeaves | Block::SpruceLeaves | Block::SequoiaLeaves
-                => true,
-            _ => false
-        }
-    }
-
+    
     pub fn is_transluscent(&self) -> bool {
-        if self.is_leaves() {
+        if self.is_foliage() {
             return true;
         }
         match self {
@@ -90,58 +82,45 @@ impl Block {
             _ => false
         }
     }
-}
 
-impl Voxel for Block {
-    fn get_visibility(&self) -> VoxelVisibility {
+    pub fn is_foliage(&self) -> bool {
         match self {
-            Block::Air => VoxelVisibility::Empty,
-            block if block.is_transluscent() => VoxelVisibility::Translucent,
-            _ => VoxelVisibility::Opaque
+            Block::OakLeaves | Block::BirchLeaves | Block::SpruceLeaves | Block::SequoiaLeaves
+                => true,
+            _ => false
+        }
+    }
+
+    pub fn is_fertile_soil(&self) -> bool {
+        match self {
+            Block::GrassBlock | Block::Podzol | Block::Snow
+                => true,
+            _ => false
+        }
+    }
+
+    pub fn families(&self) -> Vec<BlockFamily> {
+        if self.is_foliage() {
+            return vec![BlockFamily::Foliage]
+        }
+        match self {
+            Block::Stone | Block::Cobblestone | Block::Endstone
+                => vec![BlockFamily::Stone],
+            Block::OakLog | Block::AcaciaLog | Block::BirchLog | Block::SpruceLog | Block::SequoiaLog
+                => vec![BlockFamily::Log],
+            Block::Dirt | Block::CoarseDirt | Block::GrassBlock | Block::Sand
+                => vec![BlockFamily::Soil],
+            _ => vec![]
         }
     }
 }
 
-impl MergeVoxel for Block {
-    type MergeValue = Self;
+impl FromStr for Block {
+    type Err = SpannedError;
 
-    fn merge_value(&self) -> Self::MergeValue {
-        *self
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, EnumString)]
-#[strum(ascii_case_insensitive)]
-pub enum Tree {
-    Oak,
-    Spruce,
-    Sequoia,
-    Palm,
-    Birch,
-    Chestnut,
-    Cypress,
-    Ironwood,
-    Baobab,
-    Cactus,
-    Acacia,
-    Bamboo
-}
-
-impl Tree {
-    pub fn grow(&self, world: &Blocks, pos: BlockPos, seed: i32, dist: f32) {
-        if !world.get_block_safe(pos).is_soil() { return; }
-        match self {
-            Tree::Spruce => grow_spruce(world, pos, seed, dist),
-            Tree::Birch => grow_birch(world, pos, seed, dist),
-            Tree::Cypress => grow_cypress(world, pos, seed, dist),
-            Tree::Oak | Tree::Chestnut | Tree::Ironwood => grow_oak(world, pos, seed, dist),
-            Tree::Acacia => grow_acacia(world, pos, seed, dist),
-            Tree::Sequoia => grow_sequoia(world, pos, seed, dist),
-            Tree::Palm | Tree::Baobab => grow_baobab(world, pos, seed, dist),
-            _ => {}
-        }
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        ron::from_str(s)
     }
 }
 
 pub type Soils = Vec<([Range<f32>; 2], Block)>;
-pub type Trees = Vec<([Range<f32>; 4], Tree)>;

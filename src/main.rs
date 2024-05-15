@@ -1,4 +1,5 @@
 mod blocks;
+mod items;
 mod ui;
 mod gen;
 mod game2d;

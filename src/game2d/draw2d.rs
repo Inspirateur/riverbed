@@ -1,12 +1,10 @@
-use crate::blocks::{CHUNK_S1, Block, Blocks, ColPos};
-use crate::gen::{ColUnloadEvent, LoadArea};
+use crate::blocks::{Block, ColPos};
+use crate::gen::ColUnloadEvent;
 use crate::agents::{PlayerControlled, AABB};
 use anyhow::Result;
 use bevy::prelude::*;
 use colorsys::Rgb;
 use std::collections::HashMap;
-use std::str::FromStr;
-use super::render2d::Render2D;
 
 #[derive(SystemSet, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CameraSpawn;
@@ -87,7 +85,7 @@ impl SoilColor {
         for record in reader.records() {
             let record = record?;
             let color = Rgb::from_hex_str(&record[1].trim())?;
-            if let Ok(block) = Block::from_str(&record[0]) {
+            if let Ok(block) = ron::from_str(&record[0]) {
                 data.insert(block, color);
             } else {
                 warn!(target: "ourcraft", "Block '{}' from soil_color.csv doesn't exist", &record[0]);

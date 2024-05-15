@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, str::FromStr, sync::Arc};
+use std::{ffi::OsStr, sync::Arc};
 use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
 use dashmap::DashMap;
 use crate::blocks::{Block, Face};
@@ -76,7 +76,7 @@ fn check_textures(
 }
 
 fn parse_block_name(blockname: &str) -> Option<Block> {
-    Block::from_str(&blockname.replace("_", "")).ok()
+    ron::from_str(&blockname.replace("_", "")).ok()
 }
 
 fn parse_tex_name(filename: &OsStr) -> Option<(Block, FaceSpecifier)> {
