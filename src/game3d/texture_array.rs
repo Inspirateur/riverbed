@@ -1,6 +1,7 @@
-use std::{ffi::OsStr, sync::Arc};
+use std::{ffi::OsStr, str::FromStr, sync::Arc};
 use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
 use dashmap::DashMap;
+use itertools::Itertools;
 use crate::blocks::{Block, Face};
 
 use super::render3d::ATTRIBUTE_VOXEL_DATA;
@@ -75,8 +76,16 @@ fn check_textures(
     }
 }
 
+fn capitalize(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+    }
+}
+
 fn parse_block_name(blockname: &str) -> Option<Block> {
-    ron::from_str(&blockname.replace("_", "")).ok()
+    Block::from_str(&blockname.split("_").map(capitalize).join("")).ok()
 }
 
 fn parse_tex_name(filename: &OsStr) -> Option<(Block, FaceSpecifier)> {

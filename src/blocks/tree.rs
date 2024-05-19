@@ -1,11 +1,11 @@
-use std::{ops::Range, str::FromStr};
-use ron::de::SpannedError;
+use std::ops::Range;
 use serde::Deserialize;
-
+use strum_macros::EnumString;
 use super::{growables::*, BlockPos, Blocks};
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Deserialize)]
+#[derive(EnumString)]
 pub enum Tree {
     Oak,
     Spruce,
@@ -34,14 +34,6 @@ impl Tree {
             Tree::Palm | Tree::Baobab => grow_baobab(world, pos, seed, dist),
             _ => {}
         }
-    }
-}
-
-impl FromStr for Tree {
-    type Err = SpannedError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        ron::from_str(s)
     }
 }
 

@@ -55,7 +55,7 @@ impl Earth {
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (y, t, h, rocks) = (ys[[dx, dz]], ts[[dx, dz]], hs[[dx, dz]], rocks[[dx, dz]]); 
             let block = if rocks > 0.001 {
-                Block::Stone
+                Block::Granite
             } else if y <= WATER_H {
                 Block::Sand
             } else {

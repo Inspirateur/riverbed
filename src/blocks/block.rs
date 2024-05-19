@@ -1,9 +1,8 @@
-use std::{ops::Range, str::FromStr};
-use ron::de::SpannedError;
+use std::ops::Range;
 use serde::{Deserialize, Serialize};
+use strum_macros::EnumString;
 
-#[derive(Debug, Deserialize, PartialEq, Eq, Hash)]
-#[serde(untagged)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum BlockFamily {
     Stone,
     Log,
@@ -12,7 +11,7 @@ pub enum BlockFamily {
 }
 
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Hash)]
-#[serde(untagged)]
+#[derive(EnumString)]
 pub enum Block {
     #[default]
     Air,
@@ -25,8 +24,9 @@ pub enum Block {
     Cobblestone,
     Dirt,
     Endstone,
-    GrassBlock,
     Glass,
+    Granite,
+    GrassBlock,
     Ice,
     Limestone,
     Mud,
@@ -40,7 +40,6 @@ pub enum Block {
     SpruceLog,
     Snow,
     SeaBlock,
-    Stone,
 }
 
 impl Block {
@@ -104,7 +103,7 @@ impl Block {
             return vec![BlockFamily::Foliage]
         }
         match self {
-            Block::Stone | Block::Cobblestone | Block::Endstone
+            Block::Granite | Block::Cobblestone | Block::Endstone | Block::Limestone
                 => vec![BlockFamily::Stone],
             Block::OakLog | Block::AcaciaLog | Block::BirchLog | Block::SpruceLog | Block::SequoiaLog
                 => vec![BlockFamily::Log],
@@ -112,14 +111,6 @@ impl Block {
                 => vec![BlockFamily::Soil],
             _ => vec![]
         }
-    }
-}
-
-impl FromStr for Block {
-    type Err = SpannedError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        ron::from_str(s)
     }
 }
 

@@ -85,7 +85,7 @@ impl SoilColor {
         for record in reader.records() {
             let record = record?;
             let color = Rgb::from_hex_str(&record[1].trim())?;
-            if let Ok(block) = ron::from_str(&record[0]) {
+            if let Ok(block) = json5::from_str(&record[0]) {
                 data.insert(block, color);
             } else {
                 warn!(target: "ourcraft", "Block '{}' from soil_color.csv doesn't exist", &record[0]);

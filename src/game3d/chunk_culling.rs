@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 use bevy::{
     ecs::{query::{Changed, With}, system::Query}, 
-    math::{I64Vec3, Vec3, Vec3A}, render::{camera::Camera, primitives::{Aabb, Frustum, Sphere}, 
+    math::{I64Vec3, Vec3A}, render::{camera::Camera, primitives::{Aabb, Frustum, Sphere}, 
     view::{NoFrustumCulling, Visibility}}, 
     transform::components::{GlobalTransform, Transform}
 };
