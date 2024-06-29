@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::{gen::RenderDistance, agents::{Gravity, Heading, AABB, Velocity, Jumping}, GameState};
+use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, gen::RenderDistance, items::{Hotbar, Inventory}, GameState};
 use crate::blocks::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
@@ -80,6 +80,7 @@ pub fn spawn_player(mut commands: Commands) {
             Velocity(Vec3::default()),
             rd,
             TargetBlock(None),
+            Hotbar(Inventory::new()),
             PlayerControlled
         ))
         .insert(InputManagerBundle::<Dir> {
