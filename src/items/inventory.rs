@@ -1,5 +1,6 @@
 use bevy::prelude::Component;
 use super::item::Item;
+pub const HOTBAR_SLOTS: usize = 8;
 
 pub enum Stack {
     Some(Item, usize),
@@ -62,4 +63,4 @@ impl<const N: usize> Inventory<N> {
 }
 
 #[derive(Component)]
-pub struct Hotbar(pub Inventory<8>);
+pub struct Hotbar(pub Inventory<HOTBAR_SLOTS>);

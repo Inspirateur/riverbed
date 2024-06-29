@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
 use crate::blocks::{Blocks, Block};
 use crate::agents::{Dir, TargetBlock};
+use super::hotbar::setup_hotbar_display;
 
 fn setup_crosshair(mut commands: Commands, asset_server: Res<AssetServer>) {
     let crosshair = asset_server.load("crosshair.png");
@@ -92,6 +93,7 @@ pub struct UIPlugin;
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_systems(Startup, setup_hotbar_display)
         .add_systems(Startup, setup_crosshair)
         .add_systems(Startup, setup_debug_display)
         .add_systems(Update, debug_display);
