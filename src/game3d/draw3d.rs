@@ -125,8 +125,12 @@ pub fn pull_meshes(
     load_area: Res<LoadArea>,
     blocks: Res<Blocks>
 ) {
-    let received_meshes: Vec<_> = mesh_reciever.0.try_iter().filter(|(_, chunk_pos, _, _)| load_area.col_dists.contains_key(&(*chunk_pos).into())).collect();
-    for (mesh_opt, chunk_pos, face, lod) in received_meshes.into_iter().rev().unique_by(|(_, pos, face, _)| (*pos, *face)) {
+    let received_meshes: Vec<_> = mesh_reciever.0.try_iter()
+        .filter(|(_, chunk_pos, _, _)| load_area.col_dists.contains_key(&(*chunk_pos).into()))
+        .collect();
+    for (mesh_opt, chunk_pos, face, lod) in received_meshes
+        .into_iter().rev().unique_by(|(_, pos, face, _)| (*pos, *face)) 
+    {
         let Some(mesh) = mesh_opt else {
             if let Some(ent) = chunk_ents.0.remove(&(chunk_pos, face)) {
                 commands.entity(ent).despawn();
