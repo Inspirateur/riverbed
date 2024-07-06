@@ -70,6 +70,7 @@ fn update_hotbar(
     };
     
     for (mut bg, slot) in bg_query.iter_mut() {
+        // TODO: these are no longer transparent since migration to bevy 0.14 
         bg.0 = if slot.0 == selected_slot.0 {
             Color::srgba(0., 0., 0., 0.5)
         } else {
