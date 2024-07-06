@@ -1,3 +1,4 @@
+use bevy::color::palettes::css;
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
 use crate::blocks::{Blocks, Block};
@@ -42,7 +43,7 @@ fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
                 TextStyle {
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"),
                     font_size: 20.0,
-                    color: Color::BEIGE,
+                    color: Color::Srgba(css::BEIGE),
                 },
             ),
             TextSection::new(
@@ -50,7 +51,7 @@ fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
                 TextStyle {
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"),
                     font_size: 20.0,
-                    color: Color::BEIGE,
+                    color: Color::Srgba(css::BEIGE),
                 },
             ),
             TextSection::new(
@@ -58,7 +59,7 @@ fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
                 TextStyle {
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"),
                     font_size: 20.0,
-                    color: Color::BEIGE,
+                    color: Color::Srgba(css::BEIGE),
                 },
             )
         ]).with_style(Style {

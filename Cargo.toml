@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.13", features = ["asset_processor", "basis-universal"]}
-bevy_atmosphere = "0.9"
-leafwing-input-manager = "*"
+bevy = "0.14"
+bevy_atmosphere = "*"
+leafwing-input-manager = { git = "https://github.com/Leafwing-Studios/leafwing-input-manager.git" }
 rand = "*"
 indexmap = "*"
 itertools = "*"

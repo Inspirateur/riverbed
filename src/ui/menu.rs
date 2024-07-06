@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::CursorGrabMode};
+use bevy::{color::palettes::css, prelude::*, window::CursorGrabMode};
 use leafwing_input_manager::prelude::ActionState;
 use crate::{agents::UIAction, GameState};
 
@@ -40,7 +40,7 @@ pub fn setup_pause(mut commands: Commands, asset_server: Res<AssetServer>) {
                 height: Val::Percent(100.0),
                 ..default()
             },
-            background_color: BackgroundColor(Color::Rgba { red: 0., green: 0., blue: 0., alpha: 0.6 }),
+            background_color: BackgroundColor(Color::srgba(0., 0., 0., 0.6)),
             ..default()
         },
         OnPauseScreen,
@@ -52,7 +52,7 @@ pub fn setup_pause(mut commands: Commands, asset_server: Res<AssetServer>) {
                     // This font is loaded and will be used instead of the default font.
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"),
                     font_size: 100.0,
-                    color: Color::BEIGE,
+                    color: Color::Srgba(css::BEIGE),
                 }
             )
         ]));

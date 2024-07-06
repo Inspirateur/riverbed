@@ -27,7 +27,8 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
         // This will capture the total continuous value, for direct use.
         // Note that you can also use discrete gesture-like motion,
         // via the `MouseMotionDirection` enum.
-        (CameraMovement::Pan, DualAxis::mouse_motion()),
+        // TODO: this feels weird since I changed it in bevy 0.14 migration
+        (CameraMovement::Pan, MouseMove::default()),
     ]);
     let (player, aabb) = player_query.get_single().unwrap();
     let cam = commands.spawn((Camera3dBundle {
@@ -42,7 +43,7 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
         ..Default::default()
     },
     FogSettings {
-        color: Color::rgba(0.70, 0.85, 0.95, 1.0),
+        color: Color::srgba(0.70, 0.85, 0.95, 1.0),
         falloff: FogFalloff::Linear {
             start: 100.0,
             end: 6000.0,

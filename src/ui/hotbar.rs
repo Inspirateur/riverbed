@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use bevy::prelude::*;
+use bevy::{color::palettes::css, prelude::*};
 use leafwing_input_manager::prelude::*;
 use crate::{agents::PlayerControlled, items::{Hotbar, Item, Stack, HOTBAR_SLOTS}};
 const SLOT_SIZE_PERCENT: f32 = 6.;
@@ -24,8 +24,8 @@ fn setup_hotbar_display(
 ) {
     let mut input_map = InputMap::default();
     input_map
-        .insert(HotbarScroll::Up, MouseWheelDirection::Up)
-        .insert(HotbarScroll::Down, MouseWheelDirection::Down)
+        .insert(HotbarScroll::Up, MouseScrollDirection::UP)
+        .insert(HotbarScroll::Down, MouseScrollDirection::DOWN)
         ;
     commands.spawn(InputManagerBundle::with_map(input_map));
     for i in 0..HOTBAR_SLOTS {
@@ -46,7 +46,7 @@ fn setup_hotbar_display(
                 sections: vec![TextSection { value: String::new(), style: TextStyle { 
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"), 
                     font_size: 24., 
-                    color: Color::BEIGE 
+                    color: Color::Srgba(css::BEIGE) 
                 }}],
                 ..Default::default()
             },
@@ -71,9 +71,9 @@ fn update_hotbar(
     
     for (mut bg, slot) in bg_query.iter_mut() {
         bg.0 = if slot.0 == selected_slot.0 {
-            Color::rgba(0., 0., 0., 0.5)
+            Color::srgba(0., 0., 0., 0.5)
         } else {
-            Color::rgba(0., 0., 0., 0.3)
+            Color::srgba(0., 0., 0., 0.3)
         };
     }
     for (mut img, slot) in img_query.iter_mut() {

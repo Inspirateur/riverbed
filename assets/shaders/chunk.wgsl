@@ -3,7 +3,7 @@
     mesh_view_bindings::view,
     pbr_types::{STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND, PbrInput, pbr_input_new},
     pbr_functions as fns,
-    mesh_functions::{get_model_matrix, mesh_position_local_to_clip, mesh_position_local_to_world},
+    mesh_functions::{get_world_from_local, mesh_position_local_to_clip, mesh_position_local_to_world},
 }
 #import bevy_core_pipeline::tonemapping::tone_mapping
 
@@ -120,11 +120,11 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
     var texture_layer = second >> 16;
 
     out.position = mesh_position_local_to_clip(
-        get_model_matrix(vertex.instance_index),
+        get_world_from_local(vertex.instance_index),
         position,
     );
     out.world_position = mesh_position_local_to_world(
-        get_model_matrix(vertex.instance_index),
+        get_world_from_local(vertex.instance_index),
         position,
     );
     out.world_normal = normal;

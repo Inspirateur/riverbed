@@ -30,7 +30,7 @@ pub fn target_block(
     target_block.0 = world.raycast(
         *realm, 
         transform.translation(), 
-        transform.forward(), 
+        *transform.forward(), 
         TARGET_DIST
     );
 }

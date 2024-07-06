@@ -1,5 +1,5 @@
 use std::{ffi::OsStr, str::FromStr, sync::Arc};
-use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
+use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
 use dashmap::DashMap;
 use itertools::Itertools;
 use crate::blocks::{Block, Face};
@@ -104,7 +104,7 @@ fn parse_tex_name(filename: &OsStr) -> Option<(Block, FaceSpecifier)> {
     }
 }
 
-fn setup(
+fn build_tex_array(
     mut commands: Commands,
     textures_handles: Res<TextureFolder>,
     loaded_folders: Res<Assets<LoadedFolder>>,
@@ -112,7 +112,6 @@ fn setup(
     texture_map: Res<TextureMap>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
 ) {
-    // Build a `TextureAtlas` using the individual sprites
     let mut texture_list: Vec<&Image> = Vec::new();
     let loaded_folder: &LoadedFolder = loaded_folders.get(&textures_handles.0).unwrap();
     for handle in loaded_folder.handles.iter() {
@@ -183,10 +182,10 @@ impl MaterialExtension for ArrayTextureMaterial {
     fn specialize(
             _pipeline: &MaterialExtensionPipeline,
             descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
-            layout: &bevy::render::mesh::MeshVertexBufferLayout,
+            layout: &MeshVertexBufferLayoutRef,
             _key: MaterialExtensionKey<ArrayTextureMaterial>,
         ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
-            let vertex_layout = layout.get_layout(&[ATTRIBUTE_VOXEL_DATA.at_shader_location(0)])?;
+            let vertex_layout = layout.0.get_layout(&[ATTRIBUTE_VOXEL_DATA.at_shader_location(0)])?;
             descriptor.vertex.buffers = vec![vertex_layout];
             Ok(())
     }
@@ -201,7 +200,7 @@ impl Plugin for TextureArrayPlugin {
             .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>::default())
             .add_systems(OnEnter(TexState::Setup), load_textures)
             .add_systems(Update, check_textures.run_if(in_state(TexState::Setup)))
-            .add_systems(OnEnter(TexState::Finished), setup)
+            .add_systems(OnEnter(TexState::Finished), build_tex_array)
             ;
     }
 }

@@ -27,7 +27,6 @@ fn main() {
     let mut app = App::new();
 
     app
-        .init_state::<GameState>()
         .insert_resource(Blocks::new())
         .add_plugins(
             DefaultPlugins.set(WindowPlugin {
@@ -48,6 +47,8 @@ fn main() {
                 },
             })
         )
+        // Note: all init_state needs to be after DefaultPlugins has been added
+        .init_state::<GameState>()
         .add_plugins(PlayerPlugin)
         .add_plugins(UIPlugin)
         .add_plugins(MenuPlugin)

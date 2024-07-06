@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::yield_now;
+use bevy::color::palettes::css;
 use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
 use bevy::render::view::NoFrustumCulling;
@@ -68,17 +69,17 @@ fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<LoadArea>) {
     for (x, y) in iproduct!(range_around(load_area.center.x, GRID_GIZMO_LEN), 0..=Y_CHUNKS) {
         let start = Vec3::new(x as f32, y as f32, (load_area.center.z-GRID_GIZMO_LEN) as f32)*CHUNK_S1 as f32;
         let end = Vec3::new(x as f32, y as f32, (load_area.center.z+GRID_GIZMO_LEN) as f32)*CHUNK_S1 as f32;
-        gizmos.line(start, end, Color::YELLOW);
+        gizmos.line(start, end, Color::Srgba(css::YELLOW));
     }
     for (z, y) in iproduct!(range_around(load_area.center.z, GRID_GIZMO_LEN), 0..=Y_CHUNKS) {
         let start = Vec3::new((load_area.center.x-GRID_GIZMO_LEN) as f32, y as f32, z as f32)*CHUNK_S1 as f32;
         let end = Vec3::new((load_area.center.x+GRID_GIZMO_LEN) as f32, y as f32, z as f32)*CHUNK_S1 as f32;
-        gizmos.line(start, end, Color::YELLOW);
+        gizmos.line(start, end, Color::Srgba(css::YELLOW));
     }
     for (x, z) in iproduct!(range_around(load_area.center.x, GRID_GIZMO_LEN), range_around(load_area.center.z, GRID_GIZMO_LEN)) {
         let start = Vec3::new(x as f32, 0., z as f32)*CHUNK_S1 as f32;
         let end = Vec3::new(x as f32, Y_CHUNKS as f32, z as f32)*CHUNK_S1 as f32;
-        gizmos.line(start, end, Color::YELLOW);
+        gizmos.line(start, end, Color::Srgba(css::YELLOW));
     }
 }
 
