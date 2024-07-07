@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 bevy = "0.14"
 bevy_atmosphere = "*"
-leafwing-input-manager = { git = "https://github.com/Leafwing-Studios/leafwing-input-manager.git" }
+leafwing-input-manager = "0.14"
 rand = "*"
 indexmap = "*"
 itertools = "*"

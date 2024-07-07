@@ -24,8 +24,8 @@ fn setup_hotbar_display(
 ) {
     let mut input_map = InputMap::default();
     input_map
-        .insert(HotbarScroll::Up, MouseScrollDirection::UP)
-        .insert(HotbarScroll::Down, MouseScrollDirection::DOWN)
+        .insert(HotbarScroll::Up, MouseWheelDirection::Up)
+        .insert(HotbarScroll::Down, MouseWheelDirection::Down)
         ;
     commands.spawn(InputManagerBundle::with_map(input_map));
     for i in 0..HOTBAR_SLOTS {
@@ -70,11 +70,11 @@ fn update_hotbar(
     };
     
     for (mut bg, slot) in bg_query.iter_mut() {
-        // TODO: these are no longer transparent since migration to bevy 0.14 
+        // Note: these work but default ui_image is a white square so we can't see it. Need to make it so that no image = transparent 
         bg.0 = if slot.0 == selected_slot.0 {
-            Color::srgba(0., 0., 0., 0.5)
+            Color::linear_rgba(0., 0., 0., 0.5)
         } else {
-            Color::srgba(0., 0., 0., 0.3)
+            Color::linear_rgba(0., 0., 0., 0.3)
         };
     }
     for (mut img, slot) in img_query.iter_mut() {
