@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use bevy::prelude::Resource;
 use serde::Deserialize;
 use crate::blocks::{Block, BlockFamily};
 use super::item::{Item, ToolKind};
@@ -81,7 +82,7 @@ impl From<(BreakEntryPartial, Block)> for BreakEntry {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Resource, Debug, Deserialize)]
 pub struct BlockBreaking(HashMap<ToolKind, HashMap<BlockKind, BreakEntryPartial>>);
 
 impl BlockBreaking {
@@ -93,26 +94,28 @@ impl BlockBreaking {
         }
     }
 
-    pub fn get(&self, tool: &Item, block: &Block) -> BreakEntry {
+    pub fn get(&self, tool_opt: Option<&Item>, block: &Block) -> BreakEntry {
         let mut partial_entry = BreakEntryPartial::default();
-        // Check exact tool and exact block
-        self.try_to_complete(&mut partial_entry, &ToolKind::Item(*tool), &BlockKind::Block(*block), 1.);
-        if partial_entry.is_complete() { return (partial_entry, *block).into(); }
-        // Check exact tool and block family
-        for block_family in block.families() {
-            self.try_to_complete(&mut partial_entry, &ToolKind::Item(*tool), &BlockKind::Family(block_family), 1.);
+        if let Some(tool) = tool_opt {
+            // Check exact tool and exact block
+            self.try_to_complete(&mut partial_entry, &ToolKind::Item(*tool), &BlockKind::Block(*block), 1.);
             if partial_entry.is_complete() { return (partial_entry, *block).into(); }
-        }
-        // Check tool family and exact block
-        if let Some((tool_family, efficiency)) = tool.tool_family() {
-            self.try_to_complete(&mut partial_entry, &ToolKind::ToolFamily(tool_family), &BlockKind::Block(*block), efficiency.0);
-        }
-        if partial_entry.is_complete() { return (partial_entry, *block).into(); }
-        // Check tool family and block family
-        if let Some((tool_family, efficiency)) = tool.tool_family() {
+            // Check exact tool and block family
             for block_family in block.families() {
-                self.try_to_complete(&mut partial_entry, &ToolKind::ToolFamily(tool_family), &BlockKind::Family(block_family), efficiency.0);
+                self.try_to_complete(&mut partial_entry, &ToolKind::Item(*tool), &BlockKind::Family(block_family), 1.);
                 if partial_entry.is_complete() { return (partial_entry, *block).into(); }
+            }
+            // Check tool family and exact block
+            if let Some((tool_family, efficiency)) = tool.tool_family() {
+                self.try_to_complete(&mut partial_entry, &ToolKind::ToolFamily(tool_family), &BlockKind::Block(*block), efficiency.0);
+            }
+            if partial_entry.is_complete() { return (partial_entry, *block).into(); }
+            // Check tool family and block family
+            if let Some((tool_family, efficiency)) = tool.tool_family() {
+                for block_family in block.families() {
+                    self.try_to_complete(&mut partial_entry, &ToolKind::ToolFamily(tool_family), &BlockKind::Family(block_family), efficiency.0);
+                    if partial_entry.is_complete() { return (partial_entry, *block).into(); }
+                }
             }
         }
         // Check default and exact block
@@ -146,12 +149,14 @@ mod tests {
             IronPickaxe: { 
                 Stone: { hardness: 1. } 
             }
-        }"#;
+        }
+        "#;
         let block_breaking: BlockBreaking = json5::from_str(config).unwrap();
         println!("{:?}", block_breaking);
-        assert_eq!(block_breaking.get(&Item::IronPickaxe, &Block::Limestone).drops, Some(Item::Block(Block::Limestone)));
-        assert_eq!(block_breaking.get(&Item::IronPickaxe, &Block::Limestone).hardness, Some(1.));
-        assert_eq!(block_breaking.get(&Item::Stick, &Block::Limestone).drops, Some(Item::Lime));
-        assert_eq!(block_breaking.get(&Item::Stick, &Block::Cobblestone).drops, Some(Item::Rock));
+        assert_eq!(block_breaking.get(Some(&Item::IronPickaxe), &Block::Limestone).drops, Some(Item::Block(Block::Limestone)));
+        assert_eq!(block_breaking.get(Some(&Item::IronPickaxe), &Block::Limestone).hardness, Some(1.));
+        assert_eq!(block_breaking.get(Some(&Item::Stick), &Block::Limestone).drops, Some(Item::Lime));
+        assert_eq!(block_breaking.get(Some(&Item::Stick), &Block::Cobblestone).drops, Some(Item::Rock));
+        assert_eq!(block_breaking.get(None, &Block::Cobblestone).drops, Some(Item::Rock));
     }
 }

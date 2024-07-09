@@ -35,14 +35,19 @@ impl Stack {
     }
 
     pub fn take(&mut self, n: usize) -> Stack {
-        match self {
-            Stack::Some(item, _n) => {
-                let n = n.min(*_n);
-                *_n -= n;
-                Stack::Some(item.clone(), n)
-            },
-            Stack::None => Stack::None
+        if n == 0 {
+            return Stack::None;
         }
+        let Stack::Some(item, amount) = self else {
+            return Stack::None;
+        };
+        let n = n.min(*amount);
+        let res = Stack::Some(item.clone(), n);
+        *amount -= n;
+        if *amount == 0 {
+            *self = Stack::None;
+        }
+        res
     }
 }
 

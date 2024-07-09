@@ -11,7 +11,7 @@ struct HotbarSlot(usize);
 struct UITextureMap(HashMap<Item, Handle<Image>>);
 
 #[derive(Resource)]
-struct SelectedHotbarSlot(usize);
+pub struct SelectedHotbarSlot(pub usize);
 
 #[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Hash, Reflect)]
 enum HotbarScroll {
@@ -95,9 +95,9 @@ fn scroll_hotbar(mut selected_slot: ResMut<SelectedHotbarSlot>, query: Query<&Ac
         return;
     };
     if action_state.pressed(&HotbarScroll::Left) {
-        selected_slot.0 = (selected_slot.0 + 1).rem_euclid(HOTBAR_SLOTS);
-    } else if action_state.pressed(&HotbarScroll::Right) {
         selected_slot.0 = (selected_slot.0 - 1).rem_euclid(HOTBAR_SLOTS);
+    } else if action_state.pressed(&HotbarScroll::Right) {
+        selected_slot.0 = (selected_slot.0 + 1).rem_euclid(HOTBAR_SLOTS);
     }
 }
 

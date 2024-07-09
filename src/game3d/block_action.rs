@@ -1,4 +1,7 @@
+use std::fs;
 use std::iter::zip;
+use crate::items::{BlockBreaking, Hotbar, Item, Stack};
+use crate::ui::SelectedHotbarSlot;
 use crate::GameState;
 use crate::blocks::{Blocks, Block, Realm};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
@@ -49,24 +52,45 @@ pub fn block_outline(mut gizmos: Gizmos, target_block_query: Query<&TargetBlock>
     }
 }
 
-pub fn break_block(world: Res<Blocks>, block_action_query: Query<(&TargetBlock, &ActionState<Action>)>) {
-    for (target_block_opt, action) in block_action_query.iter() {
-        if action.just_pressed(&Action::Action1) {
-            if let Some(target_block) = &target_block_opt.0 {
-                world.set_block(target_block.pos, Block::Air);
-            }    
+pub fn break_block(
+    world: Res<Blocks>, 
+    mut block_action_query: Query<(&TargetBlock, &mut Hotbar, &ActionState<Action>)>,
+    selected_slot: Res<SelectedHotbarSlot>,
+    block_break_table: Res<BlockBreaking>
+) {
+    for (target_block_opt, mut hotbar, action) in block_action_query.iter_mut() {
+        if !action.just_pressed(&Action::Action1) {
+            continue;
+        }
+        // TODO: instead of breaking the block right away and adding it to the player inventory,
+        // use selected tool and break table to get hardness and loot, use hardness to delay breaking
+        if let Some(target_block) = &target_block_opt.0 {
+            let block = world.get_block(target_block.pos);
+            world.set_block(target_block.pos, Block::Air);
+            if block != Block::Air {
+                hotbar.0.try_add(Stack::Some(Item::Block(block), 1));
+            }
         }
     }
 }
 
-pub fn place_block(world: Res<Blocks>, block_action_query: Query<(&TargetBlock, &ActionState<Action>)>) {
-    for (target_block_opt, action) in block_action_query.iter() {
-        if action.just_pressed(&Action::Action2) {
-            if let Some(target_block) = &target_block_opt.0 {
-                world.set_block_safe(target_block.pos+target_block.normal, Block::GrassBlock);
-            }
+pub fn place_block(
+    world: Res<Blocks>, 
+    mut block_action_query: Query<(&TargetBlock, &mut Hotbar, &ActionState<Action>)>, 
+    selected_slot: Res<SelectedHotbarSlot>
+) {
+    for (target_block_opt, mut hotbar, action) in block_action_query.iter_mut() {
+        if !action.just_pressed(&Action::Action2) {
+            continue;
         }
-    }   
+        let Some(target_block) = &target_block_opt.0 else {
+            continue;
+        };
+        let Stack::Some(Item::Block(block), _) = hotbar.0.0[selected_slot.0].take(1) else {
+            continue;
+        };
+        world.set_block_safe(target_block.pos+target_block.normal, block);
+    }
 }
 
 pub struct BlockActionPlugin;
@@ -74,6 +98,7 @@ pub struct BlockActionPlugin;
 impl Plugin for BlockActionPlugin {
     fn build(&self, app: &mut App) {
         app
+            .insert_resource(json5::from_str::<BlockBreaking>(&fs::read_to_string("assets/data/block_breaking.json5").unwrap()).unwrap())
 			.add_systems(Update, target_block)
 			.add_systems(Update, block_outline)
             .add_systems(Update, break_block.run_if(in_state(GameState::Game)))
