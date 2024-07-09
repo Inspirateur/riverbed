@@ -15,17 +15,17 @@ struct SelectedHotbarSlot(usize);
 
 #[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Hash, Reflect)]
 enum HotbarScroll {
-    Up, 
-    Down,
+    Left, 
+    Right,
 }
 
 fn setup_hotbar_display(
     mut commands: Commands, asset_server: Res<AssetServer>
 ) {
-    let mut input_map = InputMap::default();
-    input_map
-        .insert(HotbarScroll::Up, MouseWheelDirection::Up)
-        .insert(HotbarScroll::Down, MouseWheelDirection::Down)
+    let input_map = InputMap::default()
+        .insert(HotbarScroll::Left, MouseWheelDirection::Up)
+        .insert(HotbarScroll::Right, MouseWheelDirection::Down)
+        .build()
         ;
     commands.spawn(InputManagerBundle::with_map(input_map));
     for i in 0..HOTBAR_SLOTS {
@@ -56,7 +56,7 @@ fn setup_hotbar_display(
     }
 }
 
-fn update_hotbar(
+fn display_hotbar(
     mut bg_query: Query<(&mut BackgroundColor, &HotbarSlot)>, 
     mut img_query: Query<(&mut UiImage, &HotbarSlot)>, 
     mut text_query: Query<(&mut Text, &HotbarSlot)>,
@@ -64,25 +64,24 @@ fn update_hotbar(
     selected_slot: Res<SelectedHotbarSlot>,
     hotbar_query: Query<&Hotbar, (With<PlayerControlled>, Changed<Hotbar>)>,
 ) {
-    let Ok(hotbar) = hotbar_query.get_single() else {
-        // The hotbar hasn't changed since last time
-        return;
-    };
-    
+    // Highlight the selected slot with a darker bg color
     for (mut bg, slot) in bg_query.iter_mut() {
-        // Note: these work but default ui_image is a white square so we can't see it. Need to make it so that no image = transparent 
         bg.0 = if slot.0 == selected_slot.0 {
-            Color::linear_rgba(0., 0., 0., 0.5)
+            Color::linear_rgba(0., 0., 0., 0.6)
         } else {
             Color::linear_rgba(0., 0., 0., 0.3)
         };
     }
+    let Ok(hotbar) = hotbar_query.get_single() else {
+        // The hotbar hasn't changed since last time
+        return;
+    };
     for (mut img, slot) in img_query.iter_mut() {
-        img.texture = if let Stack::Some(item, _) = hotbar.0.0[slot.0] {
+        *img = if let Stack::Some(item, _) = hotbar.0.0[slot.0] {
             // tex_map.0.get(&item).unwrap().clone_weak()
-            Handle::default()
+            UiImage::solid_color(Color::NONE)
         } else {
-            Handle::default()
+            UiImage::solid_color(Color::NONE)
         };
     }
     for (mut text, slot) in text_query.iter_mut() {
@@ -95,11 +94,10 @@ fn scroll_hotbar(mut selected_slot: ResMut<SelectedHotbarSlot>, query: Query<&Ac
     let Ok(action_state) = query.get_single() else {
         return;
     };
-    // TODO: none of those are triggering...
-    if action_state.pressed(&HotbarScroll::Up) {
-        selected_slot.0 = (selected_slot.0 + 1) % HOTBAR_SLOTS;
-    } else if action_state.pressed(&HotbarScroll::Down) {
-        selected_slot.0 = (selected_slot.0 - 1) % HOTBAR_SLOTS;
+    if action_state.pressed(&HotbarScroll::Left) {
+        selected_slot.0 = (selected_slot.0 + 1).rem_euclid(HOTBAR_SLOTS);
+    } else if action_state.pressed(&HotbarScroll::Right) {
+        selected_slot.0 = (selected_slot.0 - 1).rem_euclid(HOTBAR_SLOTS);
     }
 }
 
@@ -108,10 +106,11 @@ pub struct HotbarPlugin;
 impl Plugin for HotbarPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_plugins(InputManagerPlugin::<HotbarScroll>::default())
             .insert_resource(SelectedHotbarSlot(0))
             .insert_resource(UITextureMap(HashMap::new()))
             .add_systems(Startup, setup_hotbar_display)
-            .add_systems(Update, update_hotbar)
+            .add_systems(Update, display_hotbar)
             .add_systems(Update, scroll_hotbar)
             ;
     }
