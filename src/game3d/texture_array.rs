@@ -2,16 +2,9 @@ use std::{ffi::OsStr, str::FromStr, sync::Arc};
 use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
 use dashmap::DashMap;
 use itertools::Itertools;
-use crate::blocks::{Block, Face};
-
+use crate::blocks::{Block, Face, FaceSpecifier};
 use super::render3d::ATTRIBUTE_VOXEL_DATA;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum FaceSpecifier {
-    Specific(Face),
-    Side,
-    All
-}
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum TexState {
@@ -37,24 +30,12 @@ impl TextureMapTrait for DashMap<(Block, FaceSpecifier), usize> {
     // furnace_bottom.png -> stone.png
     // etc ...
     fn get_texture_index(&self, block: Block, face: Face) -> Option<usize> {
-        if let Some(i) = self.get(&(block, FaceSpecifier::Specific(face))) {
-            return Some(*i);
-        }
-        if matches!(face, Face::Front | Face::Back | Face::Left | Face::Right) {
-            if let Some(i) = self.get(&(block, FaceSpecifier::Side)) {
+        for specifier in face.specifiers() {
+            if let Some(i) = self.get(&(block, *specifier)) {
                 return Some(*i);
             }
         }
-        if face == Face::Down {
-            if let Some(i) = self.get(&(block, FaceSpecifier::Specific(Face::Up))) {
-                return Some(*i);
-            }
-        }
-        if let Some(res) = self.get(&(block, FaceSpecifier::All)) {
-            Some(*res)
-        } else {
-            None
-        }
+        None
     }
 }
 
