@@ -2,15 +2,12 @@ mod blocks;
 mod items;
 mod ui;
 mod gen;
-mod game2d;
-mod game3d;
+mod render;
 mod agents;
-use std::env;
 use bevy::{prelude::*, render::texture::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}};
 use blocks::Blocks;
 use ui::MenuPlugin;
-use game2d::Game2d;
-use game3d::Game3d;
+use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, PlayerPlugin};
 use gen::GenPlugin;
 use ui::UIPlugin;
@@ -50,15 +47,12 @@ fn main() {
         // Note: all init_state needs to be after DefaultPlugins has been added
         .init_state::<GameState>()
         .add_plugins(PlayerPlugin)
+        .add_plugins(TextureLoadPlugin)
         .add_plugins(UIPlugin)
         .add_plugins(MenuPlugin)
         .add_plugins(MovementPlugin)
         .add_plugins(GenPlugin)
+        .add_plugins(Render)
+        .run()
         ;
-    
-    if env::args().skip(1).any(|arg| arg == "2d") {
-        app.add_plugins(Game2d).run();
-    } else {
-        app.add_plugins(Game3d).run();
-    }
 }

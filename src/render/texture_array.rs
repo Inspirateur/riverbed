@@ -2,19 +2,8 @@ use std::{ffi::OsStr, str::FromStr, sync::Arc};
 use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
 use dashmap::DashMap;
 use itertools::Itertools;
-use crate::blocks::{Block, Face, FaceSpecifier};
-use super::render3d::ATTRIBUTE_VOXEL_DATA;
-
-
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
-pub enum TexState {
-    #[default]
-    Setup,
-    Finished
-}
-
-#[derive(Resource, Default)]
-struct TextureFolder(Handle<LoadedFolder>);
+use crate::{blocks::{Block, Face, FaceSpecifier}, render::parse_block_tex_name};
+use super::{render3d::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
 
 #[derive(Resource)]
 pub struct TextureMap(pub Arc<DashMap<(Block, FaceSpecifier), usize>>);
@@ -39,62 +28,16 @@ impl TextureMapTrait for DashMap<(Block, FaceSpecifier), usize> {
     }
 }
 
-fn load_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // load multiple, individual sprites from a folder
-    commands.insert_resource(TextureFolder(asset_server.load_folder("PixelPerfection/textures/blocks")));
-}
-
-fn check_textures(
-    mut next_state: ResMut<NextState<TexState>>,
-    texture_folder: ResMut<TextureFolder>,
-    mut events: EventReader<AssetEvent<LoadedFolder>>,
-) {
-    // Advance the `AppState` once all sprite handles have been loaded by the `AssetServer`
-    for event in events.read() {
-        if event.is_loaded_with_dependencies(&texture_folder.0) {
-            next_state.set(TexState::Finished);
-        }
-    }
-}
-
-fn capitalize(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-    }
-}
-
-fn parse_block_name(blockname: &str) -> Option<Block> {
-    Block::from_str(&blockname.split("_").map(capitalize).join("")).ok()
-}
-
-fn parse_tex_name(filename: &OsStr) -> Option<(Block, FaceSpecifier)> {
-    let filename = filename.to_str()?;
-    let Some((block, face)) = filename.rsplit_once("_") else {
-        return Some((parse_block_name(filename)?, FaceSpecifier::All));
-    };
-    match face {
-        "side" => Some((parse_block_name(block)?, FaceSpecifier::Side)),
-        "bottom" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Down))),
-        "top" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Up))),
-        "front" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Front))),
-        "side1" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Left))),
-        "side2" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Right))),
-        _ => Some((parse_block_name(filename)?, FaceSpecifier::All))
-    }
-}
-
 fn build_tex_array(
     mut commands: Commands,
-    textures_handles: Res<TextureFolder>,
+    block_textures: Res<BlockTextureFolder>,
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut textures: ResMut<Assets<Image>>,
     texture_map: Res<TextureMap>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
 ) {
     let mut texture_list: Vec<&Image> = Vec::new();
-    let loaded_folder: &LoadedFolder = loaded_folders.get(&textures_handles.0).unwrap();
+    let loaded_folder: &LoadedFolder = loaded_folders.get(&block_textures.0).unwrap();
     for handle in loaded_folder.handles.iter() {
         let id = handle.id().typed_unchecked::<Image>();
         let Some(texture) = textures.get(id) else {
@@ -105,7 +48,7 @@ fn build_tex_array(
             continue;
         };
         let filename = handle.path().unwrap().path().file_stem().unwrap();
-        let Some((block, face_specifier)) = parse_tex_name(filename) else {
+        let Some((block, face_specifier)) = parse_block_tex_name(filename) else {
             continue;
         };
         texture_map.0.insert((block, face_specifier), texture_list.len());
@@ -176,12 +119,10 @@ pub struct TextureArrayPlugin;
 
 impl Plugin for TextureArrayPlugin {
     fn build(&self, app: &mut App) {
-        app.init_state::<TexState>()
+        app
             .insert_resource(TextureMap(Arc::new(DashMap::new())))
             .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>::default())
-            .add_systems(OnEnter(TexState::Setup), load_textures)
-            .add_systems(Update, check_textures.run_if(in_state(TexState::Setup)))
-            .add_systems(OnEnter(TexState::Finished), build_tex_array)
+            .add_systems(OnEnter(BlockTexState::Finished), build_tex_array)
             ;
     }
 }

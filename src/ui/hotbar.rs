@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use bevy::{color::palettes::css, prelude::*};
+use bevy::{asset::LoadedFolder, color::palettes::css, prelude::*};
 use leafwing_input_manager::prelude::*;
-use crate::{agents::PlayerControlled, items::{Hotbar, Item, Stack, HOTBAR_SLOTS}};
+use crate::{agents::PlayerControlled, blocks::FaceSpecifier, items::{Hotbar, Item, Stack, HOTBAR_SLOTS}, render::{parse_block_tex_name, parse_item_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}};
 const SLOT_SIZE_PERCENT: f32 = 6.;
 
 #[derive(Component)]
@@ -17,6 +17,38 @@ pub struct SelectedHotbarSlot(pub usize);
 enum HotbarScroll {
     Left, 
     Right,
+}
+
+fn load_hotbar_item_textures(
+    item_textures: Res<ItemTextureFolder>,
+    loaded_folders: Res<Assets<LoadedFolder>>,
+    mut ui_tex_map: ResMut<UITextureMap>,
+) {
+    let item_folder: &LoadedFolder = loaded_folders.get(&item_textures.0).unwrap();
+    for item_handle in item_folder.handles.iter() {
+        let filename = item_handle.path().unwrap().path().file_stem().unwrap();
+        let Some(item) = parse_item_tex_name(filename) else {
+            continue;
+        };
+        ui_tex_map.0.insert(item, item_handle.clone().try_typed().unwrap());
+    }
+}
+
+fn load_hotbar_block_textures(
+    block_textures: Res<BlockTextureFolder>,
+    loaded_folders: Res<Assets<LoadedFolder>>,
+    mut ui_tex_map: ResMut<UITextureMap>,
+) {
+    let block_folder: &LoadedFolder = loaded_folders.get(&block_textures.0).unwrap();
+    let mut priority_map: HashMap<Item, FaceSpecifier> = HashMap::new();
+    for block_handle in block_folder.handles.iter() {        
+        let filename = block_handle.path().unwrap().path().file_stem().unwrap();
+        let Some((block, face_specifier)) = parse_block_tex_name(filename) else {
+            continue;
+        };
+        priority_map.insert(Item::Block(block), face_specifier);
+        ui_tex_map.0.insert(Item::Block(block), block_handle.clone().try_typed().unwrap());
+    }
 }
 
 fn setup_hotbar_display(
@@ -78,8 +110,11 @@ fn display_hotbar(
     };
     for (mut img, slot) in img_query.iter_mut() {
         *img = if let Stack::Some(item, _) = hotbar.0.0[slot.0] {
-            // tex_map.0.get(&item).unwrap().clone_weak()
-            UiImage::solid_color(Color::NONE)
+            if let Some(handle) = tex_map.0.get(&item) {
+                UiImage::new(handle.clone_weak())
+            } else {
+                UiImage::solid_color(Color::NONE)
+            }
         } else {
             UiImage::solid_color(Color::NONE)
         };
@@ -110,6 +145,8 @@ impl Plugin for HotbarPlugin {
             .insert_resource(SelectedHotbarSlot(0))
             .insert_resource(UITextureMap(HashMap::new()))
             .add_systems(Startup, setup_hotbar_display)
+            .add_systems(OnEnter(BlockTexState::Finished), load_hotbar_block_textures)
+            .add_systems(OnEnter(ItemTexState::Finished), load_hotbar_item_textures)
             .add_systems(Update, display_hotbar)
             .add_systems(Update, scroll_hotbar)
             ;

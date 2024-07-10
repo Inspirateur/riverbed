@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_atmosphere::{prelude::{AtmospherePlugin, AtmosphereCamera, Nishita, AtmosphereModel}, system_param::AtmosphereMut};
-use crate::game3d::camera::{CameraSpawn, FpsCam};
+use crate::render::camera::{CameraSpawn, FpsCam};
 const DAY_LENGTH_MINUTES: f32 = 0.2;
 const C: f32 = DAY_LENGTH_MINUTES*120.*PI;
 

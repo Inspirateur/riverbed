@@ -14,7 +14,8 @@ use crate::blocks::{Blocks, ChunkPos, Face, CHUNK_S1, Y_CHUNKS};
 use crate::gen::{range_around, ColUnloadEvent, LoadArea, LoadAreaAssigned};
 use super::chunk_culling::chunk_culling;
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
-use super::texture_array::{BlockTextureArray, TexState};
+use super::texture_array::BlockTextureArray;
+use super::BlockTexState;
 use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 const GRID_GIZMO_LEN: i32 = 4;
 
@@ -211,7 +212,7 @@ impl Plugin for Draw3d {
                 .after(LoadAreaAssigned))
             .add_systems(Update, update_shared_load_area)
             .add_systems(Update, mark_lod_remesh)
-            .add_systems(Update, pull_meshes.run_if(in_state(TexState::Finished)))
+            .add_systems(Update, pull_meshes.run_if(in_state(BlockTexState::Finished)))
             .add_systems(Update, on_col_unload)
             //.add_systems(Update, chunk_aabb_gizmos)
             .add_systems(PostUpdate, chunk_culling)
