@@ -27,6 +27,13 @@ impl Stack {
         }
     }
 
+    pub fn item(&self) -> Option<&Item> {
+        match self {
+            Stack::None => None,
+            Stack::Some(item, _) => Some(item)
+        }
+    }
+
     pub fn quantity(&self) -> usize {
         match self {
             Stack::Some(_, n) => *n,

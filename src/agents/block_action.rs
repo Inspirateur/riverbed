@@ -1,13 +1,19 @@
 use std::fs;
 use std::iter::zip;
-use crate::items::{BlockBreaking, Hotbar, Item, Stack};
+use crate::items::{BlockBreaking, BreakEntry, Hotbar, Item, Stack};
+use crate::render::FpsCam;
 use crate::ui::SelectedHotbarSlot;
 use crate::GameState;
 use crate::blocks::{Blocks, Block, Realm};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
-use super::camera::FpsCam;
 use leafwing_input_manager::prelude::*;
 use bevy::prelude::*;
+
+#[derive(Component)]
+pub struct BreakingAction {
+    pub time_left: f32,
+    pub break_entry: BreakEntry,
+}
 
 const TARGET_DIST: f32 = 10.;
 const EDGES_ANCHORS: [Vec3; 4] = [
@@ -30,12 +36,21 @@ pub fn target_block(
 ) {
     let (mut target_block, realm) = player.single_mut();
     let transform = player_cam.single();
-    target_block.0 = world.raycast(
+    let target = world.raycast(
         *realm, 
         transform.translation(), 
         *transform.forward(), 
         TARGET_DIST
     );
+    if target != target_block.0 {
+        target_block.0 = target;
+    }
+}
+
+fn target_block_changed(mut commands: Commands, target_query: Query<Entity, (With<BreakingAction>, Changed<TargetBlock>)>) {
+    for player in target_query.iter() {
+        commands.entity(player).remove::<BreakingAction>();
+    }
 }
 
 pub fn block_outline(mut gizmos: Gizmos, target_block_query: Query<&TargetBlock>) {
@@ -52,23 +67,51 @@ pub fn block_outline(mut gizmos: Gizmos, target_block_query: Query<&TargetBlock>
     }
 }
 
-pub fn break_block(
+fn break_block(
     world: Res<Blocks>, 
-    mut block_action_query: Query<(&TargetBlock, &mut Hotbar, &ActionState<Action>)>,
-    selected_slot: Res<SelectedHotbarSlot>,
-    block_break_table: Res<BlockBreaking>
+    mut block_action_query: Query<(&TargetBlock, &mut Hotbar, &BreakingAction)>,
 ) {
-    for (target_block_opt, mut hotbar, action) in block_action_query.iter_mut() {
-        if !action.just_pressed(&Action::Action1) {
+    for (target_block_opt, mut hotbar, breaking) in block_action_query.iter_mut() {
+        if breaking.time_left > 0. {
             continue;
         }
-        // TODO: instead of breaking the block right away and adding it to the player inventory,
-        // use selected tool and break table to get hardness and loot, use hardness to delay breaking
         if let Some(target_block) = &target_block_opt.0 {
-            let block = world.get_block(target_block.pos);
             world.set_block(target_block.pos, Block::Air);
-            if block != Block::Air {
-                hotbar.0.try_add(Stack::Some(Item::Block(block), 1));
+            if let Some(drop) = breaking.break_entry.drops {
+                // TODO: take drop quantity into account (including random quantities)
+                hotbar.0.try_add(Stack::Some(drop, 1));
+            }
+        }
+    }
+}
+
+pub fn break_action(
+    mut commands: Commands,
+    world: Res<Blocks>, 
+    mut block_action_query: Query<(Entity, &TargetBlock, &Hotbar, &ActionState<Action>, Option<&mut BreakingAction>)>,
+    selected_slot: Res<SelectedHotbarSlot>,
+    block_break_table: Res<BlockBreaking>,
+    time: Res<Time>,
+) {
+    for (player, target_block_opt, hotbar, action, opt_breaking) in block_action_query.iter_mut() {
+        
+        if let Some(mut breaking) = opt_breaking {
+            if action.pressed(&Action::Action1) {
+                breaking.time_left -= time.delta_seconds();
+            } else {
+                commands.entity(player).remove::<BreakingAction>();
+            }
+        } else {
+            if !action.pressed(&Action::Action1) {
+                continue;
+            }
+            if let Some(target_block) = &target_block_opt.0 {
+                let block = world.get_block(target_block.pos);
+                if block != Block::Air {
+                    let tool_used = hotbar.0.0[selected_slot.0].item();
+                    let break_entry = block_break_table.get(tool_used, &block);
+                    commands.entity(player).insert(BreakingAction { time_left: break_entry.hardness.unwrap_or(f32::INFINITY), break_entry });
+                }
             }
         }
     }
@@ -99,9 +142,9 @@ impl Plugin for BlockActionPlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(json5::from_str::<BlockBreaking>(&fs::read_to_string("assets/data/block_breaking.json5").unwrap()).unwrap())
-			.add_systems(Update, target_block)
+			.add_systems(Update, (target_block, target_block_changed, break_block).chain())
 			.add_systems(Update, block_outline)
-            .add_systems(Update, break_block.run_if(in_state(GameState::Game)))
+            .add_systems(Update, break_action.run_if(in_state(GameState::Game)))
             .add_systems(Update, place_block.run_if(in_state(GameState::Game)))
 			;
     }

@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
 };
 use leafwing_input_manager::prelude::*;
-use super::{Crouching, FreeFly, Speed, Walking};
+use super::{block_action::BlockActionPlugin, Crouching, FreeFly, Speed, Walking};
 
 const WALK_SPEED: f32 = 15.;
 const FREE_FLY_X_SPEED: f32 = 80.;
@@ -174,6 +174,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_plugins(BlockActionPlugin)
             .add_plugins(InputManagerPlugin::<Dir>::default())
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<UIAction>::default())

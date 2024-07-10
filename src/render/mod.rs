@@ -4,11 +4,11 @@ mod draw3d;
 mod render3d;
 mod texture_load;
 mod texture_array;
-mod block_action;
 mod sky;
 mod shared_load_area;
 use bevy::prelude::Plugin;
 pub use texture_load::*;
+pub use camera::FpsCam;
 
 pub struct Render;
 
@@ -18,7 +18,6 @@ impl Plugin for Render {
 			.add_plugins(draw3d::Draw3d)
 			.add_plugins(sky::SkyPlugin)
 			.add_plugins(camera::Camera3dPlugin)
-			.add_plugins(block_action::BlockActionPlugin)
 			;
     }
 }

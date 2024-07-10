@@ -38,6 +38,12 @@ pub struct BlockRayCastHit {
     pub normal: Vec3,
 }
 
+impl PartialEq for BlockRayCastHit {
+    fn eq(&self, other: &Self) -> bool {
+        self.pos == other.pos
+    }
+}
+
 #[derive(Resource)]
 pub struct Blocks {
     pub chunks: Arc<DashMap<ChunkPos, TrackedChunk>>,
