@@ -6,7 +6,7 @@ use crate::{
     items::{Hotbar, Item, Stack, HOTBAR_SLOTS}, 
     render::{parse_block_tex_name, parse_item_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}
 };
-const SLOT_SIZE_PERCENT: f32 = 6.;
+const SLOT_SIZE_PERCENT: f32 = 4.5;
 
 #[derive(Component)]
 struct HotbarSlot(usize);
