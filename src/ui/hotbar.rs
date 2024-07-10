@@ -1,7 +1,11 @@
 use std::collections::HashMap;
-use bevy::{asset::LoadedFolder, color::palettes::css, prelude::*};
+use bevy::{asset::LoadedFolder, color::palettes::css, prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
 use leafwing_input_manager::prelude::*;
-use crate::{agents::PlayerControlled, blocks::FaceSpecifier, items::{Hotbar, Item, Stack, HOTBAR_SLOTS}, render::{parse_block_tex_name, parse_item_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}};
+use crate::{
+    agents::PlayerControlled, blocks::Face, 
+    items::{Hotbar, Item, Stack, HOTBAR_SLOTS}, 
+    render::{parse_block_tex_name, parse_item_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}
+};
 const SLOT_SIZE_PERCENT: f32 = 6.;
 
 #[derive(Component)]
@@ -39,15 +43,21 @@ fn load_hotbar_block_textures(
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut ui_tex_map: ResMut<UITextureMap>,
 ) {
+    let specifiers = Face::Front.specifiers();
     let block_folder: &LoadedFolder = loaded_folders.get(&block_textures.0).unwrap();
-    let mut priority_map: HashMap<Item, FaceSpecifier> = HashMap::new();
+    let mut priority_map: HashMap<Item, usize> = HashMap::new();
     for block_handle in block_folder.handles.iter() {        
         let filename = block_handle.path().unwrap().path().file_stem().unwrap();
         let Some((block, face_specifier)) = parse_block_tex_name(filename) else {
             continue;
         };
-        priority_map.insert(Item::Block(block), face_specifier);
-        ui_tex_map.0.insert(Item::Block(block), block_handle.clone().try_typed().unwrap());
+        let item =  Item::Block(block);
+        let priority = specifiers.iter().position(|s| *s == face_specifier).unwrap_or(usize::MAX);
+        let previous_priority = *priority_map.get(&item).unwrap_or(&usize::MAX);
+        if priority < previous_priority {
+            priority_map.insert(item, priority);
+            ui_tex_map.0.insert(item, block_handle.clone().try_typed().unwrap());    
+        }
     }
 }
 
@@ -62,18 +72,29 @@ fn setup_hotbar_display(
     commands.spawn(InputManagerBundle::with_map(input_map));
     for i in 0..HOTBAR_SLOTS {
         let right_border = if i < HOTBAR_SLOTS - 1 { Val::Px(0.) } else { Val::Px(4.) };
-        let style = Style {
+        let left_offset = Val::Percent(50.+(i as f32-HOTBAR_SLOTS as f32/2.)*SLOT_SIZE_PERCENT);
+        let img_style = Style {
             position_type: PositionType::Absolute,
-            left: Val::Percent(50.+(i as f32-HOTBAR_SLOTS as f32/2.)*SLOT_SIZE_PERCENT),
-            width: Val::Percent(SLOT_SIZE_PERCENT),
+            left: left_offset,
             bottom: Val::Percent(SLOT_SIZE_PERCENT),
+            width: Val::Percent(SLOT_SIZE_PERCENT),
             aspect_ratio: Some(1.),
             border: UiRect::new(Val::Px(4.), right_border, Val::Px(4.), Val::Px(4.)),
             ..Default::default()
         };
-        commands.spawn(ImageBundle { style: style.clone(), ..Default::default()} )
-        .insert(TextBundle {
-            style,
+        commands.spawn(ImageBundle { style: img_style, ..Default::default()} )
+            .insert(HotbarSlot(i))
+            .insert(BorderColor(Color::srgba(1., 1., 1., 1.)));
+
+        let text_style = Style {
+            position_type: PositionType::Absolute,
+            left: left_offset,
+            bottom: Val::Percent(SLOT_SIZE_PERCENT),
+            margin: UiRect::new(Val::Px(4.), Val::Px(0.), Val::Px(0.), Val::Px(4.)),
+            ..Default::default()
+        };
+        commands.spawn(TextBundle {
+            style: text_style,
             text: Text {
                 sections: vec![TextSection { value: String::new(), style: TextStyle { 
                     font: asset_server.load("fonts/RobotoMono-Light.ttf"), 
@@ -83,8 +104,7 @@ fn setup_hotbar_display(
                 ..Default::default()
             },
             ..Default::default()
-        })
-        .insert(HotbarSlot(i));
+        }).insert(HotbarSlot(i));
     }
 }
 
@@ -96,32 +116,45 @@ fn display_hotbar(
     selected_slot: Res<SelectedHotbarSlot>,
     hotbar_query: Query<&Hotbar, (With<PlayerControlled>, Changed<Hotbar>)>,
 ) {
+    if let Ok(hotbar) = hotbar_query.get_single() {
+        for (mut img, slot) in img_query.iter_mut() {
+            *img = if let Stack::Some(item, _) = hotbar.0.0[slot.0] {
+                if let Some(handle) = tex_map.0.get(&item) {
+                    UiImage::new(handle.clone_weak()).with_color({
+                        match item {
+                            Item::Block(block) if block.is_foliage() => Color::linear_rgba(0.3, 1.0, 0.1, 1.),
+                            _ => Color::linear_rgba(1., 1., 1., 1.)
+                        }
+                    })
+                } else {
+                    UiImage::new(TRANSPARENT_IMAGE_HANDLE)
+                }
+            } else {
+                UiImage::new(TRANSPARENT_IMAGE_HANDLE)
+            };
+        }
+        for (mut text, slot) in text_query.iter_mut() {
+            let quantity = hotbar.0.0[slot.0].quantity();
+            text.sections[0].value = if quantity < 2 { String::new() } else { quantity.to_string() };
+        }
+    };
     // Highlight the selected slot with a darker bg color
+    for (mut img, slot) in img_query.iter_mut() {
+        if img.texture == TRANSPARENT_IMAGE_HANDLE {
+            continue;
+        }
+        if slot.0 == selected_slot.0 {
+            img.color.set_alpha(1.);
+        } else {
+            img.color.set_alpha(0.45);
+        }
+    }
     for (mut bg, slot) in bg_query.iter_mut() {
         bg.0 = if slot.0 == selected_slot.0 {
             Color::linear_rgba(0., 0., 0., 0.6)
         } else {
             Color::linear_rgba(0., 0., 0., 0.3)
-        };
-    }
-    let Ok(hotbar) = hotbar_query.get_single() else {
-        // The hotbar hasn't changed since last time
-        return;
-    };
-    for (mut img, slot) in img_query.iter_mut() {
-        *img = if let Stack::Some(item, _) = hotbar.0.0[slot.0] {
-            if let Some(handle) = tex_map.0.get(&item) {
-                UiImage::new(handle.clone_weak())
-            } else {
-                UiImage::solid_color(Color::NONE)
-            }
-        } else {
-            UiImage::solid_color(Color::NONE)
-        };
-    }
-    for (mut text, slot) in text_query.iter_mut() {
-        let quantity = hotbar.0.0[slot.0].quantity();
-        text.sections[0].value = if quantity < 2 { String::new() } else { quantity.to_string() };
+        }
     }
 }
 
