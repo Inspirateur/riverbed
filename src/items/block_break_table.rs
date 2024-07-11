@@ -83,9 +83,9 @@ impl From<(BreakEntryPartial, Block)> for BreakEntry {
 }
 
 #[derive(Resource, Debug, Deserialize)]
-pub struct BlockBreaking(HashMap<ToolKind, HashMap<BlockKind, BreakEntryPartial>>);
+pub struct BlockBreakTable(HashMap<ToolKind, HashMap<BlockKind, BreakEntryPartial>>);
 
-impl BlockBreaking {
+impl BlockBreakTable {
     fn try_to_complete(&self, partial_entry: &mut BreakEntryPartial, tool_kind: &ToolKind, block_kind: &BlockKind, efficiency: f32) {
         if let Some(break_entries) = self.0.get(tool_kind) {
             if let Some(break_entry) = break_entries.get(block_kind) {
@@ -151,7 +151,7 @@ mod tests {
             }
         }
         "#;
-        let block_breaking: BlockBreaking = json5::from_str(config).unwrap();
+        let block_breaking: BlockBreakTable = json5::from_str(config).unwrap();
         println!("{:?}", block_breaking);
         assert_eq!(block_breaking.get(Some(&Item::IronPickaxe), &Block::Limestone).drops, Some(Item::Block(Block::Limestone)));
         assert_eq!(block_breaking.get(Some(&Item::IronPickaxe), &Block::Limestone).hardness, Some(1.));

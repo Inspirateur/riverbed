@@ -68,11 +68,12 @@ impl Blocks {
         self.mark_change(chunk_pos, chunked_pos);
     }
 
-    pub fn set_block_safe(&self, pos: BlockPos, block: Block) {
-        if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 { return; }
+    pub fn set_block_safe(&self, pos: BlockPos, block: Block) -> bool {
+        if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 { return false; }
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         self.chunks.entry(chunk_pos).or_insert_with(|| TrackedChunk::new()).set(chunked_pos, block);
         self.mark_change(chunk_pos, chunked_pos);
+        true
     }
 
     pub fn set_yrange(&self, col_pos: ColPos, (x, z): ColedPos, top: i32, mut height: usize, block: Block) {

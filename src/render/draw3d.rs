@@ -38,7 +38,6 @@ fn choose_lod_level(chunk_dist: u32) -> usize {
     return 16;
 }
 
-
 fn mark_lod_remesh(
     load_area: Res<LoadArea>, 
     chunk_ents: ResMut<ChunkEntities>, 
