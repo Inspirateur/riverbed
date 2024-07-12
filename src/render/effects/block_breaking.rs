@@ -1,18 +1,62 @@
-use bevy::prelude::*;
-use crate::agents::{BreakingAction, TargetBlock};
+use std::ffi::OsStr;
+use bevy::{asset::LoadedFolder, prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
+use itertools::Itertools;
+use crate::{agents::{BreakingAction, TargetBlock}, render::{BlockTexState, BlockTextureFolder}};
+
+pub struct BlockBreakingEffectPlugin;
+
+impl Plugin for BlockBreakingEffectPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .insert_resource(BreakStageSprites(vec![TRANSPARENT_IMAGE_HANDLE]))
+            .add_systems(OnEnter(BlockTexState::Finished), load_break_stage_sprites)
+            .add_systems(Update, add_break_animation)
+            .add_systems(Update, update_break_animation)
+            .add_systems(Update, remove_break_animation)
+            ;
+    }
+}
+
+#[derive(Resource)]
+struct BreakStageSprites(Vec<Handle<Image>>);
 
 #[derive(Component)]
 #[component(storage = "SparseSet")]
-pub struct BreakingEffect(Entity);
+struct BreakingEffect(Entity);
 
-pub fn add_break_animation(
+fn parse_break_stage_name(filename: &OsStr) -> Option<u32> {
+    let filename = filename.to_str()?;
+    let stage = filename.strip_prefix("destroy_stage_")?;
+    stage.parse().ok()
+}
+
+fn load_break_stage_sprites(
+    block_textures: Res<BlockTextureFolder>,
+    loaded_folders: Res<Assets<LoadedFolder>>,
+    mut break_stages: ResMut<BreakStageSprites>,
+) {
+    let block_folder: &LoadedFolder = loaded_folders.get(&block_textures.0).unwrap();
+    let mut breaking_sprites: Vec<(u32, Handle<Image>)> = Vec::new();
+    for block_handle in block_folder.handles.iter() {
+        let filename = block_handle.path().unwrap().path().file_stem().unwrap();
+        let Some(break_stage) = parse_break_stage_name(filename) else {
+            continue;
+        };
+        breaking_sprites.push((break_stage, block_handle.clone().try_typed().unwrap()));
+    }
+    breaking_sprites.sort_by(|(stage1, _), (stage2, _)| stage1.cmp(stage2));
+    breaking_sprites.insert(0, (0, TRANSPARENT_IMAGE_HANDLE));
+    break_stages.0 = breaking_sprites.into_iter().map(|(_, handle)| handle).collect_vec();
+}
+
+fn add_break_animation(
     mut commands: Commands, 
     block_action_query: Query<(Entity, &TargetBlock, &BreakingAction), Without<BreakingEffect>>,
-    asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    break_stages: Res<BreakStageSprites>
 ) {
-    let texture_handle = asset_server.load("PixelPerfection/textures/blocks/destroy_stage_4.png");
+    let texture_handle = break_stages.0[0].clone_weak();
 
     for (player, target_opt, _breaking) in block_action_query.iter() {
         let Some(target) = &target_opt.0 else {
@@ -39,12 +83,25 @@ pub fn add_break_animation(
     }
 }
 
-pub fn update_break_animation(block_action_query: Query<(Entity, &TargetBlock, &BreakingAction, &BreakingEffect)>) {
-    for (player, target_block_opt, action, break_effect) in block_action_query.iter() {
+fn update_break_animation(
+    block_action_query: Query<(&BreakingAction, &BreakingEffect)>,
+    break_stages: Res<BreakStageSprites>,
+    mat_query: Query<&Handle<StandardMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for (action, break_effect) in block_action_query.iter() {
+        let stage = (break_stages.0.len() as f32*(1.-action.time_left.max(0.)/action.break_entry.hardness.unwrap_or(f32::INFINITY))) as usize;
+        let Ok(mat_handle) = mat_query.get(break_effect.0) else {
+            continue;
+        };
+        let Some(mat) = materials.get_mut(mat_handle) else {
+            continue;
+        };
+        mat.base_color_texture = Some(break_stages.0[stage].clone());
     }
 }
 
-pub fn remove_break_animation(mut commands: Commands, block_action_query: Query<(Entity, &BreakingEffect), Without<BreakingAction>>) {
+fn remove_break_animation(mut commands: Commands, block_action_query: Query<(Entity, &BreakingEffect), Without<BreakingAction>>) {
     for (player, breaking_effect) in block_action_query.iter() {
         commands.entity(breaking_effect.0).despawn();
         commands.entity(player).remove::<BreakingEffect>();

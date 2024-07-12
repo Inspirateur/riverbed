@@ -8,6 +8,23 @@ use crate::{
 };
 const SLOT_SIZE_PERCENT: f32 = 4.5;
 
+pub struct HotbarPlugin;
+
+impl Plugin for HotbarPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_plugins(InputManagerPlugin::<HotbarScroll>::default())
+            .insert_resource(SelectedHotbarSlot(0))
+            .insert_resource(UITextureMap(HashMap::new()))
+            .add_systems(Startup, setup_hotbar_display)
+            .add_systems(OnEnter(BlockTexState::Finished), load_hotbar_block_textures)
+            .add_systems(OnEnter(ItemTexState::Finished), load_hotbar_item_textures)
+            .add_systems(Update, display_hotbar)
+            .add_systems(Update, scroll_hotbar)
+            ;
+    }
+}
+
 #[derive(Component)]
 struct HotbarSlot(usize);
 
@@ -166,22 +183,5 @@ fn scroll_hotbar(mut selected_slot: ResMut<SelectedHotbarSlot>, query: Query<&Ac
         selected_slot.0 = (selected_slot.0 - 1).rem_euclid(HOTBAR_SLOTS);
     } else if action_state.pressed(&HotbarScroll::Right) {
         selected_slot.0 = (selected_slot.0 + 1).rem_euclid(HOTBAR_SLOTS);
-    }
-}
-
-pub struct HotbarPlugin;
-
-impl Plugin for HotbarPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_plugins(InputManagerPlugin::<HotbarScroll>::default())
-            .insert_resource(SelectedHotbarSlot(0))
-            .insert_resource(UITextureMap(HashMap::new()))
-            .add_systems(Startup, setup_hotbar_display)
-            .add_systems(OnEnter(BlockTexState::Finished), load_hotbar_block_textures)
-            .add_systems(OnEnter(ItemTexState::Finished), load_hotbar_item_textures)
-            .add_systems(Update, display_hotbar)
-            .add_systems(Update, scroll_hotbar)
-            ;
     }
 }
