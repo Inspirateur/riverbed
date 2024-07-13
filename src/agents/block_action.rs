@@ -2,6 +2,7 @@ use std::fs;
 use std::iter::zip;
 use crate::items::{BlockBreakTable, BreakEntry, Hotbar, Item, Stack};
 use crate::render::FpsCam;
+use crate::sounds::ItemGet;
 use crate::ui::SelectedHotbarSlot;
 use crate::GameState;
 use crate::blocks::{Block, BlockPos, Blocks, Realm};
@@ -26,6 +27,7 @@ impl Plugin for BlockActionPlugin {
 #[component(storage = "SparseSet")]
 pub struct BreakingAction {
     pub block_pos: BlockPos,
+    pub block: Block,
     pub time_left: f32,
     pub break_entry: BreakEntry,
 }
@@ -104,6 +106,7 @@ fn break_action(
                 let break_entry = block_break_table.get(tool_used, &block);
                 commands.entity(player).insert(BreakingAction {
                     block_pos: target_block.pos,
+                    block,
                     time_left: break_entry.hardness.unwrap_or(f32::INFINITY), 
                     break_entry 
                 });
@@ -122,7 +125,9 @@ fn break_action(
             world.set_block(target_block.pos, Block::Air);
             if let Some(drop) = breaking.break_entry.drops {
                 // TODO: take drop quantity into account (including random quantities)
-                hotbar.0.try_add(Stack::Some(drop, 1));
+                if hotbar.0.try_add(Stack::Some(drop, 1)).is_none() {
+                    commands.trigger_targets(ItemGet, player);
+                }
             }
         }
     }
@@ -141,7 +146,7 @@ fn place_block(
             continue;
         };
         let pos = target_block.pos+target_block.normal;
-        if world.get_block(pos).targetable() {
+        if world.get_block(pos).is_targetable() {
             continue;
         }
         let Stack::Some(Item::Block(block), _) = hotbar.0.0[selected_slot.0].take(1) else {

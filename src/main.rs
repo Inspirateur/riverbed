@@ -4,8 +4,10 @@ mod ui;
 mod gen;
 mod render;
 mod agents;
+mod sounds;
 use bevy::{prelude::*, render::texture::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}};
 use blocks::Blocks;
+use sounds::SoundPlugin;
 use ui::MenuPlugin;
 use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, PlayerPlugin};
@@ -53,6 +55,7 @@ fn main() {
         .add_plugins(MovementPlugin)
         .add_plugins(GenPlugin)
         .add_plugins(Render)
+        .add_plugins(SoundPlugin)
         .run()
         ;
 }

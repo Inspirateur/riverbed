@@ -1,8 +1,25 @@
 use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
-use crate::blocks::{Blocks, BlockPos, Realm};
+use crate::blocks::{Block, BlockPos, Blocks, Realm};
 const FREE_FLY_Y_SPEED: f32 = 60.;
 const ACC_MULT: f32 = 15.;
+
+pub struct MovementPlugin;
+
+impl Plugin for MovementPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_systems(PreUpdate, update_stepped_block)
+            .add_systems(Update, process_jumps)
+            .add_systems(Update, process_freefly)
+            .add_systems(Update, apply_acc_free_fly)
+            .add_systems(Update, (apply_acc, apply_gravity, apply_velocity).chain())
+            ;
+    }
+}
+
+#[derive(Component)]
+pub struct SteppingOn(pub Block);
 
 #[derive(Component)]
 pub struct Walking;
@@ -64,26 +81,47 @@ fn blocks_perp_x(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = B
     })
 }
 
-pub fn process_jumps(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &AABB, &mut Jumping, &mut Velocity), With<Walking>>) {
-    for (transform, realm, aabb, mut jumping, mut velocity) in query.iter_mut() {
-        jumping.cd.tick(time.delta());
-        if jumping.intent && jumping.cd.finished() {
-            let below = transform.translation + Vec3::new(0., -0.01, 0.);
-            if blocks_perp_y(below, *realm, aabb).any(|pos| !blocks.get_block(pos).traversable()) {
-                velocity.0.y += jumping.force;
-                jumping.cd.reset();
+fn update_stepped_block(blocks: Res<Blocks>, mut query: Query<(&Transform, &Realm, &AABB, &mut SteppingOn)>) {
+    for (transform, realm, aabb, mut stepping_on) in query.iter_mut() {
+        let below = transform.translation + Vec3::new(0., -0.01, 0.);
+        let mut closest_block = Block::Air;
+        let mut min_dist = f32::INFINITY;
+        for block_pos in blocks_perp_y(below, *realm, aabb) {
+            let block = blocks.get_block(block_pos);
+            if block.is_traversable() {
+                continue;
             }
+            let dist = (below.x-block_pos.x as f32).abs()-(below.y-block_pos.y as f32).abs();
+            if dist < min_dist {
+                min_dist = dist;
+                closest_block = block;
+            }
+        }
+        stepping_on.0 = closest_block;
+    }
+}
+
+fn process_jumps(
+    time: Res<Time>, 
+    mut query: Query<(&mut Jumping, &mut Velocity, &SteppingOn), 
+    With<Walking>>
+) {
+    for (mut jumping, mut velocity, stepping_on) in query.iter_mut() {
+        jumping.cd.tick(time.delta());
+        if jumping.intent && jumping.cd.finished() && !stepping_on.0.is_traversable() {
+            velocity.0.y += jumping.force;
+            jumping.cd.reset();
         }
     }
 }
 
-pub fn process_freefly(mut query: Query<(&mut Velocity, &Jumping, &Crouching), With<FreeFly>>) {
+fn process_freefly(mut query: Query<(&mut Velocity, &Jumping, &Crouching), With<FreeFly>>) {
     for (mut velocity, jumping, crouching) in query.iter_mut() {
         velocity.0.y = (jumping.intent as i32 - crouching.0 as i32) as f32 * FREE_FLY_Y_SPEED;
     }
 }
 
-pub fn apply_gravity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &mut Velocity, &Gravity), With<Walking>>) {
+fn apply_gravity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &mut Velocity, &Gravity), With<Walking>>) {
     for (transform, realm, mut velocity, gravity) in query.iter_mut() {
         if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
@@ -92,23 +130,18 @@ pub fn apply_gravity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&Tr
     }
 }
 
-pub fn apply_acc(
+fn apply_acc(
     blocks: Res<Blocks>,
     time: Res<Time>,
-    mut query: Query<(&Heading, &mut Velocity, &Transform, &Realm, &AABB), With<Walking>>
+    mut query: Query<(&Heading, &mut Velocity, &Transform, &Realm, &SteppingOn), With<Walking>>
 ) {
-    for (heading, mut velocity, transform, realm, aabb) in query.iter_mut() {
+    for (heading, mut velocity, transform, realm, stepping_on) in query.iter_mut() {
         if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
         }
         // get the block the entity is standing on if the entity has an AABB
-        let mut friction: f32 = 0.;
-        let mut slowing: f32 = 0.;
-        let below = transform.translation + Vec3::new(0., -0.01, 0.);
-        for block in blocks_perp_y(below, *realm, aabb).map(|blockpos| blocks.get_block(blockpos)) {
-            friction = friction.max(block.friction());
-            slowing = slowing.max(block.slowing())
-        }
+        let friction: f32 = stepping_on.0.friction();
+        let slowing: f32 = stepping_on.0.slowing();
         // applying slowing
         let heading = heading.0*slowing;
         // make velocity inch towards heading
@@ -126,14 +159,18 @@ pub fn apply_acc(
     }
 }
 
-pub fn apply_acc_free_fly(mut query: Query<(&Heading, &mut Velocity), With<FreeFly>>) {
+fn apply_acc_free_fly(mut query: Query<(&Heading, &mut Velocity), With<FreeFly>>) {
     for (heading, mut velocity) in query.iter_mut() {
         velocity.0.x = heading.0.x;
         velocity.0.z = heading.0.z;
     }
 }
 
-pub fn apply_velocity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>) {
+fn apply_velocity(
+    blocks: Res<Blocks>, 
+    time: Res<Time>, 
+    mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>
+) {
     for (mut velocity, mut transform, realm, aabb) in query.iter_mut() {
         if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
@@ -145,7 +182,7 @@ pub fn apply_velocity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&m
         let mut stopped = false;
         for x in extent(xpos, applied_velocity.x).into_iter().skip(1) {
             let pos_x = Vec3 { x: x as f32, y: transform.translation.y, z: transform.translation.z };
-            if blocks_perp_x(pos_x, *realm, aabb).any(|pos| !blocks.get_block(pos).traversable()) 
+            if blocks_perp_x(pos_x, *realm, aabb).any(|pos| !blocks.get_block(pos).is_traversable()) 
             {
                 // there's a collision in this direction, stop at the block limit
                 if applied_velocity.x > 0. { 
@@ -166,7 +203,7 @@ pub fn apply_velocity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&m
         let mut stopped = false;
         for y in extent(ypos, applied_velocity.y).into_iter().skip(1) {
             let pos_y = Vec3 {x: transform.translation.x, y: y as f32, z: transform.translation.z };
-            if blocks_perp_y(pos_y, *realm, aabb).any(|pos| !blocks.get_block(pos).traversable()) {
+            if blocks_perp_y(pos_y, *realm, aabb).any(|pos| !blocks.get_block(pos).is_traversable()) {
                 // there's a collision in this direction, stop at the block limit
                 if applied_velocity.y > 0. {
                     transform.translation.y = pos_y.y - aabb.0.y - 0.001;
@@ -186,7 +223,7 @@ pub fn apply_velocity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&m
         let mut stopped = false;
         for z in extent(zpos, applied_velocity.z).into_iter().skip(1) {
             let pos_z = Vec3 {x: transform.translation.x, y: transform.translation.y, z: z as f32 };
-            if blocks_perp_z(pos_z, *realm, aabb).any(|pos| !blocks.get_block(pos).traversable()) {
+            if blocks_perp_z(pos_z, *realm, aabb).any(|pos| !blocks.get_block(pos).is_traversable()) {
                 // there's a collision in this direction, stop at the block limit
                 if applied_velocity.z > 0. { 
                     transform.translation.z = pos_z.z - aabb.0.z - 0.001;
@@ -201,20 +238,5 @@ pub fn apply_velocity(blocks: Res<Blocks>, time: Res<Time>, mut query: Query<(&m
         if !stopped {
             transform.translation.z += applied_velocity.z;
         }
-    }
-}
-
-pub struct MovementPlugin;
-
-impl Plugin for MovementPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update, process_jumps)
-            .add_systems(Update, process_freefly)
-            .add_systems(Update, apply_acc)
-            .add_systems(Update, apply_acc_free_fly)
-            .add_systems(Update, apply_gravity)
-            .add_systems(Update, apply_velocity)
-            ;
     }
 }

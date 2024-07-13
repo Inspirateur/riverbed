@@ -23,6 +23,7 @@ const GRID_GIZMO_LEN: i32 = 4;
 pub struct LOD(pub usize);
 
 fn choose_lod_level(chunk_dist: u32) -> usize {
+    return 1;
     if chunk_dist < 8 {
         return 1;
     }

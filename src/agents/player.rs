@@ -1,17 +1,36 @@
 use std::time::Duration;
-use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, gen::RenderDistance, items::{Hotbar, Inventory}, GameState};
+use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, blocks::Block, gen::RenderDistance, items::{Hotbar, Inventory}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, GameState};
 use crate::blocks::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
 };
 use leafwing_input_manager::prelude::*;
-use super::{block_action::BlockActionPlugin, Crouching, FreeFly, Speed, Walking};
+use super::{block_action::BlockActionPlugin, Crouching, FreeFly, Speed, SteppingOn, Walking};
 
 const WALK_SPEED: f32 = 15.;
 const FREE_FLY_X_SPEED: f32 = 80.;
-
 const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
+
+pub struct PlayerPlugin;
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
+pub struct PlayerSpawn;
+
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_plugins(BlockActionPlugin)
+            .add_plugins(InputManagerPlugin::<Dir>::default())
+            .add_plugins(InputManagerPlugin::<Action>::default())
+            .add_plugins(InputManagerPlugin::<UIAction>::default())
+            .add_plugins(InputManagerPlugin::<DevCommand>::default())
+            .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
+            .add_systems(Update, move_player.run_if(in_state(GameState::Game)))
+            .add_systems(Update, toggle_fly.run_if(in_state(GameState::Game)))
+        ;
+    }
+}
 
 #[derive(Component)]
 pub struct PlayerControlled;
@@ -61,18 +80,19 @@ pub enum UIAction {
 
 pub fn spawn_player(mut commands: Commands) {    
     let realm = Realm::Overworld;
-    let transform = SpatialBundle {
+    let spatial_bundle = SpatialBundle {
         transform: Transform {translation: SPAWN, ..default()},
         ..default()
     };
     let rd = RenderDistance(16);
     commands
         .spawn((
-            transform,
+            spatial_bundle,
             realm,
             Gravity(50.),
             Heading(Vec3::default()),
             Walking,
+            SteppingOn(Block::Air),
             Speed(WALK_SPEED),
             Jumping {force: 13., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
             Crouching(false),
@@ -81,8 +101,10 @@ pub fn spawn_player(mut commands: Commands) {
             rd,
             TargetBlock(None),
             Hotbar(Inventory::new()),
-            PlayerControlled
+            PlayerControlled,
         ))
+        .insert(SpatialListener::new(0.3))
+        .insert((FootstepCD(0.), BlockSoundCD(0.)))
         .insert(InputManagerBundle::<Dir> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
@@ -114,7 +136,9 @@ pub fn spawn_player(mut commands: Commands) {
             input_map: InputMap::new([
                 (DevCommand::ToggleFly, KeyCode::F1)
             ])
-        });
+        })
+        .observe(on_item_get)
+        ;
 }
 
 pub fn move_player(
@@ -163,25 +187,5 @@ fn toggle_fly(
                 speed.0 = WALK_SPEED;
             }
         }
-    }
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
-pub struct PlayerSpawn;
-
-pub struct PlayerPlugin;
-
-impl Plugin for PlayerPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_plugins(BlockActionPlugin)
-            .add_plugins(InputManagerPlugin::<Dir>::default())
-            .add_plugins(InputManagerPlugin::<Action>::default())
-            .add_plugins(InputManagerPlugin::<UIAction>::default())
-            .add_plugins(InputManagerPlugin::<DevCommand>::default())
-            .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
-            .add_systems(Update, move_player.run_if(in_state(GameState::Game)))
-            .add_systems(Update, toggle_fly.run_if(in_state(GameState::Game)))
-        ;
     }
 }

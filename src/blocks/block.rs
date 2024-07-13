@@ -58,14 +58,14 @@ impl Block {
         }
     }
 
-    pub fn traversable(&self) -> bool {
+    pub fn is_traversable(&self) -> bool {
         match self {
             Block::Air | Block::SeaBlock => true,
             _ => false,
         }
     }
 
-    pub fn targetable(&self) -> bool {
+    pub fn is_targetable(&self) -> bool {
         match self {
             Block::Air | Block::SeaBlock => false,
             _ => true

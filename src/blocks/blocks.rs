@@ -240,7 +240,7 @@ impl Blocks {
                     t_max_z += slope_z;
                 }
             }
-            if self.get_block_safe(pos).targetable() {
+            if self.get_block_safe(pos).is_targetable() {
                 return Some(BlockRayCastHit {
                     pos, normal: Vec3 { 
                         x: (last_pos.x-pos.x) as f32, 

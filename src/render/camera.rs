@@ -1,5 +1,4 @@
 use std::f32::consts::FRAC_PI_2;
-
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 use crate::GameState;
