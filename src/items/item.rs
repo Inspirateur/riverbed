@@ -1,5 +1,4 @@
 use serde::Deserialize;
-
 use crate::blocks::Block;
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
@@ -23,6 +22,7 @@ pub enum Item {
     Lime,
     Stick,
     Rock,
+    StoneAxe,
     IronPickaxe,
     IronAxe,
     IronShovel,    

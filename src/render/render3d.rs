@@ -110,7 +110,7 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
 
     fn get_block_chunked(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) -> Block {
         match self.get(&chunk_pos) {
-            None => Block::default(),
+            None => Block::Air,
             Some(chunk) => chunk.get(chunked_pos).clone()
         }
     }

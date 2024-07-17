@@ -47,7 +47,7 @@ impl Chunk {
 
     pub fn set_if_empty(&mut self, (x, y, z): ChunkedPos, block: Block) -> bool {
         let idx = CHUNK_SHAPE.linearize(x, y, z);
-        if self.palette[self.data.get(idx)] != Block::default() {
+        if self.palette[self.data.get(idx)] != Block::Air {
             return false;
         }
         self.data.set(idx, self.palette.index(block));
@@ -58,7 +58,7 @@ impl Chunk {
 impl From<&[Block]> for Chunk {
     fn from(values: &[Block]) -> Self {
         let mut palette = Palette::new();
-        palette.index(Block::default());
+        palette.index(Block::Air);
         let values = values.iter().map(|v| palette.index(v.clone())).collect_vec();
         let data = PackedUints::from(values.as_slice());
         Chunk {data, palette}
@@ -68,7 +68,7 @@ impl From<&[Block]> for Chunk {
 impl Chunk {
     pub fn new() -> Self {
         let mut palette = Palette::new();
-        palette.index(Block::default()); 
+        palette.index(Block::Air); 
         Chunk {
             data: PackedUints::new(CHUNK_S3),
             palette: palette, 

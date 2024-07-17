@@ -19,7 +19,7 @@ use ui::UIPlugin;
 pub enum GameState {
     #[default]
     Game,
-    Menu
+    Menu,
 }
 
 fn main() {

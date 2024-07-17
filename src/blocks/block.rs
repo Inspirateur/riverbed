@@ -2,7 +2,7 @@ use std::ops::Range;
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
-#[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy, EnumString)]
 pub enum BlockFamily {
     Stone,
     Log,
@@ -10,16 +10,15 @@ pub enum BlockFamily {
     Soil,
 }
 
-#[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Hash)]
-#[derive(EnumString)]
+#[derive(Debug, PartialEq, EnumString, Eq, Serialize, Deserialize, Clone, Copy, Hash)]
 pub enum Block {
-    #[default]
     Air,
     AcaciaLeaves,
     AcaciaLog,
     Bedrock,
     BirchLeaves,
     BirchLog,
+    Campfire,
     CoarseDirt,
     Cobblestone,
     Dirt,

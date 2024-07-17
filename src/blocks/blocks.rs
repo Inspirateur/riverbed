@@ -102,7 +102,7 @@ impl Blocks {
     pub fn get_block(&self, pos: BlockPos) -> Block {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         match self.chunks.get(&chunk_pos) {
-            None => Block::default(),
+            None => Block::Air,
             Some(chunk) => chunk.get(chunked_pos).clone()
         }
     }
@@ -126,12 +126,12 @@ impl Blocks {
             };
             if let Some(chunk) = self.chunks.get(&chunk_pos) {
                 let (block, block_y) = chunk.top(pos2d);
-                if *block != Block::default() {
+                if *block != Block::Air {
                     return (block.clone(), y*CHUNK_S1 as i32 + block_y as i32);
                 }
             }
         }
-        (Block::default(), 0)
+        (Block::Air, 0)
     }
 
     pub fn is_col_loaded(&self, player_pos: Vec3, realm: Realm) -> bool {
