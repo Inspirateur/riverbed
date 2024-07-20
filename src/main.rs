@@ -8,11 +8,10 @@ mod sounds;
 use bevy::{prelude::*, render::texture::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}};
 use blocks::Blocks;
 use sounds::SoundPlugin;
-use ui::MenuPlugin;
+use ui::UIPlugin;
 use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, PlayerPlugin};
 use gen::GenPlugin;
-use ui::UIPlugin;
 
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
@@ -51,7 +50,6 @@ fn main() {
         .add_plugins(PlayerPlugin)
         .add_plugins(TextureLoadPlugin)
         .add_plugins(UIPlugin)
-        .add_plugins(MenuPlugin)
         .add_plugins(MovementPlugin)
         .add_plugins(GenPlugin)
         .add_plugins(Render)

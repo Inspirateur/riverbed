@@ -3,34 +3,17 @@ use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
 use crate::blocks::{Blocks, Block};
 use crate::agents::{Dir, TargetBlock};
-use super::hotbar::HotbarPlugin;
 
-fn setup_crosshair(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let crosshair = asset_server.load("crosshair.png");
-    commands.spawn((
-        NodeBundle {
-            style: Style {
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                position_type: PositionType::Absolute,
-                ..default()
-            },
-            ..default()
-        },
-    )).with_children(|parent| {
-        parent.spawn(ImageBundle {
-            style: Style {
-                width: Val::Px(34.0),
-                ..default()
-            },
-            image: UiImage::new(crosshair),
-            ..default()
-        });
-    });
+pub struct DebugDisplayPlugin;
+
+impl Plugin for DebugDisplayPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_systems(Startup, setup_debug_display)
+            .add_systems(Update, debug_display)
+            ;
+    }
 }
-
 
 #[derive(Component)]
 struct DebugText;
@@ -87,17 +70,4 @@ fn debug_display(
     text.sections[1].value = format!("block: {block:?}\n");
     let ent_count = ent_query.iter().count();
     text.sections[2].value = format!("E: {ent_count}\n");
-}
-
-pub struct UIPlugin;
-
-impl Plugin for UIPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_plugins(HotbarPlugin)
-            .add_systems(Startup, setup_crosshair)
-            .add_systems(Startup, setup_debug_display)
-            .add_systems(Update, debug_display)
-            ;
-    }
 }

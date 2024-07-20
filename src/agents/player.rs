@@ -23,7 +23,6 @@ impl Plugin for PlayerPlugin {
             .add_plugins(BlockActionPlugin)
             .add_plugins(InputManagerPlugin::<Dir>::default())
             .add_plugins(InputManagerPlugin::<Action>::default())
-            .add_plugins(InputManagerPlugin::<UIAction>::default())
             .add_plugins(InputManagerPlugin::<DevCommand>::default())
             .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
             .add_systems(Update, move_player.run_if(in_state(GameState::Game)))
@@ -72,12 +71,6 @@ pub enum DevCommand {
     ToggleFly,
 }
 
-#[derive(Actionlike, Reflect, PartialEq, Eq, Clone, Copy, Debug, Hash)]
-pub enum UIAction {
-    Escape,
-    Inventory,
-}
-
 pub fn spawn_player(mut commands: Commands) {    
     let realm = Realm::Overworld;
     let spatial_bundle = SpatialBundle {
@@ -116,12 +109,6 @@ pub fn spawn_player(mut commands: Commands) {
                 (Dir::Left, KeyCode::KeyQ),
                 (Dir::Down, KeyCode::ShiftLeft),
                 (Dir::Up, KeyCode::Space)
-            ]),
-        })
-        .insert(InputManagerBundle::<UIAction> {
-            action_state: ActionState::default(),
-            input_map: InputMap::new([
-                (UIAction::Escape, KeyCode::Escape),
             ]),
         })
         .insert(InputManagerBundle::<Action> {

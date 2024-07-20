@@ -1,33 +1,8 @@
-use bevy::{color::palettes::css, prelude::*, window::CursorGrabMode};
-use leafwing_input_manager::prelude::ActionState;
-use crate::{agents::UIAction, GameState};
+use bevy::{color::palettes::css, prelude::*};
+use crate::GameState;
 
 #[derive(Component)]
 struct OnPauseScreen;
-
-pub fn cursor_grab(
-    mut windows: Query<&mut Window>,
-    mut ui_action_query: Query<&ActionState<UIAction>>,
-    game_state: Res<State<GameState>>,
-    mut next_game_state: ResMut<NextState<GameState>>
-) {
-    if let Ok(mut window) = windows.get_single_mut() {
-        let action_state = ui_action_query.single_mut();
-        for action in action_state.get_just_pressed() {
-            if action == UIAction::Escape {
-                if **game_state == GameState::Menu {
-                    window.cursor.visible = false;
-                    window.cursor.grab_mode = CursorGrabMode::Confined;
-                    next_game_state.set(GameState::Game);
-                } else {
-                    window.cursor.visible = true;
-                    window.cursor.grab_mode = CursorGrabMode::None;
-                    next_game_state.set(GameState::Menu);
-                }
-            }
-        }
-    }
-}
 
 pub fn setup_pause(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
@@ -71,7 +46,6 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app 
-            .add_systems(Update, cursor_grab)
             .add_systems(OnEnter(GameState::Menu), setup_pause)
             .add_systems(OnExit(GameState::Menu), despawn_screen::<OnPauseScreen>)
             ;
