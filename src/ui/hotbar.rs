@@ -15,7 +15,7 @@ impl Plugin for HotbarPlugin {
         app
             .add_plugins(InputManagerPlugin::<HotbarScroll>::default())
             .insert_resource(SelectedHotbarSlot(0))
-            .insert_resource(UITextureMap(HashMap::new()))
+            .insert_resource(UiTextureMap(HashMap::new()))
             .add_systems(Startup, setup_hotbar_display)
             .add_systems(OnEnter(BlockTexState::Finished), load_hotbar_block_textures)
             .add_systems(OnEnter(ItemTexState::Finished), load_hotbar_item_textures)
@@ -29,7 +29,7 @@ impl Plugin for HotbarPlugin {
 struct HotbarSlot(usize);
 
 #[derive(Resource)]
-struct UITextureMap(HashMap<Item, Handle<Image>>);
+pub struct UiTextureMap(pub HashMap<Item, Handle<Image>>);
 
 #[derive(Resource)]
 pub struct SelectedHotbarSlot(pub usize);
@@ -43,7 +43,7 @@ enum HotbarScroll {
 fn load_hotbar_item_textures(
     item_textures: Res<ItemTextureFolder>,
     loaded_folders: Res<Assets<LoadedFolder>>,
-    mut ui_tex_map: ResMut<UITextureMap>,
+    mut ui_tex_map: ResMut<UiTextureMap>,
 ) {
     let item_folder: &LoadedFolder = loaded_folders.get(&item_textures.0).unwrap();
     for item_handle in item_folder.handles.iter() {
@@ -58,7 +58,7 @@ fn load_hotbar_item_textures(
 fn load_hotbar_block_textures(
     block_textures: Res<BlockTextureFolder>,
     loaded_folders: Res<Assets<LoadedFolder>>,
-    mut ui_tex_map: ResMut<UITextureMap>,
+    mut ui_tex_map: ResMut<UiTextureMap>,
 ) {
     let specifiers = Face::Front.specifiers();
     let block_folder: &LoadedFolder = loaded_folders.get(&block_textures.0).unwrap();
@@ -129,7 +129,7 @@ fn display_hotbar(
     mut bg_query: Query<(&mut BackgroundColor, &HotbarSlot)>, 
     mut img_query: Query<(&mut UiImage, &HotbarSlot)>, 
     mut text_query: Query<(&mut Text, &HotbarSlot)>,
-    tex_map: Res<UITextureMap>,
+    tex_map: Res<UiTextureMap>,
     selected_slot: Res<SelectedHotbarSlot>,
     hotbar_query: Query<&Hotbar, (With<PlayerControlled>, Changed<Hotbar>)>,
 ) {

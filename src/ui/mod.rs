@@ -3,6 +3,7 @@ mod debug_display;
 mod hotbar;
 mod craft_menu;
 mod crosshair;
+use craft_menu::CraftMenuPlugin;
 use crosshair::setup_crosshair;
 pub use hotbar::SelectedHotbarSlot;
 use debug_display::DebugDisplayPlugin;
@@ -22,6 +23,7 @@ impl Plugin for UIPlugin {
             .add_plugins(HotbarPlugin)
             .add_plugins(DebugDisplayPlugin)
             .add_plugins(MenuPlugin)
+            .add_plugins(CraftMenuPlugin)
             .add_systems(Startup, setup_ui_actions)
             .add_systems(Startup, setup_crosshair)
             .add_systems(Update, process_ui_actions)
@@ -71,7 +73,7 @@ fn process_ui_actions(
             }
         } else if action == UIAction::CraftingMenu {
             if **game_ui_state == GameUiState::CraftingMenu {
-                next_ui_state.set(GameUiState::CraftingMenu);
+                next_ui_state.set(GameUiState::None);
             } else {
                 next_ui_state.set(GameUiState::CraftingMenu);
             }

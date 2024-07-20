@@ -60,6 +60,11 @@ impl Stack {
     }
 }
 
+pub struct InventoryRecipes {
+    pub craftable_recipes: Vec<Recipe>,
+    pub uncraftable_recipes: Vec<Recipe>
+}
+
 pub struct Inventory<const N: usize>(pub [Stack; N]);
 
 
@@ -85,46 +90,57 @@ impl<const N: usize> Inventory<N> {
         res
     }
 
-    pub fn filter_recipes(&self, recipes: &Vec<Recipe>) -> Vec<Recipe> {
+    fn is_recipe_craftable(&self, recipe: &Recipe, contents: &HashMap<Item, u32>, used: &mut HashMap<Item, u32>) -> bool {
+        used.clear();
+        // go through the specific ingredients first
+        for (ingredient, qty) in &recipe.ingredients {
+            let Ingredient::Item(item) = ingredient else {
+                continue;
+            };
+            if contents.get(&item).unwrap_or(&0) < &qty {
+                return false;
+            }
+            used.insert(*item, *qty);
+        }
+        // go through the block families second
+        for (ingredient, mut qty) in &recipe.ingredients {
+            let Ingredient::BlockFamily(family) = ingredient else {
+                continue;
+            };
+            for (available_item, available_qty) in contents.iter() {
+                let available_qty = available_qty - used.get(&available_item).unwrap_or(&0);
+                let Item::Block(block) = available_item else {
+                    continue;
+                };
+                if !block.families().contains(family) {
+                    continue;
+                }
+                qty -= available_qty.min(qty);
+                if qty == 0 {
+                    break;
+                }
+            }
+            if qty > 0 {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn filter_recipes(&self, recipes: &Vec<Recipe>) -> InventoryRecipes {
         // Only return recipes that are possible to make with this inventory
-        let contents = self.contents();
+        let contents: HashMap<Item, u32> = self.contents();
         let mut used: HashMap<Item, u32> = HashMap::new();
-        recipes.iter().filter(|recipe| {
-            used.clear();
-            // go through the specific ingredients first
-            for (ingredient, qty) in &recipe.ingredients {
-                let Ingredient::Item(item) = ingredient else {
-                    continue;
-                };
-                if contents.get(&item).unwrap_or(&0) < &qty {
-                    return false;
-                }
-                used.insert(*item, *qty);
+        let mut craftable_recipes = Vec::new();
+        let mut uncraftable_recipes = Vec::new();
+        for recipe in recipes.iter() {
+            if self.is_recipe_craftable(recipe, &contents, &mut used) {
+                craftable_recipes.push(recipe.clone());
+            } else {
+                uncraftable_recipes.push(recipe.clone());
             }
-            // go through the block families second
-            for (ingredient, mut qty) in &recipe.ingredients {
-                let Ingredient::BlockFamily(family) = ingredient else {
-                    continue;
-                };
-                for (available_item, available_qty) in contents.iter() {
-                    let available_qty = available_qty - used.get(&available_item).unwrap_or(&0);
-                    let Item::Block(block) = available_item else {
-                        continue;
-                    };
-                    if !block.families().contains(family) {
-                        continue;
-                    }
-                    qty -= available_qty.min(qty);
-                    if qty == 0 {
-                        break;
-                    }
-                }
-                if qty > 0 {
-                    return false;
-                }
-            }
-            true
-        }).cloned().collect_vec()
+        }
+        InventoryRecipes { craftable_recipes, uncraftable_recipes }
     }
 }
 
@@ -180,6 +196,6 @@ mod tests {
             },
         ];
         let available_recipes = vec![recipes[1].clone(), recipes[3].clone()];
-        assert_eq!(available_recipes, inventory.filter_recipes(&recipes));
+        assert_eq!(available_recipes, inventory.filter_recipes(&recipes).craftable_recipes);
     }
 }
