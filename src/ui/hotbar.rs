@@ -137,7 +137,7 @@ fn display_hotbar(
         for (mut img, slot) in img_query.iter_mut() {
             *img = if let Stack::Some(item, _) = hotbar.0.0[slot.0] {
                 if let Some(handle) = tex_map.0.get(&item) {
-                    UiImage::new(handle.clone_weak()).with_color({
+                    UiImage::new(handle.clone()).with_color({
                         match item {
                             Item::Block(block) if block.is_foliage() => Color::linear_rgba(0.3, 1.0, 0.1, 1.),
                             _ => Color::linear_rgba(1., 1., 1., 1.)
