@@ -6,6 +6,7 @@ use crate::{
     items::{Hotbar, Item, Stack, HOTBAR_SLOTS}, 
     render::{parse_block_tex_name, parse_item_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}
 };
+use super::{ControllingPlayer, UIAction};
 const SLOT_SIZE_PERCENT: f32 = 4.5;
 
 pub struct HotbarPlugin;
@@ -13,14 +14,13 @@ pub struct HotbarPlugin;
 impl Plugin for HotbarPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_plugins(InputManagerPlugin::<HotbarScroll>::default())
             .insert_resource(SelectedHotbarSlot(0))
             .insert_resource(UiTextureMap(HashMap::new()))
             .add_systems(Startup, setup_hotbar_display)
             .add_systems(OnEnter(BlockTexState::Finished), load_hotbar_block_textures)
             .add_systems(OnEnter(ItemTexState::Finished), load_hotbar_item_textures)
             .add_systems(Update, display_hotbar)
-            .add_systems(Update, scroll_hotbar)
+            .add_systems(Update, scroll_hotbar.run_if(in_state(ControllingPlayer)))
             ;
     }
 }
@@ -33,12 +33,6 @@ pub struct UiTextureMap(pub HashMap<Item, Handle<Image>>);
 
 #[derive(Resource)]
 pub struct SelectedHotbarSlot(pub usize);
-
-#[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Hash, Reflect)]
-enum HotbarScroll {
-    Left, 
-    Right,
-}
 
 fn load_hotbar_item_textures(
     item_textures: Res<ItemTextureFolder>,
@@ -81,12 +75,6 @@ fn load_hotbar_block_textures(
 fn setup_hotbar_display(
     mut commands: Commands, asset_server: Res<AssetServer>
 ) {
-    let input_map = InputMap::default()
-        .insert(HotbarScroll::Left, MouseWheelDirection::Up)
-        .insert(HotbarScroll::Right, MouseWheelDirection::Down)
-        .build()
-        ;
-    commands.spawn(InputManagerBundle::with_map(input_map));
     for i in 0..HOTBAR_SLOTS {
         let right_border = if i < HOTBAR_SLOTS - 1 { Val::Px(0.) } else { Val::Px(4.) };
         let left_offset = Val::Percent(50.+(i as f32-HOTBAR_SLOTS as f32/2.)*SLOT_SIZE_PERCENT);
@@ -175,13 +163,16 @@ fn display_hotbar(
     }
 }
 
-fn scroll_hotbar(mut selected_slot: ResMut<SelectedHotbarSlot>, query: Query<&ActionState<HotbarScroll>>) {
+fn scroll_hotbar(
+    mut selected_slot: ResMut<SelectedHotbarSlot>, 
+    query: Query<&ActionState<UIAction>>
+) {
     let Ok(action_state) = query.get_single() else {
         return;
     };
-    if action_state.pressed(&HotbarScroll::Left) {
+    if action_state.pressed(&UIAction::ScrollUp) {
         selected_slot.0 = (selected_slot.0 - 1).rem_euclid(HOTBAR_SLOTS);
-    } else if action_state.pressed(&HotbarScroll::Right) {
+    } else if action_state.pressed(&UIAction::ScrollDown) {
         selected_slot.0 = (selected_slot.0 + 1).rem_euclid(HOTBAR_SLOTS);
     }
 }

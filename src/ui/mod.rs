@@ -19,6 +19,7 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_state::<GameUiState>()
+            .add_computed_state::<ControllingPlayer>()
             .add_plugins(InputManagerPlugin::<UIAction>::default())
             .add_plugins(HotbarPlugin)
             .add_plugins(DebugDisplayPlugin)
@@ -40,19 +41,39 @@ pub enum GameUiState {
     CraftingMenu,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ControllingPlayer;
+
+impl ComputedStates for ControllingPlayer {
+    type SourceStates = (GameState, GameUiState);
+
+    fn compute(sources: Self::SourceStates) -> Option<Self> {
+        if sources.0 == GameState::Game && sources.1 == GameUiState::None {
+            Some(Self)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Actionlike, Reflect, PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum UIAction {
     Escape,
     CraftingMenu,
+    ScrollUp, 
+    ScrollDown,
 }
 
 fn setup_ui_actions(mut commands: Commands) {
+    let mut input_map = InputMap::new([
+        (UIAction::Escape, KeyCode::Escape),
+        (UIAction::CraftingMenu, KeyCode::KeyC),
+    ]);
+    input_map.insert(UIAction::ScrollUp, MouseWheelDirection::Up);
+    input_map.insert(UIAction::ScrollDown, MouseWheelDirection::Down);
     commands.spawn(InputManagerBundle::<UIAction> {
         action_state: ActionState::default(),
-        input_map: InputMap::new([
-            (UIAction::Escape, KeyCode::Escape),
-            (UIAction::CraftingMenu, KeyCode::KeyC)
-        ]),
+        input_map,
     });
 }
 
