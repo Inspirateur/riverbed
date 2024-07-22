@@ -15,8 +15,8 @@ impl Plugin for BlockActionPlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(json5::from_str::<BlockBreakTable>(&fs::read_to_string("assets/data/block_breaking.json5").unwrap()).unwrap())
-			.add_systems(Update, (break_action, target_block, target_block_changed).chain()/*.run_if(in_state(ControllingPlayer))*/)
-			.add_systems(Update, block_outline/*.run_if(in_state(ControllingPlayer))*/)
+			.add_systems(Update, (break_action, target_block, target_block_changed).chain().run_if(in_state(ControllingPlayer)))
+			.add_systems(Update, block_outline.run_if(in_state(ControllingPlayer)))
             .add_systems(Update, place_block.run_if(in_state(ControllingPlayer)))
 			;
     }

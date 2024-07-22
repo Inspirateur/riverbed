@@ -107,15 +107,22 @@ fn add_recipe_node(parent: &mut ChildBuilder, recipe: &Recipe, is_craftable: boo
         for (ingredient, qty) in &recipe.ingredients {
             add_ingredient(node, ingredient, *qty, is_craftable, tex_map);
         }
-        node.spawn(TextBundle::from_section("=>", TextStyle { 
-            font_size: 40.,
-            color: if is_craftable {
-                Color::Srgba(css::WHITE)
-            } else {
-                Color::Srgba(css::GRAY)
+        node.spawn(TextBundle {
+            text: Text::from_section("=>", TextStyle { 
+                font_size: 40.,
+                color: if is_craftable {
+                    Color::Srgba(css::WHITE)
+                } else {
+                    Color::Srgba(css::GRAY)
+                },
+                ..Default::default() 
+            }),
+            style: Style {
+                margin: UiRect::horizontal(Val::Vw(0.1)),
+                ..Default::default()
             },
-            ..Default::default() 
-        }));
+            ..Default::default()
+        });
         add_ingredient(node, &Ingredient::Item(recipe.out.0), recipe.out.1, is_craftable, tex_map);
     });
 }
@@ -135,6 +142,17 @@ fn create_craft_menu(mut commands: Commands, inventory_recipes: InventoryRecipes
     })
     .with_children(
         |parent| {
+            parent.spawn(TextBundle {
+                text: Text::from_section("Craft recipes", TextStyle {
+                    font_size: 40.,
+                    ..Default::default()
+                }),
+                style: Style {
+                    align_self: AlignSelf::Center,
+                    ..Default::default()
+                },
+                ..Default::default()
+            });
             let mut i = 0;
             for (craftable_recipe, _) in &inventory_recipes.craftable_recipes {
                 add_recipe_node(parent, craftable_recipe, true, &tex_map, i);
@@ -155,7 +173,6 @@ fn open_craft_menu(
     hotbar_query: Query<&Hotbar, With<PlayerControlled>>,
     tex_map: Res<UiTextureMap>,
 ) {
-    println!("open");
     let empty = Inventory::new();
     let hotbar = hotbar_query.get_single().map(|res| &res.0).unwrap_or(&empty);
     let inventory_recipes = hotbar.filter_recipes(&handcraft_recipes.0);
@@ -175,7 +192,6 @@ fn refresh_craft_menu(
     if let Ok(entity) = craft_menu_query.get_single() {
         commands.entity(entity).despawn_recursive();
     };
-    println!("refresh");
     let inventory_recipes = hotbar.0.filter_recipes(&handcraft_recipes.0);
     create_craft_menu(commands, inventory_recipes, tex_map);
 }
