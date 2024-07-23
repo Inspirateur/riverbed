@@ -64,8 +64,12 @@ fn capitalize(s: &str) -> String {
     }
 }
 
+fn snake_to_pascal_case(text: &str) -> String {
+    text.split("_").map(capitalize).join("")
+}
+
 fn parse_block_name(blockname: &str) -> Option<Block> {
-    Block::from_str(&blockname.split("_").map(capitalize).join("")).ok()
+    Block::from_str(&snake_to_pascal_case(blockname)).ok()
 }
 
 pub fn parse_block_tex_name(filename: &OsStr) -> Option<(Block, FaceSpecifier)> {
@@ -103,5 +107,6 @@ fn check_item_textures(
 }
 
 pub fn parse_item_tex_name(filename: &OsStr) -> Option<Item> {
-    None
+    // We'd like to implement FromStr for Item using strum but it doesn't seem to support nested enums
+    json5::from_str(&format!("'{}'", snake_to_pascal_case(filename.to_str()?))).ok()
 }
