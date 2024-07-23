@@ -1,7 +1,7 @@
 use std::fs;
 use bevy::{prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE, color::palettes::css};
 use leafwing_input_manager::action_state::ActionState;
-use crate::{agents::{Action, PlayerControlled}, items::{parse_recipes, Hotbar, Ingredient, Inventory, InventoryRecipes, Item, Recipe, Stack}};
+use crate::{agents::{Action, PlayerControlled}, blocks::{Block, BlockFamily}, items::{parse_recipes, Hotbar, Ingredient, Inventory, InventoryRecipes, Item, Recipe, Stack}, sounds::ItemGet};
 use super::{game_menu::despawn_screen, hotbar::UiTextureMap, GameUiState, UIAction};
 const SLOT_SIZE_PERCENT: f32 = 4.;
 
@@ -37,10 +37,10 @@ pub struct SelectedRecipe(pub usize);
 struct CraftingMenu(pub InventoryRecipes);
 
 fn add_ingredient(parent: &mut ChildBuilder, ingredient: &Ingredient, qty: u32, is_craftable: bool, tex_map: &Res<UiTextureMap>) {
-    let item = if let Ingredient::Item(item) = ingredient {
-        item
-    } else {
-        &Item::Stick
+    let item = match ingredient {
+        Ingredient::Item(item) => item,
+        // TODO: deal with block families properly, as well as recipes of the kind "Log = 4 Planks" (family to family)
+        Ingredient::BlockFamily(_family) => &Item::Block(Block::OakLog),
     };
     let alpha = if is_craftable { 1. } else { 0.6 };
     parent.spawn(NodeBundle {
@@ -237,9 +237,10 @@ fn scroll_recipes(
 }
 
 fn craft_action(
+    mut commands: Commands,
     selected_recipe: Res<SelectedRecipe>,
     craft_menu_query: Query<&CraftingMenu>,
-    mut hotbar_query: Query<&mut Hotbar, With<PlayerControlled>>,
+    mut hotbar_query: Query<(Entity, &mut Hotbar), With<PlayerControlled>>,
     action_query: Query<&ActionState<Action>>,
 ) {
     let Ok(action_state) = action_query.get_single() else {
@@ -255,11 +256,12 @@ fn craft_action(
         return;
     }
     let (recipe, selection) = &craft_menu.0.craftable_recipes[selected_recipe.0];
-    let Ok(mut hotbar) = hotbar_query.get_single_mut() else {
+    let Ok((player, mut hotbar)) = hotbar_query.get_single_mut() else {
         return;
     };
     for (slot, qty) in selection.iter() {
         let _ = hotbar.0.0[*slot].take(*qty);
     }
     hotbar.0.try_add(Stack::Some(recipe.out.0, recipe.out.1));
+    commands.trigger_targets(ItemGet, player);
 }

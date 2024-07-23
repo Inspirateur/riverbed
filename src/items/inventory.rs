@@ -75,6 +75,14 @@ impl<const N: usize> Inventory<N> {
     }
 
     pub fn try_add(&mut self, mut stack: Stack) -> Option<Stack> {
+        // try to add to an existing stack first
+        for i in 0..self.0.len() {
+            if matches!(self.0[i], Stack::None) {
+                continue;
+            }
+            stack = self.0[i].try_add(stack)?;
+        }
+        // if not possible, just add to the first empty slot
         for i in 0..self.0.len() {
             stack = self.0[i].try_add(stack)?;
         }

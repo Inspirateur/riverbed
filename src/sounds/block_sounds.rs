@@ -47,10 +47,14 @@ impl BlockSounds {
 }
 
 fn load_block_sounds(mut commands: Commands, asset_server: Res<AssetServer>) {
+    // TODO: make it automatically associate sound and block kinds (like we do for block texture)
     let mut stepping_sounds = HashMap::new();
     stepping_sounds.insert(BlockKind::Family(BlockFamily::Soil), asset_server.load("sounds/blocks/footsteps/fwip.ogg"));
     let mut breaking_sounds = HashMap::new();
-    breaking_sounds.insert(BlockKind::Family(BlockFamily::Soil), asset_server.load("sounds/blocks/breaking/krr.ogg"));
+    breaking_sounds.insert(BlockKind::Family(BlockFamily::Soil), asset_server.load("sounds/blocks/breaking/Soil.ogg"));
+    breaking_sounds.insert(BlockKind::Family(BlockFamily::Log), asset_server.load("sounds/blocks/breaking/Log.ogg"));
+    breaking_sounds.insert(BlockKind::Family(BlockFamily::Stone), asset_server.load("sounds/blocks/breaking/Stone.ogg"));
+    breaking_sounds.insert(BlockKind::Family(BlockFamily::Foliage), asset_server.load("sounds/blocks/breaking/Foliage.ogg"));
     commands.insert_resource(BlockSounds { stepping: stepping_sounds, breaking: breaking_sounds });
 }
 

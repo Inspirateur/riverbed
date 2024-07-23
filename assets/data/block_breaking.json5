@@ -1,8 +1,13 @@
 {
     Default: {
-        Stone: { hardness: 3, drops: "Self" },
-        Log: { hardness: 2, drops: "Self" },
-        Soil: { hardness: 1, drops: "Self" },
-        Foliage: { hardness: 0.5 },
+        Cobblestone: { hardness: 5, drops: "Rock" },
+        Soil: { hardness: 2, drops: "Self" },
+        Foliage: { hardness: 1 },
     },
+    Rock: {
+        Log: { hardness: 3, drops: "Stick" },
+    },
+    StoneAxe: {
+        Log: { hardness: 1.5, drops: "Self" },
+    }
 }

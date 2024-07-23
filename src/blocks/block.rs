@@ -31,6 +31,7 @@ pub enum Block {
     Mud,
     OakLeaves,
     OakLog,
+    OakPlanks,
     Podzol,
     Sand,
     SequoiaLeaves,

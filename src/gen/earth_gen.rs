@@ -64,7 +64,9 @@ impl Earth {
                     None => Block::Dirt,
                 }
             };
-            world.set_yrange(col, (dx, dz), y, 16, block);
+            world.set_yrange(col, (dx, dz), y, 4, block);
+            world.set_yrange(col, (dx, dz), y-4, 2, Block::Cobblestone);
+            world.set_yrange(col, (dx, dz), y-6, 8, Block::Granite);
             let water_height = WATER_H-y;
             if water_height > 0 {
                 world.set_yrange(col, (dx, dz), WATER_H, water_height as usize, Block::SeaBlock);
