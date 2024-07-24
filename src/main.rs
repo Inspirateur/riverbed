@@ -7,18 +7,25 @@ mod agents;
 mod sounds;
 use bevy::{prelude::*, render::texture::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}};
 use blocks::Blocks;
+use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
 use ui::UIPlugin;
 use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, PlayerPlugin};
 use gen::GenPlugin;
-
+const SEED: u64 = 42;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum GameState {
     #[default]
     Game,
     Menu,
+}
+
+#[derive(Resource)]
+pub struct WorldRng {
+    pub seed: u64,
+    pub rng: ChaCha8Rng
 }
 
 fn main() {
@@ -47,6 +54,10 @@ fn main() {
         )
         // Note: all init_state needs to be after DefaultPlugins has been added
         .init_state::<GameState>()
+        .insert_resource(WorldRng {
+            seed: SEED,
+            rng: ChaCha8Rng::seed_from_u64(SEED)
+        })
         .add_plugins(PlayerPlugin)
         .add_plugins(TextureLoadPlugin)
         .add_plugins(UIPlugin)

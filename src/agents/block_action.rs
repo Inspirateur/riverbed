@@ -1,13 +1,16 @@
 use std::fs;
 use std::iter::zip;
-use crate::items::{BlockBreakTable, BreakEntry, Hotbar, Item, Stack};
+use crate::items::{BlockBreakTable, BreakEntry, DropQuantity, Hotbar, Item, Stack};
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
 use crate::ui::{ControllingPlayer, SelectedHotbarSlot};
 use crate::blocks::{Block, BlockPos, Blocks, Realm};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
+use crate::WorldRng;
 use leafwing_input_manager::prelude::*;
 use bevy::prelude::*;
+use rand::Rng;
+
 
 pub struct BlockActionPlugin;
 
@@ -89,6 +92,7 @@ fn break_action(
     selected_slot: Res<SelectedHotbarSlot>,
     block_break_table: Res<BlockBreakTable>,
     time: Res<Time>,
+    mut world_rng: ResMut<WorldRng>
 ) {
     for (player, target_block_opt, mut hotbar, action, opt_breaking) in block_action_query.iter_mut() {
         let Some(mut breaking) = opt_breaking else {
@@ -121,16 +125,24 @@ fn break_action(
             continue;
         };
         breaking.time_left -= time.delta_seconds();
-        if breaking.time_left <= 0. {
-            let Some(target_block) = &target_block_opt.0 else {
-                continue;
-            };
-            world.set_block(target_block.pos, Block::Air);
-            if let Some(drop) = breaking.break_entry.drops {
-                // TODO: take drop quantity into account (including random quantities)
-                if hotbar.0.try_add(Stack::Some(drop, 1)).is_none() {
-                    commands.trigger_targets(ItemGet, player);
+        if breaking.time_left > 0. {
+            continue;
+        }
+        let Some(target_block) = &target_block_opt.0 else {
+            continue;
+        };
+        world.set_block(target_block.pos, Block::Air);
+        if let Some(drop) = breaking.break_entry.drops {
+            let drop_quantity = breaking.break_entry.quantity.as_ref().unwrap_or(&DropQuantity::Fixed(1));
+            let quantity = match drop_quantity {
+                DropQuantity::Fixed(q) => *q,
+                DropQuantity::Range { min, max } => {
+                    let rng = &mut world_rng.rng;
+                    rng.gen_range(*min..=*max)
                 }
+            };
+            if hotbar.0.try_add(Stack::Some(drop, quantity)).is_none() {
+                commands.trigger_targets(ItemGet, player);
             }
         }
     }

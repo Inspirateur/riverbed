@@ -10,7 +10,7 @@ use crate::agents::PlayerSpawn;
 
 use self::{load_orders::{
 	assign_load_area, on_render_distance_change, process_unload_orders, update_load_area
-}, terrain_gen::{setup_gen_thread, Seed}};
+}, terrain_gen::setup_gen_thread};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 pub struct LoadAreaAssigned;
@@ -21,7 +21,6 @@ impl Plugin for GenPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
 		app
 			.insert_resource(LoadOrders::new())
-			.insert_resource(Seed(0))
 			.add_event::<ColUnloadEvent>()
 			.add_systems(Startup, setup_gen_thread)
 			.add_systems(Startup, (assign_load_area, apply_deferred).chain().in_set(LoadAreaAssigned).after(PlayerSpawn))
