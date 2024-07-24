@@ -100,16 +100,20 @@ fn break_action(
                 continue;
             };
             let block = world.get_block(target_block.pos);
-            if block != Block::Air {
-                let tool_used = hotbar.0.0[selected_slot.0].item();
-                let break_entry = block_break_table.get(tool_used, &block);
-                commands.entity(player).insert(BreakingAction {
-                    block_pos: target_block.pos,
-                    block,
-                    time_left: break_entry.hardness.unwrap_or(f32::INFINITY), 
-                    break_entry 
-                });
+            if !block.is_targetable() {
+                continue;
             }
+            let tool_used = hotbar.0.0[selected_slot.0].item();
+            let break_entry = block_break_table.get(tool_used, &block);
+            let Some(hardness) = break_entry.hardness else {
+                continue;
+            };
+            commands.entity(player).insert(BreakingAction {
+                block_pos: target_block.pos,
+                block,
+                time_left: hardness, 
+                break_entry 
+            });
             continue;
         };
         if !action.pressed(&Action::Action1) {
