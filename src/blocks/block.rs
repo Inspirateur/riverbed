@@ -27,6 +27,7 @@ pub enum Block {
     Granite,
     GrassBlock,
     Ice,
+    IronOre,
     Limestone,
     Mud,
     OakLeaves,

@@ -1,5 +1,5 @@
 use bevy::prelude::info_span;
-use crate::blocks::{CHUNK_S1, ColPos, Blocks, BlockPos2d, BlockPos, CHUNK_S1I};
+use crate::blocks::{unchunked, BlockPos, BlockPos2d, Blocks, ColPos, CHUNK_S1, CHUNK_S1I};
 use crate::blocks::{MAX_GEN_HEIGHT, WATER_H, Block, Soils, Trees};
 use noise_algebra::NoiseSource;
 use itertools::iproduct;
@@ -38,25 +38,28 @@ impl Earth {
         let mut n = NoiseSource::new(range, self.seed, 1);
         let continentalness = n.simplex(0.2);
         let cont = (n.simplex(1.)*0.3 + n.simplex(5.)*0.1 + n.simplex(20.)*0.05 + &continentalness).normalize().cap(CONT_R);
-
         let rocks = !(n.simplex(0.5) + n.simplex(4.)*0.2 + n.simplex(16.)*0.1 + n.simplex(80.)*0.05).normalize().cap(0.08);
         let mountain_control = n.ridge(0.2);
         let mountain = (n.simplex(2.) + n.simplex(10.)*0.1 + n.simplex(50.)*0.005).normalize()*mountain_control.powi(2);
         let ts = (n.simplex(0.05) + n.simplex(0.4)*0.1 + n.simplex(8.)*0.05 + n.simplex(100.)*0.01).normalize();
-        
         let hs = (n.simplex(0.1) + !continentalness*0.5 + n.simplex(10.)*0.1 + n.simplex(60.)*0.04).normalize();
         let ph = (n.simplex(1.) + n.simplex(4.)*0.2 + n.simplex(40.)*0.1).normalize();
+        let rift_control = (n.ridge(1.) + n.ridge(10.)*0.05).normalize().powi(2);
+        let rift = ((n.simplex(0.3) + n.simplex(1.)*0.2 + !ph.clone()*0.5).normalize()*rift_control).threshold(0.9);
         let trees = (n.simplex(1.) + &hs*0.3 + n.simplex(5.)*0.4 + n.simplex(20.)*0.2).normalize();
+        let iron = (n.simplex(1.) + n.simplex(5.)*0.1 + n.simplex(10.)*0.01).normalize();
         let ys = cont + &mountain*CONT_COMPL + &rocks;
         // convert y to convenient values
         let ys = ys.map(|y| (y * MAX_GEN_HEIGHT as f32) as i32);
+        let rift = rift.map(|r| (r * (MAX_GEN_HEIGHT/2) as f32) as i32);
         gen_span.exit();
         let fill_span = info_span!("chunk filling", name = "chunk filling").entered();
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
-            let (y, t, h, rocks) = (ys[[dx, dz]], ts[[dx, dz]], hs[[dx, dz]], rocks[[dx, dz]]); 
-            let block = if rocks > 0.001 {
+            let (base_y, t, h, rocks, rift, iron) = (ys[[dx, dz]], ts[[dx, dz]], hs[[dx, dz]], rocks[[dx, dz]], rift[[dx, dz]], iron[[dx, dz]]);
+            let y = (base_y - rift).max(1);
+            let block = if rocks > 0.001 || rift > 6 {
                 Block::Granite
-            } else if y <= WATER_H {
+            } else if base_y <= WATER_H {
                 Block::Sand
             } else {
                 match self.soils.closest([t, h]) {
@@ -67,9 +70,18 @@ impl Earth {
             world.set_yrange(col, (dx, dz), y, 4, block);
             world.set_yrange(col, (dx, dz), y-4, 2, Block::Cobblestone);
             world.set_yrange(col, (dx, dz), y-6, 8, Block::Granite);
-            let water_height = WATER_H-y;
+            if rift > 16 && rift < 24 && iron > 0.8 {
+                let pos = BlockPos {
+                    x: unchunked(col.x, dx),
+                    y,
+                    z: unchunked(col.z, dz),
+                    realm: col.realm,
+                };
+                world.set_block(pos, Block::IronOre)
+            }
+            let water_height = WATER_H-base_y;
             if water_height > 0 {
-                world.set_yrange(col, (dx, dz), WATER_H, water_height as usize, Block::SeaBlock);
+                world.set_yrange(col, (dx, dz), WATER_H, (water_height+rift) as usize, Block::SeaBlock);
             }
         }
         fill_span.exit();
@@ -79,6 +91,9 @@ impl Earth {
             let rng = <BlockPos2d>::from((col, spot)).prng(self.seed);
             let dx = spot.0 + (rng & 0b111);
             let dz = spot.1 + ((rng >> 3) & 0b111);
+            if rift[[dx, dz]] > 0 {
+                continue;
+            }
             let tree = trees[[dx, dz]];
             if tree < 0.5 { continue; }
             let h = (rng >> 5) & 0b11;
