@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use bevy::prelude::Resource;
 use serde::Deserialize;
 use crate::blocks::{Block, BlockFamily};
 use super::item::{Item, ToolKind};
@@ -34,15 +33,15 @@ pub enum DropQuantity {
 }
 
 #[derive(Default, Debug, Deserialize)]
-struct BreakEntryPartial {
+struct LootEntryPartial {
     pub hardness: Option<f32>,
     pub drops: Option<DropKind>,
     pub min: Option<u32>,
     pub max: Option<u32>
 }
 
-impl BreakEntryPartial {
-    fn complete_with(&mut self, other: &BreakEntryPartial, efficiency: f32) {
+impl LootEntryPartial {
+    fn complete_with(&mut self, other: &LootEntryPartial, efficiency: f32) {
         if self.hardness.is_none() {
             self.hardness = other.hardness.map(|h| h/efficiency);
         }
@@ -66,14 +65,14 @@ impl BreakEntryPartial {
     }
 }
 
-pub struct BreakEntry {
+pub struct LootEntry {
     pub hardness: Option<f32>,
     pub drops: Option<Item>,
     pub quantity: Option<DropQuantity>,
 }
 
-impl From<(BreakEntryPartial, Block)> for BreakEntry {
-    fn from((entry, block): (BreakEntryPartial, Block)) -> Self {
+impl From<(LootEntryPartial, Block)> for LootEntry {
+    fn from((entry, block): (LootEntryPartial, Block)) -> Self {
         Self {
             hardness: entry.hardness,
             quantity: if entry.drops.is_none() { None } else { Some(entry.quantity()) },
@@ -82,20 +81,20 @@ impl From<(BreakEntryPartial, Block)> for BreakEntry {
     }
 }
 
-#[derive(Resource, Debug, Deserialize)]
-pub struct BlockBreakTable(HashMap<ToolKind, HashMap<BlockKind, BreakEntryPartial>>);
+#[derive(Debug, Deserialize)]
+pub struct BlockLootTable(HashMap<ToolKind, HashMap<BlockKind, LootEntryPartial>>);
 
-impl BlockBreakTable {
-    fn try_to_complete(&self, partial_entry: &mut BreakEntryPartial, tool_kind: &ToolKind, block_kind: &BlockKind, efficiency: f32) {
-        if let Some(break_entries) = self.0.get(tool_kind) {
-            if let Some(break_entry) = break_entries.get(block_kind) {
-                partial_entry.complete_with(&break_entry, efficiency)
+impl BlockLootTable {
+    fn try_to_complete(&self, partial_entry: &mut LootEntryPartial, tool_kind: &ToolKind, block_kind: &BlockKind, efficiency: f32) {
+        if let Some(loot_entries) = self.0.get(tool_kind) {
+            if let Some(loot_entry) = loot_entries.get(block_kind) {
+                partial_entry.complete_with(&loot_entry, efficiency)
             }
         }
     }
 
-    pub fn get(&self, tool_opt: Option<&Item>, block: &Block) -> BreakEntry {
-        let mut partial_entry = BreakEntryPartial::default();
+    pub fn get(&self, tool_opt: Option<&Item>, block: &Block) -> LootEntry {
+        let mut partial_entry = LootEntryPartial::default();
         if let Some(tool) = tool_opt {
             // Check exact tool and exact block
             self.try_to_complete(&mut partial_entry, &ToolKind::Item(*tool), &BlockKind::Block(*block), 1.);
@@ -151,12 +150,12 @@ mod tests {
             }
         }
         "#;
-        let block_breaking: BlockBreakTable = json5::from_str(config).unwrap();
-        println!("{:?}", block_breaking);
-        assert_eq!(block_breaking.get(Some(&Item::IronPickaxe), &Block::Limestone).drops, Some(Item::Block(Block::Limestone)));
-        assert_eq!(block_breaking.get(Some(&Item::IronPickaxe), &Block::Limestone).hardness, Some(1.));
-        assert_eq!(block_breaking.get(Some(&Item::Stick), &Block::Limestone).drops, Some(Item::Lime));
-        assert_eq!(block_breaking.get(Some(&Item::Stick), &Block::Cobblestone).drops, Some(Item::Rock));
-        assert_eq!(block_breaking.get(None, &Block::Cobblestone).drops, Some(Item::Rock));
+        let block_looting: BlockLootTable = json5::from_str(config).unwrap();
+        println!("{:?}", block_looting);
+        assert_eq!(block_looting.get(Some(&Item::IronPickaxe), &Block::Limestone).drops, Some(Item::Block(Block::Limestone)));
+        assert_eq!(block_looting.get(Some(&Item::IronPickaxe), &Block::Limestone).hardness, Some(1.));
+        assert_eq!(block_looting.get(Some(&Item::Stick), &Block::Limestone).drops, Some(Item::Lime));
+        assert_eq!(block_looting.get(Some(&Item::Stick), &Block::Cobblestone).drops, Some(Item::Rock));
+        assert_eq!(block_looting.get(None, &Block::Cobblestone).drops, Some(Item::Rock));
     }
 }

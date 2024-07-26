@@ -3,4 +3,4 @@ mod movement;
 mod block_action;
 pub use player::*;
 pub use movement::*;
-pub use block_action::BreakingAction;
+pub use block_action::{BlockLootAction, BlockActionType};

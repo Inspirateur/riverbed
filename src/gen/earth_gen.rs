@@ -44,10 +44,10 @@ impl Earth {
         let ts = (n.simplex(0.05) + n.simplex(0.4)*0.1 + n.simplex(8.)*0.05 + n.simplex(100.)*0.01).normalize();
         let hs = (n.simplex(0.1) + !continentalness*0.5 + n.simplex(10.)*0.1 + n.simplex(60.)*0.04).normalize();
         let ph = (n.simplex(1.) + n.simplex(4.)*0.2 + n.simplex(40.)*0.1).normalize();
-        let rift_control = (n.ridge(1.) + n.ridge(10.)*0.05).normalize().powi(2);
+        let rift_control = (n.ridge(1.) + n.ridge(20.)*0.05).normalize().powi(2);
         let rift = ((n.simplex(0.3) + n.simplex(1.)*0.2 + !ph.clone()*0.5).normalize()*rift_control).threshold(0.9);
         let trees = (n.simplex(1.) + &hs*0.3 + n.simplex(5.)*0.4 + n.simplex(20.)*0.2).normalize();
-        let iron = (n.simplex(1.) + n.simplex(5.)*0.1 + n.simplex(10.)*0.01).normalize();
+        let iron = (n.simplex(8.) + n.simplex(16.)*0.1).normalize();
         let ys = cont + &mountain*CONT_COMPL + &rocks;
         // convert y to convenient values
         let ys = ys.map(|y| (y * MAX_GEN_HEIGHT as f32) as i32);
@@ -58,7 +58,7 @@ impl Earth {
             let (base_y, t, h, rocks, rift, iron) = (ys[[dx, dz]], ts[[dx, dz]], hs[[dx, dz]], rocks[[dx, dz]], rift[[dx, dz]], iron[[dx, dz]]);
             let y = (base_y - rift).max(1);
             let block = if rocks > 0.001 || rift > 6 {
-                Block::Granite
+                Block::Cobblestone
             } else if base_y <= WATER_H {
                 Block::Sand
             } else {
@@ -69,15 +69,18 @@ impl Earth {
             };
             world.set_yrange(col, (dx, dz), y, 4, block);
             world.set_yrange(col, (dx, dz), y-4, 2, Block::Cobblestone);
-            world.set_yrange(col, (dx, dz), y-6, 8, Block::Granite);
-            if rift > 16 && rift < 24 && iron > 0.8 {
-                let pos = BlockPos {
-                    x: unchunked(col.x, dx),
-                    y,
-                    z: unchunked(col.z, dz),
-                    realm: col.realm,
+            world.set_yrange(col, (dx, dz), y-6, 24, Block::Granite);
+            if rift > 18 && rift < 24 && iron > 0.9 {
+                let height = if iron > 0.97 {
+                    4
+                } else if iron > 0.94 {
+                    3
+                } else if iron > 0.91  {
+                    2
+                } else {
+                    1
                 };
-                world.set_block(pos, Block::IronOre)
+                world.set_yrange(col, (dx, dz), y, height, Block::IronOre)
             }
             let water_height = WATER_H-base_y;
             if water_height > 0 {

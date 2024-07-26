@@ -246,7 +246,7 @@ fn craft_action(
     let Ok(action_state) = action_query.get_single() else {
         return;
     };
-    if !action_state.just_pressed(&Action::Action1) {
+    if !action_state.just_pressed(&Action::Hit) {
         return;
     }
     let Ok(craft_menu) = craft_menu_query.get_single() else {

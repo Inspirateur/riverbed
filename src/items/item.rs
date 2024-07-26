@@ -23,9 +23,10 @@ pub enum Item {
     Stick,
     Rock,
     StoneAxe,
+    IronIngot,
     IronPickaxe,
     IronAxe,
-    IronShovel,    
+    IronShovel,
     #[serde(untagged)]
     Block(Block),
 }
@@ -35,6 +36,7 @@ pub struct Efficiency(pub f32);
 impl Item {
     pub fn tool_family(&self) -> Option<(ToolFamily, Efficiency)> {
         match self {
+            Item::StoneAxe => Some((ToolFamily::Axe, Efficiency(1.))),
             Item::IronPickaxe => Some((ToolFamily::Pickaxe, Efficiency(2.))),
             Item::IronAxe => Some((ToolFamily::Axe, Efficiency(2.))),
             Item::IronShovel => Some((ToolFamily::Shovel, Efficiency(2.))),

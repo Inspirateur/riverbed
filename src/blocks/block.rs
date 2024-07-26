@@ -104,7 +104,7 @@ impl Block {
             return vec![BlockFamily::Foliage]
         }
         match self {
-            Block::Granite | Block::Cobblestone | Block::Endstone | Block::Limestone
+            Block::Granite | Block::Cobblestone | Block::Endstone | Block::Limestone | Block::IronOre
                 => vec![BlockFamily::Stone],
             Block::OakLog | Block::AcaciaLog | Block::BirchLog | Block::SpruceLog | Block::SequoiaLog
                 => vec![BlockFamily::Log],

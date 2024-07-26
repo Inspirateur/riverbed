@@ -70,8 +70,8 @@ fn build_tex_array(
     let handle = textures.add(array_tex);
     let handle = materials.add(ExtendedMaterial {
         base: StandardMaterial {
-            perceptual_roughness: 0.9,
-            reflectance: 0.2,
+            perceptual_roughness: 1.,
+            reflectance: 0.1,
             ..Default::default()
         },
         extension: ArrayTextureMaterial {

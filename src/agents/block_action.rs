@@ -1,6 +1,6 @@
 use std::fs;
 use std::iter::zip;
-use crate::items::{BlockBreakTable, BreakEntry, DropQuantity, Hotbar, Item, Stack};
+use crate::items::{BlockLootTable, LootEntry, DropQuantity, Hotbar, Item, Stack};
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
 use crate::ui::{ControllingPlayer, SelectedHotbarSlot};
@@ -17,7 +17,12 @@ pub struct BlockActionPlugin;
 impl Plugin for BlockActionPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(json5::from_str::<BlockBreakTable>(&fs::read_to_string("assets/data/block_breaking.json5").unwrap()).unwrap())
+            .insert_resource(BlockBreakTable(
+                json5::from_str::<BlockLootTable>(&fs::read_to_string("assets/data/block_breaking.json5").unwrap()).unwrap()
+            ))
+            .insert_resource(BlockHarvestTable(
+                json5::from_str::<BlockLootTable>(&fs::read_to_string("assets/data/block_harvesting.json5").unwrap()).unwrap()
+            ))
 			.add_systems(Update, (break_action, target_block, target_block_changed).chain().run_if(in_state(ControllingPlayer)))
 			.add_systems(Update, block_outline.run_if(in_state(ControllingPlayer)))
             .add_systems(Update, place_block.run_if(in_state(ControllingPlayer)))
@@ -25,13 +30,25 @@ impl Plugin for BlockActionPlugin {
     }
 }
 
+#[derive(Resource)]
+struct BlockBreakTable(BlockLootTable);
+
+#[derive(Resource)]
+struct BlockHarvestTable(BlockLootTable);
+
+pub enum BlockActionType {
+    Breaking,
+    Harvesting
+}
+
 #[derive(Component)]
 #[component(storage = "SparseSet")]
-pub struct BreakingAction {
+pub struct BlockLootAction {
     pub block_pos: BlockPos,
     pub block: Block,
+    pub action_type: BlockActionType,
     pub time_left: f32,
-    pub break_entry: BreakEntry,
+    pub break_entry: LootEntry,
 }
 
 const TARGET_DIST: f32 = 10.;
@@ -63,10 +80,10 @@ fn target_block(
     );
 }
 
-fn target_block_changed(mut commands: Commands, target_query: Query<(Entity, &BreakingAction, &TargetBlock), (With<BreakingAction>, Changed<TargetBlock>)>) {
+fn target_block_changed(mut commands: Commands, target_query: Query<(Entity, &BlockLootAction, &TargetBlock), (With<BlockLootAction>, Changed<TargetBlock>)>) {
     for (player, break_action, target_block_opt) in target_query.iter() {
         if target_block_opt.0.is_none() || break_action.block_pos != target_block_opt.0.as_ref().unwrap().pos {
-            commands.entity(player).remove::<BreakingAction>();
+            commands.entity(player).remove::<BlockLootAction>();
         }
     }
 }
@@ -88,18 +105,23 @@ fn block_outline(mut gizmos: Gizmos, target_block_query: Query<&TargetBlock>) {
 fn break_action(
     mut commands: Commands,
     world: Res<Blocks>, 
-    mut block_action_query: Query<(Entity, &TargetBlock, &mut Hotbar, &ActionState<Action>, Option<&mut BreakingAction>)>,
+    mut block_action_query: Query<(Entity, &TargetBlock, &mut Hotbar, &ActionState<Action>, Option<&mut BlockLootAction>)>,
     selected_slot: Res<SelectedHotbarSlot>,
     block_break_table: Res<BlockBreakTable>,
+    block_harvest_table: Res<BlockHarvestTable>,
     time: Res<Time>,
     mut world_rng: ResMut<WorldRng>
 ) {
-    for (player, target_block_opt, mut hotbar, action, opt_breaking) in block_action_query.iter_mut() {
-        let Some(mut breaking) = opt_breaking else {
-            // No current breaking action, we add one
-            if !action.pressed(&Action::Action1) {
+    for (player, target_block_opt, mut hotbar, action, opt_looting) in block_action_query.iter_mut() {
+        let Some(mut looting) = opt_looting else {
+            // No current looting action, we add one
+            let action_type = if action.pressed(&Action::Hit) {
+                BlockActionType::Breaking
+            } else if action.pressed(&Action::Modify) {
+                BlockActionType::Harvesting
+            } else {
                 continue;
-            }
+            };
             let Some(target_block) = &target_block_opt.0 else {
                 continue;
             };
@@ -108,32 +130,42 @@ fn break_action(
                 continue;
             }
             let tool_used = hotbar.0.0[selected_slot.0].item();
-            let break_entry = block_break_table.get(tool_used, &block);
+            let break_entry = match action_type {
+                BlockActionType::Breaking => block_break_table.0.get(tool_used, &block),
+                BlockActionType::Harvesting => block_harvest_table.0.get(tool_used, &block)
+            };
             let Some(hardness) = break_entry.hardness else {
                 continue;
             };
-            commands.entity(player).insert(BreakingAction {
+            commands.entity(player).insert(BlockLootAction {
                 block_pos: target_block.pos,
                 block,
+                action_type,
                 time_left: hardness, 
-                break_entry 
+                break_entry
             });
             continue;
         };
-        if !action.pressed(&Action::Action1) {
-            commands.entity(player).remove::<BreakingAction>();
+        // There's a block action
+        if !action.pressed(&match looting.action_type {
+            BlockActionType::Breaking => Action::Hit,
+            BlockActionType::Harvesting => Action::Modify,
+        }) {
+            commands.entity(player).remove::<BlockLootAction>();
             continue;
         };
-        breaking.time_left -= time.delta_seconds();
-        if breaking.time_left > 0. {
+        looting.time_left -= time.delta_seconds();
+        if looting.time_left > 0. {
             continue;
         }
         let Some(target_block) = &target_block_opt.0 else {
             continue;
         };
-        world.set_block(target_block.pos, Block::Air);
-        if let Some(drop) = breaking.break_entry.drops {
-            let drop_quantity = breaking.break_entry.quantity.as_ref().unwrap_or(&DropQuantity::Fixed(1));
+        if matches!(looting.action_type, BlockActionType::Breaking) {
+            world.set_block(target_block.pos, Block::Air);
+        }
+        if let Some(drop) = looting.break_entry.drops {
+            let drop_quantity = looting.break_entry.quantity.as_ref().unwrap_or(&DropQuantity::Fixed(1));
             let quantity = match drop_quantity {
                 DropQuantity::Fixed(q) => *q,
                 DropQuantity::Range { min, max } => {
@@ -145,6 +177,7 @@ fn break_action(
                 commands.trigger_targets(ItemGet, player);
             }
         }
+        commands.entity(player).remove::<BlockLootAction>();
     }
 }
 
@@ -154,7 +187,7 @@ fn place_block(
     selected_slot: Res<SelectedHotbarSlot>
 ) {
     for (target_block_opt, mut hotbar, action) in block_action_query.iter_mut() {
-        if !action.just_pressed(&Action::Action2) {
+        if !action.just_pressed(&Action::Modify) {
             continue;
         }
         let Some(target_block) = &target_block_opt.0 else {
@@ -164,8 +197,12 @@ fn place_block(
         if world.get_block(pos).is_targetable() {
             continue;
         }
-        let Stack::Some(Item::Block(block), _) = hotbar.0.0[selected_slot.0].take(1) else {
-            continue;
+        let block = match hotbar.0.0[selected_slot.0].take(1) {
+            Stack::Some(Item::Block(block), _) => block,
+            other => {
+                hotbar.0.0[selected_slot.0].try_add(other);
+                continue;
+            }
         };
         if !world.set_block_safe(pos, block) {
             // If the block couldn't be added we add it back

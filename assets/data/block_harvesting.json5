@@ -1,0 +1,8 @@
+{
+    Axe: {
+        IronOre: { hardness: 4, drops: "IronIngot", quantity: 1 },
+    },
+    Pickaxe: {
+        IronOre: { hardness: 1, drops: "IronIngot", quantity: 1 }
+    }
+}

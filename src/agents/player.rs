@@ -62,8 +62,8 @@ impl From<Dir> for Vec3 {
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Debug, Hash, Reflect)]
 pub enum Action {
-    Action1,
-    Action2,
+    Hit,
+    Modify,
 }
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Debug, Hash, Reflect)]
@@ -114,8 +114,8 @@ pub fn spawn_player(mut commands: Commands) {
         .insert(InputManagerBundle::<Action> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
-                (Action::Action1, MouseButton::Left),
-                (Action::Action2, MouseButton::Right),
+                (Action::Hit, MouseButton::Left),
+                (Action::Modify, MouseButton::Right),
             ])
         })
         .insert(InputManagerBundle::<DevCommand> {

@@ -1,7 +1,7 @@
 use std::ffi::OsStr;
 use bevy::{asset::LoadedFolder, prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
 use itertools::Itertools;
-use crate::{agents::{BreakingAction, TargetBlock}, render::{BlockTexState, BlockTextureFolder}};
+use crate::{agents::{BlockActionType, BlockLootAction, TargetBlock}, render::{BlockTexState, BlockTextureFolder}};
 
 pub struct BlockBreakingEffectPlugin;
 
@@ -51,14 +51,17 @@ fn load_break_stage_sprites(
 
 fn add_break_animation(
     mut commands: Commands, 
-    block_action_query: Query<(Entity, &TargetBlock, &BreakingAction), Without<BreakingEffect>>,
+    block_action_query: Query<(Entity, &TargetBlock, &BlockLootAction), Without<BreakingEffect>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     break_stages: Res<BreakStageSprites>
 ) {
     let texture_handle = break_stages.0[0].clone_weak();
 
-    for (player, target_opt, _breaking) in block_action_query.iter() {
+    for (player, target_opt, breaking) in block_action_query.iter() {
+        if !matches!(breaking.action_type, BlockActionType::Breaking) {
+            continue;
+        } 
         let Some(target) = &target_opt.0 else {
             continue;
         };
@@ -84,7 +87,7 @@ fn add_break_animation(
 }
 
 fn update_break_animation(
-    block_action_query: Query<(&BreakingAction, &BreakingEffect)>,
+    block_action_query: Query<(&BlockLootAction, &BreakingEffect)>,
     break_stages: Res<BreakStageSprites>,
     mat_query: Query<&Handle<StandardMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -99,10 +102,13 @@ fn update_break_animation(
         };
         mat.base_color_texture = Some(break_stages.0[stage].clone());
     }
-}
+} 
 
-fn remove_break_animation(mut commands: Commands, block_action_query: Query<(Entity, &BreakingEffect), Without<BreakingAction>>) {
-    for (player, breaking_effect) in block_action_query.iter() {
+fn remove_break_animation(mut commands: Commands, block_action_query: Query<(Entity, &BreakingEffect, Option<&BlockLootAction>)>) {
+    for (player, breaking_effect, opt_block_loot) in block_action_query.iter() {
+        if opt_block_loot.is_some_and(|block_loot| matches!(block_loot.action_type, BlockActionType::Breaking)) {
+            continue;
+        }
         commands.entity(breaking_effect.0).despawn();
         commands.entity(player).remove::<BreakingEffect>();
     }

@@ -9,5 +9,16 @@
     },
     StoneAxe: {
         Log: { hardness: 1.5, drops: "Self" },
+        Cobblestone: { hardness: 4 },
+    },
+    IronAxe: {
+        Log: { hardness: 1, drops: "Self" },
+    },
+    IronShovel: {
+        Soil: { hardness: 0.8 },
+    },
+    IronPickaxe: {
+        Stone: { hardness: 1.5, drops: "Cobblestone" },
+        IronOre: { hardness: 3 },
     }
 }
