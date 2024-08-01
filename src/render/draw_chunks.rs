@@ -16,7 +16,7 @@ use super::chunk_culling::chunk_culling;
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
 use super::texture_array::BlockTextureArray;
 use super::BlockTexState;
-use super::{render3d::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
+use super::{mesh_chunks::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
 const GRID_GIZMO_LEN: i32 = 4;
 
 #[derive(Debug, Component)]

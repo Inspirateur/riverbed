@@ -3,6 +3,7 @@ mod debug_display;
 mod hotbar;
 mod craft_menu;
 mod crosshair;
+mod in_hand;
 use craft_menu::CraftMenuPlugin;
 use crosshair::setup_crosshair;
 pub use hotbar::SelectedHotbarSlot;
@@ -10,6 +11,7 @@ use debug_display::DebugDisplayPlugin;
 use game_menu::MenuPlugin;
 use hotbar::HotbarPlugin;
 use bevy::{prelude::*, window::CursorGrabMode};
+use in_hand::InHandPlugin;
 use leafwing_input_manager::prelude::*;
 use crate::GameState;
 
@@ -25,6 +27,7 @@ impl Plugin for UIPlugin {
             .add_plugins(DebugDisplayPlugin)
             .add_plugins(MenuPlugin)
             .add_plugins(CraftMenuPlugin)
+            .add_plugins(InHandPlugin)
             .add_systems(Startup, setup_ui_actions)
             .add_systems(Startup, setup_crosshair)
             .add_systems(Update, process_ui_actions)

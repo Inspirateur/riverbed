@@ -2,7 +2,7 @@ use std::sync::Arc;
 use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
 use dashmap::DashMap;
 use crate::{blocks::{Block, Face, FaceSpecifier}, render::parse_block_tex_name};
-use super::{render3d::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
+use super::{mesh_chunks::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
 
 #[derive(Resource)]
 pub struct TextureMap(pub Arc<DashMap<(Block, FaceSpecifier), usize>>);

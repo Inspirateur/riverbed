@@ -7,6 +7,19 @@ use leafwing_input_manager::prelude::*;
 
 const CAMERA_PAN_RATE: f32 = 0.06;
 
+pub struct Camera3dPlugin;
+
+impl Plugin for Camera3dPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_plugins(InputManagerPlugin::<CameraMovement>::default())
+            .add_systems(Startup, (cam_setup, apply_deferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
+            .add_systems(Update, apply_fps_cam)
+            .add_systems(Update, pan_camera.run_if(in_state(GameState::Game)))
+        ;
+    }
+}
+
 #[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect, Hash)]
 pub enum CameraMovement {
     Pan,
@@ -71,18 +84,4 @@ pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>,
 pub fn apply_fps_cam(mut query: Query<(&mut Transform, &FpsCam)>) {
     let (mut transform, fpscam) = query.single_mut();
     transform.rotation = Quat::from_axis_angle(Vec3::Y, fpscam.yaw) * Quat::from_axis_angle(Vec3::X, fpscam.pitch);
-}
-
-
-pub struct Camera3dPlugin;
-
-impl Plugin for Camera3dPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_plugins(InputManagerPlugin::<CameraMovement>::default())
-            .add_systems(Startup, (cam_setup, apply_deferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
-            .add_systems(Update, apply_fps_cam)
-            .add_systems(Update, pan_camera.run_if(in_state(GameState::Game)))
-        ;
-    }
 }
