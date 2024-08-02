@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 use serde::Deserialize;
 use crate::blocks::{Block, BlockFamily};
 use super::item::{Item, ToolKind};
@@ -25,6 +25,14 @@ impl Into<Item> for (DropKind, Block) {
 pub enum BlockKind {
     Block(Block),
     Family(BlockFamily),
+}
+
+impl FromStr for BlockKind {
+    type Err = json5::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        json5::from_str(&format!("'{}'", s))
+    }
 }
 
 pub enum DropQuantity {

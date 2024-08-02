@@ -39,7 +39,6 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
         // This will capture the total continuous value, for direct use.
         // Note that you can also use discrete gesture-like motion,
         // via the `MouseMotionDirection` enum.
-        // TODO: this feels weird since I changed it in bevy 0.14 migration
         (CameraMovement::Pan, DualAxis::mouse_motion()),
     ]);
     let (player, aabb) = player_query.get_single().unwrap();

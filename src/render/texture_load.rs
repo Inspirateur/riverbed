@@ -1,7 +1,6 @@
-use std::{ffi::OsStr, str::FromStr};
-use itertools::Itertools;
+use std::ffi::OsStr;
 use bevy::{asset::LoadedFolder, prelude::*};
-use crate::{blocks::{Block, Face, FaceSpecifier}, items::Item};
+use crate::{blocks::{Block, Face, FaceSpecifier}, utils::from_filename};
 
 pub struct TextureLoadPlugin;
 
@@ -56,35 +55,20 @@ pub enum ItemTexState {
 #[derive(Resource, Default)]
 pub struct ItemTextureFolder(pub Handle<LoadedFolder>);
 
-fn capitalize(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-    }
-}
-
-fn snake_to_pascal_case(text: &str) -> String {
-    text.split("_").map(capitalize).join("")
-}
-
-fn parse_block_name(blockname: &str) -> Option<Block> {
-    Block::from_str(&snake_to_pascal_case(blockname)).ok()
-}
 
 pub fn parse_block_tex_name(filename: &OsStr) -> Option<(Block, FaceSpecifier)> {
     let filename = filename.to_str()?;
     let Some((block, face)) = filename.rsplit_once("_") else {
-        return Some((parse_block_name(filename)?, FaceSpecifier::All));
+        return Some((from_filename(filename)?, FaceSpecifier::All));
     };
     match face {
-        "side" => Some((parse_block_name(block)?, FaceSpecifier::Side)),
-        "bottom" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Down))),
-        "top" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Up))),
-        "front" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Front))),
-        "side1" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Left))),
-        "side2" => Some((parse_block_name(block)?, FaceSpecifier::Specific(Face::Right))),
-        _ => Some((parse_block_name(filename)?, FaceSpecifier::All))
+        "side" => Some((from_filename(block)?, FaceSpecifier::Side)),
+        "bottom" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Down))),
+        "top" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Up))),
+        "front" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Front))),
+        "side1" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Left))),
+        "side2" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Right))),
+        _ => Some((from_filename(filename)?, FaceSpecifier::All))
     }
 }
 
@@ -104,9 +88,4 @@ fn check_item_textures(
             next_state.set(ItemTexState::Finished);
         }
     }
-}
-
-pub fn parse_item_tex_name(filename: &OsStr) -> Option<Item> {
-    // We'd like to implement FromStr for Item using strum but it doesn't seem to support nested enums
-    json5::from_str(&format!("'{}'", snake_to_pascal_case(filename.to_str()?))).ok()
 }

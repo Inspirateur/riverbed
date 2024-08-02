@@ -35,7 +35,7 @@ fn daylight_cycle(
 
     if timer.0.finished() {
         // let t = 0.6 + time.elapsed_seconds_wrapped() / C;
-        // TODO: make night time prettier with a skybox, froze the sun in the mid time
+        // TODO: make night time prettier with a skybox, froze the sun in the meantime
         let t = 0.6f32;
         atmosphere.sun_position = Vec3::new(0., t.sin(), t.cos());
 

@@ -4,7 +4,7 @@ use leafwing_input_manager::prelude::*;
 use crate::{
     agents::PlayerControlled, blocks::Face, 
     items::{Hotbar, Item, Stack, HOTBAR_SLOTS}, 
-    render::{parse_block_tex_name, parse_item_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}
+    render::{parse_block_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}, utils::from_filename
 };
 use super::{ControllingPlayer, UIAction};
 const SLOT_SIZE_PERCENT: f32 = 4.5;
@@ -41,8 +41,10 @@ fn load_hotbar_item_textures(
 ) {
     let item_folder: &LoadedFolder = loaded_folders.get(&item_textures.0).unwrap();
     for item_handle in item_folder.handles.iter() {
-        let filename = item_handle.path().unwrap().path().file_stem().unwrap();
-        let Some(item) = parse_item_tex_name(filename) else {
+        let Some(filename) = item_handle.path().unwrap().path().file_stem().unwrap().to_str() else {
+            continue;
+        };
+        let Some(item) = from_filename(filename) else {
             continue;
         };
         ui_tex_map.0.insert(item, item_handle.clone().try_typed().unwrap());

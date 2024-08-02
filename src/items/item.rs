@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use serde::Deserialize;
 use crate::blocks::Block;
 
@@ -29,6 +31,15 @@ pub enum Item {
     IronShovel,
     #[serde(untagged)]
     Block(Block),
+}
+
+impl FromStr for Item {
+    type Err = json5::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // TODO: We'd like to implement FromStr for Item using strum but it doesn't seem to support nested enums
+        json5::from_str(&format!("'{}'", s))
+    }
 }
 
 pub struct Efficiency(pub f32);

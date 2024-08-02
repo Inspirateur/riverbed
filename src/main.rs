@@ -1,3 +1,4 @@
+mod utils;
 mod blocks;
 mod items;
 mod ui;

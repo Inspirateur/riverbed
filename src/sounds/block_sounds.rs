@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use bevy::{audio::PlaybackMode, prelude::*};
 use rand::Rng;
-use crate::{agents::{BlockActionType, BlockLootAction, SteppingOn, Velocity}, blocks::{Block, BlockFamily}, items::BlockKind};
+use crate::agents::{BlockActionType, BlockLootAction, SteppingOn, Velocity};
+use super::block_sound_load::{BlockSound, BlockSoundLoadPlugin, BlockSounds};
 const RAND_AMPLITUDE: f32 = 0.3;
 // distance between steps (in blocks)
 const STEP_DIST: f32 = 3.0;
@@ -11,57 +11,11 @@ pub struct BlockSoundPlugin;
 impl Plugin for BlockSoundPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app
-            .add_systems(Startup, load_block_sounds)
+            .add_plugins(BlockSoundLoadPlugin)
             .add_systems(Update, footsteps)
             .add_systems(Update, breaking)
             ;
     }
-}
-
-enum BlockSound {
-    Stepping,
-    Breaking,
-    Harvesting,
-}
-
-#[derive(Resource)]
-struct BlockSounds {
-    stepping: HashMap<BlockKind, Handle<AudioSource>>,
-    breaking: HashMap<BlockKind, Handle<AudioSource>>,
-    harvesting: HashMap<BlockKind, Handle<AudioSource>>,
-}
-
-impl BlockSounds {
-    pub fn sound_for(&self, block: Block, sound_type: BlockSound) -> Option<&Handle<AudioSource>> {
-        let map = match sound_type {
-            BlockSound::Stepping => &self.stepping,
-            BlockSound::Breaking => &self.breaking,
-            BlockSound::Harvesting => &self.harvesting,
-        };
-        if let Some(sound) = map.get(&BlockKind::Block(block)) {
-            return Some(sound);
-        }
-        for family in block.families() {
-            if let Some(sound) = map.get(&BlockKind::Family(family)) {
-                return Some(sound);
-            }
-        }
-        None
-    }
-}
-
-fn load_block_sounds(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // TODO: make it automatically associate sound and block kinds (like we do for block texture)
-    let mut stepping_sounds = HashMap::new();
-    stepping_sounds.insert(BlockKind::Family(BlockFamily::Soil), asset_server.load("sounds/blocks/footsteps/fwip.ogg"));
-    let mut breaking_sounds = HashMap::new();
-    breaking_sounds.insert(BlockKind::Family(BlockFamily::Soil), asset_server.load("sounds/blocks/breaking/Soil.ogg"));
-    breaking_sounds.insert(BlockKind::Family(BlockFamily::Log), asset_server.load("sounds/blocks/breaking/Log.ogg"));
-    breaking_sounds.insert(BlockKind::Family(BlockFamily::Stone), asset_server.load("sounds/blocks/breaking/Stone.ogg"));
-    breaking_sounds.insert(BlockKind::Family(BlockFamily::Foliage), asset_server.load("sounds/blocks/breaking/Foliage.ogg"));
-    let mut harvesting_sounds = HashMap::new();
-    harvesting_sounds.insert(BlockKind::Family(BlockFamily::Stone), asset_server.load("sounds/blocks/harvesting/Stone.ogg"));
-    commands.insert_resource(BlockSounds { stepping: stepping_sounds, breaking: breaking_sounds, harvesting: harvesting_sounds });
 }
 
 #[derive(Component)]
