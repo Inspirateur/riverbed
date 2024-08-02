@@ -93,7 +93,9 @@ fn update_break_animation(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for (action, break_effect) in block_action_query.iter() {
-        let stage = (break_stages.0.len() as f32*(1.-action.time_left.max(0.)/action.break_entry.hardness.unwrap_or(f32::INFINITY))) as usize;
+        let stage = (
+            (break_stages.0.len() as f32*(1.-action.time_left.max(0.)/action.break_entry.hardness.unwrap_or(f32::INFINITY))) as usize
+        ).min(break_stages.0.len());
         let Ok(mat_handle) = mat_query.get(break_effect.0) else {
             continue;
         };
@@ -102,7 +104,7 @@ fn update_break_animation(
         };
         mat.base_color_texture = Some(break_stages.0[stage].clone());
     }
-} 
+}
 
 fn remove_break_animation(mut commands: Commands, block_action_query: Query<(Entity, &BreakingEffect, Option<&BlockLootAction>)>) {
     for (player, breaking_effect, opt_block_loot) in block_action_query.iter() {
