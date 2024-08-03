@@ -29,7 +29,7 @@ pub struct BlockTextureFolder(pub Handle<LoadedFolder>);
 
 fn load_block_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
     // load multiple, individual sprites from a folder
-    commands.insert_resource(BlockTextureFolder(asset_server.load_folder("PixelPerfection/textures/blocks")));
+    commands.insert_resource(BlockTextureFolder(asset_server.load_folder("textures/blocks")));
 }
 
 fn check_block_textures(
@@ -74,7 +74,7 @@ pub fn parse_block_tex_name(filename: &OsStr) -> Option<(Block, FaceSpecifier)> 
 
 fn load_item_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
     // load multiple, individual sprites from a folder
-    commands.insert_resource(ItemTextureFolder(asset_server.load_folder("PixelPerfection/textures/item")));
+    commands.insert_resource(ItemTextureFolder(asset_server.load_folder("textures/item")));
 }
 
 fn check_item_textures(
