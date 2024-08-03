@@ -46,7 +46,7 @@ pub enum Block {
 impl Block {
     pub fn friction(&self) -> f32 {
         match self {
-            Block::Air => 0.1,
+            Block::Air => 0.05,
             Block::Ice => 0.05,
             _ => 1.
         }

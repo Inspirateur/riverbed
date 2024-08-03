@@ -2,7 +2,7 @@ use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
 use crate::blocks::{Block, BlockPos, Blocks, Realm};
 const FREE_FLY_Y_SPEED: f32 = 60.;
-const ACC_MULT: f32 = 15.;
+const ACC_MULT: f32 = 150.;
 
 pub struct MovementPlugin;
 
@@ -153,7 +153,7 @@ fn apply_acc(
         if diff_len == 0. {
             continue;
         }
-        let c = (time.delta_seconds()*friction*ACC_MULT).min(1.0);
+        let c = (time.delta_seconds()*friction*ACC_MULT/diff_len.max(1.)).min(1.);
         let acc: Vec3 = c*diff;
         velocity.0 += acc;
     }

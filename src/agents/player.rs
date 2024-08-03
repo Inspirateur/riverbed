@@ -8,7 +8,7 @@ use bevy::{
 use leafwing_input_manager::prelude::*;
 use super::{block_action::BlockActionPlugin, Crouching, FreeFly, Speed, SteppingOn, Walking};
 
-const WALK_SPEED: f32 = 15.;
+const WALK_SPEED: f32 = 10.;
 const FREE_FLY_X_SPEED: f32 = 80.;
 const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
 
@@ -25,8 +25,7 @@ impl Plugin for PlayerPlugin {
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<DevCommand>::default())
             .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
-            .add_systems(Update, move_player.run_if(in_state(GameState::Game)))
-            .add_systems(Update, toggle_fly.run_if(in_state(GameState::Game)))
+            .add_systems(Update, (toggle_fly, move_player).chain().run_if(in_state(GameState::Game)))
         ;
     }
 }
