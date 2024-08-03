@@ -1,6 +1,6 @@
 use std::time::Duration;
-use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, blocks::Block, gen::RenderDistance, items::{Hotbar, Inventory, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, GameState};
-use crate::blocks::{Realm, BlockRayCastHit};
+use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, blocks::Block, world::RenderDistance, items::{Hotbar, Inventory, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, GameState};
+use crate::world::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,

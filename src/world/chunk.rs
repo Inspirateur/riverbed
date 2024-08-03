@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
-use super::{Block, pos::{ChunkedPos, ColedPos}, utils::Palette, CHUNK_S1, CHUNK_S3, CHUNK_SHAPE};
+use crate::blocks::Block;
+use super::{pos::{ChunkedPos, ColedPos}, utils::Palette, CHUNK_S1, CHUNK_S3, CHUNK_SHAPE};
 
 #[derive(Debug)]
 pub struct Chunk {

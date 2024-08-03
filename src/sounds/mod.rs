@@ -5,7 +5,6 @@ mod block_sound_load;
 use bevy::app::Plugin;
 use block_sounds::BlockSoundPlugin;
 use effect_sounds::EffectSoundPlugin;
-use block_sound_load::BlockSoundLoadPlugin;
 use ui_sounds::UiSoundPlugin;
 pub use block_sounds::{FootstepCD, BlockSoundCD};
 pub use effect_sounds::{ItemGet, on_item_get};

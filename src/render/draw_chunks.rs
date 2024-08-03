@@ -9,9 +9,10 @@ use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver};
 use itertools::{iproduct, Itertools};
 use strum::IntoEnumIterator;
-use crate::blocks::pos2d::chunks_in_col;
-use crate::blocks::{Blocks, ChunkPos, Face, CHUNK_S1, Y_CHUNKS};
-use crate::gen::{range_around, ColUnloadEvent, LoadArea, LoadAreaAssigned};
+use crate::blocks::Face;
+use crate::world::pos2d::chunks_in_col;
+use crate::world::{VoxelWorld, ChunkPos, CHUNK_S1, Y_CHUNKS};
+use crate::world::{range_around, ColUnloadEvent, LoadArea, LoadAreaAssigned};
 use super::chunk_culling::chunk_culling;
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
 use super::texture_array::BlockTextureArray;
@@ -43,7 +44,7 @@ fn mark_lod_remesh(
     load_area: Res<LoadArea>, 
     chunk_ents: ResMut<ChunkEntities>, 
     lods: Query<&LOD>, 
-    blocks: ResMut<Blocks>
+    blocks: ResMut<VoxelWorld>
 ) {
     // FIXME: this only remesh chunks that previously had a mesh 
     // However in some rare cases a chunk with some blocs can produce an empty mesh at certain LODs 
@@ -87,7 +88,7 @@ fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<LoadArea>) {
 #[derive(Resource)]
 pub struct MeshReciever(Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
 
-fn setup_mesh_thread(mut commands: Commands, blocks: Res<Blocks>, shared_load_area: Res<SharedLoadArea>, texture_map: Res<TextureMap>) {
+fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, shared_load_area: Res<SharedLoadArea>, texture_map: Res<TextureMap>) {
     let thread_pool = AsyncComputeTaskPool::get();
     let chunks = Arc::clone(&blocks.chunks);
     let (mesh_sender, mesh_reciever) = unbounded();
@@ -125,7 +126,7 @@ pub fn pull_meshes(
     mut meshes: ResMut<Assets<Mesh>>,
     block_tex_array: Res<BlockTextureArray>,
     load_area: Res<LoadArea>,
-    blocks: Res<Blocks>
+    blocks: Res<VoxelWorld>
 ) {
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter()
         .filter(|(_, chunk_pos, _, _)| load_area.col_dists.contains_key(&(*chunk_pos).into()))

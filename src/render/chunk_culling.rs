@@ -5,7 +5,8 @@ use bevy::{
     view::{NoFrustumCulling, Visibility}}, 
     transform::components::{GlobalTransform, Transform}
 };
-use crate::blocks::{chunk_pos, Face};
+use crate::world::chunk_pos;
+use crate::blocks::Face;
 
 pub fn chunk_culling(
     view_query: Query<(&Frustum, &Camera, &GlobalTransform), Changed<Frustum>>,

@@ -1,7 +1,8 @@
 use bevy::color::palettes::css;
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
-use crate::blocks::{Blocks, Block};
+use crate::blocks::Block;
+use crate::world::VoxelWorld;
 use crate::agents::{Dir, TargetBlock};
 
 pub struct DebugDisplayPlugin;
@@ -57,7 +58,7 @@ fn debug_display(
     mut text_query: Query<&mut Text, With<DebugText>>, 
     player_query: Query<(&Transform, &TargetBlock), With<ActionState<Dir>>>,
     ent_query: Query<Entity, With<Transform>>,
-    world: Res<Blocks>,
+    world: Res<VoxelWorld>,
 ) {
     let (transform, target_block) = player_query.single();
     let mut text = text_query.single_mut();

@@ -56,7 +56,7 @@ impl Shape<3> for YFirstShape {
         p[0] + p[1] * self.size1 as u32 + p[2] * self.size2 as u32
     }
 
-    fn delinearize(&self, mut i: Self::Coord) -> [Self::Coord; 3] {
+    fn delinearize(&self, mut _i: Self::Coord) -> [Self::Coord; 3] {
         unimplemented!()
     }
 }

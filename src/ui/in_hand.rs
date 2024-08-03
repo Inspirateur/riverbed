@@ -1,5 +1,5 @@
 use bevy::{prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
-use crate::{agents::{BlockActionType, BlockLootAction, PlayerControlled, PlayerSpawn, AABB}, items::{Hotbar, Stack}, render::{CameraSpawn, FpsCam}};
+use crate::{agents::{BlockActionType, BlockLootAction, PlayerControlled}, items::{Hotbar, Stack}, render::{CameraSpawn, FpsCam}};
 use super::{hotbar::UiTextureMap, SelectedHotbarSlot};
 
 pub struct InHandPlugin;
@@ -70,7 +70,6 @@ fn on_hotbar_change(
     let mut handle = TRANSPARENT_IMAGE_HANDLE;
     if let Stack::Some(item, _) = stack {
         if let Some(tex_handle) = tex_map.0.get(item) {
-            println!("changed tex");
             handle = tex_handle.clone();
         }
     }
@@ -100,7 +99,6 @@ fn on_selected_slot_change(
     let mut handle = TRANSPARENT_IMAGE_HANDLE;
     if let Stack::Some(item, _) = stack {
         if let Some(tex_handle) = tex_map.0.get(item) {
-            println!("changed tex");
             handle = tex_handle.clone();
         }
     }

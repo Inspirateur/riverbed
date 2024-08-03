@@ -1,4 +1,4 @@
-use crate::blocks::{ChunkPos, ColPos, TrackedChunk};
+use crate::world::{ChunkPos, ColPos, TrackedChunk};
 use bevy::prelude::*;
 use dashmap::DashMap;
 use itertools::iproduct;

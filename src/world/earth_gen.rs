@@ -1,10 +1,10 @@
-use bevy::prelude::info_span;
-use crate::blocks::{unchunked, BlockPos, BlockPos2d, Blocks, ColPos, CHUNK_S1, CHUNK_S1I};
-use crate::blocks::{MAX_GEN_HEIGHT, WATER_H, Block, Soils, Trees};
-use noise_algebra::NoiseSource;
-use itertools::iproduct;
 use std::{collections::HashMap, path::Path, ops::RangeInclusive};
+use bevy::prelude::info_span;
+use itertools::iproduct;
+use noise_algebra::NoiseSource;
 use nd_interval::NdInterval;
+use crate::world::{BlockPos, BlockPos2d, VoxelWorld, ColPos, CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT, WATER_H};
+use crate::blocks::{Block, Soils, Trees};
 pub const CONT_R: f32 = (WATER_H+2) as f32/MAX_GEN_HEIGHT as f32;
 pub const CONT_COMPL: f32 = 1.-CONT_R;
 
@@ -31,7 +31,7 @@ impl Earth {
         }
     }
 
-    pub fn gen(&self, world: &Blocks, col: ColPos) {
+    pub fn gen(&self, world: &VoxelWorld, col: ColPos) {
         let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4);
         let range = pos_to_range(col);
         let gen_span = info_span!("noise gen", name = "noise gen").entered();

@@ -1,7 +1,8 @@
-use crate::blocks::{BlockPos, Blocks, Block};
+use crate::world::{BlockPos, VoxelWorld};
+use crate::blocks::Block;
 use super::utils::leaf_disk;
 
-pub fn grow_acacia(world: &Blocks, pos: BlockPos, _seed: i32, dist: f32) {
+pub fn grow_acacia(world: &VoxelWorld, pos: BlockPos, _seed: i32, dist: f32) {
     let height = 10-(dist*7.) as i32;
     let mut pos = pos;
     for _ in 0..height {

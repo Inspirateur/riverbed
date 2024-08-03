@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use parking_lot::RwLock;
 use bevy::ecs::{change_detection::DetectChanges, system::{Commands, Res, Resource}};
-use crate::gen::LoadArea;
+use crate::world::LoadArea;
 
 
 #[derive(Resource)]

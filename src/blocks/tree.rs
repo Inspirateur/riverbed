@@ -1,7 +1,8 @@
 use std::ops::Range;
 use serde::Deserialize;
 use strum_macros::EnumString;
-use super::{growables::*, BlockPos, Blocks};
+use super::growables::*;
+use crate::world::{BlockPos, VoxelWorld};
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Deserialize)]
@@ -22,7 +23,7 @@ pub enum Tree {
 }
 
 impl Tree {
-    pub fn grow(&self, world: &Blocks, pos: BlockPos, seed: i32, dist: f32) {
+    pub fn grow(&self, world: &VoxelWorld, pos: BlockPos, seed: i32, dist: f32) {
         if !world.get_block_safe(pos).is_fertile_soil() { return; }
         match self {
             Tree::Spruce => grow_spruce(world, pos, seed, dist),

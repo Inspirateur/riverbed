@@ -1,7 +1,8 @@
-use crate::blocks::{
+use crate::world::{
     MAX_GEN_HEIGHT, CHUNK_S1,
-    Block, Soils, unchunked, Blocks, ColPos
+    unchunked, VoxelWorld, ColPos
 };
+use crate::blocks::{Block, Soils};
 use itertools::iproduct;
 use nd_interval::NdInterval;
 use std::{collections::HashMap, path::Path};
@@ -35,7 +36,7 @@ impl DebugGen {
         }
     }
 
-    pub fn gen(&self, world: &Blocks, col: ColPos) {
+    pub fn gen(&self, world: &VoxelWorld, col: ColPos) {
         for (dx, dz) in iproduct!(0..CHUNK_S1, 0..CHUNK_S1) {
             let (x, z) = (unchunked(col.x, dx), unchunked(col.z, dz));
             let (y, t, h) = values(x, z);

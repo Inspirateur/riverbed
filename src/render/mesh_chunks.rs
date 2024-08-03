@@ -10,8 +10,9 @@ use block_mesh::{
 };
 use dashmap::DashMap;
 use itertools::iproduct;
-use crate::blocks::{
-    Block, ChunkPos, ChunkedPos, ColedPos, Face, FaceSpecifier, TrackedChunk, YFirstShape, CHUNK_PADDED_S1, CHUNK_S1
+use crate::blocks::{Block, Face, FaceSpecifier};
+use crate::world::{
+    ChunkPos, ChunkedPos, ColedPos, TrackedChunk, YFirstShape, CHUNK_PADDED_S1, CHUNK_S1
 };
 use super::texture_array::TextureMapTrait;
 

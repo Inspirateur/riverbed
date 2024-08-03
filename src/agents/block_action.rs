@@ -4,7 +4,8 @@ use crate::items::{BlockLootTable, LootEntry, DropQuantity, Hotbar, Item, Stack}
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
 use crate::ui::{ControllingPlayer, SelectedHotbarSlot};
-use crate::blocks::{Block, BlockPos, Blocks, Realm};
+use crate::blocks::Block;
+use crate::world::{BlockPos, VoxelWorld, Realm};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
 use crate::WorldRng;
 use leafwing_input_manager::prelude::*;
@@ -68,7 +69,7 @@ const EDGES_LINES: [Vec3; 4] = [
 fn target_block(
     mut player: Query<(&mut TargetBlock, &Realm), With<PlayerControlled>>, 
     player_cam: Query<&GlobalTransform, With<FpsCam>>,
-    world: Res<Blocks>
+    world: Res<VoxelWorld>
 ) {
     let (mut target_block, realm) = player.single_mut();
     let transform = player_cam.single();
@@ -104,7 +105,7 @@ fn block_outline(mut gizmos: Gizmos, target_block_query: Query<&TargetBlock>) {
 
 fn break_action(
     mut commands: Commands,
-    world: Res<Blocks>, 
+    world: Res<VoxelWorld>, 
     mut block_action_query: Query<(Entity, &TargetBlock, &mut Hotbar, &ActionState<Action>, Option<&mut BlockLootAction>)>,
     selected_slot: Res<SelectedHotbarSlot>,
     block_break_table: Res<BlockBreakTable>,
@@ -182,7 +183,7 @@ fn break_action(
 }
 
 fn place_block(
-    world: Res<Blocks>, 
+    world: Res<VoxelWorld>, 
     mut block_action_query: Query<(&TargetBlock, &mut Hotbar, &ActionState<Action>)>, 
     selected_slot: Res<SelectedHotbarSlot>
 ) {

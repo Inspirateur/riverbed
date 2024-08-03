@@ -1,8 +1,9 @@
 use std::{ops::{Deref, DerefMut}, sync::Arc};
 use bevy::prelude::{Resource, Vec3};
 use dashmap::DashMap;
+use crate::blocks::Block;
 use super::{
-    chunked, pos2d::chunks_in_col, Block, BlockPos, BlockPos2d, Chunk, ChunkPos, ChunkedPos, ColPos, ColedPos, Realm, CHUNK_S1, MAX_HEIGHT, Y_CHUNKS
+    chunked, pos2d::chunks_in_col, BlockPos, BlockPos2d, Chunk, ChunkPos, ChunkedPos, ColPos, ColedPos, Realm, CHUNK_S1, MAX_HEIGHT, Y_CHUNKS
 };
 
 pub struct TrackedChunk {
@@ -45,19 +46,19 @@ impl PartialEq for BlockRayCastHit {
 }
 
 #[derive(Resource)]
-pub struct Blocks {
+pub struct VoxelWorld {
     pub chunks: Arc<DashMap<ChunkPos, TrackedChunk>>,
 }
 
-impl Blocks {
+impl VoxelWorld {
     pub fn new() -> Self {
-        Blocks {
+        VoxelWorld {
             chunks: Arc::new(DashMap::new()),
         }
     }
 
     pub fn new_with(chunks: Arc<DashMap<ChunkPos, TrackedChunk>>) -> Self {
-        Blocks {
+        VoxelWorld {
             chunks
         }
     }
@@ -172,13 +173,13 @@ impl Blocks {
     fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) {
         self.mark_change_single(chunk_pos);
         // register change for neighboring chunks
-        let border_sign_x = Blocks::border_sign(chunked_pos.0); 
+        let border_sign_x = VoxelWorld::border_sign(chunked_pos.0); 
         if border_sign_x != 0 {
             let mut neighbor = chunk_pos;
             neighbor.x += border_sign_x;
             self.mark_change_single(neighbor);
         }
-        let border_sign_y = Blocks::border_sign(chunked_pos.1); 
+        let border_sign_y = VoxelWorld::border_sign(chunked_pos.1); 
         if border_sign_y != 0 {
             let mut neighbor = chunk_pos;
             neighbor.y += border_sign_y;
@@ -186,7 +187,7 @@ impl Blocks {
                 self.mark_change_single(neighbor);
             }
         }
-        let border_sign_z = Blocks::border_sign(chunked_pos.2); 
+        let border_sign_z = VoxelWorld::border_sign(chunked_pos.2); 
         if border_sign_z != 0 {
             let mut neighbor = chunk_pos;
             neighbor.z += border_sign_z;

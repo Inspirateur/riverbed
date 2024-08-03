@@ -1,12 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use crate::blocks::pos2d::Pos2d;
-use crate::blocks::{Blocks, ColPos, Realm, ReinsertTrait, CHUNK_S1};
 use itertools::Itertools;
 use bevy::prelude::*;
 use parking_lot::lock_api::ArcRwLockWriteGuard;
 use parking_lot::{RawRwLock, RwLock};
-use super::{LoadArea, RenderDistance};
+use super::{LoadArea, RenderDistance, VoxelWorld, ColPos, Realm, utils::ReinsertTrait, pos2d::Pos2d, CHUNK_S1};
 
 
 fn add_gen_order(to_generate: &mut ArcRwLockWriteGuard<RawRwLock, Vec<(Pos2d<CHUNK_S1>, u32)>>, col_pos: ColPos, dist: u32) {
@@ -140,7 +138,7 @@ pub struct ColUnloadEvent(pub ColPos);
 
 pub fn process_unload_orders(
     mut col_orders: ResMut<LoadOrders>,
-    blocks: ResMut<Blocks>,
+    blocks: ResMut<VoxelWorld>,
     mut ev_unload: EventWriter<ColUnloadEvent>,
 ) {
     // PROCESS UNLOAD ORDERS

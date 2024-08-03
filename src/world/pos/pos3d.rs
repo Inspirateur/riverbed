@@ -1,6 +1,6 @@
 use std::ops::{Add, BitXor};
 use bevy::prelude::Vec3;
-use crate::blocks::{Realm, CHUNK_S1};
+use crate::world::{Realm, CHUNK_S1};
 use super::{unchunked, chunked, CHUNK_S1I};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash)]

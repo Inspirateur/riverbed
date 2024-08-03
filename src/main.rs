@@ -2,18 +2,18 @@ mod utils;
 mod blocks;
 mod items;
 mod ui;
-mod gen;
+mod world;
 mod render;
 mod agents;
 mod sounds;
 use bevy::{prelude::*, render::texture::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}};
-use blocks::Blocks;
+use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
 use ui::UIPlugin;
 use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, PlayerPlugin};
-use gen::GenPlugin;
+use world::GenPlugin;
 const SEED: u64 = 42;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
@@ -33,7 +33,7 @@ fn main() {
     let mut app = App::new();
 
     app
-        .insert_resource(Blocks::new())
+        .insert_resource(VoxelWorld::new())
         .add_plugins(
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
