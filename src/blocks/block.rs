@@ -73,13 +73,13 @@ impl Block {
         }
     }
     
-    pub fn is_transluscent(&self) -> bool {
+    pub fn is_opaque(&self) -> bool {
         if self.is_foliage() {
-            return true;
+            return false;
         }
         match self {
-            Block::Glass | Block::SeaBlock => true,
-            _ => false
+            Block::Glass | Block::SeaBlock | Block::Air => false,
+            _ => true
         }
     }
 

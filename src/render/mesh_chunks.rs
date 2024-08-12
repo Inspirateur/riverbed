@@ -4,15 +4,16 @@ use bevy::{
     render_asset::RenderAssetUsages, 
     render_resource::{PrimitiveTopology, VertexFormat}}
 };
+use binary_greedy_meshing as bgm;
 use block_mesh::{
-    greedy_quads, ndshape::Shape, Axis, AxisPermutation, 
+    greedy_quads, Axis, AxisPermutation, 
     GreedyQuadsBuffer, MergeVoxel, OrientedBlockFace, QuadCoordinateConfig, Voxel, VoxelVisibility
 };
 use dashmap::DashMap;
 use itertools::iproduct;
-use crate::blocks::{Block, Face, FaceSpecifier};
+use crate::{blocks::{Block, Face, FaceSpecifier}, world::{Chunk, CHUNKP_S2, CHUNKP_S3}};
 use crate::world::{
-    ChunkPos, ChunkedPos, ColedPos, TrackedChunk, YFirstShape, CHUNK_PADDED_S1, CHUNK_S1
+    ChunkPos, ChunkedPos, ColedPos, TrackedChunk, CHUNKP_S1, CHUNK_S1
 };
 use super::texture_array::TextureMapTrait;
 
@@ -27,25 +28,84 @@ const Y_FIRST_RIGHT_HANDED_Y_UP_CONFIG: QuadCoordinateConfig = QuadCoordinateCon
     ],
     u_flip_face: Axis::X,
 };
-
+const MASK_6: u64 = 0b111111;
+const MASK_XYZ: u64 = 0b111111_111111_111111;
 /// ## Compressed voxel vertex data
-/// first u32:
+/// first u32 (vertex dependant):
 ///     - chunk position: 3x6 bits (33 values)
-///     - normals: 3 bits (6 values)
-///     - ambiant occlusion: 2 bits (4 values)
-///     - color: 9 bits (3 r, 3 g, 3 b)
-/// `0bxxxxxx_yyyyyy_zzzzzz_nnn_ao_ccccccccc`
-///
-/// second u32:
 ///     - texture coords: 2x6 bits (33 values)
-///     - light level: 4 bits (16 value)
-///     - texture layer: 16 bits
+///     - ambiant occlusion: 2 bits (4 values)
+/// `0bao_vvvvvv_uuuuuu_zzzzzz_yyyyyy_xxxxxx`
 ///
-/// `0buuuuuu_vvvvvv_llll_iiiiiiiiiiiiiiii`
+/// second u32 (vertex agnostic):
+///     - normals: 3 bits (6 values) = face
+///     - color: 9 bits (3 r, 3 g, 3 b)
+///     - texture layer: 16 bits
+///     - light level: 4 bits (16 value)
+///
+/// `0bllll_iiiiiiiiiiiiiiii_ccccccccc_nnn`
 pub const ATTRIBUTE_VOXEL_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("VoxelData", 48757581, VertexFormat::Uint32x2);
 
+impl Chunk {
+    pub fn create_face_meshes(&self, texture_map: &DashMap<(Block, FaceSpecifier), usize>, lod: usize) ->  [Option<Mesh>; 6] {
+        // Gathering binary greedy meshing input data
+        let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
+        let voxels = self.data.unpack_u16();
+        let mut mesh_data = bgm::MeshData::new(CHUNK_S1);
+        // Fill the opacity mask
+        for (i, voxel) in voxels.iter().enumerate() {
+            // Transpancy is not handled yet so we treat every block except Air as opaque
+            if *voxel == 0 {
+                continue;
+            }
+            let (q, r) = (i/CHUNKP_S1, i%CHUNKP_S1);
+            mesh_data.opaque_mask[q] |= 1 << r;
+        }
+        mesh_data_span.exit();
+        let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
+        bgm::mesh(&voxels, &mut mesh_data);
+        let mut meshes = core::array::from_fn(|_| None);
+        for (face_n, (start, num_quads)) in mesh_data.face_vertex_begin.iter().zip(mesh_data.face_vertex_length).enumerate() {
+            let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(num_quads*4);
+            let indices = bgm::indices(num_quads);
+            let face: Face = face_n.into();
+            for quad in mesh_data.quads[*start..(*start+num_quads)].iter() {
+                let voxel_i = (quad >> 32) as usize;
+                let w = MASK_6 & (quad >> 18);
+                let h = MASK_6 & (quad >> 24);
+                let xyz = MASK_XYZ & quad;
+                let block = self.palette[voxel_i];
+                let layer = texture_map.get_texture_index(block, face).unwrap_or(0) as u32;
+                let color = match (block, face) {
+                    (Block::GrassBlock, Face::Up) => 0b011_111_001,
+                    (block, _) if block.is_foliage() => 0b010_101_001,
+                    _ => 0b111_111_111
+                };
+                let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32);
+                let quad_info = (layer << 12) | (color << 3) | face_n as u32;
+                voxel_data.extend_from_slice(&[
+                    [vertices[0], quad_info], 
+                    [vertices[1], quad_info], 
+                    [vertices[2], quad_info], 
+                    [vertices[3], quad_info]
+                ]);
+            }
+            meshes[face_n] = Some(
+                Mesh::new(
+                    PrimitiveTopology::TriangleList,
+                    RenderAssetUsages::RENDER_WORLD,
+                )
+                .with_inserted_attribute(ATTRIBUTE_VOXEL_DATA, voxel_data)
+                .with_inserted_indices(Indices::U32(indices)),
+            )
+        }
+        mesh_build_span.exit();
+        meshes
+    }
+}
 
+/*
 impl Voxel for Block {
     fn get_visibility(&self) -> VoxelVisibility {
         match self {
@@ -69,14 +129,18 @@ pub trait Meshable {
 
     fn get_block_chunked(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) -> Block;
 
-    fn fill_padded_block_column(&self, buffer: &mut [Block], chunk: ChunkPos, coled_pos: ColedPos, buffer_shape: &YFirstShape);
+    fn fill_padded_block_column(&self, buffer: &mut [Block], chunk: ChunkPos, coled_pos: ColedPos, lod: usize);
 
-    fn fill_padded_chunk(&self, buffer: &mut [Block], chunk: ChunkPos, buffer_shape: &YFirstShape);
+    fn fill_padded_chunk(&self, buffer: &mut [Block], chunk: ChunkPos, lod: usize);
 
     fn create_face_meshes(&self, chunk: ChunkPos, texture_map: &DashMap<(Block, FaceSpecifier), usize>, lod: usize) -> [Option<Mesh>; 6];
 }
 
-fn block_at_quad_pos(buffer: &[Block], quad_positions: &[[f32; 3]; 4], quad_normal: &[i32; 3], buffer_shape: &YFirstShape) -> Block {
+fn linearize(x: usize, y: usize, z: usize) -> usize {
+    y + z * CHUNKP_S1 + x * CHUNKP_S2
+}
+
+fn block_at_quad_pos(buffer: &[Block], quad_positions: &[[f32; 3]; 4], quad_normal: &[i32; 3], lod: usize) -> Block {
     let face_delta = [
         quad_normal[0].max(0) as usize, 
         quad_normal[1].max(0) as usize, 
@@ -97,7 +161,7 @@ fn block_at_quad_pos(buffer: &[Block], quad_positions: &[[f32; 3]; 4], quad_norm
         min_face_pos[2] as usize - face_delta[2],
     );
     
-    buffer[buffer_shape.linearize(x/buffer_shape.lod+1, y/buffer_shape.lod+1, z/buffer_shape.lod+1)]
+    buffer[linearize(x/lod+1, y/lod+1, z/lod+1)]
 }
 
 
@@ -116,9 +180,9 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
         }
     }
 
-    fn fill_padded_block_column(&self, buffer: &mut [Block], chunk: ChunkPos, (x, z): ColedPos, buffer_shape: &YFirstShape) {
-        self.copy_column(&mut buffer[1..], chunk, (x, z), buffer_shape.lod);
-        if buffer_shape.lod != 1 { return; }
+    fn fill_padded_block_column(&self, buffer: &mut [Block], chunk: ChunkPos, (x, z): ColedPos, lod: usize) {
+        self.copy_column(&mut buffer[1..], chunk, (x, z), lod);
+        if lod != 1 { return; }
         let chunk_above = ChunkPos {
             x: chunk.x,
             y: chunk.y+1,
@@ -136,12 +200,12 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
         buffer[0] = self.get_block_chunked(chunk_below, (x, CHUNK_S1-1, z));
     }
 
-    fn fill_padded_chunk(&self, buffer: &mut [Block], chunk: ChunkPos, buffer_shape: &YFirstShape) {
-        for (x, z) in iproduct!((0..CHUNK_S1).step_by(buffer_shape.lod), (0..CHUNK_S1).step_by(buffer_shape.lod)) {
-            let i = buffer_shape.linearize(x/buffer_shape.lod+1, 0, z/buffer_shape.lod+1);
-            self.fill_padded_block_column(&mut buffer[i..], chunk, (x, z), buffer_shape);
+    fn fill_padded_chunk(&self, buffer: &mut [Block], chunk: ChunkPos, lod: usize) {
+        for (x, z) in iproduct!((0..CHUNK_S1).step_by(lod), (0..CHUNK_S1).step_by(lod)) {
+            let i = linearize(x/lod+1, 0, z/lod+1);
+            self.fill_padded_block_column(&mut buffer[i..], chunk, (x, z), lod);
         }
-        if buffer_shape.lod != 1 { return; }
+        if lod != 1 { return; }
         let neighbor_front = ChunkPos {
             x: chunk.x,
             y: chunk.y,
@@ -149,7 +213,7 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
             realm: chunk.realm
         };
         for x in 0..CHUNK_S1 {
-            let i = buffer_shape.linearize(x+1, 1, CHUNK_PADDED_S1-1);
+            let i = linearize(x+1, 1, CHUNKP_S1-1);
             self.copy_column(&mut buffer[i..], neighbor_front, (x, 0), 1);
         }
         let neighbor_back = ChunkPos {
@@ -159,7 +223,7 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
             realm: chunk.realm
         };
         for x in 0..CHUNK_S1 {
-            let i = buffer_shape.linearize(x+1, 1, 0);
+            let i = linearize(x+1, 1, 0);
             self.copy_column(&mut buffer[i..], neighbor_back, (x, CHUNK_S1-1), 1);    
         }
         let neighbor_right = ChunkPos {
@@ -169,7 +233,7 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
             realm: chunk.realm
         };
         for z in 0..CHUNK_S1 {
-            let i = buffer_shape.linearize(CHUNK_PADDED_S1-1, 1, z+1);
+            let i = linearize(CHUNKP_S1-1, 1, z+1);
             self.copy_column(&mut buffer[i..], neighbor_right, (0, z), 1);    
         }
         let neighbor_left = ChunkPos {
@@ -179,20 +243,20 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
             realm: chunk.realm
         };
         for z in 0..CHUNK_S1 {
-            let i = buffer_shape.linearize(0, 1, z+1);
+            let i = linearize(0, 1, z+1);
             self.copy_column(&mut buffer[i..], neighbor_left, (CHUNK_S1-1, z), 1);    
         } 
     }
 
     fn create_face_meshes(&self, chunk: ChunkPos, texture_map: &DashMap<(Block, FaceSpecifier), usize>, lod: usize) -> [Option<Mesh>; 6] {
         let lodf32 = lod as f32;
-        let padded_chunk_shape = YFirstShape::new_padded(lod);
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
-        let mut voxels = vec![Block::Air; padded_chunk_shape.usize()];
-        self.fill_padded_chunk(&mut voxels, chunk, &padded_chunk_shape);
+        let mut mesh_data = MeshData::new(CHUNK_S1);
+        let mut voxels = self.0;
+        self.fill_padded_chunk(&mut voxels, chunk, lod);
         mesh_data_span.exit();
         let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
-        let mut buffer = GreedyQuadsBuffer::new(padded_chunk_shape.usize());
+        let mut buffer = GreedyQuadsBuffer::new(CHUNKP_S3);
         greedy_quads(
             &voxels,
             &padded_chunk_shape,
@@ -269,3 +333,4 @@ impl Meshable for DashMap<ChunkPos, TrackedChunk> {
         res
     }
 }
+ */

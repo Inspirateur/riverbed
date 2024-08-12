@@ -1,34 +1,42 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
 use crate::blocks::Block;
-use super::{pos::{ChunkedPos, ColedPos}, utils::Palette, CHUNK_S1, CHUNK_S3, CHUNK_SHAPE};
+use super::{pos::{ChunkedPos, ColedPos}, utils::Palette, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, CHUNK_S1};
 
 #[derive(Debug)]
 pub struct Chunk {
-    data: PackedUints,
-    palette: Palette<Block>,
+    pub data: PackedUints,
+    pub palette: Palette<Block>,
+}
+
+fn linearize_padded(x: usize, y: usize, z: usize) -> usize {
+    z + 1 + (x+1) * CHUNKP_S1 + (y+1) * CHUNKP_S2
 }
 
 impl Chunk {
     pub fn get(&self, (x, y, z): ChunkedPos) -> &Block {
-        &self.palette[self.data.get(CHUNK_SHAPE.linearize(x, y, z))]
+        &self.palette[self.data.get(linearize_padded(x, y, z))]
     }
 
     pub fn set(&mut self, (x, y, z): ChunkedPos, block: Block) {
-        let idx = CHUNK_SHAPE.linearize(x, y, z);
+        let idx = linearize_padded(x, y, z);
         self.data.set(idx, self.palette.index(block));
     }
 
     pub fn set_yrange(&mut self, (x, top, z): ChunkedPos, height: usize, block: Block) {
         let value = self.palette.index(block);
-        let top = CHUNK_SHAPE.linearize(x, top, z) + 1;
-        let bottom = top - height;
-        self.data.set_range(bottom, top, value);
+        // Note: we do end+1 because set_range(_step) is not inclusive
+        self.data.set_range_step(
+            linearize_padded(x, top - height, z), 
+            linearize_padded(x, top, z)+1, 
+            CHUNKP_S2,
+            value
+        );
     }
 
     // Used for efficient construction of mesh data
     pub fn copy_column(&self, buffer: &mut [Block], (x, z): ColedPos, lod: usize) {
-        let start = CHUNK_SHAPE.linearize(x, 0, z);
+        let start = linearize_padded(x, 0, z);
         let mut i = 0;
         for idx in (start..(start+CHUNK_S1)).step_by(lod) {
             buffer[i] = self.palette[self.data.get(idx)];
@@ -38,7 +46,7 @@ impl Chunk {
 
     pub fn top(&self, (x, z): ColedPos) -> (&Block, usize) {
         for y in (0..CHUNK_S1).rev() {
-            let b_idx = self.data.get(CHUNK_SHAPE.linearize(x, y, z));
+            let b_idx = self.data.get(linearize_padded(x, y, z));
             if b_idx > 0 {
                 return (&self.palette[b_idx], y);
             }
@@ -47,7 +55,7 @@ impl Chunk {
     }
 
     pub fn set_if_empty(&mut self, (x, y, z): ChunkedPos, block: Block) -> bool {
-        let idx = CHUNK_SHAPE.linearize(x, y, z);
+        let idx = linearize_padded(x, y, z);
         if self.palette[self.data.get(idx)] != Block::Air {
             return false;
         }
@@ -71,7 +79,7 @@ impl Chunk {
         let mut palette = Palette::new();
         palette.index(Block::Air); 
         Chunk {
-            data: PackedUints::new(CHUNK_S3),
+            data: PackedUints::new(CHUNKP_S3),
             palette: palette, 
         }
     }

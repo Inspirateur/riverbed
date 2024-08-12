@@ -72,8 +72,8 @@ fn setup_ui_actions(mut commands: Commands) {
         (UIAction::Escape, KeyCode::Escape),
         (UIAction::CraftingMenu, KeyCode::KeyC),
     ]);
-    input_map.insert(UIAction::ScrollUp, MouseWheelDirection::Up);
-    input_map.insert(UIAction::ScrollDown, MouseWheelDirection::Down);
+    input_map.insert(UIAction::ScrollUp, MouseScrollDirection::UP);
+    input_map.insert(UIAction::ScrollDown, MouseScrollDirection::DOWN);
     commands.spawn(InputManagerBundle::<UIAction> {
         action_state: ActionState::default(),
         input_map,

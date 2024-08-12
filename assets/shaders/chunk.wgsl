@@ -49,22 +49,22 @@ fn normal_from_id(id: u32) -> vec3<f32> {
     var n: vec3<f32>;
     switch id {
         case 0u {
-            n = vec3(-1.0, 0.0, 0.0);
+            n = vec3(0.0, 1.0, 0.0);
         }
         case 1u {
             n = vec3(0.0, -1.0, 0.0);
         }
         case 2u {
-            n = vec3(0.0, 0.0, -1.0);
-        }
-        case 3u {
             n = vec3(1.0, 0.0, 0.0);
         }
+        case 3u {
+            n = vec3(-1.0, 0.0, 0.0);
+        }
         case 4u {
-            n = vec3(0.0, 1.0, 0.0);
+            n = vec3(0.0, 0.0, 1.0);
         }
         case 5u {
-            n = vec3(0.0, 0.0, 1.0);
+            n = vec3(0.0, 0.0, -1.0);
         }
         default {
             n = vec3(0.0);
@@ -75,10 +75,10 @@ fn normal_from_id(id: u32) -> vec3<f32> {
 
 fn light_from_id(id: u32) -> vec4<f32> {
     switch id {
-        case 4u {
+        case 0u {
             return vec4(1.0, 1.0, 1.0, 1.0); // top
         }
-        case 0u, 2u, 3u, 5u {
+        case 2u, 3u, 4u, 5u {
             return vec4(0.7, 0.7, 0.7, 1.0); // sides
         }
         case 1u {
@@ -101,23 +101,24 @@ fn color_from_id(id: u32) -> vec4<f32> {
 fn vertex(vertex: VertexInput) -> CustomVertexOutput {
     var out: CustomVertexOutput;
 
-    var first = vertex.voxel_data.x;
-    var x = f32(first & MASK6);
-    var y = f32((first >> 6) & MASK6);
-    var z = f32((first >> 12) & MASK6);
+    // Vertex specific information
+    var vertex_info = vertex.voxel_data.x;
+    var x = f32(vertex_info & MASK6);
+    var y = f32((vertex_info >> 6) & MASK6);
+    var z = f32((vertex_info >> 12) & MASK6);
+    var u = f32((vertex_info >> 18) & MASK6);
+    var v = f32((vertex_info >> 24) & MASK6);
     var position = vec4(x, y, z, 1.0);
-    var n_id = (first >> 18) & MASK3;
-    var normal = normal_from_id(n_id);
-    // var l_id = (first >> 21) & MASK2;
-    var face_light = light_from_id(n_id);
-    var c_id = (first >> 23) & MASK9;
-    var face_color = color_from_id(c_id);
     
-    var second = vertex.voxel_data.y;
-    var u = f32(second & MASK6);
-    var v = f32((second >> 6) & MASK6);
-    var light = f32((second >> 12) & MASK4) / f32(MASK4);
-    var texture_layer = second >> 16;
+    // Quad specific information
+    var quad_info = vertex.voxel_data.y;
+    var n_id = quad_info & MASK3;
+    var normal = normal_from_id(n_id);
+    var c_id = (quad_info >> 3) & MASK9;
+    var face_color = color_from_id(c_id);
+    var texture_layer = quad_info >> 12;
+    var face_light = light_from_id(n_id);
+    var light = f32((quad_info >> 28) & MASK4) / f32(MASK4);
 
     out.position = mesh_position_local_to_clip(
         get_world_from_local(vertex.instance_index),

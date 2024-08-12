@@ -1,6 +1,7 @@
 mod chunk_culling;
 mod camera;
 mod draw_chunks;
+mod mesh_utils;
 mod mesh_chunks;
 mod texture_load;
 mod texture_array;

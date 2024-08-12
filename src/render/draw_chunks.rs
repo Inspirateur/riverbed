@@ -17,7 +17,7 @@ use super::chunk_culling::chunk_culling;
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
 use super::texture_array::BlockTextureArray;
 use super::BlockTexState;
-use super::{mesh_chunks::Meshable, texture_array::{TextureMap, TextureArrayPlugin}};
+use super::texture_array::{TextureMap, TextureArrayPlugin};
 const GRID_GIZMO_LEN: i32 = 4;
 
 #[derive(Debug, Component)]
@@ -106,7 +106,10 @@ fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, shared_loa
                     continue;
                 };
                 let lod = choose_lod_level(dist);
-                let face_meshes = chunks.create_face_meshes(chunk_pos, &texture_map, lod);
+                let Some(chunk) = chunks.get(&chunk_pos) else {
+                    continue;
+                };
+                let face_meshes = chunk.create_face_meshes(&texture_map, lod);
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();
                     if mesh_sender.send((face_mesh, chunk_pos, face, LOD(lod))).is_err() {

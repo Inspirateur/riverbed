@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bevy = "0.14"
 bevy_atmosphere = "*"
+binary-greedy-meshing = "*"
 leafwing-input-manager = "*"
 rand = "*"
 rand_chacha = "*"

@@ -53,12 +53,12 @@ impl From<u8> for Face {
     fn from(value: u8) -> Self {
         assert!(value < 6);
         match value {
-            0 => Self::Left,
+            0 => Self::Up,
             1 => Self::Down,
-            2 => Self::Back,
-            3 => Self::Right,
-            4 => Self::Up,
-            5 => Self::Front,
+            2 => Self::Right,
+            3 => Self::Left,
+            4 => Self::Front,
+            5 => Self::Back,
             _ => unreachable!(),
         }
     }

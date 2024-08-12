@@ -173,7 +173,7 @@ fn scroll_hotbar(
         return;
     };
     if action_state.pressed(&UIAction::ScrollUp) {
-        selected_slot.0 = (selected_slot.0 - 1).rem_euclid(HOTBAR_SLOTS);
+        selected_slot.0 = (selected_slot.0 as i32 - 1).rem_euclid(HOTBAR_SLOTS as i32) as usize;
     } else if action_state.pressed(&UIAction::ScrollDown) {
         selected_slot.0 = (selected_slot.0 + 1).rem_euclid(HOTBAR_SLOTS);
     }

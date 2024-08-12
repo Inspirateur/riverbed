@@ -6,13 +6,11 @@ mod load_orders;
 mod voxel_world;
 mod realm;
 mod chunk;
-mod chunk_shape;
 mod pos;
 mod utils;
 pub use realm::*;
 pub use voxel_world::*;
 pub use chunk::*;
-pub use chunk_shape::*;
 pub use pos::*;
 pub use load_area::{LoadArea, RenderDistance, range_around};
 pub use load_orders::{LoadOrders, ColUnloadEvent};
@@ -21,11 +19,11 @@ use crate::agents::PlayerSpawn;
 use self::{load_orders::{
 	assign_load_area, on_render_distance_change, process_unload_orders, update_load_area
 }, terrain_gen::setup_gen_thread};
-use lazy_static::lazy_static;
 pub const CHUNK_S1: usize = 62;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
-pub const CHUNK_S3: usize = CHUNK_S1.pow(3);
-pub const CHUNK_PADDED_S1: usize = CHUNK_S1 + 2;
+pub const CHUNKP_S1: usize = CHUNK_S1 + 2;
+pub const CHUNKP_S2: usize = CHUNKP_S1.pow(2);
+pub const CHUNKP_S3: usize = CHUNKP_S1.pow(3);
 pub const CHUNK_S1I: i32 = CHUNK_S1 as i32;
 
 pub const MAX_HEIGHT: usize = 496;
@@ -33,8 +31,8 @@ pub const MAX_GEN_HEIGHT: usize = 400;
 pub const WATER_H: i32 = 61;
 pub const Y_CHUNKS: usize = MAX_HEIGHT/CHUNK_S1;
 
-lazy_static! {
-    pub static ref CHUNK_SHAPE: YFirstShape = YFirstShape::new();
+pub fn linearize(x: usize, y: usize, z: usize) -> usize {
+	y + z * CHUNK_S1 + x * CHUNK_S2
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
