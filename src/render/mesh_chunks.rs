@@ -11,7 +11,7 @@ use block_mesh::{
 };
 use dashmap::DashMap;
 use itertools::iproduct;
-use crate::{blocks::{Block, Face, FaceSpecifier}, world::{Chunk, CHUNKP_S2, CHUNKP_S3}};
+use crate::{blocks::{Block, Face, FaceSpecifier}, world::{linearize, pad_linearize, Chunk, CHUNKP_S2, CHUNKP_S3}};
 use crate::world::{
     ChunkPos, ChunkedPos, ColedPos, TrackedChunk, CHUNKP_S1, CHUNK_S1
 };
@@ -47,11 +47,33 @@ const MASK_XYZ: u64 = 0b111111_111111_111111;
 pub const ATTRIBUTE_VOXEL_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("VoxelData", 48757581, VertexFormat::Uint32x2);
 
+
 impl Chunk {
+    pub fn voxel_data_lod(&self, lod: usize) -> Vec<u16> {
+        let voxels = self.data.unpack_u16();
+        if lod == 1 {
+            return voxels;
+        }
+        let mut res = vec![0; CHUNKP_S3];
+        for x in 0..CHUNK_S1 {
+            for y in 0..CHUNK_S1 {
+                for z in 0..CHUNK_S1 {
+                    let lod_i = pad_linearize(x/lod, y/lod, z/lod);        
+                    if res[lod_i] == 0 {
+                        res[lod_i] = voxels[pad_linearize(x, y, z)];
+                    }
+                }
+            }
+        }
+        res
+    }
+
+    /// Doesn't work with lod > 2, because chunks are of size 62 (to get to 64 with padding) and its decomposition is 2*31
+    /// TODO: make it work with lod > 2 (by truncating quads)
     pub fn create_face_meshes(&self, texture_map: &DashMap<(Block, FaceSpecifier), usize>, lod: usize) ->  [Option<Mesh>; 6] {
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
-        let voxels = self.data.unpack_u16();
+        let voxels = self.voxel_data_lod(lod);
         let mut mesh_data = bgm::MeshData::new(CHUNK_S1);
         // Fill the opacity mask
         for (i, voxel) in voxels.iter().enumerate() {
@@ -82,7 +104,7 @@ impl Chunk {
                     (block, _) if block.is_foliage() => 0b010_101_001,
                     _ => 0b111_111_111
                 };
-                let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32);
+                let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32, lod as u32);
                 let quad_info = (layer << 12) | (color << 3) | face_n as u32;
                 voxel_data.extend_from_slice(&[
                     [vertices[0], quad_info], 

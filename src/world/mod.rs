@@ -31,10 +31,6 @@ pub const MAX_GEN_HEIGHT: usize = 400;
 pub const WATER_H: i32 = 61;
 pub const Y_CHUNKS: usize = MAX_HEIGHT/CHUNK_S1;
 
-pub fn linearize(x: usize, y: usize, z: usize) -> usize {
-	y + z * CHUNK_S1 + x * CHUNK_S2
-}
-
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 pub struct LoadAreaAssigned;
 

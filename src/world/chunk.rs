@@ -9,17 +9,21 @@ pub struct Chunk {
     pub palette: Palette<Block>,
 }
 
-fn linearize_padded(x: usize, y: usize, z: usize) -> usize {
+pub fn linearize(x: usize, y: usize, z: usize) -> usize {
+    z + x * CHUNKP_S1 + y * CHUNKP_S2
+}
+
+pub fn pad_linearize(x: usize, y: usize, z: usize) -> usize {
     z + 1 + (x+1) * CHUNKP_S1 + (y+1) * CHUNKP_S2
 }
 
 impl Chunk {
     pub fn get(&self, (x, y, z): ChunkedPos) -> &Block {
-        &self.palette[self.data.get(linearize_padded(x, y, z))]
+        &self.palette[self.data.get(pad_linearize(x, y, z))]
     }
 
     pub fn set(&mut self, (x, y, z): ChunkedPos, block: Block) {
-        let idx = linearize_padded(x, y, z);
+        let idx = pad_linearize(x, y, z);
         self.data.set(idx, self.palette.index(block));
     }
 
@@ -27,8 +31,8 @@ impl Chunk {
         let value = self.palette.index(block);
         // Note: we do end+1 because set_range(_step) is not inclusive
         self.data.set_range_step(
-            linearize_padded(x, top - height, z), 
-            linearize_padded(x, top, z)+1, 
+            pad_linearize(x, top - height, z), 
+            pad_linearize(x, top, z)+1, 
             CHUNKP_S2,
             value
         );
@@ -36,7 +40,7 @@ impl Chunk {
 
     // Used for efficient construction of mesh data
     pub fn copy_column(&self, buffer: &mut [Block], (x, z): ColedPos, lod: usize) {
-        let start = linearize_padded(x, 0, z);
+        let start = pad_linearize(x, 0, z);
         let mut i = 0;
         for idx in (start..(start+CHUNK_S1)).step_by(lod) {
             buffer[i] = self.palette[self.data.get(idx)];
@@ -46,7 +50,7 @@ impl Chunk {
 
     pub fn top(&self, (x, z): ColedPos) -> (&Block, usize) {
         for y in (0..CHUNK_S1).rev() {
-            let b_idx = self.data.get(linearize_padded(x, y, z));
+            let b_idx = self.data.get(pad_linearize(x, y, z));
             if b_idx > 0 {
                 return (&self.palette[b_idx], y);
             }
@@ -55,7 +59,7 @@ impl Chunk {
     }
 
     pub fn set_if_empty(&mut self, (x, y, z): ChunkedPos, block: Block) -> bool {
-        let idx = linearize_padded(x, y, z);
+        let idx = pad_linearize(x, y, z);
         if self.palette[self.data.get(idx)] != Block::Air {
             return false;
         }

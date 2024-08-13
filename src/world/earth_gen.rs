@@ -89,7 +89,12 @@ impl Earth {
         }
         fill_span.exit();
         let tree_span = info_span!("tree gen", name = "tree gen").entered();
-        let tree_spots = [(0, 0), (16, 0), (8, 16), (24, 16)];
+        let tree_spots = [
+            (0, 0), (15, 0), (31, 0), (46, 0),
+            (8, 15), (24, 15), (40, 15),
+            (0, 31), (15, 31), (31, 31), (46, 31),
+            (8, 46), (24, 46), (40, 46),
+        ];
         for spot in tree_spots {
             let rng = <BlockPos2d>::from((col, spot)).prng(self.seed);
             let dx = spot.0 + (rng & 0b111);

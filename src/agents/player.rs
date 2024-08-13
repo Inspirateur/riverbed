@@ -76,7 +76,7 @@ pub fn spawn_player(mut commands: Commands) {
         transform: Transform {translation: SPAWN, ..default()},
         ..default()
     };
-    let rd = RenderDistance(16);
+    let rd = RenderDistance(32);
     let mut inventory = Inventory::new();
     inventory.try_add(Stack::Some(Item::StoneAxe, 1));
     inventory.try_add(Stack::Some(Item::Block(Block::Dirt), 1));
