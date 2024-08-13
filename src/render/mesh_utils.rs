@@ -14,10 +14,10 @@ impl Face {
     pub fn vertices_packed(&self, xyz: u32, w: u32, h: u32) -> [u32; 4] {
         match self {
             Face::Left => [
-                vertex_info(xyz, 0, 0),
-                vertex_info(xyz+packed_xyz(0, 0, h), h, 0),
-                vertex_info(xyz+packed_xyz(0, w, 0), 0, w),
-                vertex_info(xyz+packed_xyz(0, w, h), h, w),
+                vertex_info(xyz, h, w),
+                vertex_info(xyz+packed_xyz(0, 0, h), 0, w),
+                vertex_info(xyz+packed_xyz(0, w, 0), h, 0),
+                vertex_info(xyz+packed_xyz(0, w, h), 0, 0),
             ],
             Face::Down => [
                 vertex_info(xyz-packed_xyz(w, 0, 0)+packed_xyz(0, 0, h), w, h),
@@ -26,10 +26,10 @@ impl Face {
                 vertex_info(xyz, 0, 0),
             ],
             Face::Back => [
-                vertex_info(xyz+packed_xyz(w, h, 0), w, h),
-                vertex_info(xyz+packed_xyz(w, 0, 0), w, 0),
-                vertex_info(xyz+packed_xyz(0, h, 0), 0, h),
-                vertex_info(xyz, 0, 0),
+                vertex_info(xyz, w, h),
+                vertex_info(xyz+packed_xyz(0, h, 0), w, 0),
+                vertex_info(xyz+packed_xyz(w, 0, 0), 0, h),
+                vertex_info(xyz+packed_xyz(w, h, 0), 0, 0),
             ],
             Face::Right => [
                 vertex_info(xyz, 0, 0),
