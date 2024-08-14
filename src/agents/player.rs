@@ -8,7 +8,7 @@ use bevy::{
 use leafwing_input_manager::prelude::*;
 use super::{block_action::BlockActionPlugin, Crouching, FreeFly, Speed, SteppingOn, Walking};
 
-const WALK_SPEED: f32 = 10.;
+const WALK_SPEED: f32 = 7.;
 const FREE_FLY_X_SPEED: f32 = 150.;
 const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
 
@@ -77,9 +77,6 @@ pub fn spawn_player(mut commands: Commands) {
         ..default()
     };
     let rd = RenderDistance(32);
-    let mut inventory = Inventory::new();
-    inventory.try_add(Stack::Some(Item::StoneAxe, 1));
-    inventory.try_add(Stack::Some(Item::Block(Block::Dirt), 1));
     commands
         .spawn((
             spatial_bundle,
@@ -95,7 +92,7 @@ pub fn spawn_player(mut commands: Commands) {
             Velocity(Vec3::default()),
             rd,
             TargetBlock(None),
-            Hotbar(inventory),
+            Hotbar(Inventory::new()),
             PlayerControlled,
         ))
         .insert(SpatialListener::new(0.3))

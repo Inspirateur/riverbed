@@ -4,7 +4,7 @@ use crate::agents::{BlockActionType, BlockLootAction, SteppingOn, Velocity};
 use super::block_sound_load::{BlockSound, BlockSoundLoadPlugin, BlockSounds};
 const RAND_AMPLITUDE: f32 = 0.3;
 // distance between steps (in blocks)
-const STEP_DIST: f32 = 3.0;
+const STEP_DIST: f32 = 2.5;
 
 pub struct BlockSoundPlugin;
 

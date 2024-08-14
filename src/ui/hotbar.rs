@@ -153,14 +153,14 @@ fn display_hotbar(
         if slot.0 == selected_slot.0 {
             img.color.set_alpha(1.);
         } else {
-            img.color.set_alpha(0.45);
+            img.color.set_alpha(0.5);
         }
     }
     for (mut bg, slot) in bg_query.iter_mut() {
         bg.0 = if slot.0 == selected_slot.0 {
-            Color::linear_rgba(0., 0., 0., 0.6)
+            Color::linear_rgba(0., 0., 0., 0.8)
         } else {
-            Color::linear_rgba(0., 0., 0., 0.3)
+            Color::linear_rgba(0., 0., 0., 0.5)
         }
     }
 }
