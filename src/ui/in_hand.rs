@@ -24,6 +24,7 @@ fn in_hand_setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    // TODO: there seem to be a 1 frame delay in the position update of the in hand item, try to fix it
     // The player must be instanciated at this stage
     let Ok(cam) = cam_query.get_single() else  {
         println!("couldn't get the camera");

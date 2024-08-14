@@ -9,7 +9,7 @@ use leafwing_input_manager::prelude::*;
 use super::{block_action::BlockActionPlugin, Crouching, FreeFly, Speed, SteppingOn, Walking};
 
 const WALK_SPEED: f32 = 10.;
-const FREE_FLY_X_SPEED: f32 = 80.;
+const FREE_FLY_X_SPEED: f32 = 150.;
 const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
 
 pub struct PlayerPlugin;

@@ -2,7 +2,7 @@ use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
 use crate::blocks::Block;
 use crate::world::{BlockPos, VoxelWorld, Realm};
-const FREE_FLY_Y_SPEED: f32 = 60.;
+const FREE_FLY_Y_SPEED: f32 = 100.;
 const ACC_MULT: f32 = 150.;
 
 pub struct MovementPlugin;
