@@ -68,13 +68,13 @@ impl Chunk {
         res
     }
 
-    /// Doesn't work with lod > 2, because chunks are of size 62 (to get to 64 with padding) and its decomposition is 2*31
-    /// TODO: make it work with lod > 2 (by truncating quads)
+    /// Doesn't work with lod > 2, because chunks are of size 62 (to get to 64 with padding) and 62 = 2*31
+    /// TODO: make it work with lod > 2 if necessary (by truncating quads)
     pub fn create_face_meshes(&self, texture_map: &DashMap<(Block, FaceSpecifier), usize>, lod: usize) ->  [Option<Mesh>; 6] {
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let voxels = self.voxel_data_lod(lod);
-        let mut mesh_data = bgm::MeshData::new(CHUNK_S1);
+        let mut mesh_data = bgm::MeshData::new();
         // Fill the opacity mask
         for (i, voxel) in voxels.iter().enumerate() {
             // Transpancy is not handled yet so we treat every block except Air as opaque
@@ -88,11 +88,11 @@ impl Chunk {
         let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
         bgm::mesh(&voxels, &mut mesh_data);
         let mut meshes = core::array::from_fn(|_| None);
-        for (face_n, (start, num_quads)) in mesh_data.face_vertex_begin.iter().zip(mesh_data.face_vertex_length).enumerate() {
-            let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(num_quads*4);
-            let indices = bgm::indices(num_quads);
+        for (face_n, quads) in mesh_data.quads.iter().enumerate() {
+            let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(quads.len()*4);
+            let indices = bgm::indices(quads.len());
             let face: Face = face_n.into();
-            for quad in mesh_data.quads[*start..(*start+num_quads)].iter() {
+            for quad in quads {
                 let voxel_i = (quad >> 32) as usize;
                 let w = MASK_6 & (quad >> 18);
                 let h = MASK_6 & (quad >> 24);
