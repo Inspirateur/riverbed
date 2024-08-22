@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bevy::{
     log::info_span, prelude::Mesh, 
     render::{mesh::{Indices, MeshVertexAttribute}, 
@@ -75,18 +77,16 @@ impl Chunk {
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let voxels = self.voxel_data_lod(lod);
         let mut mesh_data = bgm::MeshData::new();
-        // Fill the opacity mask
-        for (i, voxel) in voxels.iter().enumerate() {
-            // Transpancy is not handled yet so we treat every block except Air as opaque
-            if *voxel == 0 {
-                continue;
-            }
-            let (q, r) = (i/CHUNKP_S1, i%CHUNKP_S1);
-            mesh_data.opaque_mask[q] |= 1 << r;
-        }
         mesh_data_span.exit();
         let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
-        bgm::mesh(&voxels, &mut mesh_data);
+        let transparents = HashSet::from_iter(self.palette.iter().enumerate().filter_map(
+            |(i, block)| if i != 0 && !block.is_opaque() {
+                Some(i as u16)
+            } else {
+                None
+            }
+        ));
+        bgm::mesh(&voxels, &mut mesh_data, transparents);
         let mut meshes = core::array::from_fn(|_| None);
         for (face_n, quads) in mesh_data.quads.iter().enumerate() {
             let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(quads.len()*4);

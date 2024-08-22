@@ -1,9 +1,15 @@
-use std::{hash::Hash, collections::HashMap, ops::Index};
+use std::{collections::HashMap, hash::Hash, ops::Index, slice::Iter};
 
 #[derive(Debug)]
 pub struct Palette<E: Hash> {
     leftmap: HashMap<E, usize>,
     rightmap: Vec<E>
+}
+
+impl<E: Hash> Palette<E> {
+    pub fn iter(&self) -> Iter<'_, E> {
+        self.rightmap.iter()
+    }
 }
 
 impl<E: Hash + Eq + PartialEq + Clone> Palette<E> {
