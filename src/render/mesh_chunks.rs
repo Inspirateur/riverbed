@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use bevy::{
     log::info_span, prelude::Mesh, 
@@ -79,7 +79,7 @@ impl Chunk {
         let mut mesh_data = bgm::MeshData::new();
         mesh_data_span.exit();
         let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
-        let transparents = HashSet::from_iter(self.palette.iter().enumerate().filter_map(
+        let transparents = BTreeSet::from_iter(self.palette.iter().enumerate().filter_map(
             |(i, block)| if i != 0 && !block.is_opaque() {
                 Some(i as u16)
             } else {
