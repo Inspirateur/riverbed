@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use bevy::{asset::LoadedFolder, color::palettes::css, prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
 use leafwing_input_manager::prelude::*;
 use crate::{
-    agents::PlayerControlled, blocks::Face, 
+    agents::PlayerControlled, block::Face, 
     items::{Hotbar, Item, Stack, HOTBAR_SLOTS}, 
     render::{parse_block_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}, utils::from_filename
 };

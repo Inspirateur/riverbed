@@ -6,7 +6,7 @@ use bevy::{
     transform::components::{GlobalTransform, Transform}
 };
 use crate::world::chunk_pos;
-use crate::blocks::Face;
+use crate::block::Face;
 
 pub fn chunk_culling(
     view_query: Query<(&Frustum, &Camera, &GlobalTransform), Changed<Frustum>>,

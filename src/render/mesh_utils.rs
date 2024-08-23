@@ -1,4 +1,4 @@
-use crate::blocks::Face;
+use crate::block::Face;
 // Note: This whole file will become unnecessary when we have instancing,
 // because it is used to convert a quad to 4 vertices which we won't need to do
 

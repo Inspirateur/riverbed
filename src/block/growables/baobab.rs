@@ -1,5 +1,5 @@
 use crate::world::{BlockPos, VoxelWorld};
-use crate::blocks::Block;
+use crate::block::Block;
 use super::utils::leaf_disk;
 const DIRS: [(i32, i32); 8] = [(-1, 1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
 

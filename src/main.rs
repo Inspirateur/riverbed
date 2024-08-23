@@ -1,5 +1,5 @@
 mod utils;
-mod blocks;
+mod block;
 mod items;
 mod ui;
 mod world;

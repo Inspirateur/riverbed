@@ -1,5 +1,5 @@
 use crate::world::{BlockPos, VoxelWorld};
-use crate::blocks::Block;
+use crate::block::Block;
 
 pub trait Growable: Send + Sync {
     fn grow(&self, dist: f32, pos: BlockPos, world: &VoxelWorld);

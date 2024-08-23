@@ -1,6 +1,6 @@
 use std::ffi::OsStr;
 use bevy::{asset::LoadedFolder, prelude::*};
-use crate::{blocks::{Block, Face, FaceSpecifier}, utils::from_filename};
+use crate::{block::{Block, Face, FaceSpecifier}, utils::from_filename};
 
 pub struct TextureLoadPlugin;
 

@@ -2,7 +2,7 @@ use crate::world::{
     MAX_GEN_HEIGHT, CHUNK_S1,
     unchunked, VoxelWorld, ColPos
 };
-use crate::blocks::{Block, Soils};
+use crate::block::{Block, Soils};
 use itertools::iproduct;
 use nd_interval::NdInterval;
 use std::{collections::HashMap, path::Path};

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use bevy::prelude::Component;
-use crate::blocks::BlockFamily;
+use crate::block::BlockFamily;
 
 use super::{craft_table::{Ingredient, Recipe}, item::Item};
 pub const HOTBAR_SLOTS: usize = 8;
@@ -172,7 +172,7 @@ pub struct Hotbar(pub Inventory<HOTBAR_SLOTS>);
 mod tests {
     use itertools::Itertools;
 
-    use crate::{blocks::{Block, BlockFamily}, items::{craft_table::{Ingredient, Recipe}, Item}};
+    use crate::{block::{Block, BlockFamily}, items::{craft_table::{Ingredient, Recipe}, Item}};
     use super::{Inventory, Stack};
 
     #[test]

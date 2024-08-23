@@ -4,7 +4,7 @@ use crate::items::{BlockLootTable, LootEntry, DropQuantity, Hotbar, Item, Stack}
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
 use crate::ui::{ControllingPlayer, SelectedHotbarSlot};
-use crate::blocks::Block;
+use crate::block::Block;
 use crate::world::{BlockPos, VoxelWorld, Realm};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
 use crate::WorldRng;

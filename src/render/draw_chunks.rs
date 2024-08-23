@@ -9,7 +9,7 @@ use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver};
 use itertools::{iproduct, Itertools};
 use strum::IntoEnumIterator;
-use crate::blocks::Face;
+use crate::block::Face;
 use crate::world::pos2d::chunks_in_col;
 use crate::world::{VoxelWorld, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::world::{range_around, ColUnloadEvent, LoadArea, LoadAreaAssigned};

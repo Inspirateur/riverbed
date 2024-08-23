@@ -1,4 +1,4 @@
-use crate::blocks::{Block, Soils, Trees};
+use crate::block::{Block, Soils, Trees};
 use crate::world::{
     BlockPos, BlockPos2d, ColPos, VoxelWorld, CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT, WATER_H,
 };

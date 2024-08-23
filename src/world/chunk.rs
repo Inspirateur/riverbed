@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
-use crate::blocks::Block;
+use crate::block::Block;
 use super::{pos::{ChunkedPos, ColedPos}, utils::Palette, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, CHUNK_S1};
 
 #[derive(Debug)]
