@@ -1,4 +1,4 @@
-mod utils;
+mod asset_processing;
 mod block;
 mod items;
 mod ui;

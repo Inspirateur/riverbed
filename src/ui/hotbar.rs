@@ -4,7 +4,7 @@ use leafwing_input_manager::prelude::*;
 use crate::{
     agents::PlayerControlled, block::Face, 
     items::{Hotbar, Item, Stack, HOTBAR_SLOTS}, 
-    render::{parse_block_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}, utils::from_filename
+    render::{parse_block_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}, asset_processing::from_filename
 };
 use super::{ControllingPlayer, UIAction};
 const SLOT_SIZE_PERCENT: f32 = 4.5;
