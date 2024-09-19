@@ -6,6 +6,7 @@ mod world;
 mod render;
 mod agents;
 mod sounds;
+include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
 use bevy::{prelude::*, render::texture::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}};
 use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};

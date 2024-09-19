@@ -1,0 +1,49 @@
+set Wood {
+    Acacia,
+    Birch,
+    Oak,
+    Sequoia,
+    Spruce
+}
+
+set Soil {
+    CoarseDirt,
+    Dirt,
+    GrassBlock,
+    Mud,
+    Podzol,
+    Sand,
+    Snow
+}
+
+set Crystal {
+    Glass,
+    Ice
+}
+
+set Stone {
+    Bedrock,
+    Cobblestone,
+    Endstone,
+    Granite,
+    Limestone
+}
+
+set Ore {
+    Iron,
+    Gold
+}
+
+block {Wood}Leaves
+block {Wood}Log
+block {Wood}Planks
+
+block {Ore}Ore
+
+block {Soil}
+block {Crystal}
+block {Stone}
+
+block Air
+block SeaBlock
+block Campfire
