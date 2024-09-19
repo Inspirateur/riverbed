@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 use nom::{
     bytes::complete::tag, character::complete::{alpha1, multispace0, multispace1}, combinator::eof, error::ParseError, multi::{many1, separated_list1}, sequence::{delimited, tuple}, IResult
@@ -16,12 +16,12 @@ pub(crate) struct AddBlock(pub(crate) Vec<BlockFrag>);
 #[derive(Debug)]
 struct BlockSet {
     name: String,
-    variants: HashSet<String>,
+    variants: BTreeSet<String>,
 }
 
 #[derive(Debug)]
 pub(crate) struct IR {
-    pub(crate) sets: HashMap<String, HashSet<String>>,
+    pub(crate) sets: BTreeMap<String, BTreeSet<String>>,
     pub(crate) decl: Vec<AddBlock>,
 }
 
@@ -34,7 +34,7 @@ enum Either<Left, Right> {
 pub fn parse_file(input: &str) -> IResult<&str, IR> {
     let (input, res): (&str, _) = many1(ws(parse_statement))(input)?;
     let (input, _) = eof(input)?;
-    let mut sets = HashMap::new();
+    let mut sets = BTreeMap::new();
     let mut decl = Vec::new();
     for either in res {
         match either {
@@ -61,7 +61,7 @@ fn parse_set(input: &str) -> IResult<&str, BlockSet> {
     let (input, variants) = separated_list1(ws(tag(",")), parse_ident)(input)?;
     let (input, _) = multispace0(input)?;
     let (input, _) = tag("}")(input)?;
-    Ok((input, BlockSet { name: name.to_string(), variants: HashSet::from_iter(variants.into_iter().map(String::from)) }))
+    Ok((input, BlockSet { name: name.to_string(), variants: BTreeSet::from_iter(variants.into_iter().map(String::from)) }))
 }
 
 fn parse_decl(input: &str) -> IResult<&str, AddBlock> {
