@@ -2,7 +2,7 @@
     Default: {
         Cobblestone: { hardness: 5, drops: "Rock", min: 2, max: 4 },
         Soil: { hardness: 2, drops: "Self" },
-        Foliage: { hardness: 1 },
+        Leaves: { hardness: 1 },
     },
     Rock: {
         Log: { hardness: 3, drops: "Stick", min: 3, max: 5 },

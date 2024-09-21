@@ -9,7 +9,7 @@ use bevy::{
 use binary_greedy_meshing as bgm;
 
 use dashmap::DashMap;
-use crate::{block::{Block, Face, FaceSpecifier}, world::{pad_linearize, Chunk, CHUNKP_S3}};
+use crate::{Block, block::{Face, FaceSpecifier}, world::{pad_linearize, Chunk, CHUNKP_S3}};
 use crate::world::CHUNK_S1;
 use super::texture_array::TextureMapTrait;
 

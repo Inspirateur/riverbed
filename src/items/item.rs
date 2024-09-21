@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use serde::Deserialize;
-use crate::block::Block;
+use crate::Block;
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ToolKind {

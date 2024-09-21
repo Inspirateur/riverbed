@@ -6,6 +6,10 @@ set Wood {
     Spruce
 }
 
+set Log { Log }
+set Leaves { Leaves }
+set Planks { Planks }
+
 set Soil {
     CoarseDirt,
     Dirt,
@@ -34,9 +38,9 @@ set Ore {
     Gold
 }
 
-block {Wood}Leaves
-block {Wood}Log
-block {Wood}Planks
+block {Wood}{Leaves}
+block {Wood}{Log}
+block {Wood}{Planks}
 
 block {Ore}Ore
 

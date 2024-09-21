@@ -1,5 +1,5 @@
 use crate::world::{BlockPos, VoxelWorld};
-use crate::block::Block;
+use crate::Block;
 use super::utils::leaf_disk;
 
 pub fn grow_cypress(world: &VoxelWorld, pos: BlockPos, _seed: i32, dist: f32) {

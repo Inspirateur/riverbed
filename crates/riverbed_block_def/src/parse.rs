@@ -70,9 +70,17 @@ fn parse_decl(input: &str) -> IResult<&str, AddBlock> {
 }
 
 fn parse_block_frag(input: &str) -> IResult<&str, BlockFrag> {
-    delimited(tag("{"), parse_ident, tag("}"))(input)
-        .map(|(input, set)| (input, BlockFrag::SetName(set.to_string())))
-        .or_else(|_| parse_ident(input).map(|(input, ident)| (input, BlockFrag::Ident(ident.to_string()))))
+    parse_set_name(input).or(parse_block_ident(input))
+}
+
+fn parse_set_name(input: &str) -> IResult<&str, BlockFrag> {
+    let (input, ident) = delimited(tag("{"), parse_ident, tag("}"))(input)?;
+    Ok((input, BlockFrag::SetName(ident.to_string())))
+}
+
+fn parse_block_ident(input: &str) -> IResult<&str, BlockFrag> {
+    let (input, ident) = parse_ident(input)?;
+    Ok((input, BlockFrag::Ident(ident.to_string())))
 }
 
 fn parse_ident(input: &str) -> IResult<&str, &str> {

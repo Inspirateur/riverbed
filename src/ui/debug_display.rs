@@ -1,7 +1,7 @@
 use bevy::color::palettes::css;
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
-use crate::block::Block;
+use crate::Block;
 use crate::world::VoxelWorld;
 use crate::agents::{Dir, TargetBlock};
 

@@ -1,47 +1,6 @@
 use std::ops::Range;
-use serde::{Deserialize, Serialize};
-use strum_macros::EnumString;
 
-#[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy, EnumString)]
-pub enum BlockFamily {
-    Stone,
-    Log,
-    Foliage,
-    Soil,
-}
-
-#[derive(Debug, PartialEq, EnumString, Eq, Serialize, Deserialize, Clone, Copy, Hash)]
-pub enum Block {
-    Air,
-    AcaciaLeaves,
-    AcaciaLog,
-    Bedrock,
-    BirchLeaves,
-    BirchLog,
-    Campfire,
-    CoarseDirt,
-    Cobblestone,
-    Dirt,
-    Endstone,
-    Glass,
-    Granite,
-    GrassBlock,
-    Ice,
-    IronOre,
-    Limestone,
-    Mud,
-    OakLeaves,
-    OakLog,
-    OakPlanks,
-    Podzol,
-    Sand,
-    SequoiaLeaves,
-    SequoiaLog,
-    SpruceLeaves,
-    SpruceLog,
-    Snow,
-    SeaBlock,
-}
+use crate::{Block, BlockFamily};
 
 impl Block {
     pub fn friction(&self) -> f32 {
@@ -84,11 +43,7 @@ impl Block {
     }
 
     pub fn is_foliage(&self) -> bool {
-        match self {
-            Block::OakLeaves | Block::BirchLeaves | Block::SpruceLeaves | Block::SequoiaLeaves
-                => true,
-            _ => false
-        }
+        self.families().contains(&BlockFamily::Leaves)
     }
 
     pub fn is_fertile_soil(&self) -> bool {
@@ -96,21 +51,6 @@ impl Block {
             Block::GrassBlock | Block::Podzol | Block::Snow
                 => true,
             _ => false
-        }
-    }
-
-    pub fn families(&self) -> Vec<BlockFamily> {
-        if self.is_foliage() {
-            return vec![BlockFamily::Foliage]
-        }
-        match self {
-            Block::Granite | Block::Cobblestone | Block::Endstone | Block::Limestone | Block::IronOre
-                => vec![BlockFamily::Stone],
-            Block::OakLog | Block::AcaciaLog | Block::BirchLog | Block::SpruceLog | Block::SequoiaLog
-                => vec![BlockFamily::Log],
-            Block::Dirt | Block::CoarseDirt | Block::GrassBlock | Block::Sand
-                => vec![BlockFamily::Soil],
-            _ => vec![]
         }
     }
 }

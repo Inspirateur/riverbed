@@ -1,7 +1,7 @@
 use std::{fmt::Debug, str::FromStr};
 use itertools::Itertools;
 use serde::Deserialize;
-use crate::block::BlockFamily;
+use crate::BlockFamily;
 use super::Item;
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
@@ -51,7 +51,7 @@ pub fn parse_recipes(recipes: &str) -> Vec<Recipe> {
 
 #[cfg(test)]
 mod tests {
-    use crate::block::Block;
+    use crate::Block;
     use super::*;
 
     #[test]

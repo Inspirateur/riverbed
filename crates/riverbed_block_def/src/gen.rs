@@ -3,7 +3,7 @@ use itertools::Itertools;
 use crate::parse::{BlockFrag, IR};
 
 const BLOCK_FAM: &'static str = "BlockFamily";
-const BLOCKS: &'static str = "Blocks";
+const BLOCKS: &'static str = "Block";
 
 pub fn generate_enum(name: &str, variants: &BTreeSet<String>) -> String {
     format!(

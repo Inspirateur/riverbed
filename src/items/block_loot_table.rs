@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 use serde::Deserialize;
-use crate::block::{Block, BlockFamily};
+use crate::{Block, BlockFamily};
 use super::item::{Item, ToolKind};
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Clone, Copy)]
