@@ -1,5 +1,5 @@
 use super::{
-    pos2d::Pos2d, utils::ReinsertTrait, ColPos, LoadArea, Realm, RenderDistance, VoxelWorld,
+    pos2d::Pos2d, utils::ReinsertTrait, ColPos, PlayerArea, Realm, RenderDistance, VoxelWorld,
     CHUNK_S1,
 };
 use bevy::prelude::*;
@@ -81,8 +81,8 @@ impl LoadOrders {
     pub fn on_load_area_change(
         &mut self,
         player_id: u32,
-        old_load_area: &LoadArea,
-        new_load_area: &LoadArea,
+        old_load_area: &PlayerArea,
+        new_load_area: &PlayerArea,
     ) {
         for col_pos in old_load_area.col_dists.keys() {
             if new_load_area.col_dists.contains_key(col_pos) {
@@ -120,8 +120,8 @@ pub fn assign_load_area(
 ) {
     let (player, transform, realm, render_dist) = query.single_mut();
     let col = ColPos::from((transform.translation, *realm));
-    let old_load_area = LoadArea::empty();
-    let new_load_area = LoadArea::new(col, *render_dist);
+    let old_load_area = PlayerArea::empty();
+    let new_load_area = PlayerArea::new(col, *render_dist);
     col_orders.on_load_area_change(player.index(), &old_load_area, &new_load_area);
     commands.insert_resource(new_load_area.clone());
 }
@@ -129,13 +129,13 @@ pub fn assign_load_area(
 pub fn update_load_area(
     mut query: Query<(Entity, &Transform, &Realm, &RenderDistance)>,
     mut col_orders: ResMut<LoadOrders>,
-    mut load_area: ResMut<LoadArea>,
+    mut load_area: ResMut<PlayerArea>,
 ) {
     for (player, transform, realm, render_dist) in query.iter_mut() {
         let col = ColPos::from((transform.translation, *realm));
         // we're checking before modifying to avoid triggering unnecessary Change detection
         if col != load_area.center {
-            let new_load_area = LoadArea::new(col, *render_dist);
+            let new_load_area = PlayerArea::new(col, *render_dist);
             col_orders.on_load_area_change(player.index(), &load_area, &new_load_area);
             *load_area = new_load_area;
         }
@@ -145,27 +145,36 @@ pub fn update_load_area(
 pub fn on_render_distance_change(
     mut query: Query<(Entity, &RenderDistance), Changed<RenderDistance>>,
     mut col_orders: ResMut<LoadOrders>,
-    mut load_area: ResMut<LoadArea>,
+    mut load_area: ResMut<PlayerArea>,
 ) {
     for (player, render_dist) in query.iter_mut() {
-        let new_load_area = LoadArea::new(load_area.center, *render_dist);
+        let new_load_area = PlayerArea::new(load_area.center, *render_dist);
         col_orders.on_load_area_change(player.index(), &load_area, &new_load_area);
         *load_area = new_load_area;
     }
 }
 
+#[derive(Resource)]
+pub struct ColEntities(pub HashMap<ColPos, Vec<Entity>>);
+
 #[derive(Event)]
 pub struct ColUnloadEvent(pub ColPos);
 
 pub fn process_unload_orders(
+    mut commands: Commands,
     mut col_orders: ResMut<LoadOrders>,
     blocks: ResMut<VoxelWorld>,
     mut ev_unload: EventWriter<ColUnloadEvent>,
+    mut col_entities: ResMut<ColEntities>,
 ) {
     // PROCESS UNLOAD ORDERS
     for col in col_orders.to_unload.drain(..) {
         blocks.unload_col(col);
+        if let Some(entities) = col_entities.0.remove(&col) {
+            for entity in entities {
+                commands.entity(entity).despawn();
+            }
+        }
         ev_unload.send(ColUnloadEvent(col));
     }
 }
-

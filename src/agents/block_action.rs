@@ -1,11 +1,12 @@
 use std::fs;
 use std::iter::zip;
+use std::time::{Duration, Instant};
 use crate::items::{BlockLootTable, LootEntry, DropQuantity, Hotbar, Item, Stack};
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
 use crate::ui::{ControllingPlayer, SelectedHotbarSlot};
 use crate::Block;
-use crate::world::{BlockPos, VoxelWorld, Realm};
+use crate::world::{BlockPos, ColEntities, ColPos, Realm, VoxelWorld};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
 use crate::WorldRng;
 use leafwing_input_manager::prelude::*;
@@ -27,6 +28,7 @@ impl Plugin for BlockActionPlugin {
 			.add_systems(Update, (break_action, target_block, target_block_changed).chain().run_if(in_state(ControllingPlayer)))
 			.add_systems(Update, block_outline.run_if(in_state(ControllingPlayer)))
             .add_systems(Update, place_block.run_if(in_state(ControllingPlayer)))
+            .add_systems(Update, renew_block)
 			;
     }
 }
@@ -65,6 +67,15 @@ const EDGES_LINES: [Vec3; 4] = [
     Vec3::new(-1., 1., -1.),
     Vec3::new(1., -1., -1.), 
 ];
+
+#[derive(Component)]
+pub struct BlockAttached(BlockPos);
+
+#[derive(Component)]
+pub struct Renewable {
+    // TODO: fine for now but it's better if the world has its own clock
+    renew_after: Instant,
+}
 
 fn target_block(
     mut player: Query<(&mut TargetBlock, &Realm), With<PlayerControlled>>, 
@@ -111,7 +122,9 @@ fn break_action(
     block_break_table: Res<BlockBreakTable>,
     block_harvest_table: Res<BlockHarvestTable>,
     time: Res<Time>,
-    mut world_rng: ResMut<WorldRng>
+    mut col_entities: ResMut<ColEntities>,
+    mut world_rng: ResMut<WorldRng>,
+    block_entt_query: Query<&BlockAttached>,
 ) {
     for (player, target_block_opt, mut hotbar, action, opt_looting) in block_action_query.iter_mut() {
         let Some(mut looting) = opt_looting else {
@@ -162,8 +175,29 @@ fn break_action(
         let Some(target_block) = &target_block_opt.0 else {
             continue;
         };
-        if matches!(looting.action_type, BlockActionType::Breaking) {
-            world.set_block(target_block.pos, Block::Air);
+        let col_pos: ColPos = target_block.pos.into();
+        match looting.action_type {
+            BlockActionType::Breaking => {
+                world.set_block(target_block.pos, Block::Air);
+                if let Some(entities) = col_entities.0.get(&col_pos) {
+                    for entity in entities {
+                        if let Ok(block_pos) = block_entt_query.get(*entity) {
+                            if block_pos.0 == target_block.pos {
+                                commands.entity(*entity).despawn();
+                            }
+                        }
+                    }
+                }
+            }
+            BlockActionType::Harvesting => {
+                let depleted = world.get_block(target_block.pos).depleted();
+                world.set_block(target_block.pos, depleted);
+                let renew_entt = commands.spawn((
+                    Renewable { renew_after: Instant::now().checked_add(Duration::from_secs(depleted.renewal_minutes() as u64*60)).unwrap() }, 
+                    BlockAttached(target_block.pos))
+                ).id();
+                col_entities.0.entry(col_pos).or_default().push(renew_entt);
+            }
         }
         if let Some(drop) = looting.break_entry.drops {
             let drop_quantity = looting.break_entry.quantity.as_ref().unwrap_or(&DropQuantity::Fixed(1));
@@ -208,6 +242,20 @@ fn place_block(
         if !world.set_block_safe(pos, block) {
             // If the block couldn't be added we add it back
             hotbar.0.0[selected_slot.0].try_add(Stack::Some(Item::Block(block), 1));
+        }
+    }
+}
+
+fn renew_block(
+    mut commands: Commands,
+    world: Res<VoxelWorld>,
+    renewables: Query<(Entity, &Renewable, &BlockAttached)>,
+) {
+    let now = Instant::now();
+    for (entity, renewable, pos) in renewables.iter() {
+        if now >= renewable.renew_after {
+            world.set_block(pos.0, world.get_block(pos.0).renewed());
+            commands.entity(entity).despawn();
         }
     }
 }

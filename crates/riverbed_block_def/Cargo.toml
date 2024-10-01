@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 nom = "*"
 itertools = "*"
+ron = "*"
+serde = { version = "*", features = ["derive"] }

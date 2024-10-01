@@ -12,7 +12,7 @@ use strum::IntoEnumIterator;
 use crate::block::Face;
 use crate::world::pos2d::chunks_in_col;
 use crate::world::{VoxelWorld, ChunkPos, CHUNK_S1, Y_CHUNKS};
-use crate::world::{range_around, ColUnloadEvent, LoadArea, LoadAreaAssigned};
+use crate::world::{range_around, ColUnloadEvent, PlayerArea, LoadAreaAssigned};
 use super::chunk_culling::chunk_culling;
 use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
 use super::texture_array::BlockTextureArray;
@@ -31,7 +31,7 @@ fn choose_lod_level(chunk_dist: u32) -> usize {
 }
 
 fn mark_lod_remesh(
-    load_area: Res<LoadArea>, 
+    load_area: Res<PlayerArea>, 
     chunk_ents: ResMut<ChunkEntities>, 
     lods: Query<&LOD>, 
     blocks: ResMut<VoxelWorld>
@@ -57,7 +57,7 @@ fn mark_lod_remesh(
     }
 }
 
-fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<LoadArea>) {
+fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<PlayerArea>) {
     for (x, y) in iproduct!(range_around(load_area.center.x, GRID_GIZMO_LEN), 0..=Y_CHUNKS) {
         let start = Vec3::new(x as f32, y as f32, (load_area.center.z-GRID_GIZMO_LEN) as f32)*CHUNK_S1 as f32;
         let end = Vec3::new(x as f32, y as f32, (load_area.center.z+GRID_GIZMO_LEN) as f32)*CHUNK_S1 as f32;
@@ -118,7 +118,7 @@ pub fn pull_meshes(
     mut mesh_query: Query<(&mut Handle<Mesh>, &mut LOD)>,
     mut meshes: ResMut<Assets<Mesh>>,
     block_tex_array: Res<BlockTextureArray>,
-    load_area: Res<LoadArea>,
+    load_area: Res<PlayerArea>,
     blocks: Res<VoxelWorld>
 ) {
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter()

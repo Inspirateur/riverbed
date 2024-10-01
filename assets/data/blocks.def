@@ -33,16 +33,12 @@ set Stone {
     Limestone
 }
 
-set Ore {
-    Iron,
-    Gold
-}
-
 block {Wood}{Leaves}
 block {Wood}{Log}
 block {Wood}{Planks}
 
-block {Ore}Ore
+block IronOre renewable(10)
+block GoldOre renewable(15)
 
 block {Soil}
 block {Crystal}

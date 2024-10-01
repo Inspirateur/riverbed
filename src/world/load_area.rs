@@ -8,7 +8,7 @@ use std::{collections::HashMap, ops::RangeInclusive};
 pub struct RenderDistance(pub u32);
 
 #[derive(Resource, Clone)]
-pub struct LoadArea {
+pub struct PlayerArea {
     pub center: ColPos,
     pub col_dists: HashMap<ColPos, u32>,
 }
@@ -17,7 +17,7 @@ pub fn range_around(a: i32, dist: i32) -> RangeInclusive<i32> {
     (a - dist)..=(a + dist)
 }
 
-impl LoadArea {
+impl PlayerArea {
     pub fn new(center: ColPos, render_dist: RenderDistance) -> Self {
         let dist = render_dist.0 as i32;
         Self {
