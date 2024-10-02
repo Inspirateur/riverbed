@@ -5,7 +5,7 @@ use strum::IntoEnumIterator;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref RE_CRAFT: Regex = Regex::new(r"\[([^\]]+)\]").unwrap();
+    static ref RE_CRAFT: Regex = Regex::new(r"\{([^\}]+)\}").unwrap();
 }
 
 #[derive(Debug)]
@@ -32,7 +32,7 @@ impl RecipeExpander {
         let mut res = Vec::new();
         for variants in groups.iter().map(|g| self.0.get(*g).unwrap()).multi_cartesian_product() {
             for (group, variant) in groups.iter().zip(variants) {
-                res.push(recipe.replace(&format!("[{}]", *group), variant));
+                res.push(recipe.replace(&format!("{{{}}}", *group), variant));
             }
         }
         Some(res)
@@ -47,7 +47,6 @@ mod tests {
 
     #[derive(Debug, EnumIter)]
     enum Wood {
-        Acacia,
         Birch,
         Oak,
         Spruce
@@ -57,7 +56,11 @@ mod tests {
     fn test_expand() {
         let mut expander = RecipeExpander::new();
         expander.register_enum::<Wood>();
-        let recipe_group = expander.try_expand("[Wood]Log = 4 [Wood]Plank");
-        println!("{recipe_group:?}");
+        let recipe_group = expander.try_expand("{Wood}Log = 4 {Wood}Plank");
+        assert_eq!(recipe_group, Some(vec![
+            "BirchLog = 4 BirchPlank".to_string(), 
+            "OakLog = 4 OakPlank".to_string(), 
+            "SpruceLog = 4 SprucePlank".to_string()
+        ]));
     }
 }

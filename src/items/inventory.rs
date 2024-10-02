@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 use bevy::prelude::Component;
-use crate::BlockFamily;
 
-use super::{craft_table::{Ingredient, Recipe}, item::Item};
+use super::{craft_table::Recipe, item::Item, CraftEntry};
 pub const HOTBAR_SLOTS: usize = 8;
 
 pub enum Stack {
@@ -63,7 +62,7 @@ impl Stack {
 
 pub struct InventoryRecipes {
     pub craftable_recipes: Vec<(Recipe, HashMap<usize, u32>)>,
-    pub uncraftable_recipes: Vec<Recipe>
+    pub uncraftable_entries: Vec<CraftEntry>
 }
 
 pub struct Inventory<const N: usize>(pub [Stack; N]);
@@ -107,60 +106,45 @@ impl<const N: usize> Inventory<N> {
         false
     }
 
-    fn try_select_block_family(&self, target_family: &BlockFamily, mut target_quantity: u32, selection: &mut HashMap<usize, u32>) -> bool {
-        for (i, stack) in self.0.iter().enumerate() {
-            let Stack::Some(Item::Block(block), mut qty) = stack else {
-                continue;
-            };
-            if !block.families().contains(target_family) {
-                continue;
-            }
-            qty = (qty - selection.get(&i).unwrap_or(&0)).min(target_quantity);
-            *selection.entry(i).or_insert(0) += qty;
-            target_quantity -= qty;
-            if target_quantity == 0 {
-                return true;
-            }
-        }
-        false
-    }
-
     fn is_recipe_craftable(&self, recipe: &Recipe) -> Option<HashMap<usize, u32>> {
         let mut selection: HashMap<usize, u32> = HashMap::new();
-        
-        // go through the specific ingredients first
         for (ingredient, qty) in &recipe.ingredients {
-            let Ingredient::Item(item) = ingredient else {
-                continue;
-            };
-            if !self.try_select_item(item, *qty, &mut selection) {
-                return None;
-            }
-        }
-        // go through the block families second
-        for (ingredient, qty) in &recipe.ingredients {
-            let Ingredient::BlockFamily(family) = ingredient else {
-                continue;
-            };
-            if !self.try_select_block_family(family, *qty, &mut selection) {
+            if !self.try_select_item(ingredient, *qty, &mut selection) {
                 return None;
             }
         }
         Some(selection)
     }
 
-    pub fn filter_recipes(&self, recipes: &Vec<Recipe>) -> InventoryRecipes {
+    pub fn filter_recipes(&self, recipes: &Vec<CraftEntry>) -> InventoryRecipes {
         // Only return recipes that are possible to make with this inventory
         let mut craftable_recipes = Vec::new();
         let mut uncraftable_recipes = Vec::new();
-        for recipe in recipes.iter() {
-            if let Some(selection) = self.is_recipe_craftable(recipe) {
-                craftable_recipes.push((recipe.clone(), selection));
-            } else {
-                uncraftable_recipes.push(recipe.clone());
+        for craft_entry in recipes.iter() {
+            match craft_entry {
+                CraftEntry::RecipeGroup(recipes) => {
+                    let mut got_any = false;
+                    for recipe in recipes {
+                        if let Some(selection) = self.is_recipe_craftable(recipe) {
+                            craftable_recipes.push((recipe.clone(), selection));
+                            got_any = true;
+                        }
+                    }
+                    if !got_any {
+                        uncraftable_recipes.push(craft_entry.clone());
+                    }
+                },
+                CraftEntry::Recipe(recipe) => {
+                    if let Some(selection) = self.is_recipe_craftable(recipe) {
+                        craftable_recipes.push((recipe.clone(), selection));
+                    } else {
+                        uncraftable_recipes.push(craft_entry.clone());
+                    }
+                },
             }
+            
         }
-        InventoryRecipes { craftable_recipes, uncraftable_recipes }
+        InventoryRecipes { craftable_recipes, uncraftable_entries: uncraftable_recipes }
     }
 }
 
@@ -172,7 +156,7 @@ pub struct Hotbar(pub Inventory<HOTBAR_SLOTS>);
 mod tests {
     use itertools::Itertools;
 
-    use crate::{Block, BlockFamily, items::{craft_table::{Ingredient, Recipe}, Item}};
+    use crate::{items::{craft_table::Recipe, parse_recipes, Item}, Block};
     use super::{Inventory, Stack};
 
     #[test]
@@ -184,40 +168,23 @@ mod tests {
         inventory.0[4] = Stack::Some(Item::Rock, 1);
         inventory.0[6] = Stack::Some(Item::Block(Block::Dirt), 1);
         inventory.0[7] = Stack::Some(Item::Block(Block::BirchLog), 4);
-        let recipes = vec![
-            // NO: we got only 1 Dirt (we need 1 Dirt + 1 Soil)
+        let recipes_str = r#"
+        {Soil} + Dirt = Mud
+        3 Rock + Stick = StoneAxe
+        4 Rock + Stick = StoneAxe
+        5 {Wood}Log = Campfire
+        "#;
+        let recipes = parse_recipes(recipes_str);
+        let available_recipes = vec![
             Recipe {
-                ingredients: vec![
-                    (Ingredient::BlockFamily(BlockFamily::Soil), 1),
-                    (Ingredient::Item(Item::Block(Block::Dirt)), 1),
-                ],
-                out: (Item::Block(Block::Mud), 1)
-            },
-            // YES: we got 3 rocks total
-            Recipe {
-                ingredients: vec![
-                    (Ingredient::Item(Item::Rock), 3),
-                    (Ingredient::Item(Item::Stick), 1),
-                ],
+                ingredients: vec![(Item::Rock, 3), (Item::Stick, 1)],
                 out: (Item::StoneAxe, 1)
-            },
-            // NO: we don't have enough rocks
+            }, 
             Recipe {
-                ingredients: vec![
-                    (Ingredient::Item(Item::Rock), 4),
-                    (Ingredient::Item(Item::Stick), 1),
-                ],
-                out: (Item::StoneAxe, 1)
-            },
-            // YES: we got 6 logs total
-            Recipe {
-                ingredients: vec![
-                    (Ingredient::BlockFamily(BlockFamily::Log), 5),
-                ],
+                ingredients: vec![(Item::Block(Block::BirchLog), 5)],
                 out: (Item::Block(Block::Campfire), 1)
-            },
+            }
         ];
-        let available_recipes = vec![recipes[1].clone(), recipes[3].clone()];
         assert_eq!(
             available_recipes, 
             inventory.filter_recipes(&recipes).craftable_recipes.into_iter().map(|(recipe, _)| recipe).collect_vec()

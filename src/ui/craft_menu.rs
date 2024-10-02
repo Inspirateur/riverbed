@@ -1,7 +1,7 @@
 use std::fs;
 use bevy::{prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE, color::palettes::css};
 use leafwing_input_manager::action_state::ActionState;
-use crate::{agents::{Action, PlayerControlled}, Block, BlockFamily, items::{parse_recipes, Hotbar, Ingredient, Inventory, InventoryRecipes, Item, Recipe, Stack}, sounds::ItemGet};
+use crate::{agents::{Action, PlayerControlled}, items::{parse_recipes, CraftEntry, Hotbar, Inventory, InventoryRecipes, Item, Recipe, Stack}, sounds::ItemGet};
 use super::{game_menu::despawn_screen, hotbar::UiTextureMap, GameUiState, UIAction};
 const SLOT_SIZE_PERCENT: f32 = 4.;
 
@@ -25,7 +25,7 @@ impl Plugin for CraftMenuPlugin {
 }
 
 #[derive(Resource)]
-struct HandCrafts(Vec<Recipe>);
+struct HandCrafts(Vec<CraftEntry>);
 
 #[derive(Component)]
 struct RecipeSlot(pub usize);
@@ -36,12 +36,7 @@ pub struct SelectedRecipe(pub usize);
 #[derive(Component)]
 struct CraftingMenu(pub InventoryRecipes);
 
-fn add_ingredient(parent: &mut ChildBuilder, ingredient: &Ingredient, qty: u32, is_craftable: bool, tex_map: &Res<UiTextureMap>) {
-    let item = match ingredient {
-        Ingredient::Item(item) => item,
-        // TODO: deal with block families properly, as well as recipes of the kind "Log = 4 Planks" (family to family)
-        Ingredient::BlockFamily(_family) => &Item::Block(Block::OakLog),
-    };
+fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable: bool, tex_map: &Res<UiTextureMap>) {
     let alpha = if is_craftable { 1. } else { 0.6 };
     parent.spawn(NodeBundle {
         style: Style {
@@ -123,7 +118,7 @@ fn add_recipe_node(parent: &mut ChildBuilder, recipe: &Recipe, is_craftable: boo
             },
             ..Default::default()
         });
-        add_ingredient(node, &Ingredient::Item(recipe.out.0), recipe.out.1, is_craftable, tex_map);
+        add_ingredient(node, &recipe.out.0, recipe.out.1, is_craftable, tex_map);
     });
 }
 
@@ -159,8 +154,8 @@ fn create_craft_menu(mut commands: Commands, inventory_recipes: InventoryRecipes
                 i += 1;
             }
 
-            for uncraftable_recipe in &inventory_recipes.uncraftable_recipes {
-                add_recipe_node(parent, uncraftable_recipe, false, &tex_map, i);
+            for uncraftable_recipe in &inventory_recipes.uncraftable_entries {
+                add_recipe_node(parent, uncraftable_recipe.get_example(0), false, &tex_map, i);
                 i += 1;
             }
     })

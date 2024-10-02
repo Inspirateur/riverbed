@@ -1,6 +1,6 @@
 Stick + Rock = StoneAxe
 5 Rock = Campfire
-Log = 4 OakPlanks
+{Wood}Log = 4 {Wood}Planks
 GrassBlock = Dirt
 Stick + 3 IronIngot = IronPickaxe
 Stick + 3 IronIngot = IronAxe

@@ -51,7 +51,7 @@ impl MatchFn {
 
 pub fn generate_enum(name: &str, variants: &BTreeSet<String>) -> String {
     format!(
-        "#[derive(Debug, PartialEq, EnumString, Eq, Serialize, Deserialize, Clone, Copy, Hash)]\npub enum {name} {{\n\t{}\n}}\n", 
+        "#[derive(Debug, PartialEq, EnumIter, EnumString, Eq, Serialize, Deserialize, Clone, Copy, Hash)]\npub enum {name} {{\n\t{}\n}}\n", 
         variants.into_iter().join(",\n\t")
     )
 }
@@ -131,7 +131,7 @@ pub fn generate(ir: &IR) -> String {
     }
     let mut code_blocks = Vec::new();
     code_blocks.push("use serde::{Deserialize, Serialize};".to_string());
-    code_blocks.push("use strum_macros::EnumString;".to_string());
+    code_blocks.push("use strum_macros::{EnumIter, EnumString};".to_string());
     code_blocks.push(String::new());
     code_blocks.push(generate_enum(BLOCK_FAM, &ir.sets.keys().map(|s| s.to_owned()).collect()));
     for (family, variants) in ir.sets.iter() {

@@ -1,27 +1,26 @@
 use std::{fmt::Debug, str::FromStr};
 use itertools::Itertools;
-use serde::Deserialize;
-use crate::BlockFamily;
+use crate::{asset_processing::RecipeExpander, Soil, Wood};
 use super::Item;
 
-#[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
-#[serde(untagged)]
-pub enum Ingredient {
-    Item(Item),
-    BlockFamily(BlockFamily),
+#[derive(Debug, Clone)]
+pub enum CraftEntry {
+    RecipeGroup(Vec<Recipe>),
+    Recipe(Recipe)
 }
 
-impl FromStr for Ingredient {
-    type Err = json5::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        json5::from_str(&format!("'{}'", s))
+impl CraftEntry {
+    pub fn get_example(&self, seed: u32) -> &Recipe {
+        match self {
+            CraftEntry::RecipeGroup(recipes) => &recipes[seed as usize%recipes.len()],
+            CraftEntry::Recipe(recipe) => recipe,
+        }
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Recipe {
-    pub ingredients: Vec<(Ingredient, u32)>,
+    pub ingredients: Vec<(Item, u32)>,
     pub out: (Item, u32),
 }
 
@@ -39,12 +38,23 @@ where
     }
 }
 
-pub fn parse_recipes(recipes: &str) -> Vec<Recipe> {
+pub fn parse_recipe<S: AsRef<str>>(recipe: S) -> Recipe {
+    let recipe: &str = recipe.as_ref();
+    let (ingredients, out) = recipe.split("=").next_tuple().unwrap();
+    let ingredients = ingredients.split("+").map(parse_ingredient_qty).collect_vec();
+    let out = parse_ingredient_qty(out);
+    Recipe { ingredients, out }
+}
+
+pub fn parse_recipes(recipes: &str) -> Vec<CraftEntry> {
+    let mut expander = RecipeExpander::new();
+    expander.register_enum::<Wood>();
+    expander.register_enum::<Soil>();    
     recipes.trim().lines().map(|recipe| {
-        let (ingredients, out) = recipe.split("=").next_tuple().unwrap();
-        let ingredients = ingredients.split("+").map(parse_ingredient_qty).collect_vec();
-        let out = parse_ingredient_qty(out);
-        Recipe { ingredients, out }
+        match expander.try_expand(recipe) {
+            None => CraftEntry::Recipe(parse_recipe(recipe)),
+            Some(recipe_group) => CraftEntry::RecipeGroup(recipe_group.into_iter().map(parse_recipe).collect())
+        }
     }).collect_vec()
 }
 
@@ -57,22 +67,28 @@ mod tests {
     #[test]
     fn test_parsing() {
         let recipes_str = r#"
-        Log + 4 Rock = Campfire
-        2 Soil + SeaBlock + Dirt = 3 Mud
+        {Wood}Log + 4 Rock = Campfire
+        2 {Soil} + SeaBlock + Dirt = 3 Mud
         "#;
         let recipes = parse_recipes(recipes_str);
-        assert_eq!(recipes[0], Recipe { 
+        let CraftEntry::RecipeGroup(group1) = &recipes[0] else {
+            panic!("Craft entry 0 should be a RecipeGroup");
+        };
+        let CraftEntry::RecipeGroup(group2) = &recipes[1] else {
+            panic!("Craft entry 1 should be a RecipeGroup");
+        };
+        assert_eq!(group1[0], Recipe { 
             ingredients: vec![
-                (Ingredient::BlockFamily(BlockFamily::Log), 1),
-                (Ingredient::Item(Item::Rock), 4)
+                (Item::Block(Block::AcaciaLog), 1),
+                (Item::Rock, 4)
             ],
             out: (Item::Block(Block::Campfire), 1)
         });
-        assert_eq!(recipes[1], Recipe { 
+        assert_eq!(group2[0], Recipe { 
             ingredients: vec![
-                (Ingredient::BlockFamily(BlockFamily::Soil), 2),
-                (Ingredient::Item(Item::Block(Block::SeaBlock)), 1),
-                (Ingredient::Item(Item::Block(Block::Dirt)), 1)
+                (Item::Block(Block::CoarseDirt), 2),
+                (Item::Block(Block::SeaBlock), 1),
+                (Item::Block(Block::Dirt), 1)
             ],
             out: (Item::Block(Block::Mud), 3)
         });
