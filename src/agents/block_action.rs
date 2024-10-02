@@ -193,7 +193,7 @@ fn break_action(
                 let depleted = world.get_block(target_block.pos).depleted();
                 world.set_block(target_block.pos, depleted);
                 let renew_entt = commands.spawn((
-                    Renewable { renew_after: Instant::now().checked_add(Duration::from_secs(depleted.renewal_minutes() as u64*60)).unwrap() }, 
+                    Renewable { renew_after: Instant::now().checked_add(Duration::from_secs(depleted.renewal_minutes() as u64)).unwrap() }, 
                     BlockAttached(target_block.pos))
                 ).id();
                 col_entities.0.entry(col_pos).or_default().push(renew_entt);

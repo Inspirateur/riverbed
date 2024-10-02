@@ -9,6 +9,7 @@ set Wood {
 set Log { Log }
 set Leaves { Leaves }
 set Planks { Planks }
+set Ore { Ore }
 
 set Soil {
     CoarseDirt,
@@ -37,8 +38,8 @@ block {Wood}{Leaves}
 block {Wood}{Log}
 block {Wood}{Planks}
 
-block IronOre renewable(10)
-block GoldOre renewable(15)
+block Iron{Ore} renewable(10)
+block Gold{Ore} renewable(15)
 
 block {Soil}
 block {Crystal}

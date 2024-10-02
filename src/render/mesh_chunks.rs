@@ -81,7 +81,7 @@ impl Chunk {
                 let h = MASK_6 & (quad >> 24);
                 let xyz = MASK_XYZ & quad;
                 let block = self.palette[voxel_i];
-                let layer = texture_map.get_texture_index(block, face).unwrap_or(0) as u32;
+                let layer = texture_map.get_texture_index(block, face) as u32;
                 let color = match (block, face) {
                     (Block::GrassBlock, Face::Up) => 0b011_111_001,
                     (block, _) if block.is_foliage() => 0b010_101_001,

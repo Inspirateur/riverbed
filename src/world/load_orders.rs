@@ -171,8 +171,10 @@ pub fn process_unload_orders(
     for col in col_orders.to_unload.drain(..) {
         blocks.unload_col(col);
         if let Some(entities) = col_entities.0.remove(&col) {
-            for entity in entities {
-                commands.entity(entity).despawn();
+            for entity_id in entities {
+                if let Some(mut entity) = commands.get_entity(entity_id) {
+                    entity.despawn();
+                }
             }
         }
         ev_unload.send(ColUnloadEvent(col));

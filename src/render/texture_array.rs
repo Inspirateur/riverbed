@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension}}};
+use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat}}};
 use dashmap::DashMap;
 use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
 use super::{mesh_chunks::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
@@ -8,7 +8,7 @@ use super::{mesh_chunks::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder
 pub struct TextureMap(pub Arc<DashMap<(Block, FaceSpecifier), usize>>);
 
 pub trait TextureMapTrait {
-    fn get_texture_index(&self, block: Block, face: Face) -> Option<usize>;
+    fn get_texture_index(&self, block: Block, face: Face) -> usize;
 }
 
 
@@ -17,14 +17,34 @@ impl TextureMapTrait for DashMap<(Block, FaceSpecifier), usize> {
     // grass_block_bottom.png -> dirt.png
     // furnace_bottom.png -> stone.png
     // etc ...
-    fn get_texture_index(&self, block: Block, face: Face) -> Option<usize> {
+    fn get_texture_index(&self, block: Block, face: Face) -> usize {
         for specifier in face.specifiers() {
             if let Some(i) = self.get(&(block, *specifier)) {
-                return Some(*i);
+                return *i;
             }
         }
-        None
+        0
     }
+}
+
+fn missing_tex(model: &Image) -> Image {
+    let mut img = Image::new_fill(
+        Extent3d {
+            width: model.width(), height: model.width(), ..Default::default()
+        }, TextureDimension::D2, &[130, 130, 130, 255], model.texture_descriptor.format, RenderAssetUsages::default()
+    );
+    let w = model.width() as usize;
+    let pixels = w*w;
+    let half_w = w/2;
+    for i in 0..pixels {
+        let (x, y) = ((i%w)/half_w, i/(w*half_w));
+        if x != y {
+            continue;
+        }
+        img.data[i*4] = 255;
+        img.data[i*4+2] = 200;
+    }
+    img
 }
 
 fn build_tex_array(
@@ -50,13 +70,19 @@ fn build_tex_array(
         let Some((block, face_specifier)) = parse_block_tex_name(filename) else {
             continue;
         };
-        texture_map.0.insert((block, face_specifier), texture_list.len());
+        texture_map.0.insert((block, face_specifier), texture_list.len()+1);
         texture_list.push(texture);
     }
-    if texture_list.len() == 0 {
-        return;
-    }
-    let model = texture_list[0];
+    let default = Image::new_fill(
+        Extent3d { width: 2, height: 2, ..Default::default() }, 
+        TextureDimension::D2, 
+        &[100], 
+        TextureFormat::Rgba8Unorm, 
+        RenderAssetUsages::default()
+    );
+    let model = texture_list.get(0).cloned().unwrap_or(&default);
+    let missing_tex = missing_tex(model);
+    texture_list.insert(0, &missing_tex);
     let array_tex = Image::new(Extent3d {
             width: model.width(), 
             height: model.height(), 
