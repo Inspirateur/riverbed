@@ -37,7 +37,7 @@ pub struct SelectedRecipe(pub usize);
 struct CraftingMenu(pub InventoryRecipes);
 
 fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable: bool, tex_map: &Res<UiTextureMap>) {
-    let alpha = if is_craftable { 1. } else { 0.6 };
+    let alpha = if is_craftable { 1. } else { 0.4 };
     parent.spawn(NodeBundle {
         style: Style {
             flex_direction: FlexDirection::Column,
@@ -64,7 +64,7 @@ fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable
                 UiImage::new(TRANSPARENT_IMAGE_HANDLE)
             },
             background_color: BackgroundColor(if is_craftable {
-                Color::linear_rgba(0., 0., 0., 0.3)
+                Color::linear_rgba(0., 0., 0., 0.7)
             } else {
                 Color::NONE
             }),
@@ -75,7 +75,7 @@ fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable
                 color: if is_craftable {
                     Color::Srgba(css::WHITE)
                 } else {
-                    Color::Srgba(css::GRAY)
+                    Color::Srgba(css::LIGHT_GRAY)
                 }, ..Default::default() }),
             style: Style {
                 position_type: PositionType::Absolute,
@@ -202,7 +202,7 @@ fn display_selected_recipe(
     let slots = craft_menu.0.craftable_recipes.len();
     for (slot, mut bg) in recipe_query.iter_mut() {
         if selected_recipe.0 < slots && slot.0 == selected_recipe.0 {
-            bg.0 = Color::linear_rgba(1., 1., 1., 0.3);
+            bg.0 = Color::linear_rgba(1., 1., 1., 0.2);
         } else {
             bg.0 = Color::NONE;
         }
