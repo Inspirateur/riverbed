@@ -1,6 +1,6 @@
 #import bevy_pbr::{
     pbr_fragment::pbr_input_from_standard_material,
-    mesh_view_bindings::view,
+    mesh_view_bindings::{view, globals},
     pbr_types::{STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND, PbrInput, pbr_input_new},
     pbr_functions as fns,
     mesh_functions::{get_world_from_local, mesh_position_local_to_clip, mesh_position_local_to_world},
@@ -21,6 +21,7 @@
 
 @group(2) @binding(100) var texture_pack: texture_2d_array<f32>;
 @group(2) @binding(101) var texture_sampler: sampler;
+@group(2) @binding(102) var<storage, read> anim_offsets: array<u32>;
 
 const MASK2: u32 = 3;
 const MASK3: u32 = 7;
@@ -161,7 +162,7 @@ fn fragment(
     var pbr_input = pbr_input_from_standard_material(vertex_output, is_front);
     
     // sample texture
-    pbr_input.material.base_color = in.color * in.face_light * textureSampleBias(texture_pack, texture_sampler, in.uv, in.texture_layer, view.mip_bias);
+    pbr_input.material.base_color = in.color * in.face_light * textureSampleBias(texture_pack, texture_sampler, in.uv, in.texture_layer + (u32(globals.time*2.0) % anim_offsets[in.texture_layer]), view.mip_bias);
     
     // alpha discard
     pbr_input.material.base_color = fns::alpha_discard(pbr_input.material, pbr_input.material.base_color);

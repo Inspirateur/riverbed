@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat}}};
+use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{encase::{vector::VectorScalar, ArrayLength}, AsBindGroup, Buffer, BufferUsages, BufferVec, DynamicStorageBuffer, Extent3d, GpuArrayBuffer, ShaderDefVal, ShaderImport, ShaderRef, TextureDimension, TextureFormat}}};
 use dashmap::DashMap;
 use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
 use super::{mesh_chunks::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
@@ -54,8 +54,11 @@ fn build_tex_array(
     mut textures: ResMut<Assets<Image>>,
     texture_map: Res<TextureMap>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
+    // mut shader_buffers: ResMut<Assets<ShaderStorageBuffer>>,
 ) {
     let mut texture_list: Vec<&Image> = Vec::new();
+    let mut anim_offsets = vec![1];
+    let mut index = 1;
     let loaded_folder: &LoadedFolder = loaded_folders.get(&block_textures.0).unwrap();
     for handle in loaded_folder.handles.iter() {
         let id = handle.id().typed_unchecked::<Image>();
@@ -70,8 +73,13 @@ fn build_tex_array(
         let Some((block, face_specifier)) = parse_block_tex_name(filename) else {
             continue;
         };
-        texture_map.0.insert((block, face_specifier), texture_list.len()+1);
+        let frames = texture.height()/texture.width();
+        texture_map.0.insert((block, face_specifier), index);
         texture_list.push(texture);
+        for _ in 0..frames {
+            anim_offsets.push(frames);
+            index += 1;    
+        }
     }
     let default = Image::new_fill(
         Extent3d { width: 2, height: 2, ..Default::default() }, 
@@ -102,7 +110,7 @@ fn build_tex_array(
             ..Default::default()
         },
         extension: ArrayTextureMaterial {
-            array_texture: handle,
+            array_texture: handle, anim_offsets
         }
     });
     commands.insert_resource(BlockTextureArray(handle));
@@ -117,6 +125,8 @@ pub struct ArrayTextureMaterial {
     #[texture(100, dimension = "2d_array")]
     #[sampler(101)]
     array_texture: Handle<Image>,
+    #[storage(102, read_only)]
+    anim_offsets: Vec<u32>,
 }
 
 impl MaterialExtension for ArrayTextureMaterial {
