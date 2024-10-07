@@ -2,6 +2,8 @@ use std::ffi::OsStr;
 use bevy::{asset::LoadedFolder, prelude::*};
 use crate::{Block, block::{Face, FaceSpecifier}, asset_processing::from_filename};
 
+const DIGITS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
 pub struct TextureLoadPlugin;
 
 impl Plugin for TextureLoadPlugin {
@@ -57,19 +59,16 @@ pub struct ItemTextureFolder(pub Handle<LoadedFolder>);
 
 
 pub fn parse_block_tex_name(filename: &OsStr) -> Option<(Block, FaceSpecifier)> {
-    let filename = filename.to_str()?;
-    let Some((block, face)) = filename.rsplit_once("_") else {
-        return Some((from_filename(filename)?, FaceSpecifier::All));
+    let filename = filename.to_str()?.trim_end_matches(DIGITS);
+    let (block, face) = match filename.rsplit_once("_") {
+        Some((block, "side")) => (block, FaceSpecifier::Side),
+        Some((block, "bottom")) => (block, FaceSpecifier::Specific(Face::Down)),
+        Some((block, "top")) => (block, FaceSpecifier::Specific(Face::Up)),
+        Some((block, "front")) => (block, FaceSpecifier::Specific(Face::Front)),
+        Some((block, "back")) => (block, FaceSpecifier::Specific(Face::Back)),
+        _ => (filename, FaceSpecifier::All),
     };
-    match face {
-        "side" => Some((from_filename(block)?, FaceSpecifier::Side)),
-        "bottom" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Down))),
-        "top" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Up))),
-        "front" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Front))),
-        "side1" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Left))),
-        "side2" => Some((from_filename(block)?, FaceSpecifier::Specific(Face::Right))),
-        _ => Some((from_filename(filename)?, FaceSpecifier::All))
-    }
+    Some((from_filename(block)?, face))
 }
 
 fn load_item_textures(mut commands: Commands, asset_server: Res<AssetServer>) {

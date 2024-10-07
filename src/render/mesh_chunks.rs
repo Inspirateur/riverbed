@@ -8,8 +8,7 @@ use bevy::{
 };
 use binary_greedy_meshing as bgm;
 
-use dashmap::DashMap;
-use crate::{Block, block::{Face, FaceSpecifier}, world::{pad_linearize, Chunk, CHUNKP_S3}};
+use crate::{Block, block::Face, world::{pad_linearize, Chunk, CHUNKP_S3}};
 use crate::world::CHUNK_S1;
 use super::texture_array::TextureMapTrait;
 
@@ -55,7 +54,7 @@ impl Chunk {
 
     /// Doesn't work with lod > 2, because chunks are of size 62 (to get to 64 with padding) and 62 = 2*31
     /// TODO: make it work with lod > 2 if necessary (by truncating quads)
-    pub fn create_face_meshes(&self, texture_map: &DashMap<(Block, FaceSpecifier), usize>, lod: usize) ->  [Option<Mesh>; 6] {
+    pub fn create_face_meshes(&self, texture_map: impl TextureMapTrait, lod: usize) ->  [Option<Mesh>; 6] {
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let voxels = self.voxel_data_lod(lod);
@@ -84,6 +83,7 @@ impl Chunk {
                 let layer = texture_map.get_texture_index(block, face) as u32;
                 let color = match (block, face) {
                     (Block::GrassBlock, Face::Up) => 0b011_111_001,
+                    (Block::SeaBlock, _) => 0b110_011_001,
                     (block, _) if block.is_foliage() => 0b010_101_001,
                     _ => 0b111_111_111
                 };

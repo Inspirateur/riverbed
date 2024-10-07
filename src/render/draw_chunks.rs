@@ -99,7 +99,7 @@ fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, shared_loa
                 let Some(chunk) = chunks.get(&chunk_pos) else {
                     continue;
                 };
-                let face_meshes = chunk.create_face_meshes(&texture_map, lod);
+                let face_meshes = chunk.create_face_meshes(&*texture_map, lod);
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();
                     if mesh_sender.send((face_mesh, chunk_pos, face, LOD(lod))).is_err() {

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{encase::{vector::VectorScalar, ArrayLength}, AsBindGroup, Buffer, BufferUsages, BufferVec, DynamicStorageBuffer, Extent3d, GpuArrayBuffer, ShaderDefVal, ShaderImport, ShaderRef, TextureDimension, TextureFormat}}};
+use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat}}};
 use dashmap::DashMap;
 use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
 use super::{mesh_chunks::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
@@ -12,7 +12,7 @@ pub trait TextureMapTrait {
 }
 
 
-impl TextureMapTrait for DashMap<(Block, FaceSpecifier), usize> {
+impl TextureMapTrait for &DashMap<(Block, FaceSpecifier), usize> {
     // TODO: need to allow the user to create a json with "texture files links" such as:
     // grass_block_bottom.png -> dirt.png
     // furnace_bottom.png -> stone.png
@@ -20,7 +20,7 @@ impl TextureMapTrait for DashMap<(Block, FaceSpecifier), usize> {
     fn get_texture_index(&self, block: Block, face: Face) -> usize {
         for specifier in face.specifiers() {
             if let Some(i) = self.get(&(block, *specifier)) {
-                return *i;
+                return *i
             }
         }
         0
@@ -94,7 +94,7 @@ fn build_tex_array(
     let array_tex = Image::new(Extent3d {
             width: model.width(), 
             height: model.height(), 
-            depth_or_array_layers: texture_list.len() as u32
+            depth_or_array_layers: index as u32
         }, 
         TextureDimension::D2, 
         texture_list.into_iter().flat_map(|tex| tex.data.clone()).collect(), 
