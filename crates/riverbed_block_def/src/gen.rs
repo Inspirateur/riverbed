@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{collections::{BTreeMap, BTreeSet}, fmt::Display};
 use itertools::Itertools;
 use crate::parse::{BlockFlag, BlockFrag, IR};
 
@@ -7,6 +7,38 @@ const BLOCKS: &'static str = "Block";
 
 fn tab(i: u32) -> String {
     (0..i).map(|_| "\t").collect()
+}
+
+struct BlockEntry {
+    name: String,
+    families: BTreeSet<String>,
+    flags: BTreeSet<BlockFlag>,
+}
+
+impl PartialEq for BlockEntry {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for BlockEntry {}
+
+impl PartialOrd for BlockEntry {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.name.partial_cmp(&other.name)
+    }
+}
+
+impl Ord for BlockEntry {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
+impl Display for BlockEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 struct MatchFn {
@@ -49,66 +81,78 @@ impl MatchFn {
     }
 }
 
-pub fn generate_enum(name: &str, variants: &BTreeSet<String>) -> String {
+fn generate_enum<T: Display>(name: &str, variants: &BTreeSet<T>) -> String {
     format!(
         "#[derive(Debug, PartialEq, EnumIter, EnumString, Eq, Serialize, Deserialize, Clone, Copy, Hash)]\npub enum {name} {{\n\t{}\n}}\n", 
         variants.into_iter().join(",\n\t")
     )
 }
 
-pub fn generate_family_impl(block_families: &BTreeMap<String, BTreeSet<&String>>) -> String {
+fn generate_family_impl(blocks: &BTreeSet<BlockEntry>) -> String {
     MatchFn::new("families", &format!("Vec<{BLOCK_FAM}>")).with_arms(
-        block_families.into_iter().map(
-            |(block, families)| 
-                format!("{BLOCKS}::{} => vec![{}]", block, families.into_iter().map(|f| format!("{BLOCK_FAM}::{f}")).join(", "))
+        blocks.into_iter().map(
+            |block| 
+                format!("{BLOCKS}::{} => vec![{}]", block, block.families.iter().map(|f| format!("{BLOCK_FAM}::{f}")).join(", "))
             ).collect::<Vec<_>>()
     ).to_rust(1)
 }
 
-pub fn generate_flags(blocks: &BTreeSet<(String, BTreeSet<BlockFlag>)>) -> String {
+fn generate_flags(blocks: &mut BTreeSet<BlockEntry>) -> String {
     let mut flag_fns = BTreeMap::new();
-    for (block, flags) in blocks.into_iter() {
-        for flag in flags.into_iter() {
+    let mut generated_blocks = BTreeSet::new();
+    for block in blocks.iter() {
+        for flag in block.flags.clone().into_iter() {
             match flag {
                 BlockFlag::Renewable(minutes) => {
+                    let depleted_block = BlockEntry {
+                        name: format!("Depleted{block}"),
+                        families: block.families.clone(),
+                        flags: block.flags.clone().into_iter().filter(|f| !matches!(f, BlockFlag::Renewable(_))).collect()
+                    };
                     flag_fns.entry("depleted".to_string()).or_insert(MatchFn::new("depleted", &BLOCKS).with_default("*self")).arms.push(
-                        format!("{BLOCKS}::{block} => {BLOCKS}::Depleted{block}")
+                        format!("{BLOCKS}::{block} => {BLOCKS}::{depleted_block}")
                     );
                     flag_fns.entry("renewed".to_string()).or_insert(MatchFn::new("renewed", &BLOCKS).with_default("*self")).arms.push(
-                        format!("{BLOCKS}::Depleted{block} => {BLOCKS}::{block}")
+                        format!("{BLOCKS}::{depleted_block} => {BLOCKS}::{block}")
                     );
                     flag_fns.entry("renewal_minutes".to_string()).or_insert(MatchFn::new("renewal_minutes", "u32").with_default("0")).arms.push(
-                        format!("{BLOCKS}::Depleted{block} => {minutes}")
+                        format!("{BLOCKS}::{depleted_block} => {minutes}")
                     );
+                    generated_blocks.insert(depleted_block);
+                },
+                BlockFlag::Furnace => {
+                    let lit_furnace = BlockEntry {
+                        name: format!("{block}On"),
+                        families: block.families.clone(),
+                        flags: block.flags.clone()
+                    };
+                    flag_fns.entry("on".to_string()).or_insert(MatchFn::new("on", &BLOCKS).with_default("*self")).arms.push(
+                        format!("{BLOCKS}::{block} => {BLOCKS}::{lit_furnace}")
+                    );
+                    flag_fns.entry("off".to_string()).or_insert(MatchFn::new("off", &BLOCKS).with_default("*self")).arms.push(
+                        format!("{BLOCKS}::{lit_furnace} => {BLOCKS}::{block}")
+                    );
+                    generated_blocks.insert(lit_furnace);
                 },
                 _ => {
                     let flag_name = format!("is_{:?}", flag).to_lowercase();
                     flag_fns.entry(flag_name.clone()).or_insert(MatchFn::new(&flag_name, "u32").with_default("true")).arms.push(
-                        format!("{BLOCKS}::Depleted{block} => true")
+                        format!("{BLOCKS}::{block} => true")
                     );
                 }
             }
         }
     }
+    blocks.extend(generated_blocks);
     flag_fns.values().map(|match_fn| match_fn.to_rust(1)).join("\n\n")
 }
 
-fn remove_all<F, T: Ord>(collection: &mut BTreeSet<T>, mut predicate: F) -> bool
-    where F: FnMut(&T) -> bool
-{
-    let size = collection.len();
-    collection.retain(|e| !predicate(e));
-    size != collection.len()
-}
-
 pub fn generate(ir: &IR) -> String {
-    let mut blocks: BTreeSet<String> = BTreeSet::new();
-    let mut block_families: BTreeMap<String, BTreeSet<&String>> = BTreeMap::new();
-    let mut block_flags: BTreeSet<(String, BTreeSet<BlockFlag>)> = BTreeSet::new();
+    let mut blocks: BTreeSet<BlockEntry> = BTreeSet::new();
     for block_pattern in ir.decl.iter() {
         let families = block_pattern.0.0.iter().filter_map(|frag| match frag { 
             BlockFrag::Ident(_) => None,
-            BlockFrag::SetName(set_name) => Some(set_name) 
+            BlockFrag::SetName(set_name) => Some(set_name.clone()) 
         }).collect::<BTreeSet<_>>();
         for frags in block_pattern.0.0.iter()
             .map(|frag| match frag {
@@ -117,18 +161,14 @@ pub fn generate(ir: &IR) -> String {
             }).multi_cartesian_product()
         {
             let block: String = frags.into_iter().map(|s| s.as_str()).collect();
-            let mut flags = block_pattern.0.1.clone();
-            block_flags.insert((block.clone(), flags.clone()));
-            block_families.insert(block.clone(), families.clone());
-            blocks.insert(block.clone());
-            if remove_all(&mut flags, |f| matches!(f, BlockFlag::Renewable(_))) {
-                let depleted_block = format!("Depleted{}", block);
-                block_flags.insert((depleted_block.clone(), flags));
-                block_families.insert(depleted_block.clone(), families.clone());
-                blocks.insert(depleted_block);
-            }
+            blocks.insert(BlockEntry {
+                name: block,
+                families: families.clone(),
+                flags: block_pattern.0.1.clone()
+            });
         }
     }
+    let flag_code = generate_flags(&mut blocks);
     let mut code_blocks = Vec::new();
     code_blocks.push("use serde::{Deserialize, Serialize};".to_string());
     code_blocks.push("use strum_macros::{EnumIter, EnumString};".to_string());
@@ -139,8 +179,8 @@ pub fn generate(ir: &IR) -> String {
     }
     code_blocks.push(generate_enum(BLOCKS, &blocks));
     code_blocks.push(format!("impl {BLOCKS} {{"));
-    code_blocks.push(generate_flags(&block_flags));
-    code_blocks.push(generate_family_impl(&block_families));
+    code_blocks.push(flag_code);
+    code_blocks.push(generate_family_impl(&blocks));
     code_blocks.push("}".to_string());
     code_blocks.join("\n")
 }

@@ -21,10 +21,14 @@ pub enum ToolFamily {
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Item {
+    Brick,
+    Clay,
+    Coal,
     Lime,
     Stick,
     Rock,
     StoneAxe,
+    IronOre,
     IronIngot,
     IronPickaxe,
     IronAxe,

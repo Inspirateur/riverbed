@@ -1,0 +1,4 @@
+{
+    Clay: { min_temp: 600, smelt_time: 5, output: "Brick" },
+    IronOre: { min_temp: 1500, smelt_time: 10, output: "IronIngot" },
+}

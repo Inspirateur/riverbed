@@ -16,7 +16,8 @@ pub(crate) enum BlockFrag {
 #[serde(rename_all = "lowercase")]
 pub enum BlockFlag {
     Renewable(u32),
-    Transparent
+    Transparent,
+    Furnace
 }
 
 impl FromStr for BlockFlag {

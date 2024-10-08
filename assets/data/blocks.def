@@ -40,11 +40,14 @@ block {Wood}{Planks}
 
 block Iron{Ore} renewable(10)
 block Gold{Ore} renewable(15)
-
+ 
 block {Soil}
 block {Crystal}
 block {Stone}
 
 block Air
 block SeaBlock
-block Campfire
+
+block Campfire furnace
+block Kiln furnace
+block Smelter furnace
