@@ -8,14 +8,13 @@ mod realm;
 mod chunk;
 mod pos;
 mod utils;
-use std::collections::HashMap;
 
 pub use realm::*;
 pub use voxel_world::*;
 pub use chunk::*;
 pub use pos::*;
 pub use load_area::{PlayerArea, RenderDistance, range_around};
-pub use load_orders::{LoadOrders, ColUnloadEvent, ColEntities};
+pub use load_orders::{LoadOrders, ColUnloadEvent, BlockEntities};
 use bevy::{app::Startup, ecs::schedule::{apply_deferred, IntoSystemConfigs, SystemSet}, prelude::{Plugin, Update}};
 use crate::agents::PlayerSpawn;
 use self::{load_orders::{
@@ -42,7 +41,7 @@ impl Plugin for GenPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
 		app
 			.insert_resource(LoadOrders::new())
-			.insert_resource(ColEntities(HashMap::new()))
+			.insert_resource(BlockEntities::default())
 			.add_event::<ColUnloadEvent>()
 			.add_systems(Startup, setup_gen_thread)
 			.add_systems(Startup, (assign_load_area, apply_deferred).chain().in_set(LoadAreaAssigned).after(PlayerSpawn))

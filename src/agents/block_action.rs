@@ -1,12 +1,12 @@
 use std::fs;
 use std::iter::zip;
 use std::time::{Duration, Instant};
-use crate::items::{BlockLootTable, LootEntry, DropQuantity, Hotbar, Item, Stack};
+use crate::items::{BlockLootTable, DropQuantity, FiringTable, Hotbar, Item, LootEntry, Stack};
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
-use crate::ui::{ControllingPlayer, SelectedHotbarSlot};
+use crate::ui::{ControllingPlayer, GameUiState, OpenFurnace, SelectedHotbarSlot};
 use crate::Block;
-use crate::world::{BlockPos, ColEntities, ColPos, Realm, VoxelWorld};
+use crate::world::{BlockPos, BlockEntities, Realm, VoxelWorld};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
 use crate::WorldRng;
 use leafwing_input_manager::prelude::*;
@@ -25,9 +25,11 @@ impl Plugin for BlockActionPlugin {
             .insert_resource(BlockHarvestTable(
                 json5::from_str::<BlockLootTable>(&fs::read_to_string("assets/data/block_harvesting.json5").unwrap()).unwrap()
             ))
+            .insert_resource(json5::from_str::<FiringTable>(&fs::read_to_string("assets/data/firing.json5").unwrap()).unwrap())
 			.add_systems(Update, (break_action, target_block, target_block_changed).chain().run_if(in_state(ControllingPlayer)))
 			.add_systems(Update, block_outline.run_if(in_state(ControllingPlayer)))
             .add_systems(Update, place_block.run_if(in_state(ControllingPlayer)))
+            .add_systems(Update, open_furnace_menu.run_if(in_state(ControllingPlayer)))
             .add_systems(Update, renew_block)
 			;
     }
@@ -122,7 +124,7 @@ fn break_action(
     block_break_table: Res<BlockBreakTable>,
     block_harvest_table: Res<BlockHarvestTable>,
     time: Res<Time>,
-    mut col_entities: ResMut<ColEntities>,
+    mut col_entities: ResMut<BlockEntities>,
     mut world_rng: ResMut<WorldRng>,
     block_entt_query: Query<&BlockAttached>,
 ) {
@@ -175,16 +177,13 @@ fn break_action(
         let Some(target_block) = &target_block_opt.0 else {
             continue;
         };
-        let col_pos: ColPos = target_block.pos.into();
         match looting.action_type {
             BlockActionType::Breaking => {
                 world.set_block(target_block.pos, Block::Air);
-                if let Some(entities) = col_entities.0.get(&col_pos) {
-                    for entity in entities {
-                        if let Ok(block_pos) = block_entt_query.get(*entity) {
-                            if block_pos.0 == target_block.pos {
-                                commands.entity(*entity).despawn();
-                            }
+                if let Some(entity) = col_entities.get(&target_block.pos) {
+                    if let Ok(block_pos) = block_entt_query.get(entity) {
+                        if block_pos.0 == target_block.pos {
+                            commands.entity(entity).despawn();
                         }
                     }
                 }
@@ -192,11 +191,13 @@ fn break_action(
             BlockActionType::Harvesting => {
                 let depleted = world.get_block(target_block.pos).depleted();
                 world.set_block(target_block.pos, depleted);
-                let renew_entt = commands.spawn((
-                    Renewable { renew_after: Instant::now().checked_add(Duration::from_secs(depleted.renewal_minutes() as u64)).unwrap() }, 
-                    BlockAttached(target_block.pos))
-                ).id();
-                col_entities.0.entry(col_pos).or_default().push(renew_entt);
+                if let Some(renewal_minutes) = depleted.renewal_minutes() {
+                    let renew_entt = commands.spawn((
+                        Renewable { renew_after: Instant::now().checked_add(Duration::from_secs(renewal_minutes as u64)).unwrap() }, 
+                        BlockAttached(target_block.pos)
+                    )).id();
+                    col_entities.add(&target_block.pos, renew_entt);    
+                }
             }
         }
         if let Some(drop) = looting.break_entry.drops {
@@ -243,6 +244,60 @@ fn place_block(
             // If the block couldn't be added we add it back
             hotbar.0.0[selected_slot.0].try_add(Stack::Some(Item::Block(block), 1));
         }
+    }
+}
+
+#[derive(Debug, Component)]
+pub struct Furnace {
+    fuel: Stack,
+    material: Stack,
+    output: Stack,
+    temp: u32,
+}
+
+impl Furnace {
+    pub fn new(temp: u32) -> Self {
+        Self {
+            fuel: Stack::None,
+            material: Stack::None,
+            output: Stack::None,
+            temp,
+        }
+    }
+}
+
+fn open_furnace_menu(
+    mut commands: Commands,
+    world: Res<VoxelWorld>, 
+    block_action_query: Query<(&TargetBlock, &ActionState<Action>), With<PlayerControlled>>,
+    furnace_query: Query<(&Furnace, &BlockAttached)>,
+    mut block_entities: ResMut<BlockEntities>,
+    mut next_ui_state: ResMut<NextState<GameUiState>>,
+    mut furnace_menu: ResMut<OpenFurnace>
+) {
+    for (target_block_opt, action) in block_action_query.iter() {
+        if !action.just_pressed(&Action::Modify) {
+            continue;
+        }
+        let Some(target_block) = &target_block_opt.0 else {
+            continue;
+        };
+        let Some(furnace_temp) = world.get_block(target_block.pos).furnace_temp() else {
+            continue;
+        };
+        let furnace_ent = if let Some(ent) = block_entities.get(&target_block.pos) {
+            if furnace_query.contains(ent) {
+                ent
+            } else {
+                commands.entity(ent).insert(Furnace::new(furnace_temp)).id()
+            }
+        } else {
+            let ent = commands.spawn(Furnace::new(furnace_temp)).id();
+            block_entities.add(&target_block.pos, ent);
+            ent
+        };
+        furnace_menu.0 = Some(furnace_ent);
+        next_ui_state.set(GameUiState::FurnaceMenu);
     }
 }
 

@@ -17,13 +17,6 @@ use agents::{MovementPlugin, PlayerPlugin};
 use world::GenPlugin;
 const SEED: u64 = 42;
 
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
-pub enum GameState {
-    #[default]
-    Game,
-    Menu,
-}
-
 #[derive(Resource)]
 pub struct WorldRng {
     pub seed: u64,
@@ -54,8 +47,6 @@ fn main() {
                 },
             })
         )
-        // Note: all init_state needs to be after DefaultPlugins has been added
-        .init_state::<GameState>()
         .insert_resource(WorldRng {
             seed: SEED,
             rng: ChaCha8Rng::seed_from_u64(SEED)

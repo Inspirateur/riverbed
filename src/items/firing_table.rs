@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-
+use bevy::prelude::Resource;
 use serde::Deserialize;
-
 use super::Item;
 
 #[derive(Debug, Deserialize)]
@@ -11,7 +10,7 @@ struct FiringValue {
     output: Item,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Resource, Deserialize)]
 pub struct FiringTable(HashMap<Item, FiringValue>);
 
 #[cfg(test)]

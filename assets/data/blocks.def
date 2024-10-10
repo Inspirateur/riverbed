@@ -48,6 +48,6 @@ block {Stone}
 block Air
 block SeaBlock
 
-block Campfire furnace
-block Kiln furnace
-block Smelter furnace
+block Campfire furnace(600)
+block Kiln furnace(1300)
+block Smelter furnace(2000)

@@ -4,8 +4,10 @@ use bevy::prelude::Component;
 use super::{craft_table::Recipe, item::Item, CraftEntry};
 pub const HOTBAR_SLOTS: usize = 8;
 
+#[derive(Default, Debug)]
 pub enum Stack {
     Some(Item, u32),
+    #[default]
     None
 }
 

@@ -4,7 +4,10 @@ mod hotbar;
 mod craft_menu;
 mod crosshair;
 mod in_hand;
+mod furnace_menu;
 use craft_menu::CraftMenuPlugin;
+use furnace_menu::FurnaceMenuPlugin;
+pub use furnace_menu::OpenFurnace;
 use crosshair::setup_crosshair;
 pub use hotbar::SelectedHotbarSlot;
 use debug_display::DebugDisplayPlugin;
@@ -13,7 +16,6 @@ use hotbar::HotbarPlugin;
 use bevy::{prelude::*, window::CursorGrabMode};
 use in_hand::InHandPlugin;
 use leafwing_input_manager::prelude::*;
-use crate::GameState;
 
 pub struct UIPlugin;
 
@@ -22,16 +24,19 @@ impl Plugin for UIPlugin {
         app
             .init_state::<GameUiState>()
             .add_computed_state::<ControllingPlayer>()
+            .add_computed_state::<CursorGrabbed>()
             .add_plugins(InputManagerPlugin::<UIAction>::default())
             .add_plugins(HotbarPlugin)
             .add_plugins(DebugDisplayPlugin)
             .add_plugins(MenuPlugin)
             .add_plugins(CraftMenuPlugin)
             .add_plugins(InHandPlugin)
+            .add_plugins(FurnaceMenuPlugin)
             .add_systems(Startup, setup_ui_actions)
             .add_systems(Startup, setup_crosshair)
             .add_systems(Update, process_ui_actions)
-            .add_systems(Update, update_cursor_grab)
+            .add_systems(OnEnter(CursorGrabbed), grab_cursor)
+            .add_systems(OnExit(CursorGrabbed), free_cursor)
             ;
     }
 }
@@ -40,21 +45,45 @@ impl Plugin for UIPlugin {
 pub enum GameUiState {
     #[default]
     None,
+    InGameMenu,
     Inventory,
     CraftingMenu,
+    FurnaceMenu
+}
+
+impl GameUiState {
+    pub fn needs_free_cursor(&self) -> bool {
+        matches!(self, GameUiState::InGameMenu | GameUiState::Inventory | GameUiState::FurnaceMenu)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ControllingPlayer;
 
 impl ComputedStates for ControllingPlayer {
-    type SourceStates = (GameState, GameUiState);
+    type SourceStates = GameUiState;
 
     fn compute(sources: Self::SourceStates) -> Option<Self> {
-        if sources.0 == GameState::Game && sources.1 == GameUiState::None {
-            Some(Self)
-        } else {
+        // For now ControllingPlayer == CursorGrabbed, but conceptually we could be CursorGrabbed and not controlling player
+        if sources.needs_free_cursor() {
             None
+        } else {
+            Some(Self)
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CursorGrabbed;
+
+impl ComputedStates for CursorGrabbed {
+    type SourceStates = GameUiState;
+
+    fn compute(sources: Self::SourceStates) -> Option<Self> {
+        if sources.needs_free_cursor() {
+            None
+        } else {
+            Some(Self)
         }
     }
 }
@@ -82,18 +111,16 @@ fn setup_ui_actions(mut commands: Commands) {
 
 fn process_ui_actions(
     mut ui_action_query: Query<&ActionState<UIAction>>,
-    game_state: Res<State<GameState>>,
     game_ui_state: Res<State<GameUiState>>,
-    mut next_game_state: ResMut<NextState<GameState>>,
     mut next_ui_state: ResMut<NextState<GameUiState>>
 ) {
     let action_state = ui_action_query.single_mut();
     for action in action_state.get_just_pressed() {
         if action == UIAction::Escape {
-            if **game_state == GameState::Menu {
-                next_game_state.set(GameState::Game);
+            if **game_ui_state == GameUiState::None {
+                next_ui_state.set(GameUiState::InGameMenu);
             } else {
-                next_game_state.set(GameState::Menu);
+                next_ui_state.set(GameUiState::None);
             }
         } else if action == UIAction::CraftingMenu {
             if **game_ui_state == GameUiState::CraftingMenu {
@@ -105,19 +132,22 @@ fn process_ui_actions(
     }
 }
 
-fn update_cursor_grab(
+fn grab_cursor(
     mut windows: Query<&mut Window>,
-    game_state: Res<State<GameState>>, 
-    game_ui_state: Res<State<GameUiState>>
 ) {
     let Ok(mut window) = windows.get_single_mut() else {
         return;
     };
-    if **game_state == GameState::Menu || **game_ui_state == GameUiState::Inventory {
-        window.cursor.visible = true;
-        window.cursor.grab_mode = CursorGrabMode::None;
-    } else {
-        window.cursor.visible = false;
-        window.cursor.grab_mode = CursorGrabMode::Confined;
-    }
+    window.cursor.visible = false;
+    window.cursor.grab_mode = CursorGrabMode::Confined;
+}
+
+fn free_cursor(
+    mut windows: Query<&mut Window>,
+) {
+    let Ok(mut window) = windows.get_single_mut() else {
+        return;
+    };
+    window.cursor.visible = true;
+    window.cursor.grab_mode = CursorGrabMode::None;
 }

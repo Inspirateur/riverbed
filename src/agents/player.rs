@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, Block, world::RenderDistance, items::{Hotbar, Inventory, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, GameState};
+use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{Hotbar, Inventory}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::ControllingPlayer, world::RenderDistance, Block};
 use crate::world::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
@@ -25,7 +25,8 @@ impl Plugin for PlayerPlugin {
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<DevCommand>::default())
             .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
-            .add_systems(Update, (toggle_fly, move_player).chain().run_if(in_state(GameState::Game)))
+            .add_systems(Update, (toggle_fly, move_player).chain().run_if(in_state(ControllingPlayer)))
+            .add_systems(OnExit(ControllingPlayer), reset_heading)
         ;
     }
 }
@@ -174,4 +175,11 @@ fn toggle_fly(
             }
         }
     }
+}
+
+fn reset_heading(mut player_query: Query<&mut Heading, With<PlayerControlled>>) {
+    let Ok(mut heading) = player_query.get_single_mut() else {
+        return;
+    };
+    heading.0 = Vec3::new(0., 0., 0.);
 }

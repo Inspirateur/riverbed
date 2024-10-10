@@ -1,3 +1,4 @@
+use super::BlockPos;
 use super::{
     pos2d::Pos2d, utils::ReinsertTrait, ColPos, PlayerArea, Realm, RenderDistance, VoxelWorld,
     CHUNK_S1,
@@ -154,8 +155,36 @@ pub fn on_render_distance_change(
     }
 }
 
-#[derive(Resource)]
-pub struct ColEntities(pub HashMap<ColPos, Vec<Entity>>);
+#[derive(Default, Resource)]
+pub struct BlockEntities(HashMap<ColPos, HashMap<(usize, i32, usize), Entity>>);
+
+impl BlockEntities {
+    pub fn unload_col(&mut self, col_pos: &ColPos) -> Vec<Entity> {
+        let Some(entities) = self.0.remove(col_pos) else {
+            return Vec::new()
+        };
+        entities.into_values().into_iter().collect()
+    }
+
+    pub fn get(&self, block_pos: &BlockPos) -> Option<Entity> {
+        let (col_pos, pos) = (*block_pos).into();
+        let col_ents = self.0.get(&col_pos)?;
+        col_ents.get(&pos).copied()
+    }
+
+    pub fn remove(&mut self, block_pos: &BlockPos) {
+        let (col_pos, pos) = (*block_pos).into();
+        let Some(entities) = self.0.get_mut(&col_pos) else {
+            return;
+        };
+        entities.remove(&pos);
+    }
+
+    pub fn add(&mut self, block_pos: &BlockPos, entity: Entity) {
+        let (col_pos, pos) = (*block_pos).into();
+        self.0.entry(col_pos).or_default().insert(pos, entity);
+    }
+}
 
 #[derive(Event)]
 pub struct ColUnloadEvent(pub ColPos);
@@ -165,16 +194,14 @@ pub fn process_unload_orders(
     mut col_orders: ResMut<LoadOrders>,
     blocks: ResMut<VoxelWorld>,
     mut ev_unload: EventWriter<ColUnloadEvent>,
-    mut col_entities: ResMut<ColEntities>,
+    mut col_entities: ResMut<BlockEntities>,
 ) {
     // PROCESS UNLOAD ORDERS
     for col in col_orders.to_unload.drain(..) {
         blocks.unload_col(col);
-        if let Some(entities) = col_entities.0.remove(&col) {
-            for entity_id in entities {
-                if let Some(mut entity) = commands.get_entity(entity_id) {
-                    entity.despawn();
-                }
+        for entity_id in col_entities.unload_col(&col) {
+            if let Some(mut entity) = commands.get_entity(entity_id) {
+                entity.despawn();
             }
         }
         ev_unload.send(ColUnloadEvent(col));

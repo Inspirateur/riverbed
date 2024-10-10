@@ -1,7 +1,7 @@
 use std::ops::{Add, BitXor};
 use bevy::prelude::Vec3;
 use crate::world::{Realm, CHUNK_S1};
-use super::{unchunked, chunked, CHUNK_S1I};
+use super::{chunked, unchunked, ColPos, CHUNK_S1I};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash)]
 pub struct Pos3d<const U: usize> {
@@ -106,6 +106,29 @@ impl From<BlockPos> for (ChunkPos, ChunkedPos) {
             z: cz,
             realm: block_pos.realm
         }, (dx, dy, dz))
+    }
+}
+
+impl From<(ColPos, (usize, i32, usize))> for BlockPos {
+    fn from((col_pos, (dx, y, dz)): (ColPos, (usize, i32, usize))) -> Self {
+        BlockPos {
+            x: unchunked(col_pos.x, dx),
+            y,
+            z: unchunked(col_pos.z, dz),
+            realm: col_pos.realm
+        }
+    }
+}
+
+impl From<BlockPos> for (ColPos, (usize, i32, usize)) {
+    fn from(block_pos: BlockPos) -> Self {
+        let (cx, dx) = chunked(block_pos.x);
+        let (cz, dz) = chunked(block_pos.z);
+        (ColPos {
+            x: cx,
+            z: cz,
+            realm: block_pos.realm
+        }, (dx, block_pos.y, dz))
     }
 }
 

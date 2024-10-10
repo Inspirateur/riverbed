@@ -17,7 +17,7 @@ pub(crate) enum BlockFrag {
 pub enum BlockFlag {
     Renewable(u32),
     Transparent,
-    Furnace
+    Furnace(u32)
 }
 
 impl FromStr for BlockFlag {

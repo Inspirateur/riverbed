@@ -115,12 +115,12 @@ fn generate_flags(blocks: &mut BTreeSet<BlockEntry>) -> String {
                     flag_fns.entry("renewed".to_string()).or_insert(MatchFn::new("renewed", &BLOCKS).with_default("*self")).arms.push(
                         format!("{BLOCKS}::{depleted_block} => {BLOCKS}::{block}")
                     );
-                    flag_fns.entry("renewal_minutes".to_string()).or_insert(MatchFn::new("renewal_minutes", "u32").with_default("0")).arms.push(
-                        format!("{BLOCKS}::{depleted_block} => {minutes}")
+                    flag_fns.entry("renewal_minutes".to_string()).or_insert(MatchFn::new("renewal_minutes", "Option<u32>").with_default("None")).arms.push(
+                        format!("{BLOCKS}::{depleted_block} => Some({minutes})")
                     );
                     generated_blocks.insert(depleted_block);
                 },
-                BlockFlag::Furnace => {
+                BlockFlag::Furnace(temperature) => {
                     let lit_furnace = BlockEntry {
                         name: format!("{block}On"),
                         families: block.families.clone(),
@@ -131,6 +131,9 @@ fn generate_flags(blocks: &mut BTreeSet<BlockEntry>) -> String {
                     );
                     flag_fns.entry("off".to_string()).or_insert(MatchFn::new("off", &BLOCKS).with_default("*self")).arms.push(
                         format!("{BLOCKS}::{lit_furnace} => {BLOCKS}::{block}")
+                    );
+                    flag_fns.entry("furnace_temp".to_string()).or_insert(MatchFn::new("furnace_temp", "Option<u32>").with_default("None")).arms.push(
+                        format!("{BLOCKS}::{block} => Some({temperature})")
                     );
                     generated_blocks.insert(lit_furnace);
                 },

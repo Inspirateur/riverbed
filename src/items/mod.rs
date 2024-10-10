@@ -7,3 +7,4 @@ pub use inventory::*;
 pub use item::*;
 pub use block_loot_table::*;
 pub use craft_table::*;
+pub use firing_table::*;

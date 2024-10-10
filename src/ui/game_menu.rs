@@ -1,5 +1,17 @@
 use bevy::{color::palettes::css, prelude::*};
-use crate::GameState;
+
+use super::GameUiState;
+
+pub struct MenuPlugin;
+
+impl Plugin for MenuPlugin {
+    fn build(&self, app: &mut App) {
+        app 
+            .add_systems(OnEnter(GameUiState::InGameMenu), setup_pause)
+            .add_systems(OnExit(GameUiState::InGameMenu), despawn_screen::<OnPauseScreen>)
+            ;
+    }
+}
 
 #[derive(Component)]
 struct OnPauseScreen;
@@ -38,16 +50,5 @@ pub fn setup_pause(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
     for entity in &to_despawn {
         commands.entity(entity).despawn_recursive();
-    }
-}
-
-pub struct MenuPlugin;
-
-impl Plugin for MenuPlugin {
-    fn build(&self, app: &mut App) {
-        app 
-            .add_systems(OnEnter(GameState::Menu), setup_pause)
-            .add_systems(OnExit(GameState::Menu), despawn_screen::<OnPauseScreen>)
-            ;
     }
 }
