@@ -46,14 +46,13 @@ pub enum GameUiState {
     #[default]
     None,
     InGameMenu,
-    Inventory,
     CraftingMenu,
     FurnaceMenu
 }
 
 impl GameUiState {
     pub fn needs_free_cursor(&self) -> bool {
-        matches!(self, GameUiState::InGameMenu | GameUiState::Inventory | GameUiState::FurnaceMenu)
+        matches!(self, GameUiState::InGameMenu | GameUiState::FurnaceMenu)
     }
 }
 
@@ -122,11 +121,11 @@ fn process_ui_actions(
             } else {
                 next_ui_state.set(GameUiState::None);
             }
-        } else if action == UIAction::CraftingMenu {
-            if **game_ui_state == GameUiState::CraftingMenu {
-                next_ui_state.set(GameUiState::None);
-            } else {
+        } else if action == UIAction::CraftingMenu && **game_ui_state != GameUiState::InGameMenu {
+            if **game_ui_state == GameUiState::None {
                 next_ui_state.set(GameUiState::CraftingMenu);
+            } else {
+                next_ui_state.set(GameUiState::None);
             }
         }
     }

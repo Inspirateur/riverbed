@@ -37,7 +37,7 @@ impl Block {
             return false;
         }
         match self {
-            Block::Glass | Block::SeaBlock | Block::Air => false,
+            Block::Glass | Block::SeaBlock | Block::Air | Block::Campfire => false,
             _ => true
         }
     }

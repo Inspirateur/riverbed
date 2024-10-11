@@ -26,10 +26,10 @@ impl Plugin for BlockActionPlugin {
                 json5::from_str::<BlockLootTable>(&fs::read_to_string("assets/data/block_harvesting.json5").unwrap()).unwrap()
             ))
             .insert_resource(json5::from_str::<FiringTable>(&fs::read_to_string("assets/data/firing.json5").unwrap()).unwrap())
-			.add_systems(Update, (break_action, target_block, target_block_changed).chain().run_if(in_state(ControllingPlayer)))
+			.add_systems(Update, (break_action, target_block, target_block_changed).chain().run_if(in_state(GameUiState::None)))
 			.add_systems(Update, block_outline.run_if(in_state(ControllingPlayer)))
-            .add_systems(Update, place_block.run_if(in_state(ControllingPlayer)))
-            .add_systems(Update, open_furnace_menu.run_if(in_state(ControllingPlayer)))
+            .add_systems(Update, place_block.run_if(in_state(GameUiState::None)))
+            .add_systems(Update, open_furnace_menu.run_if(in_state(GameUiState::None)))
             .add_systems(Update, renew_block)
 			;
     }
@@ -249,15 +249,17 @@ fn place_block(
 
 #[derive(Debug, Component)]
 pub struct Furnace {
-    fuel: Stack,
-    material: Stack,
-    output: Stack,
-    temp: u32,
+    pub name: String,
+    pub fuel: Stack,
+    pub material: Stack,
+    pub output: Stack,
+    pub temp: u32,
 }
 
 impl Furnace {
-    pub fn new(temp: u32) -> Self {
+    pub fn new(name: String, temp: u32) -> Self {
         Self {
+            name,
             fuel: Stack::None,
             material: Stack::None,
             output: Stack::None,
@@ -282,17 +284,18 @@ fn open_furnace_menu(
         let Some(target_block) = &target_block_opt.0 else {
             continue;
         };
-        let Some(furnace_temp) = world.get_block(target_block.pos).furnace_temp() else {
+        let furnace = world.get_block(target_block.pos);
+        let Some(furnace_temp) = furnace.furnace_temp() else {
             continue;
         };
         let furnace_ent = if let Some(ent) = block_entities.get(&target_block.pos) {
             if furnace_query.contains(ent) {
                 ent
             } else {
-                commands.entity(ent).insert(Furnace::new(furnace_temp)).id()
+                commands.entity(ent).insert(Furnace::new(furnace.to_string(), furnace_temp)).id()
             }
         } else {
-            let ent = commands.spawn(Furnace::new(furnace_temp)).id();
+            let ent = commands.spawn(Furnace::new(furnace.to_string(), furnace_temp)).id();
             block_entities.add(&target_block.pos, ent);
             ent
         };
