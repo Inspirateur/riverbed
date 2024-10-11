@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-use bevy::{asset::LoadedFolder, color::palettes::css, prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
+use bevy::{color::palettes::css, prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
 use leafwing_input_manager::prelude::*;
 use crate::{
-    agents::PlayerControlled, block::Face, 
+    agents::PlayerControlled, 
     items::{Hotbar, Item, Stack, HOTBAR_SLOTS}, 
-    render::{parse_block_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}, asset_processing::from_filename
 };
-use super::{ControllingPlayer, UIAction};
+use super::{ui_tex_map::UiTextureMap, ControllingPlayer, UIAction};
 const SLOT_SIZE_PERCENT: f32 = 4.5;
 
 pub struct HotbarPlugin;
@@ -15,10 +13,7 @@ impl Plugin for HotbarPlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(SelectedHotbarSlot(0))
-            .insert_resource(UiTextureMap(HashMap::new()))
             .add_systems(Startup, setup_hotbar_display)
-            .add_systems(OnEnter(BlockTexState::Finished), load_hotbar_block_textures)
-            .add_systems(OnEnter(ItemTexState::Finished), load_hotbar_item_textures)
             .add_systems(Update, display_hotbar)
             .add_systems(Update, scroll_hotbar.run_if(in_state(ControllingPlayer)))
             ;
@@ -29,50 +24,7 @@ impl Plugin for HotbarPlugin {
 struct HotbarSlot(usize);
 
 #[derive(Resource)]
-pub struct UiTextureMap(pub HashMap<Item, Handle<Image>>);
-
-#[derive(Resource)]
 pub struct SelectedHotbarSlot(pub usize);
-
-fn load_hotbar_item_textures(
-    item_textures: Res<ItemTextureFolder>,
-    loaded_folders: Res<Assets<LoadedFolder>>,
-    mut ui_tex_map: ResMut<UiTextureMap>,
-) {
-    let item_folder: &LoadedFolder = loaded_folders.get(&item_textures.0).unwrap();
-    for item_handle in item_folder.handles.iter() {
-        let Some(filename) = item_handle.path().unwrap().path().file_stem().unwrap().to_str() else {
-            continue;
-        };
-        let Some(item) = from_filename(filename) else {
-            continue;
-        };
-        ui_tex_map.0.insert(item, item_handle.clone().try_typed().unwrap());
-    }
-}
-
-fn load_hotbar_block_textures(
-    block_textures: Res<BlockTextureFolder>,
-    loaded_folders: Res<Assets<LoadedFolder>>,
-    mut ui_tex_map: ResMut<UiTextureMap>,
-) {
-    let specifiers = Face::Front.specifiers();
-    let block_folder: &LoadedFolder = loaded_folders.get(&block_textures.0).unwrap();
-    let mut priority_map: HashMap<Item, usize> = HashMap::new();
-    for block_handle in block_folder.handles.iter() {        
-        let filename = block_handle.path().unwrap().path().file_stem().unwrap();
-        let Some((block, face_specifier)) = parse_block_tex_name(filename) else {
-            continue;
-        };
-        let item =  Item::Block(block);
-        let priority = specifiers.iter().position(|s| *s == face_specifier).unwrap_or(usize::MAX);
-        let previous_priority = *priority_map.get(&item).unwrap_or(&usize::MAX);
-        if priority < previous_priority {
-            priority_map.insert(item, priority);
-            ui_tex_map.0.insert(item, block_handle.clone().try_typed().unwrap());    
-        }
-    }
-}
 
 fn setup_hotbar_display(
     mut commands: Commands, asset_server: Res<AssetServer>

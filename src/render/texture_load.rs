@@ -23,7 +23,7 @@ impl Plugin for TextureLoadPlugin {
 pub enum BlockTexState {
     #[default]
     Setup,
-    Finished
+    Loaded,
 }
 
 #[derive(Resource, Default)]
@@ -42,7 +42,8 @@ fn check_block_textures(
     // Advance the `AppState` once all sprite handles have been loaded by the `AssetServer`
     for event in events.read() {
         if event.is_loaded_with_dependencies(&texture_folder.0) {
-            next_state.set(BlockTexState::Finished);
+            next_state.set(BlockTexState::Loaded);
+            println!("block tex loaded");
         }
     }
 }
@@ -51,7 +52,7 @@ fn check_block_textures(
 pub enum ItemTexState {
     #[default]
     Setup,
-    Finished
+    Loaded
 }
 
 #[derive(Resource, Default)]
@@ -84,7 +85,7 @@ fn check_item_textures(
     // Advance the `AppState` once all sprite handles have been loaded by the `AssetServer`
     for event in events.read() {
         if event.is_loaded_with_dependencies(&texture_folder.0) {
-            next_state.set(ItemTexState::Finished);
+            next_state.set(ItemTexState::Loaded);
         }
     }
 }

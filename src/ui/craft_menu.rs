@@ -1,9 +1,8 @@
 use std::fs;
-use bevy::{prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE, color::palettes::css};
+use bevy::{prelude::*, color::palettes::css};
 use leafwing_input_manager::action_state::ActionState;
 use crate::{agents::{Action, PlayerControlled}, items::{parse_recipes, CraftEntry, Hotbar, Inventory, InventoryRecipes, Item, Recipe, Stack}, sounds::ItemGet};
-use super::{game_menu::despawn_screen, hotbar::UiTextureMap, GameUiState, UIAction};
-const SLOT_SIZE_PERCENT: f32 = 4.;
+use super::{game_menu::despawn_screen, ui_tex_map::UiTextureMap, GameUiState, UIAction};
 
 pub struct CraftMenuPlugin;
 
@@ -37,7 +36,6 @@ pub struct SelectedRecipe(pub usize);
 struct CraftingMenu(pub InventoryRecipes);
 
 fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable: bool, tex_map: &Res<UiTextureMap>) {
-    let alpha = if is_craftable { 1. } else { 0.4 };
     parent.spawn(NodeBundle {
         style: Style {
             flex_direction: FlexDirection::Column,
@@ -46,44 +44,7 @@ fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable
         },
         ..Default::default()
     }).with_children(|node| {
-        node.spawn(ImageBundle {
-            style: Style {
-                width: Val::Vw(SLOT_SIZE_PERCENT),
-                aspect_ratio: Some(1.),
-                margin: UiRect::all(Val::Percent(0.2)), 
-                ..Default::default()
-            },
-            image: if let Some(handle) = tex_map.0.get(&item) {
-                UiImage::new(handle.clone()).with_color({
-                    match item {
-                        Item::Block(block) if block.is_foliage() => Color::linear_rgba(0.3, 1.0, 0.1, alpha),
-                        _ => Color::linear_rgba(1., 1., 1., alpha)
-                    }
-                })
-            } else {
-                UiImage::new(TRANSPARENT_IMAGE_HANDLE)
-            },
-            background_color: BackgroundColor(if is_craftable {
-                Color::linear_rgba(0., 0., 0., 0.7)
-            } else {
-                Color::NONE
-            }),
-            ..Default::default()
-        });
-        node.spawn(TextBundle {
-            text: Text::from_section(qty.to_string(), TextStyle { 
-                color: if is_craftable {
-                    Color::Srgba(css::WHITE)
-                } else {
-                    Color::Srgba(css::LIGHT_GRAY)
-                }, ..Default::default() }),
-            style: Style {
-                position_type: PositionType::Absolute,
-                bottom: Val::Px(0.),
-                ..Default::default()
-            },
-            ..Default::default() 
-        });
+        tex_map.make_ui_node(node, &Stack::Some(*item, qty), !is_craftable);
     });
 }
 

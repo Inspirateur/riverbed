@@ -1,6 +1,6 @@
 use bevy::{prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
 use crate::{agents::{BlockActionType, BlockLootAction, PlayerControlled}, items::{Hotbar, Stack}, render::{CameraSpawn, FpsCam}};
-use super::{hotbar::UiTextureMap, SelectedHotbarSlot};
+use super::{ui_tex_map::UiTextureMap, SelectedHotbarSlot};
 
 pub struct InHandPlugin;
 

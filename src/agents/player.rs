@@ -77,7 +77,7 @@ pub fn spawn_player(mut commands: Commands) {
         transform: Transform {translation: SPAWN, ..default()},
         ..default()
     };
-    let rd = RenderDistance(32);
+    let rd = RenderDistance(16);
     commands
         .spawn((
             spatial_bundle,

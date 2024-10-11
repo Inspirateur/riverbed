@@ -4,6 +4,19 @@ use dashmap::DashMap;
 use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
 use super::{mesh_chunks::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
 
+pub struct TextureArrayPlugin;
+
+impl Plugin for TextureArrayPlugin {
+    fn build(&self, app: &mut App) {
+        println!("TextureArrayPlugin");
+        app
+            .insert_resource(TextureMap(Arc::new(DashMap::new())))
+            .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>::default())
+            .add_systems(OnEnter(BlockTexState::Loaded), build_tex_array)
+            ;
+    }
+}
+
 #[derive(Resource)]
 pub struct TextureMap(pub Arc<DashMap<(Block, FaceSpecifier), usize>>);
 
@@ -56,6 +69,7 @@ fn build_tex_array(
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
     // mut shader_buffers: ResMut<Assets<ShaderStorageBuffer>>,
 ) {
+    println!("build_tex_array");
     let mut texture_list: Vec<&Image> = Vec::new();
     let mut anim_offsets = vec![1];
     let mut index = 1;
@@ -147,17 +161,5 @@ impl MaterialExtension for ArrayTextureMaterial {
             let vertex_layout = layout.0.get_layout(&[ATTRIBUTE_VOXEL_DATA.at_shader_location(0)])?;
             descriptor.vertex.buffers = vec![vertex_layout];
             Ok(())
-    }
-}
-
-pub struct TextureArrayPlugin;
-
-impl Plugin for TextureArrayPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .insert_resource(TextureMap(Arc::new(DashMap::new())))
-            .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>::default())
-            .add_systems(OnEnter(BlockTexState::Finished), build_tex_array)
-            ;
     }
 }

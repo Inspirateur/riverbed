@@ -1,3 +1,4 @@
+mod ui_tex_map;
 mod game_menu;
 mod debug_display;
 mod hotbar;
@@ -16,6 +17,7 @@ use hotbar::HotbarPlugin;
 use bevy::{prelude::*, window::CursorGrabMode};
 use in_hand::InHandPlugin;
 use leafwing_input_manager::prelude::*;
+use ui_tex_map::UiTexMapPlugin;
 
 pub struct UIPlugin;
 
@@ -26,6 +28,7 @@ impl Plugin for UIPlugin {
             .add_computed_state::<ControllingPlayer>()
             .add_computed_state::<CursorGrabbed>()
             .add_plugins(InputManagerPlugin::<UIAction>::default())
+            .add_plugins(UiTexMapPlugin)
             .add_plugins(HotbarPlugin)
             .add_plugins(DebugDisplayPlugin)
             .add_plugins(MenuPlugin)

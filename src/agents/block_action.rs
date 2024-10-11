@@ -260,9 +260,9 @@ impl Furnace {
     pub fn new(name: String, temp: u32) -> Self {
         Self {
             name,
-            fuel: Stack::None,
-            material: Stack::None,
-            output: Stack::None,
+            fuel: Stack::Some(Item::Coal, 6),
+            material: Stack::Some(Item::IronOre, 4),
+            output: Stack::Some(Item::IronIngot, 1),
             temp,
         }
     }

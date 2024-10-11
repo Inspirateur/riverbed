@@ -9,7 +9,7 @@ impl Plugin for BlockBreakingEffectPlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(BreakStageSprites(vec![TRANSPARENT_IMAGE_HANDLE]))
-            .add_systems(OnEnter(BlockTexState::Finished), load_break_stage_sprites)
+            .add_systems(OnEnter(BlockTexState::Loaded), load_break_stage_sprites)
             .add_systems(Update, add_break_animation)
             .add_systems(Update, update_break_animation)
             .add_systems(Update, remove_break_animation)

@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::{agents::{Furnace, PlayerControlled}, items::{FiringTable, Hotbar}};
-use super::{game_menu::despawn_screen, hotbar::UiTextureMap, GameUiState};
+use bevy::{color::palettes::css, prelude::*};
+use crate::agents::Furnace;
+use super::{game_menu::despawn_screen, ui_tex_map::UiTextureMap, GameUiState};
 
 pub struct FurnaceMenuPlugin;
 
@@ -23,8 +23,6 @@ struct FurnaceMenu;
 
 fn open_furnace_menu(
     mut commands: Commands,
-    firing_table: Res<FiringTable>,
-    hotbar_query: Query<&Hotbar, With<PlayerControlled>>,
     tex_map: Res<UiTextureMap>,
     open_furnace: Res<OpenFurnace>,
     furnace_query: Query<&Furnace>,
@@ -60,7 +58,39 @@ fn open_furnace_menu(
                 },
                 ..Default::default()
             });
-            parent.spawn(NodeBundle::default())
+            parent.spawn(NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Row,
+                    margin: UiRect::all(Val::Vw(0.2)),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }).with_children(|node| {
+                node.spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Column,
+                        margin: UiRect::all(Val::Vw(0.2)),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }).with_children(|node| {
+                    tex_map.make_ui_node(node, &furnace.material, false);
+                    tex_map.make_ui_node(node, &furnace.fuel, false);
+                });
+                node.spawn(TextBundle {
+                    text: Text::from_section("=>", TextStyle { 
+                        font_size: 40.,
+                        color: Color::Srgba(css::WHITE),
+                        ..Default::default() 
+                    }),
+                    style: Style {
+                        margin: UiRect::horizontal(Val::Vw(0.1)),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                });
+                tex_map.make_ui_node(node, &furnace.output, false);
+            });
     })
     .insert(FurnaceMenu);
 }
