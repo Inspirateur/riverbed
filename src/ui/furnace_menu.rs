@@ -81,14 +81,16 @@ fn open_furnace_menu(
                             ..Default::default()
                         },
                         ..Default::default()
-                    }).with_children(|node| tex_map.make_ui_node(node, &furnace.material, false));
+                    }).insert(Interaction::default())
+                    .with_children(|node| tex_map.make_ui_node(node, &furnace.material, false));
                     node.spawn(NodeBundle {
                         style: Style {
                             margin: UiRect::all(Val::Vw(0.2)),
                             ..Default::default()
                         },
                         ..Default::default()
-                    }).with_children(|node| tex_map.make_ui_node(node, &furnace.fuel, false));
+                    }).insert(Interaction::default())
+                    .with_children(|node| tex_map.make_ui_node(node, &furnace.fuel, false));
                 });
                 node.spawn(TextBundle {
                     text: Text::from_section("=>", TextStyle { 
@@ -110,7 +112,8 @@ fn open_furnace_menu(
                         ..Default::default()
                     },
                     ..Default::default()
-                }).with_children(|node| tex_map.make_ui_node(node, &furnace.output, false));
+                }).insert(Interaction::default())
+                .with_children(|node| tex_map.make_ui_node(node, &furnace.output, false));
             });
     })
     .insert(FurnaceMenu);

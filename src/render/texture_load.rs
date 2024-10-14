@@ -43,7 +43,6 @@ fn check_block_textures(
     for event in events.read() {
         if event.is_loaded_with_dependencies(&texture_folder.0) {
             next_state.set(BlockTexState::Loaded);
-            println!("block tex loaded");
         }
     }
 }

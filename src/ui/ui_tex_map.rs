@@ -8,7 +8,6 @@ pub struct UiTexMapPlugin;
 
 impl Plugin for UiTexMapPlugin {
     fn build(&self, app: &mut App) {
-        println!("UiTexMapPlugin");
         app
             .insert_resource(UiTextureMap(HashMap::new()))
             .add_systems(OnEnter(BlockTexState::Loaded), load_ui_block_textures)
@@ -101,7 +100,6 @@ fn load_ui_block_textures(
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut ui_tex_map: ResMut<UiTextureMap>,
 ) {
-    println!("load_ui_block_textures");
     let block_folder: &LoadedFolder = loaded_folders.get(&block_textures.0).unwrap();
     let mut tex_map: HashMap<(Block, FaceSpecifier), Handle<Image>> = HashMap::new();
     for block_handle in block_folder.handles.iter() {        

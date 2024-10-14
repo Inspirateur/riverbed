@@ -8,7 +8,6 @@ pub struct TextureArrayPlugin;
 
 impl Plugin for TextureArrayPlugin {
     fn build(&self, app: &mut App) {
-        println!("TextureArrayPlugin");
         app
             .insert_resource(TextureMap(Arc::new(DashMap::new())))
             .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>::default())
@@ -69,7 +68,6 @@ fn build_tex_array(
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
     // mut shader_buffers: ResMut<Assets<ShaderStorageBuffer>>,
 ) {
-    println!("build_tex_array");
     let mut texture_list: Vec<&Image> = Vec::new();
     let mut anim_offsets = vec![1];
     let mut index = 1;

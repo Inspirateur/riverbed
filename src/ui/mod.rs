@@ -40,6 +40,7 @@ impl Plugin for UIPlugin {
             .add_systems(Update, process_ui_actions)
             .add_systems(OnEnter(CursorGrabbed), grab_cursor)
             .add_systems(OnExit(CursorGrabbed), free_cursor)
+            .add_systems(Update, highlight_hover.run_if(not(in_state(CursorGrabbed))))
             ;
     }
 }
@@ -152,4 +153,33 @@ fn free_cursor(
     };
     window.cursor.visible = true;
     window.cursor.grab_mode = CursorGrabMode::None;
+}
+
+fn highlight_hover(
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), Changed<Interaction>>,
+    mut windows: Query<&mut Window>,
+) {
+    let Ok(mut window) = windows.get_single_mut() else {
+        return;
+    };
+    let mut any_interaction = false;
+    let mut hovering= false;
+    for (interaction, mut bg_color) in interaction_query.iter_mut() {
+        bg_color.0 = match interaction {
+            Interaction::Hovered | Interaction::Pressed => {
+                hovering = true;
+                Color::linear_rgba(0., 0., 0., 0.6)
+            },
+            _ => Color::linear_rgba(0., 0., 0., 0.0),
+        };
+        any_interaction = true;
+    }
+    if !any_interaction {
+        return;
+    }
+    window.cursor.icon = if hovering {
+        CursorIcon::Pointer
+    } else {
+        CursorIcon::Default
+    };
 }
