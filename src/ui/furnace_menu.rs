@@ -36,6 +36,7 @@ fn open_furnace_menu(
     commands.spawn(NodeBundle {
         style: Style {
             flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
             width: Val::Percent(25.),
             height: Val::Percent(80.),
             left: Val::VMin(5.),
@@ -74,8 +75,20 @@ fn open_furnace_menu(
                     },
                     ..Default::default()
                 }).with_children(|node| {
-                    tex_map.make_ui_node(node, &furnace.material, false);
-                    tex_map.make_ui_node(node, &furnace.fuel, false);
+                    node.spawn(NodeBundle {
+                        style: Style {
+                            margin: UiRect::all(Val::Vw(0.2)),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    }).with_children(|node| tex_map.make_ui_node(node, &furnace.material, false));
+                    node.spawn(NodeBundle {
+                        style: Style {
+                            margin: UiRect::all(Val::Vw(0.2)),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    }).with_children(|node| tex_map.make_ui_node(node, &furnace.fuel, false));
                 });
                 node.spawn(TextBundle {
                     text: Text::from_section("=>", TextStyle { 
@@ -85,11 +98,19 @@ fn open_furnace_menu(
                     }),
                     style: Style {
                         margin: UiRect::horizontal(Val::Vw(0.1)),
+                        align_self: AlignSelf::Center,
                         ..Default::default()
                     },
                     ..Default::default()
                 });
-                tex_map.make_ui_node(node, &furnace.output, false);
+                node.spawn(NodeBundle {
+                    style: Style {
+                        margin: UiRect::all(Val::Vw(0.2)),
+                        align_self: AlignSelf::Center,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }).with_children(|node| tex_map.make_ui_node(node, &furnace.output, false));
             });
     })
     .insert(FurnaceMenu);

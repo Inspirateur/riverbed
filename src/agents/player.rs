@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{Hotbar, Inventory}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::ControllingPlayer, world::RenderDistance, Block};
+use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{Hotbar, Inventory, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::ControllingPlayer, world::RenderDistance, Block};
 use crate::world::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
@@ -77,6 +77,8 @@ pub fn spawn_player(mut commands: Commands) {
         transform: Transform {translation: SPAWN, ..default()},
         ..default()
     };
+    let mut inventory = Inventory::new();
+    inventory.try_add(Stack::Some(Item::Block(Block::Campfire), 1));
     let rd = RenderDistance(16);
     commands
         .spawn((
@@ -93,7 +95,7 @@ pub fn spawn_player(mut commands: Commands) {
             Velocity(Vec3::default()),
             rd,
             TargetBlock(None),
-            Hotbar(Inventory::new()),
+            Hotbar(inventory),
             PlayerControlled,
         ))
         .insert(SpatialListener::new(0.3))
