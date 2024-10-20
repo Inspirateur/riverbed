@@ -186,7 +186,7 @@ fn scroll_recipes(
         return;
     };
     if action_state.pressed(&UIAction::ScrollUp) {
-        selected_recipe.0 = (selected_recipe.0 - 1).rem_euclid(slots);
+        selected_recipe.0 = (selected_recipe.0 + slots - 1).rem_euclid(slots);
     } else if action_state.pressed(&UIAction::ScrollDown) {
         selected_recipe.0 = (selected_recipe.0 + 1).rem_euclid(slots);
     }
