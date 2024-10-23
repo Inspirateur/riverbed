@@ -6,6 +6,8 @@ mod craft_menu;
 mod crosshair;
 mod in_hand;
 mod furnace_menu;
+mod item_slots;
+pub use item_slots::*;
 use craft_menu::CraftMenuPlugin;
 use furnace_menu::FurnaceMenuPlugin;
 pub use furnace_menu::OpenFurnace;
@@ -28,6 +30,7 @@ impl Plugin for UIPlugin {
             .add_computed_state::<ControllingPlayer>()
             .add_computed_state::<CursorGrabbed>()
             .add_plugins(InputManagerPlugin::<UIAction>::default())
+            .add_plugins(ItemSlotPlugin)
             .add_plugins(UiTexMapPlugin)
             .add_plugins(HotbarPlugin)
             .add_plugins(DebugDisplayPlugin)

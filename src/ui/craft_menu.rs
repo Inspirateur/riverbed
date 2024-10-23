@@ -1,8 +1,8 @@
 use std::fs;
 use bevy::{prelude::*, color::palettes::css};
 use leafwing_input_manager::action_state::ActionState;
-use crate::{agents::{Action, PlayerControlled}, items::{parse_recipes, CraftEntry, Hotbar, Inventory, InventoryRecipes, Item, Recipe, Stack}, sounds::ItemGet};
-use super::{game_menu::despawn_screen, ui_tex_map::UiTextureMap, GameUiState, UIAction};
+use crate::{agents::{Action, PlayerControlled, HOTBAR_SLOTS}, items::{new_inventory, parse_recipes, CraftEntry, Inventory, InventoryRecipes, Item, Recipe, Stack}, sounds::ItemGet};
+use super::{game_menu::despawn_screen, ui_tex_map::UiTextureMap, GameUiState, ItemHolder, UIAction};
 
 pub struct CraftMenuPlugin;
 
@@ -44,7 +44,7 @@ fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable
         },
         ..Default::default()
     }).with_children(|node| {
-        tex_map.make_ui_node(node, &Stack::Some(*item, qty), !is_craftable);
+        tex_map.make_item_slot(node, &Stack::Some(*item, qty), !is_craftable);
     });
 }
 
@@ -126,11 +126,13 @@ fn create_craft_menu(mut commands: Commands, inventory_recipes: InventoryRecipes
 fn open_craft_menu(
     commands: Commands,
     handcraft_recipes: Res<HandCrafts>,
-    hotbar_query: Query<&Hotbar, With<PlayerControlled>>,
+    hotbar_query: Query<&ItemHolder, With<PlayerControlled>>,
     tex_map: Res<UiTextureMap>,
 ) {
-    let empty = Inventory::new();
-    let hotbar = hotbar_query.get_single().map(|res| &res.0).unwrap_or(&empty);
+    let hotbar = match hotbar_query.get_single() {
+        Ok(ItemHolder::Inventory(hotbar)) => hotbar,
+        _ => &new_inventory::<HOTBAR_SLOTS>(),
+    };
     let inventory_recipes = hotbar.filter_recipes(&handcraft_recipes.0);
     create_craft_menu(commands, inventory_recipes, tex_map);
 }
@@ -138,17 +140,17 @@ fn open_craft_menu(
 fn refresh_craft_menu(
     mut commands: Commands,
     handcraft_recipes: Res<HandCrafts>,
-    hotbar_query: Query<&Hotbar, (With<PlayerControlled>, Changed<Hotbar>)>,
+    hotbar_query: Query<&ItemHolder, (With<PlayerControlled>, Changed<ItemHolder>)>,
     tex_map: Res<UiTextureMap>,
     craft_menu_query: Query<Entity, With<CraftingMenu>>,
 ) {
-    let Ok(hotbar) = hotbar_query.get_single() else {
+    let Ok(ItemHolder::Inventory(hotbar)) = hotbar_query.get_single() else {
         return;
     };
     if let Ok(entity) = craft_menu_query.get_single() {
         commands.entity(entity).despawn_recursive();
     };
-    let inventory_recipes = hotbar.0.filter_recipes(&handcraft_recipes.0);
+    let inventory_recipes = hotbar.filter_recipes(&handcraft_recipes.0);
     create_craft_menu(commands, inventory_recipes, tex_map);
 }
 
@@ -196,7 +198,7 @@ fn craft_action(
     mut commands: Commands,
     selected_recipe: Res<SelectedRecipe>,
     craft_menu_query: Query<&CraftingMenu>,
-    mut hotbar_query: Query<(Entity, &mut Hotbar), With<PlayerControlled>>,
+    mut hotbar_query: Query<(Entity, &mut ItemHolder), With<PlayerControlled>>,
     action_query: Query<&ActionState<Action>>,
 ) {
     let Ok(action_state) = action_query.get_single() else {
@@ -215,9 +217,12 @@ fn craft_action(
     let Ok((player, mut hotbar)) = hotbar_query.get_single_mut() else {
         return;
     };
+    let ItemHolder::Inventory(ref mut hotbar) = *hotbar else {
+        return;
+    };
     for (slot, qty) in selection.iter() {
-        let _ = hotbar.0.0[*slot].take(*qty);
+        let _ = hotbar[*slot].take(*qty);
     }
-    hotbar.0.try_add(Stack::Some(recipe.out.0, recipe.out.1));
+    hotbar.try_add(Stack::Some(recipe.out.0, recipe.out.1));
     commands.trigger_targets(ItemGet, player);
 }

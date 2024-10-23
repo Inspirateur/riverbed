@@ -1,6 +1,6 @@
 use bevy::{prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
-use crate::{agents::{BlockActionType, BlockLootAction, PlayerControlled}, items::{Hotbar, Stack}, render::{CameraSpawn, FpsCam}};
-use super::{ui_tex_map::UiTextureMap, SelectedHotbarSlot};
+use crate::{agents::{BlockActionType, BlockLootAction, PlayerControlled}, items::Stack, render::{CameraSpawn, FpsCam}};
+use super::{ui_tex_map::UiTextureMap, ItemHolder, SelectedHotbarSlot};
 
 pub struct InHandPlugin;
 
@@ -52,13 +52,13 @@ fn in_hand_setup(
 }
 
 fn on_hotbar_change(
-    hotbar_query: Query<&Hotbar, (With<PlayerControlled>, Changed<Hotbar>)>,
+    hotbar_query: Query<&ItemHolder, (With<PlayerControlled>, Changed<ItemHolder>)>,
     in_hand_query: Query<&Handle<StandardMaterial>, With<InHandMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     selected_slot: Res<SelectedHotbarSlot>,
     tex_map: Res<UiTextureMap>,
 ) {
-    let Ok(hotbar) = hotbar_query.get_single() else {
+    let Ok(ItemHolder::Inventory(hotbar)) = hotbar_query.get_single() else {
         return;
     };
     let Ok(in_hand) = in_hand_query.get_single() else {
@@ -67,7 +67,7 @@ fn on_hotbar_change(
     let Some(in_hand_material) = materials.get_mut(in_hand) else {
         return;
     };
-    let stack = &hotbar.0.0[selected_slot.0];
+    let stack = &hotbar[selected_slot.0];
     let mut handle = TRANSPARENT_IMAGE_HANDLE;
     if let Stack::Some(item, _) = stack {
         if let Some(tex_handle) = tex_map.0.get(item) {
@@ -78,7 +78,7 @@ fn on_hotbar_change(
 }
 
 fn on_selected_slot_change(
-    hotbar_query: Query<&Hotbar, With<PlayerControlled>>,
+    hotbar_query: Query<&ItemHolder, With<PlayerControlled>>,
     in_hand_query: Query<&Handle<StandardMaterial>, With<InHandMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     selected_slot: Res<SelectedHotbarSlot>,
@@ -87,7 +87,7 @@ fn on_selected_slot_change(
     if !selected_slot.is_changed() {
         return;
     }
-    let Ok(hotbar) = hotbar_query.get_single() else {
+    let Ok(ItemHolder::Inventory(hotbar)) = hotbar_query.get_single() else {
         return;
     };
     let Ok(in_hand) = in_hand_query.get_single() else {
@@ -96,7 +96,7 @@ fn on_selected_slot_change(
     let Some(in_hand_material) = materials.get_mut(in_hand) else {
         return;
     };
-    let stack = &hotbar.0.0[selected_slot.0];
+    let stack = &hotbar[selected_slot.0];
     let mut handle = TRANSPARENT_IMAGE_HANDLE;
     if let Stack::Some(item, _) = stack {
         if let Some(tex_handle) = tex_map.0.get(item) {

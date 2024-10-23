@@ -20,12 +20,25 @@ impl Plugin for UiTexMapPlugin {
 pub struct UiTextureMap(pub HashMap<Item, Handle<Image>>);
 
 impl UiTextureMap {
-	pub fn make_ui_node(&self, node: &mut ChildBuilder, stack: &Stack, disabled: bool) {
-		let alpha = if disabled { 0.4 } else { 1. };
-		let image = match stack {
+    pub fn get_with_alpha(&self, stack: &Stack, alpha: f32) -> UiImage {
+        UiImage::new(match stack {
 			Stack::Some(item, _) => self.0.get(item).cloned(),
 			Stack::None => None,
-		}.unwrap_or(TRANSPARENT_IMAGE_HANDLE);
+		}.unwrap_or(TRANSPARENT_IMAGE_HANDLE)).with_color({
+            match stack {
+                Stack::Some(Item::Block(block), _) if block.is_foliage() => Color::linear_rgba(0.3, 1.0, 0.1, alpha),
+                _ => Color::linear_rgba(1., 1., 1., alpha)
+            }
+        })
+    }
+
+    pub fn make_empty_item_slot(node: &mut ChildBuilder) {
+        let empty_map = UiTextureMap(HashMap::default());
+        empty_map.make_item_slot(node, &Stack::None, false);
+    }
+
+	pub fn make_item_slot(&self, node: &mut ChildBuilder, stack: &Stack, disabled: bool) {
+		let alpha = if disabled { 0.4 } else { 1. };
 		node.spawn(ImageBundle {
             style: Style {
                 width: Val::Vw(SLOT_SIZE_PERCENT),
@@ -33,12 +46,7 @@ impl UiTextureMap {
                 margin: UiRect::all(Val::Percent(0.2)), 
                 ..Default::default()
             },
-            image: UiImage::new(image).with_color({
-                    match stack {
-                        Stack::Some(Item::Block(block), _) if block.is_foliage() => Color::linear_rgba(0.3, 1.0, 0.1, alpha),
-                        _ => Color::linear_rgba(1., 1., 1., alpha)
-                    }
-                }),
+            image: self.get_with_alpha(stack, alpha),
             background_color: BackgroundColor(if disabled {
 				Color::NONE
             } else {				
@@ -46,8 +54,9 @@ impl UiTextureMap {
             }),
             ..Default::default()
         });
+        let qty = stack.quantity();
 		node.spawn(TextBundle {
-            text: Text::from_section(stack.quantity().to_string(), TextStyle { 
+            text: Text::from_section(if qty > 1 { qty.to_string() } else { String::new() }, TextStyle { 
                 color: if disabled {
 					Color::Srgba(css::LIGHT_GRAY)
                 } else {

@@ -1,6 +1,6 @@
 use bevy::{color::palettes::css, prelude::*};
 use crate::agents::Furnace;
-use super::{game_menu::despawn_screen, ui_tex_map::UiTextureMap, GameUiState};
+use super::{game_menu::despawn_screen, ui_tex_map::UiTextureMap, FurnaceSlot, GameUiState, ItemHolder, UISlot};
 
 pub struct FurnaceMenuPlugin;
 
@@ -25,12 +25,12 @@ fn open_furnace_menu(
     mut commands: Commands,
     tex_map: Res<UiTextureMap>,
     open_furnace: Res<OpenFurnace>,
-    furnace_query: Query<&Furnace>,
+    furnace_query: Query<(&Furnace, &ItemHolder)>,
 ) {
     let Some(furnace_entt) = open_furnace.0 else {
         return;
     };
-    let Ok(furnace) = furnace_query.get(furnace_entt) else {
+    let Ok((furnace, ItemHolder::Furnace { fuel, material, output })) = furnace_query.get(furnace_entt) else {
         return;
     };
     commands.spawn(NodeBundle {
@@ -75,22 +75,27 @@ fn open_furnace_menu(
                     },
                     ..Default::default()
                 }).with_children(|node| {
+                    node
+                        .spawn(NodeBundle {
+                            style: Style {
+                                margin: UiRect::all(Val::Vw(0.2)),
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        })
+                        .insert(Interaction::default())
+                        .insert(UISlot(furnace_entt, FurnaceSlot::Material.into()))
+                        .with_children(|node| tex_map.make_item_slot(node, material, false));
                     node.spawn(NodeBundle {
                         style: Style {
                             margin: UiRect::all(Val::Vw(0.2)),
                             ..Default::default()
                         },
                         ..Default::default()
-                    }).insert(Interaction::default())
-                    .with_children(|node| tex_map.make_ui_node(node, &furnace.material, false));
-                    node.spawn(NodeBundle {
-                        style: Style {
-                            margin: UiRect::all(Val::Vw(0.2)),
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    }).insert(Interaction::default())
-                    .with_children(|node| tex_map.make_ui_node(node, &furnace.fuel, false));
+                    })
+                        .insert(Interaction::default())
+                        .insert(UISlot(furnace_entt, FurnaceSlot::Fuel.into()))
+                        .with_children(|node| tex_map.make_item_slot(node, fuel, false));
                 });
                 node.spawn(TextBundle {
                     text: Text::from_section("=>", TextStyle { 
@@ -105,15 +110,18 @@ fn open_furnace_menu(
                     },
                     ..Default::default()
                 });
-                node.spawn(NodeBundle {
-                    style: Style {
-                        margin: UiRect::all(Val::Vw(0.2)),
-                        align_self: AlignSelf::Center,
+                node
+                    .spawn(NodeBundle {
+                        style: Style {
+                            margin: UiRect::all(Val::Vw(0.2)),
+                            align_self: AlignSelf::Center,
+                            ..Default::default()
+                        },
                         ..Default::default()
-                    },
-                    ..Default::default()
-                }).insert(Interaction::default())
-                .with_children(|node| tex_map.make_ui_node(node, &furnace.output, false));
+                    })
+                    .insert(Interaction::default())
+                    .insert(UISlot(furnace_entt, FurnaceSlot::Output.into()))
+                    .with_children(|node| tex_map.make_item_slot(node, output, false));
             });
     })
     .insert(FurnaceMenu);

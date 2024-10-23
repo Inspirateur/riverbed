@@ -1,10 +1,10 @@
 use std::fs;
 use std::iter::zip;
 use std::time::{Duration, Instant};
-use crate::items::{BlockLootTable, DropQuantity, FiringTable, Hotbar, Item, LootEntry, Stack};
+use crate::items::{BlockLootTable, DropQuantity, FiringTable, Inventory, Item, LootEntry, Stack};
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
-use crate::ui::{ControllingPlayer, GameUiState, OpenFurnace, SelectedHotbarSlot};
+use crate::ui::{ControllingPlayer, GameUiState, ItemHolder, SelectedHotbarSlot};
 use crate::Block;
 use crate::world::{BlockPos, BlockEntities, Realm, VoxelWorld};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
@@ -14,9 +14,9 @@ use bevy::prelude::*;
 use rand::Rng;
 
 
-pub struct BlockActionPlugin;
+pub struct BlockHitPlacePlugin;
 
-impl Plugin for BlockActionPlugin {
+impl Plugin for BlockHitPlacePlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(BlockBreakTable(
@@ -29,7 +29,6 @@ impl Plugin for BlockActionPlugin {
 			.add_systems(Update, (break_action, target_block, target_block_changed).chain().run_if(in_state(GameUiState::None)))
 			.add_systems(Update, block_outline.run_if(in_state(ControllingPlayer)))
             .add_systems(Update, place_block.run_if(in_state(GameUiState::None)))
-            .add_systems(Update, open_furnace_menu.run_if(in_state(GameUiState::None)))
             .add_systems(Update, renew_block)
 			;
     }
@@ -119,7 +118,7 @@ fn block_outline(mut gizmos: Gizmos, target_block_query: Query<&TargetBlock>) {
 fn break_action(
     mut commands: Commands,
     world: Res<VoxelWorld>, 
-    mut block_action_query: Query<(Entity, &TargetBlock, &mut Hotbar, &ActionState<Action>, Option<&mut BlockLootAction>)>,
+    mut block_action_query: Query<(Entity, &TargetBlock, &mut ItemHolder, &ActionState<Action>, Option<&mut BlockLootAction>)>,
     selected_slot: Res<SelectedHotbarSlot>,
     block_break_table: Res<BlockBreakTable>,
     block_harvest_table: Res<BlockHarvestTable>,
@@ -145,7 +144,7 @@ fn break_action(
             if !block.is_targetable() {
                 continue;
             }
-            let tool_used = hotbar.0.0[selected_slot.0].item();
+            let tool_used = hotbar.get(selected_slot.0).item();
             let break_entry = match action_type {
                 BlockActionType::Breaking => block_break_table.0.get(tool_used, &block),
                 BlockActionType::Harvesting => block_harvest_table.0.get(tool_used, &block)
@@ -209,7 +208,10 @@ fn break_action(
                     rng.gen_range(*min..=*max)
                 }
             };
-            if hotbar.0.try_add(Stack::Some(drop, quantity)).is_none() {
+            let ItemHolder::Inventory(ref mut hotbar) = *hotbar else {
+                continue;
+            };
+            if hotbar.try_add(Stack::Some(drop, quantity)).is_none() {
                 commands.trigger_targets(ItemGet, player);
             }
         }
@@ -219,7 +221,7 @@ fn break_action(
 
 fn place_block(
     world: Res<VoxelWorld>, 
-    mut block_action_query: Query<(&TargetBlock, &mut Hotbar, &ActionState<Action>)>, 
+    mut block_action_query: Query<(&TargetBlock, &mut ItemHolder, &ActionState<Action>)>, 
     selected_slot: Res<SelectedHotbarSlot>
 ) {
     for (target_block_opt, mut hotbar, action) in block_action_query.iter_mut() {
@@ -233,74 +235,17 @@ fn place_block(
         if world.get_block(pos).is_targetable() {
             continue;
         }
-        let block = match hotbar.0.0[selected_slot.0].take(1) {
+        let block = match hotbar.get_mut(selected_slot.0).take(1) {
             Stack::Some(Item::Block(block), _) => block,
             other => {
-                hotbar.0.0[selected_slot.0].try_add(other);
+                hotbar.get_mut(selected_slot.0).try_add(other);
                 continue;
             }
         };
         if !world.set_block_safe(pos, block) {
             // If the block couldn't be added we add it back
-            hotbar.0.0[selected_slot.0].try_add(Stack::Some(Item::Block(block), 1));
+            hotbar.get_mut(selected_slot.0).try_add(Stack::Some(Item::Block(block), 1));
         }
-    }
-}
-
-#[derive(Debug, Component)]
-pub struct Furnace {
-    pub name: String,
-    pub fuel: Stack,
-    pub material: Stack,
-    pub output: Stack,
-    pub temp: u32,
-}
-
-impl Furnace {
-    pub fn new(name: String, temp: u32) -> Self {
-        Self {
-            name,
-            fuel: Stack::Some(Item::Coal, 6),
-            material: Stack::Some(Item::IronOre, 4),
-            output: Stack::Some(Item::IronIngot, 1),
-            temp,
-        }
-    }
-}
-
-fn open_furnace_menu(
-    mut commands: Commands,
-    world: Res<VoxelWorld>, 
-    block_action_query: Query<(&TargetBlock, &ActionState<Action>), With<PlayerControlled>>,
-    furnace_query: Query<(&Furnace, &BlockAttached)>,
-    mut block_entities: ResMut<BlockEntities>,
-    mut next_ui_state: ResMut<NextState<GameUiState>>,
-    mut furnace_menu: ResMut<OpenFurnace>
-) {
-    for (target_block_opt, action) in block_action_query.iter() {
-        if !action.just_pressed(&Action::Modify) {
-            continue;
-        }
-        let Some(target_block) = &target_block_opt.0 else {
-            continue;
-        };
-        let furnace = world.get_block(target_block.pos);
-        let Some(furnace_temp) = furnace.furnace_temp() else {
-            continue;
-        };
-        let furnace_ent = if let Some(ent) = block_entities.get(&target_block.pos) {
-            if furnace_query.contains(ent) {
-                ent
-            } else {
-                commands.entity(ent).insert(Furnace::new(furnace.to_string(), furnace_temp)).id()
-            }
-        } else {
-            let ent = commands.spawn(Furnace::new(furnace.to_string(), furnace_temp)).id();
-            block_entities.add(&target_block.pos, ent);
-            ent
-        };
-        furnace_menu.0 = Some(furnace_ent);
-        next_ui_state.set(GameUiState::FurnaceMenu);
     }
 }
 

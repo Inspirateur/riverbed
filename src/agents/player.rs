@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{Hotbar, Inventory, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::ControllingPlayer, world::RenderDistance, Block};
+use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{new_inventory, Inventory, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::{ControllingPlayer, ItemHolder}, world::RenderDistance, Block};
 use crate::world::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
@@ -11,6 +11,7 @@ use super::{block_action::BlockActionPlugin, Crouching, FreeFly, Speed, Stepping
 const WALK_SPEED: f32 = 7.;
 const FREE_FLY_X_SPEED: f32 = 150.;
 const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
+pub const HOTBAR_SLOTS: usize = 8;
 
 pub struct PlayerPlugin;
 
@@ -77,8 +78,9 @@ pub fn spawn_player(mut commands: Commands) {
         transform: Transform {translation: SPAWN, ..default()},
         ..default()
     };
-    let mut inventory = Inventory::new();
+    let mut inventory = new_inventory::<HOTBAR_SLOTS>();
     inventory.try_add(Stack::Some(Item::Block(Block::Campfire), 1));
+    // Render distance nerfed from 64 to 16 while we don't have instancing
     let rd = RenderDistance(16);
     commands
         .spawn((
@@ -95,7 +97,7 @@ pub fn spawn_player(mut commands: Commands) {
             Velocity(Vec3::default()),
             rd,
             TargetBlock(None),
-            Hotbar(inventory),
+            ItemHolder::Inventory(inventory),
             PlayerControlled,
         ))
         .insert(SpatialListener::new(0.3))
