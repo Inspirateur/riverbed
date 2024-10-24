@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{new_inventory, Inventory, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::{ControllingPlayer, ItemHolder}, world::RenderDistance, Block};
+use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{new_inventory, InventoryTrait, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::{ControllingPlayer, ItemHolder}, world::RenderDistance, Block};
 use crate::world::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
@@ -79,7 +79,9 @@ pub fn spawn_player(mut commands: Commands) {
         ..default()
     };
     let mut inventory = new_inventory::<HOTBAR_SLOTS>();
-    inventory.try_add(Stack::Some(Item::Block(Block::Campfire), 1));
+    inventory.try_add(Stack::Some(Item::Block(Block::Smelter), 1));
+    inventory.try_add(Stack::Some(Item::Coal, 2));
+    inventory.try_add(Stack::Some(Item::IronOre, 5));
     // Render distance nerfed from 64 to 16 while we don't have instancing
     let rd = RenderDistance(16);
     commands

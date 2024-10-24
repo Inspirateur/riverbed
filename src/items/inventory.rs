@@ -10,6 +10,16 @@ pub enum Stack {
 
 
 impl Stack {
+    pub fn can_add(&self, other: Stack) -> bool {
+        let Stack::Some(item, _) = self else {
+            return true;
+        };
+        let Stack::Some(other_item, _) = other else {
+            return true;
+        };
+        item == &other_item
+    }
+    
     /// Tries to add other to self, and output what couldn't be added (either None or other in the case of uncapped stacks)
     pub fn try_add(&mut self, other: Stack) -> Option<Stack> {
         let Stack::Some(other_item, other_stack) = other else {
@@ -104,7 +114,7 @@ pub struct InventoryRecipes {
     pub uncraftable_entries: Vec<CraftEntry>
 }
 
-pub trait Inventory {
+pub trait InventoryTrait {
     fn try_add(&mut self, stack: Stack) -> Option<Stack>;
 
     fn try_select_item(&self, target_item: &Item, target_quantity: u32, selection: &mut HashMap<usize, u32>) -> bool;
@@ -115,7 +125,7 @@ pub trait Inventory {
 }
 
 
-impl Inventory for [Stack] {
+impl InventoryTrait for [Stack] {
     fn try_add(&mut self, mut stack: Stack) -> Option<Stack> {
         // try to add to an existing stack first
         for i in 0..self.len() {
@@ -200,7 +210,7 @@ mod tests {
     use itertools::Itertools;
 
     use crate::{items::{craft_table::Recipe, new_inventory, parse_recipes, Item}, Block};
-    use super::{Inventory, Stack};
+    use super::{InventoryTrait, Stack};
 
     #[test]
     fn test_recipe_filter() {

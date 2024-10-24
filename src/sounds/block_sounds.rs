@@ -28,7 +28,11 @@ fn footsteps(
     mut steppers_query: Query<(&Transform, &Velocity, &SteppingOn, &mut FootstepCD)>, 
 ) {
     for (transform, velocity, stepping_on, mut footstep_cd) in steppers_query.iter_mut() {
-        footstep_cd.0 -= velocity.0.length()*time.delta_seconds();
+        let speed= velocity.0.length();
+        if speed == 0. {
+            continue;
+        }
+        footstep_cd.0 -= speed*time.delta_seconds();
         if footstep_cd.0 > 0. {
             continue;
         }

@@ -1,7 +1,7 @@
 use std::fs;
 use std::iter::zip;
 use std::time::{Duration, Instant};
-use crate::items::{BlockLootTable, DropQuantity, FiringTable, Inventory, Item, LootEntry, Stack};
+use crate::items::{BlockLootTable, DropQuantity, FiringTable, InventoryTrait, Item, LootEntry, Stack};
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
 use crate::ui::{ControllingPlayer, GameUiState, ItemHolder, SelectedHotbarSlot};

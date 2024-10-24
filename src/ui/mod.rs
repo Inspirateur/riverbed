@@ -29,6 +29,7 @@ impl Plugin for UIPlugin {
             .init_state::<GameUiState>()
             .add_computed_state::<ControllingPlayer>()
             .add_computed_state::<CursorGrabbed>()
+            .add_computed_state::<Inventory>()
             .add_plugins(InputManagerPlugin::<UIAction>::default())
             .add_plugins(ItemSlotPlugin)
             .add_plugins(UiTexMapPlugin)
@@ -90,6 +91,21 @@ impl ComputedStates for CursorGrabbed {
             None
         } else {
             Some(Self)
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Inventory;
+
+impl ComputedStates for Inventory {
+    type SourceStates = GameUiState;
+
+    fn compute(sources: Self::SourceStates) -> Option<Self> {
+        if sources.needs_free_cursor() && sources != GameUiState::InGameMenu {
+            Some(Self)
+        } else {
+            None
         }
     }
 }

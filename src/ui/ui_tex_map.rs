@@ -32,9 +32,9 @@ impl UiTextureMap {
         })
     }
 
-    pub fn make_empty_item_slot(node: &mut ChildBuilder) {
+    pub fn make_empty_item_slot(node: &mut ChildBuilder, disabled: bool) {
         let empty_map = UiTextureMap(HashMap::default());
-        empty_map.make_item_slot(node, &Stack::None, false);
+        empty_map.make_item_slot(node, &Stack::None, disabled);
     }
 
 	pub fn make_item_slot(&self, node: &mut ChildBuilder, stack: &Stack, disabled: bool) {
