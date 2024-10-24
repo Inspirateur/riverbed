@@ -104,7 +104,7 @@ impl VoxelWorld {
                 z: col_pos.z,
                 realm: col_pos.realm,
             };
-            let h = height.min(dy + 1);
+            let h = height.min(dy);
             self.chunks
                 .entry(chunk_pos)
                 .or_insert_with(|| TrackedChunk::new())
