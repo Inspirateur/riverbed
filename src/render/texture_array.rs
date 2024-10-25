@@ -97,7 +97,7 @@ fn build_tex_array(
     let default = Image::new_fill(
         Extent3d { width: 2, height: 2, ..Default::default() }, 
         TextureDimension::D2, 
-        &[100], 
+        &[100, 100, 25, 255],
         TextureFormat::Rgba8Unorm, 
         RenderAssetUsages::default()
     );
