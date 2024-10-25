@@ -1,6 +1,6 @@
 use bevy::{color::palettes::css, prelude::*};
 use crate::agents::Furnace;
-use super::{game_menu::despawn_screen, ui_tex_map::UiTextureMap, FurnaceSlot, GameUiState, ItemHolder, UISlot};
+use super::{game_menu::despawn_screen, ui_tex_map::{UiSlotKind, UiTextureMap}, FurnaceSlot, GameUiState, ItemHolder, UISlot};
 
 pub struct FurnaceMenuPlugin;
 
@@ -85,7 +85,7 @@ fn open_furnace_menu(
                         })
                         .insert(Interaction::default())
                         .insert(UISlot(furnace_entt, FurnaceSlot::Material.into()))
-                        .with_children(|node| tex_map.make_item_slot(node, material, false));
+                        .with_children(|node| tex_map.make_item_slot(node, material, UiSlotKind::Default));
                     node.spawn(NodeBundle {
                         style: Style {
                             margin: UiRect::all(Val::Vw(0.2)),
@@ -95,7 +95,7 @@ fn open_furnace_menu(
                     })
                         .insert(Interaction::default())
                         .insert(UISlot(furnace_entt, FurnaceSlot::Fuel.into()))
-                        .with_children(|node| tex_map.make_item_slot(node, fuel, false));
+                        .with_children(|node| tex_map.make_item_slot(node, fuel, UiSlotKind::Default));
                 });
                 node.spawn(TextBundle {
                     text: Text::from_section("=>", TextStyle { 
@@ -121,7 +121,7 @@ fn open_furnace_menu(
                     })
                     .insert(Interaction::default())
                     .insert(UISlot(furnace_entt, FurnaceSlot::Output.into()))
-                    .with_children(|node| tex_map.make_item_slot(node, output, false));
+                    .with_children(|node| tex_map.make_item_slot(node, output, UiSlotKind::Default));
             });
     })
     .insert(FurnaceMenu);

@@ -1,5 +1,5 @@
-use bevy::{prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
-use crate::{agents::{BlockActionType, BlockLootAction, PlayerControlled}, items::Stack, render::{CameraSpawn, FpsCam}};
+use bevy::prelude::*;
+use crate::{agents::{BlockActionType, BlockLootAction, PlayerControlled}, render::{CameraSpawn, FpsCam}};
 use super::{ui_tex_map::UiTextureMap, ItemHolder, SelectedHotbarSlot};
 
 pub struct InHandPlugin;
@@ -68,13 +68,7 @@ fn on_hotbar_change(
         return;
     };
     let stack = &hotbar[selected_slot.0];
-    let mut handle = TRANSPARENT_IMAGE_HANDLE;
-    if let Stack::Some(item, _) = stack {
-        if let Some(tex_handle) = tex_map.0.get(item) {
-            handle = tex_handle.clone();
-        }
-    }
-    in_hand_material.base_color_texture = Some(handle);
+    in_hand_material.base_color_texture = Some(tex_map.get_texture(stack));
 }
 
 fn on_selected_slot_change(
@@ -97,13 +91,7 @@ fn on_selected_slot_change(
         return;
     };
     let stack = &hotbar[selected_slot.0];
-    let mut handle = TRANSPARENT_IMAGE_HANDLE;
-    if let Stack::Some(item, _) = stack {
-        if let Some(tex_handle) = tex_map.0.get(item) {
-            handle = tex_handle.clone();
-        }
-    }
-    in_hand_material.base_color_texture = Some(handle);
+    in_hand_material.base_color_texture = Some(tex_map.get_texture(stack));
 }
 
 fn animate(

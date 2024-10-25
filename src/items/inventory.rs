@@ -87,13 +87,7 @@ impl Stack {
         }
         res
     }
-
-    pub fn take_all(&mut self) -> Stack {
-        let res = self.clone();
-        *self = Stack::None;
-        res
-    }
-
+    
     /// Intentionnaly private so we don't clone Stacks
     fn clone(&self) -> Stack {
         match self {

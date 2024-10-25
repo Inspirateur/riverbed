@@ -1,14 +1,15 @@
 use bevy::prelude::*;
-use crate::items::{InventoryTrait, Item, Stack};
-use super::{hotbar::HotBarSlot, ui_tex_map::{UiTextureMap, SLOT_SIZE_PERCENT}, Inventory, SelectedHotbarSlot};
+use crate::{items::{InventoryTrait, Item, Stack}, render::ItemTexState};
+use super::{ui_tex_map::{UiSlotKind, UiTextureMap, SLOT_SIZE_PERCENT}, Inventory};
 
 pub struct ItemSlotPlugin;
 
 impl Plugin for ItemSlotPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(Dragging(None))
+            .insert_resource(Dragging(Stack::None))
             .add_systems(Startup, setup_dragging_ui)
+            .add_systems(OnEnter(ItemTexState::Mapped), refresh_slot_items)
             .add_systems(OnEnter(Inventory), show_dragging_ui)
             .add_systems(OnExit(Inventory), hide_dragging_ui)
             .add_systems(Update, item_slot_click.run_if(in_state(Inventory)))
@@ -20,7 +21,7 @@ impl Plugin for ItemSlotPlugin {
 }
 
 #[derive(Resource)]
-struct Dragging(pub Option<(Stack, Entity)>);
+struct Dragging(Stack);
 
 #[derive(Component)]
 struct DraggingNode;
@@ -102,16 +103,6 @@ impl ItemHolder {
         }
     }
 
-    fn take_or_swap(&mut self, stack: &mut Stack, slot_id: usize) {
-        let own_stack = self.get_mut(slot_id);
-        if own_stack.try_take_from(stack) {
-            // we succeeded in taking some items from stack
-            return;
-        };
-        // we weren't able to add anything so we swap
-        own_stack.swap_with(stack)
-    }
-
     pub fn try_add(&mut self, stack: Stack) -> Option<Stack> {
         match self {
             ItemHolder::Furnace { fuel, material, output } => todo!(),
@@ -136,39 +127,31 @@ fn item_slot_click(
         let Ok(mut clicked_item_holder) = item_holders.get_mut(*item_holder_entt) else {
             continue;
         };
-        match &mut dragging.0 {
-            Some((dragged_items, _)) => {
-                clicked_item_holder.take_or_swap(dragged_items, *slot_id);
-                dragging.0 = None;
-            },
-            None => {
-                if clicked_item_holder.get(*slot_id) == &Stack::None {
-                    continue;
-                }
-                let stack = clicked_item_holder.get_mut(*slot_id);
-                dragging.0 = Some((stack.take_all(), *item_holder_entt));
-            },
-        }
+        let clicked_stack = clicked_item_holder.get_mut(*slot_id);
+        if dragging.0 != Stack::None && clicked_stack.try_take_from(&mut dragging.0) {
+            // we succeeded in taking some items from dragging
+            continue;
+        };
+        // we couldn't take any items from dragging so we swap
+        clicked_stack.swap_with(&mut dragging.0)
     }
 }
 
 fn refresh_slot_items(
-    node_query: Query<(&UISlot, &Children, Option<&HotBarSlot>)>,
+    node_query: Query<(&UISlot, &Children)>,
     mut img_query: Query<&mut UiImage>, 
     mut text_query: Query<&mut Text>,
     tex_map: Res<UiTextureMap>,
-    selected_slot: Res<SelectedHotbarSlot>,
     item_query: Query<&ItemHolder, Changed<ItemHolder>>,
 ) {
-    for (UISlot(item_holder_entt, slot), children, hotbar_opt) in node_query.iter() {
+    for (UISlot(item_holder_entt, slot), children) in node_query.iter() {
         let Ok(item_holder) = item_query.get(*item_holder_entt) else {
             continue;
         };
         let stack = item_holder.get(*slot);
-        let selected = hotbar_opt.is_some() && *slot == selected_slot.0;
         for child in children {
             if let Ok(mut ui_img) = img_query.get_mut(*child) {
-                *ui_img = tex_map.get_with_alpha(stack, if selected { 1. } else { 0.5 });
+                ui_img.texture = tex_map.get_texture(stack);
             }
             if let Ok(mut text) = text_query.get_mut(*child) {
                 let quantity = stack.quantity();
@@ -185,13 +168,15 @@ fn setup_dragging_ui(mut commands: Commands) {
             width: Val::Percent(SLOT_SIZE_PERCENT),
             aspect_ratio: Some(1.),
             display: Display::None,
+            
             ..Default::default()
         },
+        z_index: ZIndex::Global(1),
         ..Default::default()
     })
     .insert(DraggingNode)
     .with_children(
-        |node| UiTextureMap::make_empty_item_slot(node, true)
+        |node| UiTextureMap::make_empty_item_slot(node, UiSlotKind::NoBg)
     );
 }
 
@@ -222,16 +207,12 @@ fn refresh_dragging_ui(
     let Ok(children) = dragging_node_query.get_single() else {
         return;
     };
-    let stack = match &dragging.0 {
-        Some((stack, _)) => stack,
-        None => &Stack::None,
-    };
     for child in children {
         if let Ok(mut ui_img) = img_query.get_mut(*child) {
-            *ui_img = tex_map.get_with_alpha(stack, 1.);
+            ui_img.texture = tex_map.get_texture(&dragging.0);
         }
         if let Ok(mut text) = text_query.get_mut(*child) {
-            let quantity = stack.quantity();
+            let quantity = dragging.0.quantity();
             text.sections[0].value = if quantity < 2 { String::new() } else { quantity.to_string() };
         }
     }

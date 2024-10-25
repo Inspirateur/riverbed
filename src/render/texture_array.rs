@@ -66,6 +66,7 @@ fn build_tex_array(
     mut textures: ResMut<Assets<Image>>,
     texture_map: Res<TextureMap>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
+    mut next_state: ResMut<NextState<BlockTexState>>,
     // mut shader_buffers: ResMut<Assets<ShaderStorageBuffer>>,
 ) {
     let mut texture_list: Vec<&Image> = Vec::new();
@@ -126,6 +127,7 @@ fn build_tex_array(
         }
     });
     commands.insert_resource(BlockTextureArray(handle));
+    next_state.set(BlockTexState::Mapped);
 }
 
 

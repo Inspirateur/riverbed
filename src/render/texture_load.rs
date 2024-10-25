@@ -24,6 +24,7 @@ pub enum BlockTexState {
     #[default]
     Setup,
     Loaded,
+    Mapped
 }
 
 #[derive(Resource, Default)]
@@ -51,7 +52,8 @@ fn check_block_textures(
 pub enum ItemTexState {
     #[default]
     Setup,
-    Loaded
+    Loaded,
+    Mapped
 }
 
 #[derive(Resource, Default)]
