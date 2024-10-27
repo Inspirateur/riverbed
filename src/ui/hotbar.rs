@@ -70,7 +70,7 @@ fn scroll_hotbar(
         let selected = *slot == selected_slot.0;
         for child in children {
             if let Ok(mut ui_img) = img_query.get_mut(*child) {
-                ui_img.color.set_alpha(if selected { 1. } else { 0.7 });
+                ui_img.color.set_alpha(if selected { 1. } else { 0.75 });
             }
             if let Ok(mut text) = text_query.get_mut(*child) {
                 text.sections[0].style.color = if selected {

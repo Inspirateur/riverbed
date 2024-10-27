@@ -133,7 +133,7 @@ fn generate_flags(blocks: &mut BTreeSet<BlockEntry>) -> String {
                         format!("{BLOCKS}::{lit_furnace} => {BLOCKS}::{block}")
                     );
                     flag_fns.entry("furnace_temp".to_string()).or_insert(MatchFn::new("furnace_temp", "Option<u32>").with_default("None")).arms.push(
-                        format!("{BLOCKS}::{block} => Some({temperature})")
+                        format!("{BLOCKS}::{block} | {BLOCKS}::{lit_furnace} => Some({temperature})")
                     );
                     generated_blocks.insert(lit_furnace);
                 },

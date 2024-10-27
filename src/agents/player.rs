@@ -80,8 +80,8 @@ pub fn spawn_player(mut commands: Commands) {
     };
     let mut inventory = new_inventory::<HOTBAR_SLOTS>();
     inventory.try_add(Stack::Some(Item::Block(Block::Smelter), 1));
-    inventory.try_add(Stack::Some(Item::Coal, 2));
-    inventory.try_add(Stack::Some(Item::IronOre, 5));
+    inventory.try_add(Stack::Some(Item::Coal, 20));
+    inventory.try_add(Stack::Some(Item::IronOre, 50));
     // Render distance nerfed from 64 to 16 while we don't have instancing
     let rd = RenderDistance(16);
     commands

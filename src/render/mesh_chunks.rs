@@ -18,7 +18,7 @@ const MASK_XYZ: u64 = 0b111111_111111_111111;
 /// first u32 (vertex dependant):
 ///     - chunk position: 3x6 bits (33 values)
 ///     - texture coords: 2x6 bits (33 values)
-///     - ambiant occlusion: 2 bits (4 values)
+///     - ambiant occlusion?: 2 bits (4 values)
 /// `0bao_vvvvvv_uuuuuu_zzzzzz_yyyyyy_xxxxxx`
 ///
 /// second u32 (vertex agnostic):

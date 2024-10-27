@@ -21,7 +21,7 @@ impl Plugin for ItemSlotPlugin {
 }
 
 #[derive(Resource)]
-struct Dragging(Stack);
+pub struct Dragging(Stack);
 
 #[derive(Component)]
 struct DraggingNode;

@@ -1,4 +1,4 @@
-use bevy::{audio::PlaybackMode, prelude::*};
+use bevy::{audio::{PlaybackMode, SpatialScale}, prelude::*};
 use rand::Rng;
 use crate::agents::{BlockActionType, BlockLootAction, SteppingOn, Velocity};
 use super::block_sound_load::{BlockSound, BlockSoundLoadPlugin, BlockSounds};
@@ -43,6 +43,8 @@ fn footsteps(
             source: sound.clone(),
             settings: PlaybackSettings { 
                 mode: PlaybackMode::Despawn, 
+                spatial: true,
+                spatial_scale: Some(SpatialScale::new(0.3)),
                 speed: 1.+((rand::thread_rng().gen::<f32>()-0.5)*RAND_AMPLITUDE),
                 ..Default::default()
             }
@@ -76,6 +78,8 @@ fn breaking(
                 source: sound.clone(),
                 settings: PlaybackSettings { 
                     mode: PlaybackMode::Despawn, 
+                    spatial: true,
+                    spatial_scale: Some(SpatialScale::new(0.3)),
                     speed: 1.+((rand::thread_rng().gen::<f32>()-0.5)*RAND_AMPLITUDE),
                     ..Default::default()
                 }
