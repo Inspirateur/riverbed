@@ -44,7 +44,7 @@ fn footsteps(
             settings: PlaybackSettings { 
                 mode: PlaybackMode::Despawn, 
                 spatial: true,
-                spatial_scale: Some(SpatialScale::new(0.3)),
+                spatial_scale: Some(SpatialScale::new(0.2)),
                 speed: 1.+((rand::thread_rng().gen::<f32>()-0.5)*RAND_AMPLITUDE),
                 ..Default::default()
             }
@@ -79,7 +79,7 @@ fn breaking(
                 settings: PlaybackSettings { 
                     mode: PlaybackMode::Despawn, 
                     spatial: true,
-                    spatial_scale: Some(SpatialScale::new(0.3)),
+                    spatial_scale: Some(SpatialScale::new(0.2)),
                     speed: 1.+((rand::thread_rng().gen::<f32>()-0.5)*RAND_AMPLITUDE),
                     ..Default::default()
                 }

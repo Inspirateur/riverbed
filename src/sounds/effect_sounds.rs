@@ -1,6 +1,6 @@
 use bevy::{audio::{PlaybackMode, SpatialScale}, prelude::*};
 use rand::Rng;
-use crate::{agents::Furnace, items::LitFurnace};
+use crate::{agents::{BlockPlaced, Furnace}, items::LitFurnace};
 const RAND_AMPLITUDE: f32 = 0.3;
 
 pub struct EffectSoundPlugin;
@@ -11,6 +11,7 @@ impl Plugin for EffectSoundPlugin {
             .add_systems(Startup, setup_effect_sounds)
             .add_systems(Update, setup_furnace_cd)
             .add_systems(Update, furnace_sounds)
+            .observe(on_block_placed)
             ;
     }
 }
@@ -19,7 +20,8 @@ impl Plugin for EffectSoundPlugin {
 pub struct EffectSounds {
     item_get: Handle<AudioSource>,
     fire_crackle: Handle<AudioSource>,
-    flame: Handle<AudioSource>
+    flame: Handle<AudioSource>,
+    block_placed: Handle<AudioSource>,
 }
 
 fn setup_effect_sounds(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -27,6 +29,7 @@ fn setup_effect_sounds(mut commands: Commands, asset_server: Res<AssetServer>) {
         item_get: asset_server.load("sounds/effects/pop.ogg"),
         fire_crackle: asset_server.load("sounds/effects/tt.ogg"),
         flame: asset_server.load("sounds/effects/flame.ogg"),
+        block_placed: asset_server.load("sounds/effects/p.ogg"),
     });
 }
 
@@ -42,6 +45,25 @@ pub fn on_item_get(_: Trigger<ItemGet>, mut commands: Commands, effect_sounds: R
         }
     });
 }
+
+pub fn on_block_placed(
+    block_placed: Trigger<BlockPlaced>, 
+    mut commands: Commands, 
+    effect_sounds: Res<EffectSounds>
+) {
+    commands
+        .spawn(SpatialBundle::from_transform(Transform::from_translation(block_placed.event().0.into())))
+        .insert(AudioSourceBundle {
+            source: effect_sounds.block_placed.clone_weak(),
+            settings: PlaybackSettings {
+                mode: PlaybackMode::Despawn,
+                spatial: true,
+                spatial_scale: Some(SpatialScale::new(0.2)),
+                ..Default::default()
+            }
+        });
+}
+
 
 #[derive(Component)]
 struct FireCrackleCD(pub f32);

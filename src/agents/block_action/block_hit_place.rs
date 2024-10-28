@@ -219,7 +219,11 @@ fn break_action(
     }
 }
 
+#[derive(Event)]
+pub struct BlockPlaced(pub BlockPos);
+
 fn place_block(
+    mut commands: Commands,
     world: Res<VoxelWorld>, 
     mut block_action_query: Query<(&TargetBlock, &mut ItemHolder, &ActionState<Action>)>, 
     selected_slot: Res<SelectedHotbarSlot>
@@ -245,6 +249,8 @@ fn place_block(
         if !world.set_block_safe(pos, block) {
             // If the block couldn't be added we add it back
             hotbar.get_mut(selected_slot.0).try_add(Stack::Some(Item::Block(block), 1));
+        } else {
+            commands.trigger(BlockPlaced(pos));
         }
     }
 }

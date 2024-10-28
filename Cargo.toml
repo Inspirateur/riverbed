@@ -10,7 +10,7 @@ members = [
 ]
 
 [dependencies]
-bevy = "0.14"
+bevy = { version = "0.14" }
 bevy_atmosphere = "*"
 binary-greedy-meshing = "*"
 leafwing-input-manager = "*"
@@ -40,7 +40,6 @@ nd-interval = { git = "https://github.com/Inspirateur/nd-interval" }
 
 [build-dependencies]
 riverbed_block_def = { path = "crates/riverbed_block_def", version = "*" }
-
 
 [profile.dev]
 opt-level = 1
