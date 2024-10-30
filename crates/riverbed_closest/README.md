@@ -1,4 +1,4 @@
-# Riverbed Closest
+# riverbed_closest
 Utilities to pick plants, biomes, etc. depending on terrain parameters such as temperature, humidity, pH, etc.
 
 ### Process overview
