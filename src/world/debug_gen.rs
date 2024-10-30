@@ -3,8 +3,8 @@ use crate::world::{
     unchunked, VoxelWorld, ColPos
 };
 use crate::{Block, block::Soils};
+use riverbed_closest::{points, ranges, ClosestTrait};
 use itertools::iproduct;
-use nd_interval::NdInterval;
 use std::{collections::HashMap, path::Path};
 
 pub struct DebugGen {
@@ -32,7 +32,7 @@ impl DebugGen {
         DebugGen {
             seed,
             config,
-            soils: Soils::from_csv(Path::new("assets/data/soils_condition.csv")).unwrap(),
+            soils: ranges::from_csv("assets/data/soils_condition.csv").unwrap(),
         }
     }
 
@@ -42,7 +42,7 @@ impl DebugGen {
             let (y, t, h) = values(x, z);
             let y = (y * MAX_GEN_HEIGHT as f32) as i32;
             assert!(y >= 0);
-            let block = *self.soils.closest([t as f32, h as f32]).unwrap_or((&Block::Dirt, 0.)).0;
+            let block = *self.soils.closest([t as f32, h as f32]).0;
             world.set_yrange(col, (dx, dz), y, 3, block);
         }
         // this is a bit too slow so we don't bother with it for now

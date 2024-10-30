@@ -2,11 +2,11 @@ use crate::{Block, block::{Soils, Trees}};
 use crate::world::{
     BlockPos, BlockPos2d, ColPos, VoxelWorld, CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT, WATER_H,
 };
+use riverbed_closest::{points, ranges, ClosestTrait};
 use bevy::prelude::info_span;
 use itertools::iproduct;
-use nd_interval::NdInterval;
 use noise_algebra::NoiseSource;
-use std::{collections::HashMap, ops::RangeInclusive, path::Path};
+use std::{collections::HashMap, ops::RangeInclusive};
 pub const CONT_R: f32 = (WATER_H + 2) as f32 / MAX_GEN_HEIGHT as f32;
 pub const CONT_COMPL: f32 = 1. - CONT_R;
 
@@ -26,8 +26,8 @@ fn pos_to_range(pos: ColPos) -> [RangeInclusive<i32>; 2] {
 impl Earth {
     pub fn new(seed: u32, config: HashMap<String, f32>) -> Self {
         Earth {
-            soils: Soils::from_csv(Path::new("assets/data/soils_condition.csv")).unwrap(),
-            trees: Trees::from_csv(Path::new("assets/data/trees_condition.csv")).unwrap(),
+            soils: ranges::from_csv("assets/data/soils_condition.csv").unwrap(),
+            trees: ranges::from_csv("assets/data/trees_condition.csv").unwrap(),
             seed: seed as i32,
             config,
         }
@@ -89,9 +89,11 @@ impl Earth {
             } else if base_y <= WATER_H {
                 Block::Sand
             } else {
-                match self.soils.closest([t, h]) {
-                    Some((block, _)) => *block,
-                    None => Block::Dirt,
+                let (block, value) = self.soils.closest([t, h]);
+                if value < 0. {
+                    Block::Dirt
+                } else {
+                    *block
                 }
             };
             world.set_yrange(col, (dx, dz), y, 4, block);
@@ -152,12 +154,13 @@ impl Earth {
             let h = (rng >> 5) & 0b11;
             let y = ys[[dx, dz]];
             if y > WATER_H {
-                if let Some((tree, dist)) = self.trees.closest([
+                let (tree, dist) = self.trees.closest([
                     ts[[dx, dz]],
                     hs[[dx, dz]],
                     ph[[dx, dz]],
                     y as f32 / MAX_GEN_HEIGHT as f32,
-                ]) {
+                ]);
+                if dist >= 0. {
                     let pos = BlockPos {
                         x: col.x * CHUNK_S1I + dx as i32,
                         y,

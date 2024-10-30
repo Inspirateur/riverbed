@@ -36,7 +36,7 @@ lazy_static = "*"
 noise-algebra = "*"
 regex = "*"
 json5 = "*"
-nd-interval = { git = "https://github.com/Inspirateur/nd-interval" }
+riverbed_closest = { path = "crates/riverbed_closest", version = "*"}
 
 [build-dependencies]
 riverbed_block_def = { path = "crates/riverbed_block_def", version = "*" }
