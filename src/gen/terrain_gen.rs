@@ -1,4 +1,4 @@
-use crate::world::earth_gen::Earth;
+use crate::gen::earth_gen::Earth;
 use crate::world::VoxelWorld;
 use crate::WorldRng;
 use bevy::ecs::system::Res;
@@ -6,7 +6,7 @@ use bevy::tasks::AsyncComputeTaskPool;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::yield_now;
-use super::LoadOrders;
+use crate::world::LoadOrders;
 
 pub fn setup_gen_thread(blocks: Res<VoxelWorld>, world_rng: Res<WorldRng>, load_orders: Res<LoadOrders>) {
     let thread_pool = AsyncComputeTaskPool::get();

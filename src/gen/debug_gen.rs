@@ -2,7 +2,7 @@ use crate::world::{
     MAX_GEN_HEIGHT, CHUNK_S1,
     unchunked, VoxelWorld, ColPos
 };
-use crate::{Block, block::Soils};
+use crate::{Block, gen::Soils};
 use riverbed_closest::{points, ranges, ClosestTrait};
 use itertools::iproduct;
 use std::{collections::HashMap, path::Path};
@@ -32,7 +32,7 @@ impl DebugGen {
         DebugGen {
             seed,
             config,
-            soils: ranges::from_csv("assets/data/soils_condition.csv").unwrap(),
+            soils: ranges::from_csv("assets/gen/soils_condition.csv").unwrap(),
         }
     }
 

@@ -1,4 +1,4 @@
-use crate::{Block, block::{Soils, Trees}};
+use crate::{Block, gen::Soils};
 use crate::world::{
     BlockPos, BlockPos2d, ColPos, VoxelWorld, CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT, WATER_H,
 };
@@ -7,6 +7,8 @@ use bevy::prelude::info_span;
 use itertools::iproduct;
 use noise_algebra::NoiseSource;
 use std::{collections::HashMap, ops::RangeInclusive};
+
+use super::tree::Trees;
 pub const CONT_R: f32 = (WATER_H + 2) as f32 / MAX_GEN_HEIGHT as f32;
 pub const CONT_COMPL: f32 = 1. - CONT_R;
 
@@ -26,8 +28,8 @@ fn pos_to_range(pos: ColPos) -> [RangeInclusive<i32>; 2] {
 impl Earth {
     pub fn new(seed: u32, config: HashMap<String, f32>) -> Self {
         Earth {
-            soils: ranges::from_csv("assets/data/soils_condition.csv").unwrap(),
-            trees: ranges::from_csv("assets/data/trees_condition.csv").unwrap(),
+            soils: ranges::from_csv("assets/gen/soils_condition.csv").unwrap(),
+            trees: ranges::from_csv("assets/gen/trees_condition.csv").unwrap(),
             seed: seed as i32,
             config,
         }

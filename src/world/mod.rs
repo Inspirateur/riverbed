@@ -1,6 +1,3 @@
-mod terrain_gen;
-mod debug_gen;
-mod earth_gen;
 mod load_area;
 mod load_orders;
 mod voxel_world;
@@ -16,10 +13,10 @@ pub use pos::*;
 pub use load_area::{PlayerArea, RenderDistance, range_around};
 pub use load_orders::{LoadOrders, ColUnloadEvent, BlockEntities};
 use bevy::{app::Startup, ecs::schedule::{apply_deferred, IntoSystemConfigs, SystemSet}, prelude::{Plugin, Update}};
-use crate::agents::PlayerSpawn;
+use crate::{agents::PlayerSpawn, gen::setup_gen_thread};
 use self::{load_orders::{
 	assign_load_area, on_render_distance_change, process_unload_orders, update_load_area
-}, terrain_gen::setup_gen_thread};
+}, };
 pub const CHUNK_S1: usize = 62;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
 pub const CHUNKP_S1: usize = CHUNK_S1 + 2;

@@ -54,5 +54,3 @@ impl Block {
         }
     }
 }
-
-pub type Soils = Vec<([Range<f32>; 2], Block)>;
