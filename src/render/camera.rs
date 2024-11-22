@@ -85,7 +85,7 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
 pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>, time: Res<Time>) {
     let (action_state, mut fpscam) = query.single_mut();
     let camera_pan_vector = action_state.axis_pair(&CameraMovement::Pan);
-    let c = time.delta_seconds() * CAMERA_PAN_RATE;
+    let c = time.delta_secs() * CAMERA_PAN_RATE;
     fpscam.yaw -= c*camera_pan_vector.x;
     fpscam.pitch -= c*camera_pan_vector.y;
     fpscam.pitch = fpscam.pitch.clamp(-1.5, 1.5);

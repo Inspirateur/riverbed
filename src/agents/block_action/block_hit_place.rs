@@ -169,7 +169,7 @@ fn break_action(
             commands.entity(player).remove::<BlockLootAction>();
             continue;
         };
-        looting.time_left -= time.delta_seconds();
+        looting.time_left -= time.delta_secs();
         if looting.time_left > 0. {
             continue;
         }
