@@ -1,0 +1,9 @@
+id, temp, hum
+desert, 1.0, 0.0
+savanna, 0.9, 0.5
+jungle, 0.9, 1.
+grassland, 0.5, 0.1
+temperate_forest, 0.5, 0.5
+marsh, 0.5, 0.8
+taiga, 0.2, 0.5
+tundra, 0.2, 0.1
