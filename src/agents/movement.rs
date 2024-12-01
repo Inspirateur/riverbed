@@ -127,7 +127,7 @@ fn apply_gravity(blocks: Res<VoxelWorld>, time: Res<Time>, mut query: Query<(&Tr
         if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
         }
-        velocity.0 += Vec3::new(0., -gravity.0*time.delta_seconds(), 0.);
+        velocity.0 += Vec3::new(0., -gravity.0*time.delta_secs(), 0.);
     }
 }
 
@@ -154,7 +154,7 @@ fn apply_acc(
         if diff_len == 0. {
             continue;
         }
-        let c = (time.delta_seconds()*friction*ACC_MULT/diff_len.max(1.)).min(1.);
+        let c = (time.delta_secs()*friction*ACC_MULT/diff_len.max(1.)).min(1.);
         let acc: Vec3 = c*diff;
         velocity.0 += acc;
     }
@@ -176,7 +176,7 @@ fn apply_velocity(
         if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
         }
-        let applied_velocity = velocity.0*time.delta_seconds();
+        let applied_velocity = velocity.0*time.delta_secs();
         // split the motion on all 3 axis, check for collisions, adjust the final speed vector if there's any
         // x
         let xpos = if applied_velocity.x > 0. { aabb.0.x + transform.translation.x } else { transform.translation.x }; 

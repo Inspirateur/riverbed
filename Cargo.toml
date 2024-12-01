@@ -10,10 +10,10 @@ members = [
 ]
 
 [dependencies]
-bevy = { version = "0.14" }
+bevy = { version = "0.15.0-rc" }
 bevy_atmosphere = "*"
 binary-greedy-meshing = "*"
-leafwing-input-manager = "*"
+leafwing-input-manager = "*" #{ git = "https://github.com/pcwalton/leafwing-input-manager", branch = "0.15-newer"} 
 rand = "*"
 rand_chacha = "*"
 indexmap = "*"
