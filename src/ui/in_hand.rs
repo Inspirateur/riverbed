@@ -42,18 +42,18 @@ fn in_hand_setup(
 
     commands.entity(cam)
         .with_children(|c| {
-            c.spawn(PbrBundle {
-                mesh: quad_handle,
-                material: material_handle,
-                transform: Transform::from_xyz(0.12, -0.08, -0.2).looking_at(Vec3::new(2., 0., -1.).normalize(), Vec3::new(0., 1., -0.4).normalize()),
-                ..Default::default()
-            }).insert(InHandMaterial);
+            c.spawn((
+                Mesh3d(quad_handle),
+                MeshMaterial3d(material_handle),
+                Transform::from_xyz(0.12, -0.08, -0.2).looking_at(Vec3::new(2., 0., -1.).normalize(), Vec3::new(0., 1., -0.4).normalize()),
+                InHandMaterial
+            ));
         });
 }
 
 fn on_hotbar_change(
     hotbar_query: Query<&ItemHolder, (With<PlayerControlled>, Changed<ItemHolder>)>,
-    in_hand_query: Query<&Handle<StandardMaterial>, With<InHandMaterial>>,
+    in_hand_query: Query<&MeshMaterial3d<StandardMaterial>, With<InHandMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     selected_slot: Res<SelectedHotbarSlot>,
     tex_map: Res<UiTextureMap>,
@@ -73,7 +73,7 @@ fn on_hotbar_change(
 
 fn on_selected_slot_change(
     hotbar_query: Query<&ItemHolder, With<PlayerControlled>>,
-    in_hand_query: Query<&Handle<StandardMaterial>, With<InHandMaterial>>,
+    in_hand_query: Query<&MeshMaterial3d<StandardMaterial>, With<InHandMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     selected_slot: Res<SelectedHotbarSlot>,
     tex_map: Res<UiTextureMap>,

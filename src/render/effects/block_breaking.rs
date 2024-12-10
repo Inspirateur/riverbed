@@ -76,12 +76,11 @@ fn add_break_animation(
             + target.normal.max(Vec3::ZERO) 
             + target.normal*0.001 
             + (Vec3::ONE-target.normal.abs())*0.5;
-        let effect = commands.spawn(PbrBundle {
-            mesh: quad_handle.clone(),
-            material: material_handle.clone(),
-            transform: Transform::from_translation(translation).looking_at(translation-target.normal, Vec3::Y),
-            ..default()
-        }).id();
+        let effect = commands.spawn((
+            Mesh3d(quad_handle.clone()),
+            MeshMaterial3d(material_handle.clone()),
+            Transform::from_translation(translation).looking_at(translation-target.normal, Vec3::Y)
+        )).id();
         commands.entity(player).insert(BreakingEffect(effect));
     }
 }
@@ -89,7 +88,7 @@ fn add_break_animation(
 fn update_break_animation(
     block_action_query: Query<(&BlockLootAction, &BreakingEffect)>,
     break_stages: Res<BreakStageSprites>,
-    mat_query: Query<&Handle<StandardMaterial>>,
+    mat_query: Query<&MeshMaterial3d<StandardMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for (action, break_effect) in block_action_query.iter() {

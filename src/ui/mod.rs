@@ -16,7 +16,7 @@ pub use hotbar::SelectedHotbarSlot;
 use debug_display::DebugDisplayPlugin;
 use game_menu::MenuPlugin;
 use hotbar::HotbarPlugin;
-use bevy::{prelude::*, window::CursorGrabMode};
+use bevy::{prelude::*, window::{CursorGrabMode, SystemCursorIcon}, winit::cursor::CursorIcon};
 use in_hand::InHandPlugin;
 use leafwing_input_manager::prelude::*;
 use ui_tex_map::UiTexMapPlugin;
@@ -27,7 +27,7 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_state::<GameUiState>()
-            .add_computed_state::<ControllingPlayer>()
+            .add_computed_state::<ScrollGrabbed>()
             .add_computed_state::<CursorGrabbed>()
             .add_computed_state::<Inventory>()
             .add_plugins(InputManagerPlugin::<UIAction>::default())
@@ -59,24 +59,14 @@ pub enum GameUiState {
 }
 
 impl GameUiState {
+    /// Game states that need the cursor to operate in
     pub fn needs_free_cursor(&self) -> bool {
         matches!(self, GameUiState::InGameMenu | GameUiState::FurnaceMenu)
     }
-}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ControllingPlayer;
-
-impl ComputedStates for ControllingPlayer {
-    type SourceStates = GameUiState;
-
-    fn compute(sources: Self::SourceStates) -> Option<Self> {
-        // For now ControllingPlayer == CursorGrabbed, but conceptually we could be CursorGrabbed and not controlling player
-        if sources.needs_free_cursor() {
-            None
-        } else {
-            Some(Self)
-        }
+    /// Game states that only need scrolling to operate in (includes all free cursor state)
+    pub fn needs_scrolling(&self) -> bool {
+        self.needs_free_cursor() || matches!(self, GameUiState::CraftingMenu)
     }
 }
 
@@ -88,6 +78,21 @@ impl ComputedStates for CursorGrabbed {
 
     fn compute(sources: Self::SourceStates) -> Option<Self> {
         if sources.needs_free_cursor() {
+            None
+        } else {
+            Some(Self)
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ScrollGrabbed;
+
+impl ComputedStates for ScrollGrabbed {
+    type SourceStates = GameUiState;
+
+    fn compute(sources: Self::SourceStates) -> Option<Self> {
+        if sources.needs_scrolling() {
             None
         } else {
             Some(Self)
@@ -160,8 +165,8 @@ fn grab_cursor(
     let Ok(mut window) = windows.get_single_mut() else {
         return;
     };
-    window.cursor.visible = false;
-    window.cursor.grab_mode = CursorGrabMode::Confined;
+    window.cursor_options.visible = false;
+    window.cursor_options.grab_mode = CursorGrabMode::Confined;
 }
 
 fn free_cursor(
@@ -170,17 +175,14 @@ fn free_cursor(
     let Ok(mut window) = windows.get_single_mut() else {
         return;
     };
-    window.cursor.visible = true;
-    window.cursor.grab_mode = CursorGrabMode::None;
+    window.cursor_options.visible = true;
+    window.cursor_options.grab_mode = CursorGrabMode::None;
 }
 
 fn highlight_hover(
     mut interaction_query: Query<(&Interaction, &mut BackgroundColor), Changed<Interaction>>,
-    mut windows: Query<&mut Window>,
+    mut cursor: Query<&mut CursorIcon>
 ) {
-    let Ok(mut window) = windows.get_single_mut() else {
-        return;
-    };
     let mut any_interaction = false;
     let mut hovering= false;
     for (interaction, mut bg_color) in interaction_query.iter_mut() {
@@ -196,9 +198,14 @@ fn highlight_hover(
     if !any_interaction {
         return;
     }
-    window.cursor.icon = if hovering {
-        CursorIcon::Pointer
-    } else {
-        CursorIcon::Default
+    let Ok(mut cursor_icon) = cursor.get_single_mut() else {
+        return;
     };
+    *cursor_icon = CursorIcon::System(
+        if hovering {
+            SystemCursorIcon::Pointer
+        } else {
+            SystemCursorIcon::Default
+        }
+    );
 }

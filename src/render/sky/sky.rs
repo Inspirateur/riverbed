@@ -16,12 +16,7 @@ struct Sun;
 fn spawn_sun(mut commands: Commands, cam_query: Query<Entity, With<FpsCam>>) {
     let cam = cam_query.get_single().unwrap();
     commands.entity(cam).insert(AtmosphereCamera::default());
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            ..default()
-        },
-        ..default()
-    }).insert(Sun);
+    commands.spawn((Sun, DirectionalLight::default()));
 }
 
 // We can edit the Atmosphere resource and it will be updated automatically

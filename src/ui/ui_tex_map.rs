@@ -48,41 +48,42 @@ impl UiTextureMap {
 
 	pub fn make_item_slot(&self, node: &mut ChildBuilder, stack: &Stack, kind: UiSlotKind) {
 		let alpha = if kind == UiSlotKind::Disabled { 0.4 } else { 1. };
-		node.spawn(ImageBundle {
-            style: Style {
+		node.spawn((
+            ImageNode {
+                image: self.get_texture(stack),
+                color: match stack {
+                    Stack::Some(Item::Block(block), _) if block.is_foliage() => Color::linear_rgba(0.3, 1.0, 0.1, alpha),
+                    _ => Color::linear_rgba(1., 1., 1., alpha)
+                },
+                ..Default::default()
+            },
+            Node {
                 width: Val::Vw(SLOT_SIZE_PERCENT),
                 aspect_ratio: Some(1.),
                 margin: UiRect::all(Val::Percent(0.2)), 
                 ..Default::default()
             },
-            image: UiImage::new(self.get_texture(stack)).with_color({
-                match stack {
-                    Stack::Some(Item::Block(block), _) if block.is_foliage() => Color::linear_rgba(0.3, 1.0, 0.1, alpha),
-                    _ => Color::linear_rgba(1., 1., 1., alpha)
-                }
-            }),
-            background_color: BackgroundColor(if kind == UiSlotKind::Disabled || kind == UiSlotKind::NoBg {
+            BackgroundColor(if kind == UiSlotKind::Disabled || kind == UiSlotKind::NoBg {
 				Color::NONE
             } else {				
                 Color::linear_rgba(0., 0., 0., 0.7)
-            }),
-            ..Default::default()
-        });
+            })
+        ));
         let qty = stack.quantity();
-		node.spawn(TextBundle {
-            text: Text::from_section(if qty > 1 { qty.to_string() } else { String::new() }, TextStyle { 
-                color: if kind == UiSlotKind::Disabled {
-					Color::Srgba(css::LIGHT_GRAY)
-                } else {
-					Color::Srgba(css::WHITE)
-                }, ..Default::default() }),
-            style: Style {
+		node.spawn((
+            Text::new(if qty > 1 { qty.to_string() } else { String::new() }),
+            TextColor(if kind == UiSlotKind::Disabled {
+                Color::Srgba(css::LIGHT_GRAY)
+            } else {
+                Color::Srgba(css::WHITE)
+            }),
+            Node {
                 position_type: PositionType::Absolute,
                 bottom: Val::Px(0.),
                 ..Default::default()
-            },
-            ..Default::default() 
-        });
+
+            }
+        ));
 	}
 }
 

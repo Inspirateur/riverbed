@@ -115,7 +115,7 @@ pub fn pull_meshes(
     mut commands: Commands, 
     mesh_reciever: Res<MeshReciever>, 
     mut chunk_ents: ResMut<ChunkEntities>, 
-    mut mesh_query: Query<(&mut Handle<Mesh>, &mut LOD)>,
+    mut mesh_query: Query<(&mut Mesh3d, &mut LOD)>,
     mut meshes: ResMut<Assets<Mesh>>,
     block_tex_array: Res<BlockTextureArray>,
     load_area: Res<PlayerArea>,
@@ -136,7 +136,7 @@ pub fn pull_meshes(
         let chunk_aabb = Aabb::from_min_max(Vec3::ZERO, Vec3::splat(CHUNK_S1 as f32));
         if let Some(ent) = chunk_ents.0.get(&(chunk_pos, face)) {
             if let Ok((mut handle, mut old_lod)) = mesh_query.get_mut(*ent) {
-                *handle = meshes.add(mesh);
+                handle.0 = meshes.add(mesh);
                 *old_lod = lod;
             } else {
                 // the entity is not instanciated yet, we put it back
@@ -144,14 +144,11 @@ pub fn pull_meshes(
             }
         } else if blocks.chunks.contains_key(&chunk_pos) {
             let ent = commands.spawn((
-                MaterialMeshBundle {
-                    mesh: meshes.add(mesh),
-                    material: block_tex_array.0.clone_weak(),
-                    transform: Transform::from_translation(
-                        Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32,
-                    ),
-                    ..Default::default()
-                },
+                Mesh3d(meshes.add(mesh)),
+                MeshMaterial3d(block_tex_array.0.clone_weak()),
+                Transform::from_translation(
+                    Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32,
+                ),
                 NoFrustumCulling,
                 chunk_aabb, 
                 lod, 
@@ -166,7 +163,7 @@ pub fn on_col_unload(
     mut commands: Commands,
     mut ev_unload: EventReader<ColUnloadEvent>,
     mut chunk_ents: ResMut<ChunkEntities>,
-    mesh_query: Query<&Handle<Mesh>>,
+    mesh_query: Query<&Mesh3d>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for col_ev in ev_unload.read() {

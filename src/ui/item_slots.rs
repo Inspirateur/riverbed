@@ -139,7 +139,7 @@ fn item_slot_click(
 
 fn refresh_slot_items(
     node_query: Query<(&UISlot, &Children)>,
-    mut img_query: Query<&mut UiImage>, 
+    mut img_query: Query<&mut ImageNode>, 
     mut text_query: Query<&mut Text>,
     tex_map: Res<UiTextureMap>,
     item_query: Query<&ItemHolder, Changed<ItemHolder>>,
@@ -151,19 +151,18 @@ fn refresh_slot_items(
         let stack = item_holder.get(*slot);
         for child in children {
             if let Ok(mut ui_img) = img_query.get_mut(*child) {
-                ui_img.texture = tex_map.get_texture(stack);
+                ui_img.image = tex_map.get_texture(stack);
             }
             if let Ok(mut text) = text_query.get_mut(*child) {
                 let quantity = stack.quantity();
-                text.sections[0].value = if quantity < 2 { String::new() } else { quantity.to_string() };
+                text.0 = if quantity < 2 { String::new() } else { quantity.to_string() };
             }
         }
     }
 }
 
 fn setup_dragging_ui(mut commands: Commands) {
-    commands.spawn(NodeBundle {
-        style: Style {
+    commands.spawn((Node {
             position_type: PositionType::Absolute,
             width: Val::Percent(SLOT_SIZE_PERCENT),
             aspect_ratio: Some(1.),
@@ -171,23 +170,22 @@ fn setup_dragging_ui(mut commands: Commands) {
             
             ..Default::default()
         },
-        z_index: ZIndex::Global(1),
-        ..Default::default()
-    })
-    .insert(DraggingNode)
+        ZIndex(1),
+        DraggingNode
+    ))
     .with_children(
         |node| UiTextureMap::make_empty_item_slot(node, UiSlotKind::NoBg)
     );
 }
 
-fn show_dragging_ui(mut dragging_node: Query<&mut Style, With<DraggingNode>>) {
+fn show_dragging_ui(mut dragging_node: Query<&mut Node, With<DraggingNode>>) {
     let Ok(mut style) = dragging_node.get_single_mut() else {
         return;
     };
     style.display = Display::Flex;
 }
 
-fn hide_dragging_ui(mut dragging_node: Query<&mut Style, With<DraggingNode>>) {
+fn hide_dragging_ui(mut dragging_node: Query<&mut Node, With<DraggingNode>>) {
     let Ok(mut style) = dragging_node.get_single_mut() else {
         return;
     };
@@ -197,7 +195,7 @@ fn hide_dragging_ui(mut dragging_node: Query<&mut Style, With<DraggingNode>>) {
 fn refresh_dragging_ui(
     dragging: Res<Dragging>,
     dragging_node_query: Query<&Children, With<DraggingNode>>,
-    mut img_query: Query<&mut UiImage>, 
+    mut img_query: Query<&mut ImageNode>, 
     mut text_query: Query<&mut Text>,
     tex_map: Res<UiTextureMap>,
 ) {
@@ -209,16 +207,16 @@ fn refresh_dragging_ui(
     };
     for child in children {
         if let Ok(mut ui_img) = img_query.get_mut(*child) {
-            ui_img.texture = tex_map.get_texture(&dragging.0);
+            ui_img.image = tex_map.get_texture(&dragging.0);
         }
         if let Ok(mut text) = text_query.get_mut(*child) {
             let quantity = dragging.0.quantity();
-            text.sections[0].value = if quantity < 2 { String::new() } else { quantity.to_string() };
+            text.0 = if quantity < 2 { String::new() } else { quantity.to_string() };
         }
     }
 }
 
-fn refresh_dragging_ui_pos(window: Query<&Window>, mut dragging_node_query: Query<&mut Style, With<DraggingNode>>) {
+fn refresh_dragging_ui_pos(window: Query<&Window>, mut dragging_node_query: Query<&mut Node, With<DraggingNode>>) {
     let Ok(window) = window.get_single() else {
         return;
     };

@@ -33,8 +33,8 @@ fn open_furnace_menu(
     let Ok((furnace, ItemHolder::Furnace { fuel, material, output })) = furnace_query.get(furnace_entt) else {
         return;
     };
-    commands.spawn(NodeBundle {
-        style: Style {
+    commands.spawn((
+        Node {
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             width: Val::Percent(25.),
@@ -43,80 +43,64 @@ fn open_furnace_menu(
             top: Val::VMin(5.),
             ..Default::default()
         },
-        background_color: BackgroundColor(Color::LinearRgba(LinearRgba::new(0., 0., 0., 0.9))),
-        ..Default::default()
-    })
+        BackgroundColor(Color::LinearRgba(LinearRgba::new(0., 0., 0., 0.9))),
+    ))
     .with_children(
         |parent| {
-            parent.spawn(TextBundle {
-                text: Text::from_section(&furnace.name, TextStyle {
+            parent.spawn((
+                Text::new(&furnace.name),
+                TextFont {
                     font_size: 40.,
                     ..Default::default()
-                }),
-                style: Style {
+                },
+                Node {
                     align_self: AlignSelf::Center,
                     ..Default::default()
-                },
-                ..Default::default()
-            });
-            parent.spawn(NodeBundle {
-                style: Style {
-                    flex_direction: FlexDirection::Row,
-                    margin: UiRect::all(Val::Vw(0.2)),
-                    ..Default::default()
-                },
+                }
+            ));
+            parent.spawn(Node {
+                flex_direction: FlexDirection::Row,
+                margin: UiRect::all(Val::Vw(0.2)),
                 ..Default::default()
             }).with_children(|node| {
-                node.spawn(NodeBundle {
-                    style: Style {
-                        flex_direction: FlexDirection::Column,
-                        margin: UiRect::all(Val::Vw(0.2)),
-                        ..Default::default()
-                    },
+                node.spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    margin: UiRect::all(Val::Vw(0.2)),
                     ..Default::default()
                 }).with_children(|node| {
                     node
-                        .spawn(NodeBundle {
-                            style: Style {
-                                margin: UiRect::all(Val::Vw(0.2)),
-                                ..Default::default()
-                            },
+                        .spawn(Node {
+                            margin: UiRect::all(Val::Vw(0.2)),
                             ..Default::default()
                         })
                         .insert(Interaction::default())
                         .insert(UISlot(furnace_entt, FurnaceSlot::Material.into()))
                         .with_children(|node| tex_map.make_item_slot(node, material, UiSlotKind::Default));
-                    node.spawn(NodeBundle {
-                        style: Style {
-                            margin: UiRect::all(Val::Vw(0.2)),
-                            ..Default::default()
-                        },
+                    node.spawn(Node {
+                        margin: UiRect::all(Val::Vw(0.2)),
                         ..Default::default()
                     })
                         .insert(Interaction::default())
                         .insert(UISlot(furnace_entt, FurnaceSlot::Fuel.into()))
                         .with_children(|node| tex_map.make_item_slot(node, fuel, UiSlotKind::Default));
                 });
-                node.spawn(TextBundle {
-                    text: Text::from_section("=>", TextStyle { 
+                node.spawn((
+                    Text::new("=>"),
+                    TextFont{
                         font_size: 40.,
-                        color: Color::Srgba(css::WHITE),
-                        ..Default::default() 
-                    }),
-                    style: Style {
+                        ..Default::default()
+                    },
+                    TextColor(Color::Srgba(css::WHITE)),
+                    Node {
                         margin: UiRect::horizontal(Val::Vw(0.1)),
                         align_self: AlignSelf::Center,
                         ..Default::default()
-                    },
-                    ..Default::default()
-                });
+                    }
+                ));
                 node
-                    .spawn(NodeBundle {
-                        style: Style {
-                            margin: UiRect::all(Val::Vw(0.2)),
-                            align_self: AlignSelf::Center,
-                            ..Default::default()
-                        },
+                    .spawn(Node {
+                        margin: UiRect::all(Val::Vw(0.2)),
+                        align_self: AlignSelf::Center,
                         ..Default::default()
                     })
                     .insert(Interaction::default())

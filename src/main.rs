@@ -8,7 +8,7 @@ mod agents;
 mod sounds;
 mod gen;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
-use bevy::{prelude::*, render::texture::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}};
+use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*};
 use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;

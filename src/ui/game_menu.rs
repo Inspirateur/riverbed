@@ -19,30 +19,25 @@ struct OnPauseScreen;
 pub fn setup_pause(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
     .spawn((
-        NodeBundle {
-            style: Style {
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                ..default()
-            },
-            background_color: BackgroundColor(Color::srgba(0., 0., 0., 0.6)),
+        Node {
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
             ..default()
         },
+        BackgroundColor(Color::srgba(0., 0., 0., 0.6)),
         OnPauseScreen,
     )).with_children(|parent| {
-        parent.spawn(TextBundle::from_sections([
-            TextSection::new(
-                "PAUSED",
-                TextStyle {
-                    // This font is loaded and will be used instead of the default font.
-                    font: asset_server.load("fonts/RobotoMono-Light.ttf"),
-                    font_size: 100.0,
-                    color: Color::Srgba(css::BEIGE),
-                }
-            )
-        ]));
+        parent.spawn((
+            Text::new("PAUSED"),
+            TextFont {
+                font: asset_server.load("fonts/RobotoMono-Light.ttf"),
+                font_size: 100.0,
+                ..Default::default()
+            },
+            TextColor(Color::Srgba(css::BEIGE))
+        ));
     });
 }
 
