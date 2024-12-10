@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use crate::{Block, BlockFamily};
 
 impl Block {

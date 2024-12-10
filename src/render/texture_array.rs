@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat}}};
+use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat}, storage::ShaderStorageBuffer}};
 use dashmap::DashMap;
 use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
 use super::{mesh_chunks::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
@@ -67,7 +67,7 @@ fn build_tex_array(
     texture_map: Res<TextureMap>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
     mut next_state: ResMut<NextState<BlockTexState>>,
-    // mut shader_buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut shader_buffers: ResMut<Assets<ShaderStorageBuffer>>,
 ) {
     let mut texture_list: Vec<&Image> = Vec::new();
     let mut anim_offsets = vec![1];
@@ -123,7 +123,7 @@ fn build_tex_array(
             ..Default::default()
         },
         extension: ArrayTextureMaterial {
-            array_texture: handle, anim_offsets
+            array_texture: handle, anim_offsets: shader_buffers.add(ShaderStorageBuffer::from(anim_offsets))
         }
     });
     commands.insert_resource(BlockTextureArray(handle));
@@ -140,7 +140,7 @@ pub struct ArrayTextureMaterial {
     #[sampler(101)]
     array_texture: Handle<Image>,
     #[storage(102, read_only)]
-    anim_offsets: Vec<u32>,
+    anim_offsets: Handle<ShaderStorageBuffer>,
 }
 
 impl MaterialExtension for ArrayTextureMaterial {

@@ -36,12 +36,9 @@ pub struct SelectedRecipe(pub usize);
 struct CraftingMenu(pub InventoryRecipes);
 
 fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable: bool, tex_map: &Res<UiTextureMap>) {
-    parent.spawn(NodeBundle {
-        style: Style {
-            flex_direction: FlexDirection::Column,
-            margin: UiRect::all(Val::Vw(0.2)),
-            ..Default::default()
-        },
+    parent.spawn(Node {
+        flex_direction: FlexDirection::Column,
+        margin: UiRect::all(Val::Vw(0.2)),
         ..Default::default()
     }).with_children(|node| {
         tex_map.make_item_slot(
@@ -52,13 +49,10 @@ fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable
 }
 
 fn add_recipe_node(parent: &mut ChildBuilder, recipe: &Recipe, is_craftable: bool, tex_map: &Res<UiTextureMap>, slot: usize) {
-    parent.spawn(NodeBundle {
-        style: Style {
-            padding: UiRect::all(Val::Percent(0.4)), 
-            width: Val::Percent(100.),
-            justify_content: JustifyContent::End,
-            ..Default::default()
-        },
+    parent.spawn(Node {
+        padding: UiRect::all(Val::Percent(0.4)), 
+        width: Val::Percent(100.),
+        justify_content: JustifyContent::End,
         ..Default::default()
     })
     .insert(RecipeSlot(slot))
@@ -66,29 +60,29 @@ fn add_recipe_node(parent: &mut ChildBuilder, recipe: &Recipe, is_craftable: boo
         for (ingredient, qty) in &recipe.ingredients {
             add_ingredient(node, ingredient, *qty, is_craftable, tex_map);
         }
-        node.spawn(TextBundle {
-            text: Text::from_section("=>", TextStyle { 
+        node.spawn((
+            Text::new("=>"),
+            TextFont {
                 font_size: 40.,
-                color: if is_craftable {
-                    Color::Srgba(css::WHITE)
-                } else {
-                    Color::Srgba(css::GRAY)
-                },
-                ..Default::default() 
-            }),
-            style: Style {
-                margin: UiRect::horizontal(Val::Vw(0.1)),
                 ..Default::default()
             },
-            ..Default::default()
-        });
+            TextColor(if is_craftable {
+                Color::Srgba(css::WHITE)
+            } else {
+                Color::Srgba(css::GRAY)
+            }),
+            Node {
+                margin: UiRect::horizontal(Val::Vw(0.1)),
+                ..Default::default()
+            }
+        ));
         add_ingredient(node, &recipe.out.0, recipe.out.1, is_craftable, tex_map);
     });
 }
 
 fn create_craft_menu(mut commands: Commands, inventory_recipes: InventoryRecipes, tex_map: Res<UiTextureMap>) {
-    commands.spawn(NodeBundle {
-        style: Style {
+    commands.spawn((
+        Node {
             flex_direction: FlexDirection::Column,
             width: Val::Percent(25.),
             height: Val::Percent(80.),
@@ -96,22 +90,21 @@ fn create_craft_menu(mut commands: Commands, inventory_recipes: InventoryRecipes
             top: Val::VMin(5.),
             ..Default::default()
         },
-        background_color: BackgroundColor(Color::LinearRgba(LinearRgba::new(0., 0., 0., 0.9))),
-        ..Default::default()
-    })
+        BackgroundColor(Color::LinearRgba(LinearRgba::new(0., 0., 0., 0.9)))
+    ))
     .with_children(
         |parent| {
-            parent.spawn(TextBundle {
-                text: Text::from_section("Craft recipes", TextStyle {
+            parent.spawn((
+                Text::new("Craft recipes"),
+                TextFont {
                     font_size: 40.,
                     ..Default::default()
-                }),
-                style: Style {
+                },
+                Node {
                     align_self: AlignSelf::Center,
                     ..Default::default()
                 },
-                ..Default::default()
-            });
+            ));
             let mut i = 0;
             for (craftable_recipe, _) in &inventory_recipes.craftable_recipes {
                 add_recipe_node(parent, craftable_recipe, true, &tex_map, i);

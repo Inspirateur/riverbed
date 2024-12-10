@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{new_inventory, InventoryTrait, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::{ControllingPlayer, ItemHolder}, world::RenderDistance, Block};
+use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{new_inventory, InventoryTrait, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::{CursorGrabbed, ItemHolder}, world::RenderDistance, Block};
 use crate::world::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
@@ -26,8 +26,8 @@ impl Plugin for PlayerPlugin {
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<DevCommand>::default())
             .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
-            .add_systems(Update, (toggle_fly, move_player).chain().run_if(in_state(ControllingPlayer)))
-            .add_systems(OnExit(ControllingPlayer), reset_heading)
+            .add_systems(Update, (toggle_fly, move_player).chain().run_if(in_state(CursorGrabbed)))
+            .add_systems(OnExit(CursorGrabbed), reset_heading)
         ;
     }
 }
@@ -74,10 +74,6 @@ pub enum DevCommand {
 
 pub fn spawn_player(mut commands: Commands) {    
     let realm = Realm::Overworld;
-    let spatial_bundle = SpatialBundle {
-        transform: Transform {translation: SPAWN, ..default()},
-        ..default()
-    };
     let mut inventory = new_inventory::<HOTBAR_SLOTS>();
     inventory.try_add(Stack::Some(Item::Block(Block::Smelter), 1));
     inventory.try_add(Stack::Some(Item::Coal, 20));
@@ -86,21 +82,24 @@ pub fn spawn_player(mut commands: Commands) {
     let rd = RenderDistance(16);
     commands
         .spawn((
-            spatial_bundle,
+            Transform {translation: SPAWN, ..default()},
+            Visibility::default(),
             realm,
             Gravity(50.),
             Heading(Vec3::default()),
-            Walking,
-            SteppingOn(Block::Air),
             Speed(WALK_SPEED),
             Jumping {force: 13., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
-            Crouching(false),
             AABB(Vec3::new(0.5, 1.7, 0.5)),
             Velocity(Vec3::default()),
             rd,
             TargetBlock(None),
             ItemHolder::Inventory(inventory),
             PlayerControlled,
+        ))
+        .insert((
+            Walking,
+            SteppingOn(Block::Air),
+            Crouching(false),
         ))
         .insert(SpatialListener::new(0.3))
         .insert((FootstepCD(0.), BlockSoundCD(0.)))

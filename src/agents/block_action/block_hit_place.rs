@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use crate::items::{BlockLootTable, DropQuantity, FiringTable, InventoryTrait, Item, LootEntry, Stack};
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
-use crate::ui::{ControllingPlayer, GameUiState, ItemHolder, SelectedHotbarSlot};
+use crate::ui::{CursorGrabbed, GameUiState, ItemHolder, SelectedHotbarSlot};
 use crate::Block;
 use crate::world::{BlockPos, BlockEntities, Realm, VoxelWorld};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
@@ -27,7 +27,7 @@ impl Plugin for BlockHitPlacePlugin {
             ))
             .insert_resource(json5::from_str::<FiringTable>(&fs::read_to_string("assets/data/firing.json5").unwrap()).unwrap())
 			.add_systems(Update, (break_action, target_block, target_block_changed).chain().run_if(in_state(GameUiState::None)))
-			.add_systems(Update, block_outline.run_if(in_state(ControllingPlayer)))
+			.add_systems(Update, block_outline.run_if(in_state(CursorGrabbed)))
             .add_systems(Update, place_block.run_if(in_state(GameUiState::None)))
             .add_systems(Update, renew_block)
 			;

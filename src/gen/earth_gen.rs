@@ -2,7 +2,7 @@ use crate::{Block, gen::Soils};
 use crate::world::{
     BlockPos, BlockPos2d, ColPos, VoxelWorld, CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT, WATER_H,
 };
-use riverbed_closest::{points, ranges, ClosestTrait};
+use riverbed_closest::{ranges, ClosestTrait};
 use bevy::prelude::info_span;
 use itertools::iproduct;
 use noise_algebra::NoiseSource;

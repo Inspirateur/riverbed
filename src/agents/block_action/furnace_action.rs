@@ -1,4 +1,3 @@
-use super::block_hit_place::BlockAttached;
 use crate::{
     agents::{Action, PlayerControlled, TargetBlock},
     items::{FiringTable, LitFurnace, Stack},
