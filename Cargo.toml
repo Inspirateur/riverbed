@@ -13,6 +13,7 @@ members = [
 bevy = { version = "0.15" }
 bevy_atmosphere = "*"
 binary-greedy-meshing = "*"
+confy = "*"
 leafwing-input-manager = { git = "https://github.com/Leafwing-Studios/leafwing-input-manager" }
 rand = "*"
 rand_chacha = "*"

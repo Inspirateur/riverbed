@@ -3,3 +3,4 @@ Cargo.lock
 .vscode
 imported_assets/
 *.meta
+**/key_bindings.toml

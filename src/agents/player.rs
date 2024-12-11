@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
 };
 use leafwing_input_manager::prelude::*;
-use super::{block_action::BlockActionPlugin, Crouching, FreeFly, Speed, SteppingOn, Walking};
+use super::{block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, FreeFly, Speed, SteppingOn, Walking};
 
 const WALK_SPEED: f32 = 7.;
 const FREE_FLY_X_SPEED: f32 = 150.;
@@ -21,6 +21,7 @@ pub struct PlayerSpawn;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
+            .insert_resource(confy::load_path::<KeyBinds>("key_bindings.toml").unwrap())
             .add_plugins(BlockActionPlugin)
             .add_plugins(InputManagerPlugin::<Dir>::default())
             .add_plugins(InputManagerPlugin::<Action>::default())
@@ -72,7 +73,7 @@ pub enum DevCommand {
     ToggleFly,
 }
 
-pub fn spawn_player(mut commands: Commands) {    
+pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {    
     let realm = Realm::Overworld;
     let mut inventory = new_inventory::<HOTBAR_SLOTS>();
     inventory.try_add(Stack::Some(Item::Block(Block::Smelter), 1));
@@ -106,27 +107,25 @@ pub fn spawn_player(mut commands: Commands) {
         .insert(InputManagerBundle::<Dir> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
-                (Dir::Front, KeyCode::KeyW),
-                (Dir::Left, KeyCode::KeyA),
-                (Dir::Back, KeyCode::KeyS),
-                (Dir::Right, KeyCode::KeyD),
-                (Dir::Front, KeyCode::KeyZ),
-                (Dir::Left, KeyCode::KeyQ),
-                (Dir::Down, KeyCode::ShiftLeft),
-                (Dir::Up, KeyCode::Space)
+                (Dir::Front, key_binds.forward),
+                (Dir::Left, key_binds.left),
+                (Dir::Back, key_binds.backward),
+                (Dir::Right, key_binds.right),
+                (Dir::Down, key_binds.crouch),
+                (Dir::Up, key_binds.jump)
             ]),
         })
         .insert(InputManagerBundle::<Action> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
-                (Action::Hit, MouseButton::Left),
-                (Action::Modify, MouseButton::Right),
+                (Action::Hit, key_binds.hit),
+                (Action::Modify, key_binds.modify),
             ])
         })
         .insert(InputManagerBundle::<DevCommand> {
             action_state: ActionState::default(),
             input_map: InputMap::new([
-                (DevCommand::ToggleFly, KeyCode::F1)
+                (DevCommand::ToggleFly, key_binds.toggle_fly)
             ])
         })
         .observe(on_item_get)
