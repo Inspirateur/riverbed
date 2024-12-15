@@ -1,5 +1,5 @@
 use std::f32::consts::FRAC_PI_2;
-use bevy::prelude::*;
+use bevy::{pbr::VolumetricFog, prelude::*};
 use bevy::window::CursorGrabMode;
 use crate::{agents::{PlayerControlled, PlayerSpawn, AABB}, ui::CursorGrabbed};
 use leafwing_input_manager::prelude::*;
@@ -63,7 +63,8 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
                         end: 10000.0,
                     },
                     ..default()
-                }
+                },
+                VolumetricFog::default()
             )
         )
         // TODO: We would like SSAO very much but it doesn't like that Mesh data is compressed

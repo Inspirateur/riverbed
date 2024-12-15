@@ -79,8 +79,8 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
     inventory.try_add(Stack::Some(Item::Block(Block::Smelter), 1));
     inventory.try_add(Stack::Some(Item::Coal, 20));
     inventory.try_add(Stack::Some(Item::IronOre, 50));
-    // Render distance nerfed from 64 to 16 while we don't have instancing
-    let rd = RenderDistance(16);
+    // Render distance nerfed from 64 to 32 (4km to 2km) while we don't have instancing
+    let rd = RenderDistance(32);
     commands
         .spawn((
             Transform {translation: SPAWN, ..default()},
