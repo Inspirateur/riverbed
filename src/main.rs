@@ -6,7 +6,7 @@ mod world;
 mod render;
 mod agents;
 mod sounds;
-mod gen;
+mod terrain;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*};
 use world::VoxelWorld;

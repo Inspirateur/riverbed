@@ -48,7 +48,7 @@ fn footsteps(
                     mode: PlaybackMode::Despawn,
                     spatial: true,
                     spatial_scale: Some(SpatialScale::new(0.2)),
-                    speed: 1. + ((rand::thread_rng().gen::<f32>() - 0.5) * RAND_AMPLITUDE),
+                    speed: 1. + ((rand::rng().random::<f32>() - 0.5) * RAND_AMPLITUDE),
                     ..Default::default()
                 },
             ));
@@ -90,7 +90,7 @@ fn breaking(
                     mode: PlaybackMode::Despawn,
                     spatial: true,
                     spatial_scale: Some(SpatialScale::new(0.2)),
-                    speed: 1. + ((rand::thread_rng().gen::<f32>() - 0.5) * RAND_AMPLITUDE),
+                    speed: 1. + ((rand::rng().random::<f32>() - 0.5) * RAND_AMPLITUDE),
                     ..Default::default()
                 },
             ));

@@ -119,7 +119,7 @@ pub fn assign_load_area(
     mut query: Query<(Entity, &Transform, &Realm, &RenderDistance)>,
     mut col_orders: ResMut<LoadOrders>,
 ) {
-    let (player, transform, realm, render_dist) = query.single_mut();
+    let (player, transform, realm, render_dist) = query.single_mut().unwrap();
     let col = ColPos::from((transform.translation, *realm));
     let old_load_area = PlayerArea::empty();
     let new_load_area = PlayerArea::new(col, *render_dist);
@@ -200,10 +200,10 @@ pub fn process_unload_orders(
     for col in col_orders.to_unload.drain(..) {
         blocks.unload_col(col);
         for entity_id in col_entities.unload_col(&col) {
-            if let Some(mut entity) = commands.get_entity(entity_id) {
+            if let Ok(mut entity) = commands.get_entity(entity_id) {
                 entity.despawn();
             }
         }
-        ev_unload.send(ColUnloadEvent(col));
+        ev_unload.write(ColUnloadEvent(col));
     }
 }

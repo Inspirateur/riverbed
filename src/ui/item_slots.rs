@@ -179,14 +179,14 @@ fn setup_dragging_ui(mut commands: Commands) {
 }
 
 fn show_dragging_ui(mut dragging_node: Query<&mut Node, With<DraggingNode>>) {
-    let Ok(mut style) = dragging_node.get_single_mut() else {
+    let Ok(mut style) = dragging_node.single_mut() else {
         return;
     };
     style.display = Display::Flex;
 }
 
 fn hide_dragging_ui(mut dragging_node: Query<&mut Node, With<DraggingNode>>) {
-    let Ok(mut style) = dragging_node.get_single_mut() else {
+    let Ok(mut style) = dragging_node.single_mut() else {
         return;
     };
     style.display = Display::None;
@@ -202,7 +202,7 @@ fn refresh_dragging_ui(
     if !dragging.is_changed() {
         return;
     }
-    let Ok(children) = dragging_node_query.get_single() else {
+    let Ok(children) = dragging_node_query.single() else {
         return;
     };
     for child in children {
@@ -217,13 +217,13 @@ fn refresh_dragging_ui(
 }
 
 fn refresh_dragging_ui_pos(window: Query<&Window>, mut dragging_node_query: Query<&mut Node, With<DraggingNode>>) {
-    let Ok(window) = window.get_single() else {
+    let Ok(window) = window.single() else {
         return;
     };
     let Some(pos) = window.cursor_position() else {
         return;
     };
-    let Ok(mut style) = dragging_node_query.get_single_mut() else {
+    let Ok(mut style) = dragging_node_query.single_mut() else {
         return;
     };
     style.left = Val::Px(pos.x);

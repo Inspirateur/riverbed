@@ -25,7 +25,7 @@ pub struct SelectedHotbarSlot(pub usize);
 fn setup_hotbar_display(
     mut commands: Commands, player_query: Query<Entity, With<PlayerControlled>>
 ) {
-    let Ok(player_entt) = player_query.get_single() else {
+    let Ok(player_entt) = player_query.single() else {
         return;
     };
     for i in 0..HOTBAR_SLOTS {
@@ -57,7 +57,7 @@ fn scroll_hotbar(
     mut text_query: Query<&mut TextColor>,
     mut bg_query: Query<&mut BackgroundColor, With<ImageNode>>,
 ) {
-    let Ok(action_state) = action_query.get_single() else {
+    let Ok(action_state) = action_query.single() else {
         return;
     };
     if action_state.pressed(&UIAction::ScrollUp) {

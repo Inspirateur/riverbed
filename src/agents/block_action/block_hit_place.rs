@@ -83,8 +83,8 @@ fn target_block(
     player_cam: Query<&GlobalTransform, With<FpsCam>>,
     world: Res<VoxelWorld>
 ) {
-    let (mut target_block, realm) = player.single_mut();
-    let transform = player_cam.single();
+    let (mut target_block, realm) = player.single_mut().unwrap();
+    let transform = player_cam.single().unwrap();
     target_block.0 = world.raycast(
         *realm, 
         transform.translation(), 
@@ -205,7 +205,7 @@ fn break_action(
                 DropQuantity::Fixed(q) => *q,
                 DropQuantity::Range { min, max } => {
                     let rng = &mut world_rng.rng;
-                    rng.gen_range(*min..=*max)
+                    rng.random_range(*min..=*max)
                 }
             };
             let ItemHolder::Inventory(ref mut hotbar) = *hotbar else {

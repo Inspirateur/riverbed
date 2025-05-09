@@ -137,10 +137,10 @@ impl InventoryTrait for [Stack] {
 
     fn try_select_item(&self, target_item: &Item, mut target_quantity: u32, selection: &mut HashMap<usize, u32>) -> bool {
         for (i, stack) in self.iter().enumerate() {
-            let Stack::Some(item, mut qty) = stack else {
+            let &Stack::Some(item, mut qty) = stack else {
                 continue;
             };
-            if item != target_item {
+            if item != *target_item {
                 continue;
             }
             qty = (qty - selection.get(&i).unwrap_or(&0)).min(target_quantity);

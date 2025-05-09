@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, time::Duration};
 use bevy::{pbr::VolumetricLight, prelude::*};
 use bevy_atmosphere::{prelude::{AtmospherePlugin, AtmosphereCamera, Nishita, AtmosphereModel}, system_param::AtmosphereMut};
 use crate::render::camera::{CameraSpawn, FpsCam};
@@ -14,7 +14,7 @@ struct CycleTimer(Timer);
 struct Sun;
 
 fn spawn_sun(mut commands: Commands, cam_query: Query<Entity, With<FpsCam>>) {
-    let cam = cam_query.get_single().unwrap();
+    let cam = cam_query.single().unwrap();
     commands.entity(cam).insert(AtmosphereCamera::default());
     commands.spawn((Sun, VolumetricLight, DirectionalLight::default()));
 }
@@ -30,11 +30,11 @@ fn daylight_cycle(
 
     if timer.0.finished() {
         // let t = 0.6 + time.elapsed_seconds_wrapped() / C;
-        // TODO: make night time prettier with a skybox, froze the sun in the meantime
+        // TODO: make night time prettier with a skybox, freeze the sun in the meantime
         let t = 0.6f32;
         atmosphere.sun_position = Vec3::new(0., t.sin(), t.cos());
 
-        if let Some((mut light_trans, mut directional)) = query.single_mut().into() {
+        if let Some((mut light_trans, mut directional)) = query.single_mut().unwrap().into() {
             light_trans.rotation = Quat::from_rotation_x(-t);
             directional.illuminance = t.sin().max(0.0).powf(2.0) * 50_000.0;
         }
@@ -50,13 +50,12 @@ impl Plugin for SkyPlugin {
             .insert_resource(AmbientLight {
                 color: Color::WHITE,
                 brightness: 1000.0,
-            })     
-            .insert_resource(AtmosphereModel::new(Nishita {
-                ..default()
-            }))
+                ..Default::default()
+            })
+            .insert_resource(AtmosphereModel::new(Nishita::default()))
             .insert_resource(CycleTimer(Timer::new(
                  // Update our atmosphere every 500ms
-                bevy::utils::Duration::from_millis(500),
+                Duration::from_millis(500),
                 TimerMode::Repeating,
             )))
             .add_plugins(AtmospherePlugin)

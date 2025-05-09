@@ -41,12 +41,12 @@ impl UiTextureMap {
 		}.unwrap_or(TRANSPARENT_IMAGE_HANDLE)
     }
 
-    pub fn make_empty_item_slot(node: &mut ChildBuilder, kind: UiSlotKind) {
+    pub fn make_empty_item_slot(node: &mut ChildSpawnerCommands, kind: UiSlotKind) {
         let empty_map = UiTextureMap(HashMap::default());
         empty_map.make_item_slot(node, &Stack::None, kind);
     }
 
-	pub fn make_item_slot(&self, node: &mut ChildBuilder, stack: &Stack, kind: UiSlotKind) {
+	pub fn make_item_slot(&self, node: &mut ChildSpawnerCommands, stack: &Stack, kind: UiSlotKind) {
 		let alpha = if kind == UiSlotKind::Disabled { 0.4 } else { 1. };
 		node.spawn((
             ImageNode {

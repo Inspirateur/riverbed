@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use parking_lot::RwLock;
-use bevy::ecs::{change_detection::DetectChanges, system::{Commands, Res, Resource}};
+use bevy::ecs::{change_detection::DetectChanges, resource::Resource, system::{Commands, Res}};
 use crate::world::PlayerArea;
 
 

@@ -1,7 +1,7 @@
 use std::ops::Range;
 use serde::Deserialize;
 use strum_macros::EnumString;
-use crate::gen::growables::*;
+use crate::terrain::growables::*;
 use crate::world::{BlockPos, VoxelWorld};
 
 

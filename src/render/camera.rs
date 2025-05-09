@@ -12,7 +12,7 @@ impl Plugin for Camera3dPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins(InputManagerPlugin::<CameraMovement>::default())
-            .add_systems(Startup, (cam_setup, apply_deferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
+            .add_systems(Startup, (cam_setup, ApplyDeferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
             .add_systems(Update, apply_fps_cam)
             .add_systems(Update, pan_camera.run_if(in_state(CursorGrabbed)))
         ;
@@ -45,7 +45,7 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
         // Note that you can also use discrete gesture-like motion,
         // via the `MouseMotionDirection` enum.
         .with_dual_axis(CameraMovement::Pan, MouseMove::default());
-    let (player, aabb) = player_query.get_single().unwrap();
+    let (player, aabb) = player_query.single().unwrap();
     let cam = commands
         .spawn((
                 Camera3d::default(),
@@ -69,20 +69,17 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
         )
         // TODO: We would like SSAO very much but it doesn't like that Mesh data is compressed
         //.insert(ScreenSpaceAmbientOcclusionBundle::default())
-        .insert(InputManagerBundle::<CameraMovement> {
-            input_map,
-            ..default()
-        })
+        .insert(input_map)
         .insert(FpsCam::default())
         .id();
     commands.entity(player).add_child(cam);
-    let mut window = windows.single_mut();
+    let mut window = windows.single_mut().unwrap();
     window.cursor_options.grab_mode = CursorGrabMode::Locked;
     window.cursor_options.visible = false;
 }
 
 pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>, time: Res<Time>) {
-    let (action_state, mut fpscam) = query.single_mut();
+    let (action_state, mut fpscam) = query.single_mut().unwrap();
     let camera_pan_vector = action_state.axis_pair(&CameraMovement::Pan);
     let c = time.delta_secs() * CAMERA_PAN_RATE;
     fpscam.yaw -= c*camera_pan_vector.x;
@@ -91,6 +88,6 @@ pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>,
 }
 
 pub fn apply_fps_cam(mut query: Query<(&mut Transform, &FpsCam)>) {
-    let (mut transform, fpscam) = query.single_mut();
+    let (mut transform, fpscam) = query.single_mut().unwrap();
     transform.rotation = Quat::from_axis_angle(Vec3::Y, fpscam.yaw) * Quat::from_axis_angle(Vec3::X, fpscam.pitch);
 }

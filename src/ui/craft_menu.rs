@@ -35,7 +35,7 @@ pub struct SelectedRecipe(pub usize);
 #[derive(Component)]
 struct CraftingMenu(pub InventoryRecipes);
 
-fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable: bool, tex_map: &Res<UiTextureMap>) {
+fn add_ingredient(parent: &mut ChildSpawnerCommands, item: &Item, qty: u32, is_craftable: bool, tex_map: &Res<UiTextureMap>) {
     parent.spawn(Node {
         flex_direction: FlexDirection::Column,
         margin: UiRect::all(Val::Vw(0.2)),
@@ -48,7 +48,7 @@ fn add_ingredient(parent: &mut ChildBuilder, item: &Item, qty: u32, is_craftable
     });
 }
 
-fn add_recipe_node(parent: &mut ChildBuilder, recipe: &Recipe, is_craftable: bool, tex_map: &Res<UiTextureMap>, slot: usize) {
+fn add_recipe_node(parent: &mut ChildSpawnerCommands, recipe: &Recipe, is_craftable: bool, tex_map: &Res<UiTextureMap>, slot: usize) {
     parent.spawn(Node {
         padding: UiRect::all(Val::Percent(0.4)), 
         width: Val::Percent(100.),
@@ -125,7 +125,7 @@ fn open_craft_menu(
     hotbar_query: Query<&ItemHolder, With<PlayerControlled>>,
     tex_map: Res<UiTextureMap>,
 ) {
-    let hotbar = match hotbar_query.get_single() {
+    let hotbar = match hotbar_query.single() {
         Ok(ItemHolder::Inventory(hotbar)) => hotbar,
         _ => &new_inventory::<HOTBAR_SLOTS>(),
     };
@@ -140,11 +140,11 @@ fn refresh_craft_menu(
     tex_map: Res<UiTextureMap>,
     craft_menu_query: Query<Entity, With<CraftingMenu>>,
 ) {
-    let Ok(ItemHolder::Inventory(hotbar)) = hotbar_query.get_single() else {
+    let Ok(ItemHolder::Inventory(hotbar)) = hotbar_query.single() else {
         return;
     };
-    if let Ok(entity) = craft_menu_query.get_single() {
-        commands.entity(entity).despawn_recursive();
+    if let Ok(entity) = craft_menu_query.single() {
+        commands.entity(entity).despawn();
     };
     let inventory_recipes = hotbar.filter_recipes(&handcraft_recipes.0);
     create_craft_menu(commands, inventory_recipes, tex_map);
@@ -155,7 +155,7 @@ fn display_selected_recipe(
     mut recipe_query: Query<(&RecipeSlot, &mut BackgroundColor)>,
     craft_menu_query: Query<&CraftingMenu>,
 ) {
-    let Ok(craft_menu) = craft_menu_query.get_single() else {
+    let Ok(craft_menu) = craft_menu_query.single() else {
         return;
     };
     let slots = craft_menu.0.craftable_recipes.len();
@@ -173,14 +173,14 @@ fn scroll_recipes(
     action_query: Query<&ActionState<UIAction>>,
     craft_menu_query: Query<&CraftingMenu>
 ) {
-    let Ok(craft_menu) = craft_menu_query.get_single() else {
+    let Ok(craft_menu) = craft_menu_query.single() else {
         return;
     };
     let slots = craft_menu.0.craftable_recipes.len();
     if slots == 0 {
         return;
     }
-    let Ok(action_state) = action_query.get_single() else {
+    let Ok(action_state) = action_query.single() else {
         return;
     };
     if action_state.pressed(&UIAction::ScrollUp) {
@@ -197,20 +197,20 @@ fn craft_action(
     mut hotbar_query: Query<(Entity, &mut ItemHolder), With<PlayerControlled>>,
     action_query: Query<&ActionState<Action>>,
 ) {
-    let Ok(action_state) = action_query.get_single() else {
+    let Ok(action_state) = action_query.single() else {
         return;
     };
     if !action_state.just_pressed(&Action::Hit) {
         return;
     }
-    let Ok(craft_menu) = craft_menu_query.get_single() else {
+    let Ok(craft_menu) = craft_menu_query.single() else {
         return;
     };
     if selected_recipe.0 >= craft_menu.0.craftable_recipes.len() {
         return;
     }
     let (recipe, selection) = &craft_menu.0.craftable_recipes[selected_recipe.0];
-    let Ok((player, mut hotbar)) = hotbar_query.get_single_mut() else {
+    let Ok((player, mut hotbar)) = hotbar_query.single_mut() else {
         return;
     };
     let ItemHolder::Inventory(ref mut hotbar) = *hotbar else {

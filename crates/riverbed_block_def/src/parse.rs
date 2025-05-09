@@ -1,7 +1,7 @@
 use std::{collections::{BTreeMap, BTreeSet}, str::FromStr};
 
 use nom::{
-    bytes::complete::tag, character::complete::{alpha1, multispace0, multispace1, space0, space1, line_ending}, combinator::{eof, fail, opt}, error::{Error, ParseError}, multi::{many1, separated_list0, separated_list1}, sequence::{delimited, tuple}, IResult, InputTakeAtPosition
+    bytes::complete::tag, character::complete::{alpha1, line_ending, multispace0, multispace1, space0, space1}, combinator::{eof, fail, opt}, error::{Error, ParseError}, multi::{many1, separated_list0, separated_list1}, sequence::delimited, IResult, Input, Parser
 };
 use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
@@ -50,7 +50,7 @@ enum Either<Left, Right> {
 }
 
 pub fn parse_file(input: &str) -> IResult<&str, IR> {
-    let (input, res): (&str, _) = many1(ws(parse_statement))(input)?;
+    let (input, res): (&str, _) = many1(ws(parse_statement)).parse(input)?;
     let (input, _) = eof(input)?;
     let mut sets = BTreeMap::new();
     let mut decl = Vec::new();
@@ -83,14 +83,14 @@ fn parse_set(input: &str) -> IResult<&str, BlockSet> {
     let (input, _) = multispace1(input)?;
     let (input, _) = tag("{")(input)?;
     let (input, _) = multispace0(input)?;
-    let (input, variants) = separated_list1(ws(tag(",")), parse_ident)(input)?;
+    let (input, variants) = separated_list1(ws(tag(",")), parse_ident).parse(input)?;
     let (input, _) = multispace0(input)?;
     let (input, _) = tag("}")(input)?;
     Ok((input, BlockSet { name: name.to_string(), variants: BTreeSet::from_iter(variants.into_iter().map(String::from)) }))
 }
 
 fn parse_decl(input: &str) -> IResult<&str, AddBlock> {
-    let (input, (_, _, block_pattern, flags_opt)) = tuple((tag("block"), space1, many1(parse_block_frag), opt(tuple((space1, parse_block_flags)))))(input)?;
+    let (input, (_, _, block_pattern, flags_opt)) = ((tag("block"), space1, many1(parse_block_frag), opt((space1, parse_block_flags)))).parse(input)?;
     let flags = match flags_opt {
         None => BTreeSet::new(),
         Some((_, flags)) => flags
@@ -103,7 +103,7 @@ fn parse_block_frag(input: &str) -> IResult<&str, BlockFrag> {
 }
 
 fn parse_set_name(input: &str) -> IResult<&str, BlockFrag> {
-    let (input, ident) = delimited(tag("{"), parse_ident, tag("}"))(input)?;
+    let (input, ident) = delimited(tag("{"), parse_ident, tag("}")).parse(input)?;
     Ok((input, BlockFrag::SetName(ident.to_string())))
 }
 
@@ -117,7 +117,7 @@ fn parse_ident(input: &str) -> IResult<&str, &str> {
 }
 
 fn parse_block_flags(input: &str) -> IResult<&str, BTreeSet<BlockFlag>> {
-    let (input, flags) = separated_list0(space1, parse_block_flag)(input)?;
+    let (input, flags) = separated_list0(space1, parse_block_flag).parse(input)?;
     Ok((input, BTreeSet::from_iter(flags)))
 }
 
@@ -126,13 +126,13 @@ fn parse_block_flag(input: &str) -> IResult<&str, BlockFlag> {
     if let Ok(flag) = BlockFlag::from_str(flag_str) {
         Ok((input_ok, flag))
     } else {
-        fail(input)
+        fail().parse(input)
     }
 }
 
 /// A combinator that takes a parser `inner` and produces a parser that also consumes both leading and 
 /// trailing whitespace, returning the output of `inner`.
-fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(inner: F) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(inner: F) -> impl Parser<&'a str, Output = O, Error = E>
   where
   F: Fn(&'a str) -> IResult<&'a str, O, E>,
 {
@@ -155,8 +155,8 @@ mod tests {
             Oak,
             Spruce
         }"#;
-        let (input, IR) = parse_set(blockdef).unwrap();
-        println!("{IR:?}");
+        let (_input, ir) = parse_set(blockdef).unwrap();
+        println!("{ir:?}");
     }
 
     #[test]
@@ -172,8 +172,8 @@ mod tests {
         block Stripped{Wood}Log
         
         block IronOre renewable(10)"#;
-        let (input, IR) = parse_file(blockdef).unwrap();
-        println!("{IR:?}");
+        let (_input, ir) = parse_file(blockdef).unwrap();
+        println!("{ir:?}");
     }
 
     #[test]

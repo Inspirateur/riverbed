@@ -1,4 +1,4 @@
-use crate::{Block, gen::Soils};
+use crate::{Block, terrain::Soils};
 use crate::world::{
     BlockPos, BlockPos2d, ColPos, VoxelWorld, CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT, WATER_H,
 };
@@ -35,7 +35,7 @@ impl Earth {
         }
     }
 
-    pub fn gen(&self, world: &VoxelWorld, col: ColPos) {
+    pub fn generate(&self, world: &VoxelWorld, col: ColPos) {
         //let landratio = self.config.get("land_ratio").copied().unwrap_or(0.4);
         let range = pos_to_range(col);
         let gen_span = info_span!("noise gen", name = "noise gen").entered();

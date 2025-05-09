@@ -45,7 +45,7 @@ fn missing_tex(model: &Image) -> Image {
             width: model.width(), height: model.width(), ..Default::default()
         }, TextureDimension::D2, &[130, 130, 130, 255], model.texture_descriptor.format, RenderAssetUsages::default()
     );
-    let w = model.width() as usize;
+    let w = model.width();
     let pixels = w*w;
     let half_w = w/2;
     for i in 0..pixels {
@@ -53,8 +53,7 @@ fn missing_tex(model: &Image) -> Image {
         if x != y {
             continue;
         }
-        img.data[i*4] = 255;
-        img.data[i*4+2] = 200;
+        img.set_color_at(x, y, Color::srgb(1., 0.5, 0.5));
     }
     img
 }
@@ -110,7 +109,7 @@ fn build_tex_array(
             depth_or_array_layers: index as u32
         }, 
         TextureDimension::D2, 
-        texture_list.into_iter().flat_map(|tex| tex.data.clone()).collect(), 
+        texture_list.into_iter().flat_map(|tex| tex.data.clone().unwrap()).collect(), 
         model.texture_descriptor.format,
         RenderAssetUsages::default()
     );

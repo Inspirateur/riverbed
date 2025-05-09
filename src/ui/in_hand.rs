@@ -26,7 +26,7 @@ fn in_hand_setup(
 ) {
     // TODO: there seem to be a 1 frame delay in the position update of the in hand item, try to fix it
     // The player must be instanciated at this stage
-    let Ok(cam) = cam_query.get_single() else  {
+    let Ok(cam) = cam_query.single() else  {
         println!("couldn't get the camera");
         return;
     };
@@ -58,10 +58,10 @@ fn on_hotbar_change(
     selected_slot: Res<SelectedHotbarSlot>,
     tex_map: Res<UiTextureMap>,
 ) {
-    let Ok(ItemHolder::Inventory(hotbar)) = hotbar_query.get_single() else {
+    let Ok(ItemHolder::Inventory(hotbar)) = hotbar_query.single() else {
         return;
     };
-    let Ok(in_hand) = in_hand_query.get_single() else {
+    let Ok(in_hand) = in_hand_query.single() else {
         return;
     };
     let Some(in_hand_material) = materials.get_mut(in_hand) else {
@@ -81,10 +81,10 @@ fn on_selected_slot_change(
     if !selected_slot.is_changed() {
         return;
     }
-    let Ok(ItemHolder::Inventory(hotbar)) = hotbar_query.get_single() else {
+    let Ok(ItemHolder::Inventory(hotbar)) = hotbar_query.single() else {
         return;
     };
-    let Ok(in_hand) = in_hand_query.get_single() else {
+    let Ok(in_hand) = in_hand_query.single() else {
         return;
     };
     let Some(in_hand_material) = materials.get_mut(in_hand) else {
@@ -98,10 +98,10 @@ fn animate(
     mut in_hand_query: Query<&mut Transform, With<InHandMaterial>>,
     loot_action_query: Query<Option<&BlockLootAction>, With<PlayerControlled>>
 ) {
-    let Ok(loot_action_opt) = loot_action_query.get_single() else {
+    let Ok(loot_action_opt) = loot_action_query.single() else {
         return;
     };
-    let Ok(mut transform) = in_hand_query.get_single_mut() else {
+    let Ok(mut transform) = in_hand_query.single_mut() else {
         return;
     };
     if let Some(loot_action) = loot_action_opt {

@@ -198,7 +198,7 @@ impl Plugin for Draw3d {
             .add_plugins(TextureArrayPlugin)
             .insert_resource(ChunkEntities::new())
             .add_systems(Startup, 
-                (setup_shared_load_area, apply_deferred, setup_mesh_thread, apply_deferred)
+                (setup_shared_load_area, ApplyDeferred, setup_mesh_thread, ApplyDeferred)
                 .chain()
                 .after(LoadAreaAssigned))
             .add_systems(Update, update_shared_load_area)

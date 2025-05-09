@@ -130,10 +130,7 @@ fn setup_ui_actions(mut commands: Commands) {
     ]);
     input_map.insert(UIAction::ScrollUp, MouseScrollDirection::UP);
     input_map.insert(UIAction::ScrollDown, MouseScrollDirection::DOWN);
-    commands.spawn(InputManagerBundle::<UIAction> {
-        action_state: ActionState::default(),
-        input_map,
-    });
+    commands.spawn(input_map);
 }
 
 fn process_ui_actions(
@@ -141,7 +138,7 @@ fn process_ui_actions(
     game_ui_state: Res<State<GameUiState>>,
     mut next_ui_state: ResMut<NextState<GameUiState>>
 ) {
-    let action_state = ui_action_query.single_mut();
+    let action_state = ui_action_query.single_mut().unwrap();
     for action in action_state.get_just_pressed() {
         if action == UIAction::Escape {
             if **game_ui_state == GameUiState::None {
@@ -162,7 +159,7 @@ fn process_ui_actions(
 fn grab_cursor(
     mut windows: Query<&mut Window>,
 ) {
-    let Ok(mut window) = windows.get_single_mut() else {
+    let Ok(mut window) = windows.single_mut() else {
         return;
     };
     window.cursor_options.visible = false;
@@ -172,7 +169,7 @@ fn grab_cursor(
 fn free_cursor(
     mut windows: Query<&mut Window>,
 ) {
-    let Ok(mut window) = windows.get_single_mut() else {
+    let Ok(mut window) = windows.single_mut() else {
         return;
     };
     window.cursor_options.visible = true;
@@ -198,7 +195,7 @@ fn highlight_hover(
     if !any_interaction {
         return;
     }
-    let Ok(mut cursor_icon) = cursor.get_single_mut() else {
+    let Ok(mut cursor_icon) = cursor.single_mut() else {
         return;
     };
     *cursor_icon = CursorIcon::System(

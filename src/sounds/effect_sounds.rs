@@ -108,11 +108,11 @@ fn furnace_sounds(
                         mode: PlaybackMode::Despawn,
                         spatial: true,
                         spatial_scale: Some(SpatialScale::new(0.5)),
-                        speed: 1. + ((rand::thread_rng().gen::<f32>() - 0.5) * RAND_AMPLITUDE),
+                        speed: 1. + ((rand::rng().random::<f32>() - 0.5) * RAND_AMPLITUDE),
                         ..Default::default()
                     },
                 ));
-            fire_crackle_cd.0 = 0.2 + rand::thread_rng().gen::<f32>();
+            fire_crackle_cd.0 = 0.2 + rand::rng().random::<f32>();
         }
         flame_cd.0 -= time.delta_secs();
         if flame_cd.0 <= 0. {
@@ -127,7 +127,7 @@ fn furnace_sounds(
                         mode: PlaybackMode::Despawn,
                         spatial: true,
                         spatial_scale: Some(SpatialScale::new(0.2)),
-                        speed: 1. + ((rand::thread_rng().gen::<f32>() - 0.5) * RAND_AMPLITUDE),
+                        speed: 1. + ((rand::rng().random::<f32>() - 0.5) * RAND_AMPLITUDE),
                         ..Default::default()
                     },
                 ));

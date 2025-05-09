@@ -26,7 +26,7 @@ impl Plugin for PlayerPlugin {
             .add_plugins(InputManagerPlugin::<Dir>::default())
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<DevCommand>::default())
-            .add_systems(Startup, (spawn_player, apply_deferred).chain().in_set(PlayerSpawn))
+            .add_systems(Startup, (spawn_player, ApplyDeferred).chain().in_set(PlayerSpawn))
             .add_systems(Update, (toggle_fly, move_player).chain().run_if(in_state(CursorGrabbed)))
             .add_systems(OnExit(CursorGrabbed), reset_heading)
         ;
@@ -104,30 +104,21 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
         ))
         .insert(SpatialListener::new(0.3))
         .insert((FootstepCD(0.), BlockSoundCD(0.)))
-        .insert(InputManagerBundle::<Dir> {
-            action_state: ActionState::default(),
-            input_map: InputMap::new([
+        .insert(InputMap::new([
                 (Dir::Front, key_binds.forward),
                 (Dir::Left, key_binds.left),
                 (Dir::Back, key_binds.backward),
                 (Dir::Right, key_binds.right),
                 (Dir::Down, key_binds.crouch),
                 (Dir::Up, key_binds.jump)
-            ]),
-        })
-        .insert(InputManagerBundle::<Action> {
-            action_state: ActionState::default(),
-            input_map: InputMap::new([
+        ]))
+        .insert(InputMap::new([
                 (Action::Hit, key_binds.hit),
                 (Action::Modify, key_binds.modify),
-            ])
-        })
-        .insert(InputManagerBundle::<DevCommand> {
-            action_state: ActionState::default(),
-            input_map: InputMap::new([
+        ]))
+        .insert(InputMap::new([
                 (DevCommand::ToggleFly, key_binds.toggle_fly)
-            ])
-        })
+        ]))
         .observe(on_item_get)
         ;
 }
@@ -136,12 +127,12 @@ pub fn move_player(
     mut player_query: Query<(&mut Heading, &mut Jumping, &mut Crouching, &Speed, &ActionState<Dir>)>, 
     cam_query: Query<&Transform, With<Camera>>, 
 ) {
-    let cam_transform = if let Ok(ct) = cam_query.get_single() {
+    let cam_transform = if let Ok(ct) = cam_query.single() {
         *ct
     } else {
         Transform::default()
     };
-    let (mut heading, mut jumping, mut crouching, speed, action_state) = player_query.single_mut();
+    let (mut heading, mut jumping, mut crouching, speed, action_state) = player_query.single_mut().unwrap();
     jumping.intent = false;
     crouching.0 = false;
 
@@ -167,7 +158,7 @@ fn toggle_fly(
     mut commands: Commands,
     mut player_query: Query<(Entity, &mut Speed, &ActionState<DevCommand>, Option<&Walking>)>
 ) {
-    let (entity, mut speed, action_state, walking_opt) = player_query.single_mut();
+    let (entity, mut speed, action_state, walking_opt) = player_query.single_mut().unwrap();
     for dev_command in action_state.get_just_pressed() {
         if dev_command == DevCommand::ToggleFly {
             if walking_opt.is_some() {
@@ -182,7 +173,7 @@ fn toggle_fly(
 }
 
 fn reset_heading(mut player_query: Query<&mut Heading, With<PlayerControlled>>) {
-    let Ok(mut heading) = player_query.get_single_mut() else {
+    let Ok(mut heading) = player_query.single_mut() else {
         return;
     };
     heading.0 = Vec3::new(0., 0., 0.);
