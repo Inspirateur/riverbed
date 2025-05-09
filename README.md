@@ -35,7 +35,7 @@ There's a plethora of subtle features that makes a game enjoyable, Riverbed shal
 ## Development
 ### Word from the author
 Hi, [@Inspirateur](https://github.com/Inspirateur) writing.
-Riverbed is a personal project so I plan to stay [BDFL](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life), I have a job to pay for bills 4 days a week, leaving me time to work on the game the remaining days (when I can). 
+Riverbed is a personal project so I plan to stay [BDFL](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life), I have a day job so I can only work on Riverbed on my free time, which varies a lot :) 
 
 I mean for the project to stay open source, to be an inspiration and learning resource for others, and will do my best to keep it well organized, with independant parts of the code published as crates for maximum reusability.
 
