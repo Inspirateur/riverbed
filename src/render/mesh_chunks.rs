@@ -58,7 +58,7 @@ impl Chunk {
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let voxels = self.voxel_data_lod(lod);
-        let mut mesh_data = bgm::MeshData::new();
+        let mut mesher = bgm::Mesher::new();
         mesh_data_span.exit();
         let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
         let transparents = BTreeSet::from_iter(self.palette.iter().enumerate().filter_map(
@@ -68,9 +68,9 @@ impl Chunk {
                 None
             }
         ));
-        bgm::mesh(&voxels, &mut mesh_data, transparents);
+        mesher.mesh(&voxels, &transparents);
         let mut meshes = core::array::from_fn(|_| None);
-        for (face_n, quads) in mesh_data.quads.iter().enumerate() {
+        for (face_n, quads) in mesher.quads.iter().enumerate() {
             let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(quads.len()*4);
             let indices = bgm::indices(quads.len());
             let face: Face = face_n.into();
