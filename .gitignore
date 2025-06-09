@@ -4,3 +4,4 @@ Cargo.lock
 imported_assets/
 *.meta
 **/key_bindings.toml
+*.log

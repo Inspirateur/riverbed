@@ -7,8 +7,11 @@ mod render;
 mod agents;
 mod sounds;
 mod terrain;
+mod logging;
+mod log_inspector;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
-use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*};
+use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::Level, prelude::*};
+use log_inspector::InspectorPlugin;
 use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
@@ -30,7 +33,8 @@ fn main() {
     app
         .insert_resource(VoxelWorld::new())
         .add_plugins(
-            DefaultPlugins.set(WindowPlugin {
+            DefaultPlugins
+            .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Riverbed".into(),
                     ..default()
@@ -47,11 +51,18 @@ fn main() {
                     ..default()
                 },
             })
+            .disable::<bevy::log::LogPlugin>()
         )
+        .add_plugins(logging::LogPlugin {
+            level: Level::TRACE,
+            filter: "warn,riverbed=trace".to_string(),
+            ..Default::default()
+        })
         .insert_resource(WorldRng {
             seed: SEED,
             rng: ChaCha8Rng::seed_from_u64(SEED)
         })
+        .add_plugins(InspectorPlugin)
         .add_plugins(PlayerPlugin)
         .add_plugins(TextureLoadPlugin)
         .add_plugins(UIPlugin)

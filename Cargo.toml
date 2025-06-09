@@ -10,34 +10,35 @@ members = [
 ]
 
 [dependencies]
+anyhow = "*"
+array-macro = "*"
 bevy = { version = "0.16" }
 bevy_atmosphere = "*"
 binary-greedy-meshing = "*"
+block-mesh = "*"
+colorsys = "*"
 confy = "*"
-leafwing-input-manager = { git = "https://github.com/Leafwing-Studios/leafwing-input-manager.git", branch = "main" }
-rand = "*"
-rand_chacha = "*"
-indexmap = "*"
-itertools = "*"
-vpsearch = "*"
-parking_lot = "*"
 crossbeam = "*"
 csv = "*"
-colorsys = "*"
-anyhow = "*"
+dashmap = "*"
+futures-lite = "*"
+indexmap = "*"
+itertools = "*"
+json5 = "*"
+lazy_static = "*"
+leafwing-input-manager = { git = "https://github.com/Leafwing-Studios/leafwing-input-manager.git", branch = "main" }
+noise-algebra = "*"
+packed-uints = "*"
+parking_lot = "*"
+rand = "*"
+rand_chacha = "*"
+regex = "*"
+riverbed_closest = { path = "crates/riverbed_closest", version = "*" }
+ron = "*"
 serde = "*"
 strum = "*"
 strum_macros = "*"
-dashmap = "*"
-futures-lite = "*"
-array-macro = "*"
-packed-uints = "*"
-block-mesh = "*"
-lazy_static = "*"
-noise-algebra = "*"
-regex = "*"
-json5 = "*"
-riverbed_closest = { path = "crates/riverbed_closest", version = "*" }
+vpsearch = "*"
 
 [build-dependencies]
 riverbed_block_def = { path = "crates/riverbed_block_def", version = "*" }

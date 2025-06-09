@@ -29,8 +29,9 @@ struct DebugTextEntities;
 fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Node {
-            position_type: PositionType::Absolute,
             flex_direction: FlexDirection::Column,
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
             ..Default::default()
         },
         TextFont {
@@ -40,9 +41,9 @@ fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         TextColor(Color::Srgba(css::BEIGE)),
     )).with_children(|parent| {
-        parent.spawn((TextSpan::new("p: "), DebugTextPos));
-        parent.spawn((TextSpan::new("block: "), DebugTextBlock));
-        parent.spawn((TextSpan::new("E: "), DebugTextEntities));
+        parent.spawn((Text::new("p: "), DebugTextPos));
+        parent.spawn((Text::new("block: "), DebugTextBlock));
+        parent.spawn((Text::new("E: "), DebugTextEntities));
     });
 }
 

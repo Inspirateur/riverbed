@@ -1,3 +1,5 @@
+use crate::logging::LogEvent;
+
 use super::BlockPos;
 use super::{
     pos2d::Pos2d, utils::ReinsertTrait, ColPos, PlayerArea, Realm, RenderDistance, VoxelWorld,
@@ -133,11 +135,12 @@ pub fn update_load_area(
     mut load_area: ResMut<PlayerArea>,
 ) {
     for (player, transform, realm, render_dist) in query.iter_mut() {
-        let col = ColPos::from((transform.translation, *realm));
+        let col: Pos2d<62> = ColPos::from((transform.translation, *realm));
         // we're checking before modifying to avoid triggering unnecessary Change detection
         if col != load_area.center {
             let new_load_area = PlayerArea::new(col, *render_dist);
             col_orders.on_load_area_change(player.index(), &load_area, &new_load_area);
+            trace!("{}", LogEvent::PlayerMoved { id: player.index(), new_col: col });
             *load_area = new_load_area;
         }
     }

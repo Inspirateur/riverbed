@@ -1,7 +1,9 @@
+use crate::logging::LogEvent;
 use crate::terrain::earth_gen::Earth;
 use crate::world::VoxelWorld;
 use crate::WorldRng;
 use bevy::ecs::system::Res;
+use bevy::log::trace;
 use bevy::tasks::AsyncComputeTaskPool;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -23,6 +25,7 @@ pub fn setup_gen_thread(blocks: Res<VoxelWorld>, world_rng: Res<WorldRng>, load_
                     continue;
                 };
                 terrain.generate(&world, col_pos);
+                trace!("{}", LogEvent::ColGenerated(col_pos));
                 world.mark_change_col(col_pos);
             }
         }
