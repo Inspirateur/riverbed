@@ -11,10 +11,8 @@ mod logging;
 mod log_inspector;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*};
-#[cfg(feature = "inspector")]
+#[cfg(feature = "verbose")]
 use bevy::log::Level;
-#[cfg(feature = "inspector")]
-use log_inspector::InspectorPlugin;
 use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
@@ -57,9 +55,9 @@ fn main() {
             .disable::<bevy::log::LogPlugin>()
         )
         .add_plugins(logging::LogPlugin {
-            #[cfg(feature = "inspector")]
+            #[cfg(feature = "verbose")]
             level: Level::TRACE,
-            #[cfg(feature = "inspector")]
+            #[cfg(feature = "verbose")]
             filter: "warn,riverbed=trace".to_string(),
             ..Default::default()
         })
@@ -75,9 +73,6 @@ fn main() {
         .add_plugins(Render)
         .add_plugins(SoundPlugin)
         ;
-
-    #[cfg(feature = "inspector")]
-    app.add_plugins(InspectorPlugin);
 
     app.run();
 }
