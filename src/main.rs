@@ -10,7 +10,10 @@ mod terrain;
 mod logging;
 mod log_inspector;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
-use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::Level, prelude::*};
+use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*};
+#[cfg(feature = "inspector")]
+use bevy::log::Level;
+#[cfg(feature = "inspector")]
 use log_inspector::InspectorPlugin;
 use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
@@ -54,7 +57,9 @@ fn main() {
             .disable::<bevy::log::LogPlugin>()
         )
         .add_plugins(logging::LogPlugin {
+            #[cfg(feature = "inspector")]
             level: Level::TRACE,
+            #[cfg(feature = "inspector")]
             filter: "warn,riverbed=trace".to_string(),
             ..Default::default()
         })
@@ -62,7 +67,6 @@ fn main() {
             seed: SEED,
             rng: ChaCha8Rng::seed_from_u64(SEED)
         })
-        .add_plugins(InspectorPlugin)
         .add_plugins(PlayerPlugin)
         .add_plugins(TextureLoadPlugin)
         .add_plugins(UIPlugin)
@@ -70,6 +74,10 @@ fn main() {
         .add_plugins(GenPlugin)
         .add_plugins(Render)
         .add_plugins(SoundPlugin)
-        .run()
         ;
+
+    #[cfg(feature = "inspector")]
+    app.add_plugins(InspectorPlugin);
+
+    app.run();
 }

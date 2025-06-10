@@ -14,6 +14,6 @@ impl Plugin for InspectorPlugin {
 
 fn log_printer(mut events: EventReader<LogEvent>) {
     for event in events.read() {
-        // println!("log to event: {}", event);
+        println!("log to event: {}", event);
     }
 }

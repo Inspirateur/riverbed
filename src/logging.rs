@@ -1,4 +1,4 @@
-use std::{error::Error, sync::mpsc, fs::OpenOptions, time::SystemTime};
+use std::{error::Error, sync::mpsc, fs::OpenOptions};
 use serde::{Deserialize, Serialize};
 use bevy::{log::{tracing::{self, subscriber, Subscriber}, tracing_subscriber::{self, filter::{FromEnvError, ParseError}, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry}, BoxedLayer, Level, DEFAULT_FILTER}, prelude::*};
 use crate::world::{ChunkPos, ColPos};
@@ -31,9 +31,9 @@ impl Plugin for LogPlugin {
             .unwrap();
         let subscriber = Registry::default();
 
-        // add optional layer provided by user
-        // TODO: feature gate this
-        let subscriber = subscriber.with(custom_layer(app));
+        // If the inspector is enabled, we add a layer that translates logs to bevy events
+        #[cfg(feature = "inspector")]
+        let subscriber = subscriber.with(event_transfer_layer(app));
 
         let default_filter = { format!("{},{}", self.level, self.filter) };
         let filter_layer = EnvFilter::try_from_default_env()
@@ -134,7 +134,7 @@ impl tracing::field::Visit for CaptureLayerVisitor<'_> {
     }
 }
 
-pub(crate) fn custom_layer(app: &mut App) -> Option<BoxedLayer> {
+pub(crate) fn event_transfer_layer(app: &mut App) -> Option<BoxedLayer> {
     let (sender, receiver) = mpsc::channel();
 
     let layer = CaptureLayer { sender };

@@ -3,6 +3,9 @@ name = "riverbed"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+inspector = []
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [workspace]
 members = [
@@ -11,18 +14,13 @@ members = [
 
 [dependencies]
 anyhow = "*"
-array-macro = "*"
 bevy = { version = "0.16" }
 bevy_atmosphere = "*"
 binary-greedy-meshing = "*"
-block-mesh = "*"
-colorsys = "*"
 confy = "*"
 crossbeam = "*"
 csv = "*"
 dashmap = "*"
-futures-lite = "*"
-indexmap = "*"
 itertools = "*"
 json5 = "*"
 lazy_static = "*"
@@ -38,7 +36,6 @@ ron = "*"
 serde = "*"
 strum = "*"
 strum_macros = "*"
-vpsearch = "*"
 
 [build-dependencies]
 riverbed_block_def = { path = "crates/riverbed_block_def", version = "*" }
