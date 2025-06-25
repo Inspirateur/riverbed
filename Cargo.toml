@@ -5,6 +5,7 @@ edition = "2024"
 
 [features]
 verbose = []
+log_inspector = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [workspace]
@@ -17,6 +18,8 @@ anyhow = "*"
 bevy = { version = "0.16" }
 bevy_atmosphere = "*"
 binary-greedy-meshing = "*"
+cfg-if = "*"
+chrono = { version = "*", features = ["serde", "rkyv"] }
 confy = "*"
 crossbeam = "*"
 csv = "*"

@@ -1,4 +1,4 @@
-use crate::logging::LogEvent;
+use crate::logging::LogData;
 
 use super::BlockPos;
 use super::{
@@ -94,6 +94,7 @@ impl LoadOrders {
             if let Some(players) = self.player_cols.get_mut(col_pos) {
                 players.remove(&player_id);
                 if players.is_empty() {
+                    
                     self.unload_col(*col_pos);
                 }
             }
@@ -140,7 +141,7 @@ pub fn update_load_area(
         if col != load_area.center {
             let new_load_area = PlayerArea::new(col, *render_dist);
             col_orders.on_load_area_change(player.index(), &load_area, &new_load_area);
-            trace!("{}", LogEvent::PlayerMoved { id: player.index(), new_col: col });
+            trace!("{}", LogData::PlayerMoved { id: player.index(), new_col: col });
             *load_area = new_load_area;
         }
     }
@@ -202,6 +203,7 @@ pub fn process_unload_orders(
     // PROCESS UNLOAD ORDERS
     for col in col_orders.to_unload.drain(..) {
         blocks.unload_col(col);
+        trace!("{}", LogData::ColUnloaded(col));
         for entity_id in col_entities.unload_col(&col) {
             if let Ok(mut entity) = commands.get_entity(entity_id) {
                 entity.despawn();

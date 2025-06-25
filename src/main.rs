@@ -8,7 +8,6 @@ mod agents;
 mod sounds;
 mod terrain;
 mod logging;
-mod log_inspector;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*};
 #[cfg(feature = "verbose")]
@@ -20,6 +19,10 @@ use ui::UIPlugin;
 use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, PlayerPlugin};
 use world::GenPlugin;
+#[cfg(feature = "log_inspector")]
+use crate::logging::InspectorPlugin;
+#[cfg(feature = "log_inspector")]
+use crate::logging::LogReplayPlugin;
 const SEED: u64 = 42;
 
 #[derive(Resource)]
@@ -29,6 +32,19 @@ pub struct WorldRng {
 }
 
 fn main() {
+    // TODO: Ideally we would do another executable instead of putting log_inspector in main
+    // but this require making a riverbed lib to share structs and I don't want to bother for now
+    // see https://doc.rust-lang.org/cargo/reference/features.html#mutually-exclusive-features
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "log_inspector")] {
+            inspect_log();
+        } else {
+            client();
+        }
+    }
+}
+
+fn client() {
     let mut app = App::new();
 
     app
@@ -75,4 +91,15 @@ fn main() {
         ;
 
     app.run();
+}
+
+#[cfg(feature = "log_inspector")]
+fn inspect_log() {
+    let mut app = App::new();
+
+    app
+        .add_plugins(LogReplayPlugin)
+        .add_plugins(InspectorPlugin)
+        .run()
+        ;
 }

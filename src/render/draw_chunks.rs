@@ -10,7 +10,7 @@ use crossbeam::channel::{unbounded, Receiver};
 use itertools::{iproduct, Itertools};
 use strum::IntoEnumIterator;
 use crate::block::Face;
-use crate::logging::LogEvent;
+use crate::logging::LogData;
 use crate::world::pos2d::chunks_in_col;
 use crate::world::{VoxelWorld, ChunkPos, CHUNK_S1, Y_CHUNKS};
 use crate::world::{range_around, ColUnloadEvent, PlayerArea, LoadAreaAssigned};
@@ -101,7 +101,7 @@ fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, shared_loa
                     continue;
                 };
                 let face_meshes = chunk.create_face_meshes(&*texture_map, lod);
-                trace!("{}", LogEvent::ChunkMeshed(chunk_pos));
+                trace!("{}", LogData::ChunkMeshed(chunk_pos));
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();
                     if mesh_sender.send((face_mesh, chunk_pos, face, LOD(lod))).is_err() {

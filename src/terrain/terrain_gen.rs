@@ -1,4 +1,4 @@
-use crate::logging::LogEvent;
+use crate::logging::LogData;
 use crate::terrain::earth_gen::Earth;
 use crate::world::VoxelWorld;
 use crate::WorldRng;
@@ -25,7 +25,7 @@ pub fn setup_gen_thread(blocks: Res<VoxelWorld>, world_rng: Res<WorldRng>, load_
                     continue;
                 };
                 terrain.generate(&world, col_pos);
-                trace!("{}", LogEvent::ColGenerated(col_pos));
+                trace!("{}", LogData::ColGenerated(col_pos));
                 world.mark_change_col(col_pos);
             }
         }

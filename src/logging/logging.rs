@@ -1,7 +1,9 @@
-use std::{error::Error, sync::mpsc, fs::OpenOptions};
+use std::{error::Error, fs::OpenOptions, sync::mpsc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use bevy::{log::{tracing::{self, subscriber, Subscriber}, tracing_subscriber::{self, filter::{FromEnvError, ParseError}, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry}, BoxedLayer, Level, DEFAULT_FILTER}, prelude::*};
 use crate::world::{ChunkPos, ColPos};
+pub(crate) const LOG_PATH: &'static str = "output.log";
 
 pub struct LogPlugin {
     /// Filters logs using the [`EnvFilter`] format
@@ -27,14 +29,13 @@ impl Plugin for LogPlugin {
             .write(true)
             .truncate(true)
             .create(true)
-            .open("output.log")
+            .open(LOG_PATH)
             .unwrap();
         let subscriber = Registry::default();
 
         // If the inspector is enabled, we add a layer that translates logs to bevy events
-        #[cfg(feature = "inspector")]
+        #[cfg(feature = "live_inspector")]
         let subscriber = subscriber.with(event_transfer_layer(app));
-
         let default_filter = { format!("{},{}", self.level, self.filter) };
         let filter_layer = EnvFilter::try_from_default_env()
             .or_else(|from_env_error| {
@@ -63,15 +64,28 @@ impl Plugin for LogPlugin {
     }
 }
 
-#[derive(Serialize, Deserialize, Event)]
-pub enum LogEvent {
+#[derive(Serialize, Deserialize, Clone)]
+pub enum LogData {
     ColGenerated(ColPos),
     ChunkMeshed(ChunkPos),
     PlayerMoved {
         id: u32, 
         new_col: ColPos
     },
+    ColUnloaded(ColPos),
     Message(String)
+}
+
+impl std::fmt::Display for LogData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", ron::to_string(self).unwrap())
+    }
+}
+
+#[derive(Serialize, Deserialize, Event, Clone)]
+pub struct LogEvent {
+    pub timestamp: DateTime<Utc>,
+    pub data: LogData
 }
 
 impl std::fmt::Display for LogEvent {
@@ -116,7 +130,7 @@ impl<S: Subscriber> Layer<S> for CaptureLayer {
             let _metadata = event.metadata();
 
             self.sender
-                .send(ron::from_str(&message).unwrap_or(LogEvent::Message(message)))
+                .send(LogEvent { timestamp: Utc::now(), data: ron::from_str(&message).unwrap_or(LogData::Message(message)) })
                 .expect("LogEvents resource no longer exists!");
         }
     }
