@@ -84,16 +84,16 @@ fn display_state(
         let col_isometry = Isometry2d::from_translation(Vec2::new(col.x as f32, col.z as f32));
         if loaded {
             if *mesh_count.0.get(&col).unwrap_or(&0) > 0 {
-                gizmos.rect_2d(col_isometry, Vec2::ONE, css::BLUE);
+                gizmos.rect_2d(col_isometry, Vec2::new(0.8, 0.8), css::SEA_GREEN);
             } else {
-                gizmos.rect_2d(col_isometry, Vec2::ONE, css::GREEN);
+                gizmos.rect_2d(col_isometry, Vec2::new(0.8, 0.8), css::STEEL_BLUE);
             }
         } else {
-            gizmos.rect_2d(col_isometry, Vec2::ONE, css::GRAY);
+            gizmos.rect_2d(col_isometry, Vec2::new(0.8, 0.8), css::DIM_GRAY);
         }
     }
     let player_isometry = Isometry2d::from_translation(Vec2::new(player_pos.0.x as f32, player_pos.0.z as f32));
-    gizmos.circle_2d(player_isometry, 0.3, css::BLACK);
+    gizmos.circle_2d(player_isometry, 0.3, css::LIGHT_GRAY);
 }
 
 fn time_control(
@@ -126,6 +126,17 @@ fn time_control(
         event_head.set(event_queue.index_at(0.88));
     } else if action_state.just_pressed(&TimeControl::Time9) {
         event_head.set(event_queue.index_at(0.99));
+    }
+    if action_state.pressed(&TimeControl::Forward) {
+        let i = **event_head;
+        if i + 1 < event_queue.0.len() {
+            event_head.set(i + 1);
+        }
+    } else if action_state.pressed(&TimeControl::Backward) {
+        let i = **event_head;
+        if i > 0 {
+            event_head.set(i - 1);
+        }
     }
 }
 
