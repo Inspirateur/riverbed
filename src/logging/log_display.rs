@@ -68,7 +68,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         parent.spawn((Text::new("pos: "), TextPlayerPos));
         parent.spawn((Text::new("meshing count: "), TextMeshCount));
         parent.spawn((Text::new("mesh throughput: "), TextMeshThroughput));
-        parent.spawn((Text::new("max column mesh: "), TextMaxColumnMesh));
+        parent.spawn((Text::new("avg mesh per col: | max:"), TextColumnMesh));
     });
 }
 
@@ -130,14 +130,15 @@ fn display_info(
         Single<&mut Text, With<TextPlayerPos>>,
         Single<&mut Text, With<TextMeshCount>>,
         Single<&mut Text, With<TextMeshThroughput>>,
-        Single<&mut Text, With<TextMaxColumnMesh>>,
+        Single<&mut Text, With<TextColumnMesh>>,
     )>,
 ) {
     let duration = event_queue.0[**event_head].timestamp - event_queue.0[0].timestamp;
     let total_meshed = mesh_count.0.values().fold(0, |a, b| a + b);
+    let avg_mesh_count = total_meshed as f32/mesh_count.0.values().filter(|&&v| v > 0).count() as f32;
     let max_mesh_count = *mesh_count.0.values().max().unwrap_or(&0);
     let mut text_duration = text_query.p0().into_inner();
-    text_duration.0 = format!("time: {} sec", duration.num_seconds());
+    text_duration.0 = format!("time: {:.1} sec", duration.as_seconds_f32());
     let mut text_pos = text_query.p1().into_inner();
     text_pos.0 = format!("column pos: {} ; {}", player_pos.0.x, player_pos.0.z);
     let mut text_mesh_total = text_query.p2().into_inner();
@@ -145,7 +146,7 @@ fn display_info(
     let mut text_mesh_thoughput = text_query.p3().into_inner();
     text_mesh_thoughput.0 = format!("mesh throughput: {:.0}/s", total_meshed as f32/duration.as_seconds_f32());
     let mut text_max_col_mesh = text_query.p4().into_inner();
-    text_max_col_mesh.0 = format!("max column mesh: {}", max_mesh_count);
+    text_max_col_mesh.0 = format!("avg mesh per col: {:.1} | max: {}", avg_mesh_count, max_mesh_count);
 }
 
 fn time_control(
@@ -236,4 +237,4 @@ struct TextDuration;
 struct TextMeshThroughput;
 
 #[derive(Component)]
-struct TextMaxColumnMesh;
+struct TextColumnMesh;
