@@ -6,7 +6,7 @@ mod world;
 mod render;
 mod agents;
 mod sounds;
-mod terrain;
+mod generation;
 mod logging;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*};
@@ -18,12 +18,13 @@ use sounds::SoundPlugin;
 use ui::UIPlugin;
 use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, PlayerPlugin};
-use world::GenPlugin;
+use world::TerrainLoadPlugin;
 #[cfg(feature = "log_inspector")]
 use crate::logging::InspectorPlugin;
 #[cfg(feature = "log_inspector")]
 use crate::logging::LogReplayPlugin;
 const SEED: u64 = 42;
+pub const RENDER_DISTANCE: i32 = 32;
 
 #[derive(Resource)]
 pub struct WorldRng {
@@ -85,7 +86,7 @@ fn client() {
         .add_plugins(TextureLoadPlugin)
         .add_plugins(UIPlugin)
         .add_plugins(MovementPlugin)
-        .add_plugins(GenPlugin)
+        .add_plugins(TerrainLoadPlugin)
         .add_plugins(Render)
         .add_plugins(SoundPlugin)
         ;

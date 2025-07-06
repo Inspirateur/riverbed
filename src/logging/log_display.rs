@@ -138,7 +138,7 @@ fn display_info(
     let avg_mesh_count = total_meshed as f32/mesh_count.0.values().filter(|&&v| v > 0).count() as f32;
     let max_mesh_count = *mesh_count.0.values().max().unwrap_or(&0);
     let mut text_duration = text_query.p0().into_inner();
-    text_duration.0 = format!("time: {:.1} sec", duration.as_seconds_f32());
+    text_duration.0 = format!("time: {:.2} sec", duration.as_seconds_f32());
     let mut text_pos = text_query.p1().into_inner();
     text_pos.0 = format!("column pos: {} ; {}", player_pos.0.x, player_pos.0.z);
     let mut text_mesh_total = text_query.p2().into_inner();

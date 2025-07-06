@@ -2,7 +2,7 @@ use crate::world::{
     MAX_GEN_HEIGHT, CHUNK_S1,
     unchunked, VoxelWorld, ColPos
 };
-use crate::terrain::Soils;
+use crate::generation::Soils;
 use riverbed_closest::{ranges, ClosestTrait};
 use itertools::iproduct;
 use std::collections::HashMap;

@@ -49,7 +49,7 @@ impl PartialEq for BlockRayCastHit {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct VoxelWorld {
     pub chunks: Arc<DashMap<ChunkPos, TrackedChunk>>,
 }

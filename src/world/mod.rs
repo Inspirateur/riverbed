@@ -1,22 +1,18 @@
 mod load_area;
-mod load_orders;
+mod block_entities;
 mod voxel_world;
+mod terrain_load;
 mod realm;
 mod chunk;
 mod pos;
 mod utils;
-
 pub use realm::*;
 pub use voxel_world::*;
 pub use chunk::*;
 pub use pos::*;
-pub use load_area::{PlayerArea, RenderDistance, range_around};
-pub use load_orders::{LoadOrders, ColUnloadEvent, BlockEntities};
-use bevy::{app::Startup, ecs::schedule::{ApplyDeferred, IntoScheduleConfigs, SystemSet}, prelude::{Plugin, Update}};
-use crate::{agents::PlayerSpawn, terrain::setup_gen_thread};
-use self::load_orders::{
-	assign_load_area, on_render_distance_change, process_unload_orders, update_load_area
-};
+pub use block_entities::BlockEntities;
+use bevy::prelude::*;
+use crate::world::{block_entities::unload_block_entities, terrain_load::{assign_player_col, on_unload_col, send_player_pos_update, setup_load_thread}};
 pub const CHUNK_S1: usize = 62;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
 pub const CHUNKP_S1: usize = CHUNK_S1 + 2;
@@ -29,22 +25,24 @@ pub const MAX_GEN_HEIGHT: usize = 400;
 pub const WATER_H: i32 = 61;
 pub const Y_CHUNKS: usize = MAX_HEIGHT/CHUNK_S1;
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
-pub struct LoadAreaAssigned;
+#[derive(Component, Default)]
+pub struct PlayerCol(pub ColPos);
 
-pub struct GenPlugin;
+#[derive(Event)]
+pub struct ColUnloadEvent(pub ColPos);
 
-impl Plugin for GenPlugin {
+pub struct TerrainLoadPlugin;
+
+impl Plugin for TerrainLoadPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
 		app
-			.insert_resource(LoadOrders::new())
-			.insert_resource(BlockEntities::default())
 			.add_event::<ColUnloadEvent>()
-			.add_systems(Startup, setup_gen_thread)
-			.add_systems(Startup, (assign_load_area, ApplyDeferred).chain().in_set(LoadAreaAssigned).after(PlayerSpawn))
-			.add_systems(Update, update_load_area)
-			.add_systems(Update, on_render_distance_change)
-			.add_systems(Update, process_unload_orders)
+			.insert_resource(BlockEntities::default())
+			.add_systems(Startup, setup_load_thread)
+			.add_systems(Update, send_player_pos_update)
+			.add_systems(Update, assign_player_col)
+			.add_systems(Update, on_unload_col)
+			.add_systems(Update, unload_block_entities)
 		;
 	}
 }

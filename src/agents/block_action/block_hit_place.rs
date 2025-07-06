@@ -6,7 +6,7 @@ use crate::render::FpsCam;
 use crate::sounds::ItemGet;
 use crate::ui::{CursorGrabbed, GameUiState, ItemHolder, SelectedHotbarSlot};
 use crate::Block;
-use crate::world::{BlockPos, BlockEntities, Realm, VoxelWorld};
+use crate::world::{BlockEntities, BlockPos, Realm, VoxelWorld};
 use crate::agents::{TargetBlock, Action, PlayerControlled};
 use crate::WorldRng;
 use leafwing_input_manager::prelude::*;

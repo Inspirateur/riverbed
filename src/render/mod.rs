@@ -6,7 +6,6 @@ mod mesh_chunks;
 mod texture_load;
 mod texture_array;
 mod sky;
-mod shared_load_area;
 mod effects;
 use bevy::prelude::Plugin;
 pub use texture_load::*;

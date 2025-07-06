@@ -1,25 +1,42 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::yield_now;
-use bevy::color::palettes::css;
 use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
 use bevy::render::view::NoFrustumCulling;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver};
-use itertools::{iproduct, Itertools};
+use itertools::Itertools;
+use parking_lot::RwLock;
 use strum::IntoEnumIterator;
+use crate::agents::PlayerControlled;
 use crate::block::Face;
 use crate::logging::LogData;
 use crate::world::pos2d::chunks_in_col;
-use crate::world::{VoxelWorld, ChunkPos, CHUNK_S1, Y_CHUNKS};
-use crate::world::{range_around, ColUnloadEvent, PlayerArea, LoadAreaAssigned};
+use crate::world::{ChunkPos, ColPos, ColUnloadEvent, PlayerCol, VoxelWorld, CHUNK_S1};
 use super::chunk_culling::chunk_culling;
-use super::shared_load_area::{setup_shared_load_area, update_shared_load_area, SharedLoadArea};
 use super::texture_array::BlockTextureArray;
 use super::BlockTexState;
 use super::texture_array::{TextureMap, TextureArrayPlugin};
 const GRID_GIZMO_LEN: i32 = 4;
+
+pub struct Draw3d;
+
+impl Plugin for Draw3d {
+    fn build(&self, app: &mut App) {
+        app
+            .add_plugins(TextureArrayPlugin)
+            .insert_resource(ChunkEntities::new())
+            .insert_resource(SharedPlayerCol::default())
+            .add_systems(Startup, setup_mesh_thread)
+            .add_systems(Update, update_shared_load_area)
+            .add_systems(Update, mark_lod_remesh)
+            .add_systems(Update, pull_meshes.run_if(in_state(BlockTexState::Mapped)))
+            .add_systems(Update, on_col_unload)
+            .add_systems(PostUpdate, chunk_culling)
+            ;
+    }
+}
 
 #[derive(Debug, Component)]
 pub struct LOD(pub usize);
@@ -32,7 +49,7 @@ fn choose_lod_level(chunk_dist: u32) -> usize {
 }
 
 fn mark_lod_remesh(
-    load_area: Res<PlayerArea>, 
+    player_query: Single<&PlayerCol, (With<PlayerControlled>, Changed<PlayerCol>)>, 
     chunk_ents: ResMut<ChunkEntities>, 
     lods: Query<&LOD>, 
     blocks: ResMut<VoxelWorld>
@@ -40,12 +57,10 @@ fn mark_lod_remesh(
     // FIXME: this only remesh chunks that previously had a mesh 
     // However in some rare cases a chunk with some blocs can produce an empty mesh at certain LODs 
     // and never get remeshed even though it should
-    if !load_area.is_changed() { return; }
+    let player_col = player_query.0;
     for ((chunk_pos, _), entity) in chunk_ents.0.iter().unique_by(|((chunk_pos, _), _)| chunk_pos) {
-        let Some(dist) =  load_area.col_dists.get(&(*chunk_pos).into()) else {
-            continue;
-        };
-        let new_lod = choose_lod_level(*dist);
+        let dist =  player_col.dist((*chunk_pos).into());
+        let new_lod = choose_lod_level(dist as u32);
         let Ok(old_lod) = lods.get(*entity) else {
             continue;
         };
@@ -58,28 +73,10 @@ fn mark_lod_remesh(
     }
 }
 
-fn chunk_aabb_gizmos(mut gizmos: Gizmos, load_area: Res<PlayerArea>) {
-    for (x, y) in iproduct!(range_around(load_area.center.x, GRID_GIZMO_LEN), 0..=Y_CHUNKS) {
-        let start = Vec3::new(x as f32, y as f32, (load_area.center.z-GRID_GIZMO_LEN) as f32)*CHUNK_S1 as f32;
-        let end = Vec3::new(x as f32, y as f32, (load_area.center.z+GRID_GIZMO_LEN) as f32)*CHUNK_S1 as f32;
-        gizmos.line(start, end, Color::Srgba(css::YELLOW));
-    }
-    for (z, y) in iproduct!(range_around(load_area.center.z, GRID_GIZMO_LEN), 0..=Y_CHUNKS) {
-        let start = Vec3::new((load_area.center.x-GRID_GIZMO_LEN) as f32, y as f32, z as f32)*CHUNK_S1 as f32;
-        let end = Vec3::new((load_area.center.x+GRID_GIZMO_LEN) as f32, y as f32, z as f32)*CHUNK_S1 as f32;
-        gizmos.line(start, end, Color::Srgba(css::YELLOW));
-    }
-    for (x, z) in iproduct!(range_around(load_area.center.x, GRID_GIZMO_LEN), range_around(load_area.center.z, GRID_GIZMO_LEN)) {
-        let start = Vec3::new(x as f32, 0., z as f32)*CHUNK_S1 as f32;
-        let end = Vec3::new(x as f32, Y_CHUNKS as f32, z as f32)*CHUNK_S1 as f32;
-        gizmos.line(start, end, Color::Srgba(css::YELLOW));
-    }
-}
-
 #[derive(Resource)]
 pub struct MeshReciever(Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
 
-fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, shared_load_area: Res<SharedLoadArea>, texture_map: Res<TextureMap>) {
+fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, shared_load_area: Res<SharedPlayerCol>, texture_map: Res<TextureMap>) {
     let thread_pool = AsyncComputeTaskPool::get();
     let chunks = Arc::clone(&blocks.chunks);
     let (mesh_sender, mesh_reciever) = unbounded();
@@ -120,11 +117,11 @@ pub fn pull_meshes(
     mut mesh_query: Query<(&mut Mesh3d, &mut LOD)>,
     mut meshes: ResMut<Assets<Mesh>>,
     block_tex_array: Res<BlockTextureArray>,
-    load_area: Res<PlayerArea>,
+    player_query: Single<&PlayerCol, With<PlayerControlled>>,
     blocks: Res<VoxelWorld>
 ) {
+    let player_col = player_query.0;
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter()
-        .filter(|(_, chunk_pos, _, _)| load_area.col_dists.contains_key(&(*chunk_pos).into()))
         .collect();
     for (mesh_opt, chunk_pos, face, lod) in received_meshes
         .into_iter().rev().unique_by(|(_, pos, face, _)| (*pos, *face)) 
@@ -182,7 +179,6 @@ pub fn on_col_unload(
     }
 }
 
-
 #[derive(Resource)]
 pub struct ChunkEntities(pub HashMap::<(ChunkPos, Face), Entity>);
 
@@ -192,23 +188,10 @@ impl ChunkEntities {
     }
 }
 
-pub struct Draw3d;
+#[derive(Default, Resource)]
+pub struct SharedPlayerCol(pub Arc<RwLock<ColPos>>);
 
-impl Plugin for Draw3d {
-    fn build(&self, app: &mut App) {
-        app
-            .add_plugins(TextureArrayPlugin)
-            .insert_resource(ChunkEntities::new())
-            .add_systems(Startup, 
-                (setup_shared_load_area, ApplyDeferred, setup_mesh_thread, ApplyDeferred)
-                .chain()
-                .after(LoadAreaAssigned))
-            .add_systems(Update, update_shared_load_area)
-            .add_systems(Update, mark_lod_remesh)
-            .add_systems(Update, pull_meshes.run_if(in_state(BlockTexState::Mapped)))
-            .add_systems(Update, on_col_unload)
-            //.add_systems(Update, chunk_aabb_gizmos)
-            .add_systems(PostUpdate, chunk_culling)
-            ;
-    }
+pub fn update_shared_load_area(player_query: Single<&PlayerCol, (With<PlayerControlled>, Changed<PlayerCol>)>, shared_load_area: Res<SharedPlayerCol>) {
+    let player_col = player_query.0;
+    *shared_load_area.0.write() = player_col.clone();
 }
