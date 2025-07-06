@@ -40,7 +40,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                                 load_world.unload_col(col);
                                 trace!("{}", LogData::ColUnloaded(col));
                                 if unload_sender.send(col).is_err() {
-                                    panic!("ColUnloadsReciever channel is closed");
+                                    panic!("ColUnloadsReceiver channel is closed");
                                 }
                             }
                         }
@@ -48,7 +48,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                     for col in player_area_diff.exclusive_in_self {
                         // register the player in the column
                         let players = player_cols.entry(col).or_default();
-                        if players.is_empty() {
+                        if players.is_empty(){
                             to_load.push(col);
                         }
                         players.insert(player_pos_update.id);
@@ -87,6 +87,7 @@ pub fn assign_player_col(
             old_col_opt: None,
             new_col: col,
         };
+        trace!("{}", LogData::PlayerMoved { id: player.index(), new_col: col});
         if sender.0.send(update).is_err() {
             panic!("PlayerColumnUpdateSender channel is closed");
         }
@@ -106,6 +107,7 @@ pub fn send_player_pos_update(
                 old_col_opt: Some(player_col.0),
                 new_col,
             };
+            trace!("{}", LogData::PlayerMoved { id: player.index(), new_col });
             if sender.0.send(update).is_err() {
                 panic!("PlayerColumnUpdateSender channel is closed");
             }
@@ -122,7 +124,6 @@ pub struct PlayerColumnUpdate {
     old_col_opt: Option<ColPos>,
     new_col: ColPos,
 }
-
 
 #[derive(Resource)]
 pub struct ColUnloadsReciever(pub Receiver<ColPos>);

@@ -2,8 +2,7 @@ use crate::{world::{ChunkPos, ColPos, TrackedChunk}, RENDER_DISTANCE};
 use bevy::prelude::*;
 use dashmap::DashMap;
 use itertools::iproduct;
-use std::{collections::HashMap, ops::RangeInclusive};
-use std::collections::HashSet;
+use std::ops::RangeInclusive;
 
 pub struct PlayerAreaDiff {
     pub exclusive_in_self: Vec<ColPos>,
@@ -25,7 +24,7 @@ impl ColPos {
         iproduct!(
             range_around(self.x, RENDER_DISTANCE as i32),
             range_around(self.z, RENDER_DISTANCE as i32)
-        ).map(|(dx, dz)| ColPos { x: self.x + dx, z: self.z + dz, realm: self.realm })
+        ).map(|(x, z)| ColPos { x, z, realm: self.realm })
     }
 
     // Given RENDER_DISTANCE and another column position, returns the columns that are in self area but not in the other area,
@@ -82,4 +81,3 @@ impl ColPos {
         ))
     }
 }
-

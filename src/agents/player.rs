@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{new_inventory, InventoryTrait, Item, Stack}, logging::LogData, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::{CursorGrabbed, ItemHolder}, world::ColPos, Block};
+use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{new_inventory, InventoryTrait, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::{CursorGrabbed, ItemHolder}, Block};
 use crate::world::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
@@ -79,7 +79,7 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
     inventory.try_add(Stack::Some(Item::Block(Block::Smelter), 1));
     inventory.try_add(Stack::Some(Item::Coal, 20));
     inventory.try_add(Stack::Some(Item::IronOre, 50));
-    let pid = commands
+    commands
         .spawn((
             Transform {translation: SPAWN, ..default()},
             Visibility::default(),
@@ -117,9 +117,7 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
                 (DevCommand::ToggleFly, key_binds.toggle_fly)
         ]))
         .observe(on_item_get)
-        .id()
         ;
-    trace!("{}", LogData::PlayerMoved { id: pid.index(), new_col: ColPos::from((SPAWN, Realm::Overworld))});
 }
 
 pub fn move_player(
