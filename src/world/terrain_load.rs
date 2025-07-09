@@ -28,15 +28,24 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
             let mut to_load: Vec<ColPos> = Vec::new();
             loop {
                 // Queue load orders and unload terrain based on incoming player positions and RENDER_DISTANCE
-                while let Ok(player_pos_update) = player_pos_recv.try_recv() {
+                loop {
+                    // If to_load is empty, we block on player position updates to not waste resources
+                    let player_pos_update = if to_load.len() == 0 {
+                        player_pos_recv.recv().expect("PlayerColumnUpdateSender channel is closed")
+                    } else {
+                        match player_pos_recv.try_recv() {
+                            Ok(update) => update,
+                            Err(_) => break, // no more updates, exit the loop
+                        }
+                    };
+                    // Compute the difference in player area
                     let player_area_diff = player_pos_update.new_col.player_area_diff(player_pos_update.old_col_opt);
                     players_pos.insert(player_pos_update.id, player_pos_update.new_col);
+                    // Handle columns that are no longer in the player's area
                     for col in player_area_diff.exclusive_in_other {
                         if let Some(cols) = player_cols.get_mut(&col) {
-                            // unregister the player from the column
                             cols.remove(&player_pos_update.id);
                             if cols.is_empty() {
-                                // if no players are left in the column, we can unload it
                                 load_world.unload_col(col);
                                 trace!("{}", LogData::ColUnloaded(col));
                                 if unload_sender.send(col).is_err() {
@@ -45,8 +54,8 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                             }
                         }
                     }
+                    // Handle columns that are new in the player's area
                     for col in player_area_diff.exclusive_in_self {
-                        // register the player in the column
                         let players = player_cols.entry(col).or_default();
                         if players.is_empty(){
                             to_load.push(col);
@@ -69,6 +78,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                     trace!("{}", LogData::ColGenerated(col));
                     load_world.mark_change_col(col);
                 }
+                println!("{} columns to load", to_load.len());
             }
         }
     ).detach();
