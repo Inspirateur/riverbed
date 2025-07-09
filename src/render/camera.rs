@@ -1,6 +1,7 @@
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 use bevy::{pbr::VolumetricFog, prelude::*};
 use bevy::window::CursorGrabMode;
+use crate::agents::Velocity;
 use crate::{agents::{PlayerControlled, PlayerSpawn, AABB}, ui::CursorGrabbed};
 use leafwing_input_manager::prelude::*;
 
@@ -14,6 +15,7 @@ impl Plugin for Camera3dPlugin {
             .add_plugins(InputManagerPlugin::<CameraMovement>::default())
             .add_systems(Startup, (cam_setup, ApplyDeferred).chain().in_set(CameraSpawn).after(PlayerSpawn))
             .add_systems(Update, apply_fps_cam)
+            .add_systems(Update, adaptative_fov)
             .add_systems(Update, pan_camera.run_if(in_state(CursorGrabbed)))
         ;
     }
@@ -76,6 +78,22 @@ pub fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player
     let mut window = windows.single_mut().unwrap();
     window.cursor_options.grab_mode = CursorGrabMode::Locked;
     window.cursor_options.visible = false;
+}
+
+// This system adapts the camera's field of view based on the player's speed
+pub fn adaptative_fov(
+    cam_query: Single<(&Transform, &mut Projection)>,
+    player_query: Single<&Velocity, With<PlayerControlled>>,
+    time: Res<Time>,
+) {
+    let velocity = player_query.into_inner();
+    let (transform, mut perspective) = cam_query.into_inner();
+    // Adjust the FOV based on the player's speed
+    if let Projection::Perspective(projection) = &mut *perspective {
+        let speed = transform.rotation.mul_vec3(-Vec3::Z).dot(velocity.0);
+        let target_fov = FRAC_PI_4 * (speed / 10.0).clamp(1.0, 2.0);
+        projection.fov = projection.fov.lerp(target_fov, time.delta_secs() * 4.0);
+    }
 }
 
 pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>, time: Res<Time>) {
