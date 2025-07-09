@@ -2,7 +2,7 @@ use std::sync::Arc;
 use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat}, storage::ShaderStorageBuffer}};
 use dashmap::DashMap;
 use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
-use super::{mesh_chunks::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
+use super::{mesh_logic::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
 
 pub struct TextureArrayPlugin;
 

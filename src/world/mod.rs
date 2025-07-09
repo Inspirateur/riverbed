@@ -1,7 +1,7 @@
 mod load_area;
 mod block_entities;
 mod voxel_world;
-mod terrain_load;
+mod terrain_thread;
 mod realm;
 mod chunk;
 mod pos;
@@ -12,7 +12,7 @@ pub use chunk::*;
 pub use pos::*;
 pub use block_entities::BlockEntities;
 use bevy::prelude::*;
-use crate::world::{block_entities::unload_block_entities, terrain_load::{assign_player_col, on_unload_col, send_player_pos_update, setup_load_thread}};
+use crate::world::{block_entities::unload_block_entities, terrain_thread::{assign_player_col, on_unload_col, send_player_pos_update, setup_load_thread}};
 pub const CHUNK_S1: usize = 62;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
 pub const CHUNKP_S1: usize = CHUNK_S1 + 2;
@@ -30,6 +30,9 @@ pub struct PlayerCol(pub ColPos);
 
 #[derive(Event)]
 pub struct ColUnloadEvent(pub ColPos);
+
+#[derive(Event)]
+pub struct ChunkChanged(pub ChunkPos);
 
 pub struct TerrainLoadPlugin;
 

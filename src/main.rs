@@ -12,6 +12,7 @@ include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*};
 #[cfg(feature = "verbose")]
 use bevy::log::Level;
+use crossbeam::channel::unbounded;
 use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
@@ -23,6 +24,7 @@ use world::TerrainLoadPlugin;
 use crate::logging::InspectorPlugin;
 #[cfg(feature = "log_inspector")]
 use crate::logging::LogReplayPlugin;
+use crate::render::{MeshOrderReceiver, MeshOrderSender};
 const SEED: u64 = 42;
 pub const RENDER_DISTANCE: i32 = 32;
 
@@ -47,9 +49,11 @@ fn main() {
 
 fn client() {
     let mut app = App::new();
-
+    let (mesh_order_sender, mesh_order_receiver) = unbounded();
     app
-        .insert_resource(VoxelWorld::new())
+        .insert_resource(VoxelWorld::new(mesh_order_sender.clone()))
+        .insert_resource(MeshOrderReceiver(mesh_order_receiver))
+        .insert_resource(MeshOrderSender(mesh_order_sender))
         .add_plugins(
             DefaultPlugins
             .set(WindowPlugin {

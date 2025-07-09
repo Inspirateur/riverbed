@@ -1,6 +1,5 @@
-use crate::{world::{ChunkPos, ColPos, TrackedChunk}, RENDER_DISTANCE};
+use crate::{world::ColPos, RENDER_DISTANCE};
 use bevy::prelude::*;
-use dashmap::DashMap;
 use itertools::iproduct;
 use std::ops::RangeInclusive;
 
@@ -45,39 +44,5 @@ impl ColPos {
         PlayerAreaDiff {
             exclusive_in_self, exclusive_in_other,
         }
-    }
-
-    fn closest_change(&self, chunks: &DashMap<ChunkPos, TrackedChunk>) -> Option<ChunkPos> {
-        chunks
-            .iter()
-            .filter_map(|entry| {
-                if entry.value().changed {
-                    Some(*entry.key())
-                } else {
-                    None
-                }
-            })
-            .min_by_key(|chunk_pos| <ColPos>::from(*chunk_pos).dist(*self))
-    }
-
-    pub fn pop_closest_change(
-        &self,
-        chunks: &DashMap<ChunkPos, TrackedChunk>,
-    ) -> Option<(ChunkPos, u32)> {
-        let span =
-            info_span!("selecting chunk to mesh", name = "selecting chunk to mesh").entered();
-        let res = self.closest_change(chunks)?;
-        span.exit();
-        let Some(mut chunk) = chunks.get_mut(&res) else {
-            println!("couldn't get_mut chunk {:?}", res);
-            return None;
-        };
-        chunk.changed = false;
-        Some((
-            res,
-            res.x
-                .abs_diff(self.x)
-                .max(res.z.abs_diff(self.z)),
-        ))
     }
 }

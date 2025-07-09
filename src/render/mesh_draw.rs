@@ -1,24 +1,19 @@
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::thread::yield_now;
 use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
 use bevy::render::view::NoFrustumCulling;
-use bevy::tasks::AsyncComputeTaskPool;
-use crossbeam::channel::{unbounded, Receiver};
 use itertools::Itertools;
-use parking_lot::RwLock;
 use strum::IntoEnumIterator;
 use crate::agents::PlayerControlled;
 use crate::block::Face;
-use crate::logging::LogData;
+use crate::render::mesh_thread::{setup_mesh_thread, update_shared_load_area, MeshReciever, SharedPlayerCol};
+use crate::render::MeshOrderSender;
 use crate::world::pos2d::chunks_in_col;
-use crate::world::{ChunkPos, ColPos, ColUnloadEvent, PlayerCol, VoxelWorld, CHUNK_S1};
+use crate::world::{ChunkPos, ColUnloadEvent, PlayerCol, VoxelWorld, CHUNK_S1};
 use super::chunk_culling::chunk_culling;
 use super::texture_array::BlockTextureArray;
 use super::BlockTexState;
-use super::texture_array::{TextureMap, TextureArrayPlugin};
-const GRID_GIZMO_LEN: i32 = 4;
+use super::texture_array::TextureArrayPlugin;
 
 pub struct Draw3d;
 
@@ -41,7 +36,7 @@ impl Plugin for Draw3d {
 #[derive(Debug, Component)]
 pub struct LOD(pub usize);
 
-fn choose_lod_level(chunk_dist: u32) -> usize {
+pub fn choose_lod_level(chunk_dist: u32) -> usize {
     if chunk_dist < 16 {
         return 1;
     }
@@ -52,10 +47,10 @@ fn mark_lod_remesh(
     player_query: Single<&PlayerCol, (With<PlayerControlled>, Changed<PlayerCol>)>, 
     chunk_ents: ResMut<ChunkEntities>, 
     lods: Query<&LOD>, 
-    blocks: ResMut<VoxelWorld>
+    mesh_order_sender: Res<MeshOrderSender>,
 ) {
     // FIXME: this only remesh chunks that previously had a mesh 
-    // However in some rare cases a chunk with some blocs can produce an empty mesh at certain LODs 
+    // However in some rare cases a chunk with some blocks can produce an empty mesh at certain LODs 
     // and never get remeshed even though it should
     let player_col = player_query.0;
     for ((chunk_pos, _), entity) in chunk_ents.0.iter().unique_by(|((chunk_pos, _), _)| chunk_pos) {
@@ -65,49 +60,9 @@ fn mark_lod_remesh(
             continue;
         };
         if new_lod != old_lod.0 {
-            let Some(mut chunk) = blocks.chunks.get_mut(chunk_pos) else {
-                continue;
-            };
-            chunk.changed = true;
+            mesh_order_sender.0.send(*chunk_pos).expect("MeshOrderSender channel is closed");
         }
     }
-}
-
-#[derive(Resource)]
-pub struct MeshReciever(Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
-
-fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, shared_load_area: Res<SharedPlayerCol>, texture_map: Res<TextureMap>) {
-    let thread_pool = AsyncComputeTaskPool::get();
-    let chunks = Arc::clone(&blocks.chunks);
-    let (mesh_sender, mesh_reciever) = unbounded();
-    commands.insert_resource(MeshReciever(mesh_reciever));
-    let shared_load_area = Arc::clone(&shared_load_area.0);
-    let texture_map = Arc::clone(&texture_map.0);
-    thread_pool.spawn(
-        async move {
-            while texture_map.len() == 0 {
-                yield_now()
-            }
-            loop {
-                let Some((chunk_pos, dist)) = shared_load_area.read().pop_closest_change(&chunks) else {
-                    yield_now();
-                    continue;
-                };
-                let lod = choose_lod_level(dist);
-                let Some(chunk) = chunks.get(&chunk_pos) else {
-                    continue;
-                };
-                let face_meshes = chunk.create_face_meshes(&*texture_map, lod);
-                trace!("{}", LogData::ChunkMeshed(chunk_pos));
-                for (i, face_mesh) in face_meshes.into_iter().enumerate() {
-                    let face = i.into();
-                    if mesh_sender.send((face_mesh, chunk_pos, face, LOD(lod))).is_err() {
-                        warn!("mesh for {:?} couldn't be sent", chunk_pos)
-                    };
-                }
-            }
-        }
-    ).detach();
 }
 
 pub fn pull_meshes(
@@ -117,10 +72,8 @@ pub fn pull_meshes(
     mut mesh_query: Query<(&mut Mesh3d, &mut LOD)>,
     mut meshes: ResMut<Assets<Mesh>>,
     block_tex_array: Res<BlockTextureArray>,
-    player_query: Single<&PlayerCol, With<PlayerControlled>>,
     blocks: Res<VoxelWorld>
 ) {
-    let player_col = player_query.0;
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter()
         .collect();
     for (mesh_opt, chunk_pos, face, lod) in received_meshes
@@ -186,12 +139,4 @@ impl ChunkEntities {
     pub fn new() -> Self {
         ChunkEntities(HashMap::new())
     }
-}
-
-#[derive(Default, Resource)]
-pub struct SharedPlayerCol(pub Arc<RwLock<ColPos>>);
-
-pub fn update_shared_load_area(player_query: Single<&PlayerCol, (With<PlayerControlled>, Changed<PlayerCol>)>, shared_load_area: Res<SharedPlayerCol>) {
-    let player_col = player_query.0;
-    *shared_load_area.0.write() = player_col.clone();
 }

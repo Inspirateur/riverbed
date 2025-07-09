@@ -31,7 +31,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                 loop {
                     // If to_load is empty, we block on player position updates to not waste resources
                     let player_pos_update = if to_load.len() == 0 {
-                        player_pos_recv.recv().expect("PlayerColumnUpdateSender channel is closed")
+                        player_pos_recv.recv().expect("PlayerColumnUpdate channel is closed")
                     } else {
                         match player_pos_recv.try_recv() {
                             Ok(update) => update,
@@ -64,21 +64,18 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                     }
                 }
                 // Generate the closest column to any player
-                if let Some((closest_idx, _closest_col)) = to_load
+                let (closest_idx, _closest_col) = to_load
                     .iter()
                     .enumerate()
                     .min_by_key(|(_i, col)| 
                         players_pos.values()
                             .map(|player_col| (col.x - player_col.x).abs() + (col.z - player_col.z).abs())
                             .min()
-                    )
-                {
-                    let col = to_load.remove(closest_idx);
-                    terrain_gen.generate(&load_world, col);
-                    trace!("{}", LogData::ColGenerated(col));
-                    load_world.mark_change_col(col);
-                }
-                println!("{} columns to load", to_load.len());
+                    ).unwrap();
+                let col = to_load.remove(closest_idx);
+                terrain_gen.generate(&load_world, col);
+                trace!("{}", LogData::ColGenerated(col));
+                load_world.mark_change_col(col);
             }
         }
     ).detach();

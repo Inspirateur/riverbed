@@ -4,39 +4,9 @@ use super::{
 };
 use crate::Block;
 use bevy::prelude::{Resource, Vec3};
+use crossbeam::channel::Sender;
 use dashmap::DashMap;
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
-
-pub struct TrackedChunk {
-    chunk: Chunk,
-    pub changed: bool,
-}
-
-impl TrackedChunk {
-    pub fn new() -> Self {
-        Self {
-            chunk: Chunk::new(),
-            changed: false,
-        }
-    }
-}
-
-impl Deref for TrackedChunk {
-    type Target = Chunk;
-
-    fn deref(&self) -> &Self::Target {
-        &self.chunk
-    }
-}
-
-impl DerefMut for TrackedChunk {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.chunk
-    }
-}
+use std::sync::Arc;
 
 pub struct BlockRayCastHit {
     pub pos: BlockPos,
@@ -51,25 +21,23 @@ impl PartialEq for BlockRayCastHit {
 
 #[derive(Resource, Clone)]
 pub struct VoxelWorld {
-    pub chunks: Arc<DashMap<ChunkPos, TrackedChunk>>,
+    pub chunks: Arc<DashMap<ChunkPos, Chunk>>,
+    chunk_changes: Sender<ChunkPos>,
 }
 
 impl VoxelWorld {
-    pub fn new() -> Self {
+    pub fn new(chunk_changes: Sender<ChunkPos>) -> Self {
         VoxelWorld {
             chunks: Arc::new(DashMap::new()),
+            chunk_changes,
         }
-    }
-
-    pub fn new_with(chunks: Arc<DashMap<ChunkPos, TrackedChunk>>) -> Self {
-        VoxelWorld { chunks }
     }
 
     pub fn set_block(&self, pos: BlockPos, block: Block) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         self.chunks
             .entry(chunk_pos)
-            .or_insert_with(|| TrackedChunk::new())
+            .or_insert_with(|| Chunk::new())
             .set(chunked_pos, block);
         self.mark_change(chunk_pos, chunked_pos);
     }
@@ -81,7 +49,7 @@ impl VoxelWorld {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         self.chunks
             .entry(chunk_pos)
-            .or_insert_with(|| TrackedChunk::new())
+            .or_insert_with(|| Chunk::new())
             .set(chunked_pos, block);
         self.mark_change(chunk_pos, chunked_pos);
         true
@@ -107,7 +75,7 @@ impl VoxelWorld {
             let h = height.min(dy);
             self.chunks
                 .entry(chunk_pos)
-                .or_insert_with(|| TrackedChunk::new())
+                .or_insert_with(|| Chunk::new())
                 .set_yrange((x, dy, z), h, block);
             height -= h;
             cy -= 1;
@@ -120,7 +88,7 @@ impl VoxelWorld {
         if self
             .chunks
             .entry(chunk_pos)
-            .or_insert_with(|| TrackedChunk::new())
+            .or_insert_with(|| Chunk::new())
             .set_if_empty(chunked_pos, block)
         {
             self.mark_change(chunk_pos, chunked_pos);
@@ -199,7 +167,7 @@ impl VoxelWorld {
 
     pub fn mark_change_single(&self, chunk_pos: ChunkPos) {
         if let Some(mut chunk) = self.chunks.get_mut(&chunk_pos) {
-            chunk.changed = true;
+            self.chunk_changes.send(chunk_pos);
         }
     }
 
