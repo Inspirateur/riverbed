@@ -46,10 +46,14 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                         if let Some(cols) = player_cols.get_mut(&col) {
                             cols.remove(&player_pos_update.id);
                             if cols.is_empty() {
-                                load_world.unload_col(col);
-                                trace!("{}", LogData::ColUnloaded(col));
-                                if unload_sender.send(col).is_err() {
-                                    panic!("ColUnloadsReceiver channel is closed");
+                                if let Some(i) = to_load.iter().position(|c| *c == col) {
+                                    to_load.swap_remove(i);
+                                } else {
+                                    load_world.unload_col(col);
+                                    trace!("{}", LogData::ColUnloaded(col));
+                                    if unload_sender.send(col).is_err() {
+                                        panic!("ColUnloadsReceiver channel is closed");
+                                    }
                                 }
                             }
                         }
