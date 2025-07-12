@@ -9,7 +9,7 @@ mod sounds;
 mod generation;
 mod logging;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
-use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*};
+use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*, window::PresentMode};
 #[cfg(feature = "verbose")]
 use bevy::log::Level;
 use crossbeam::channel::unbounded;
@@ -26,7 +26,7 @@ use crate::logging::InspectorPlugin;
 use crate::logging::LogReplayPlugin;
 use crate::render::{MeshOrderReceiver, MeshOrderSender};
 const SEED: u64 = 42;
-pub const RENDER_DISTANCE: i32 = 32;
+pub const RENDER_DISTANCE: i32 = 64;
 
 #[derive(Resource)]
 pub struct WorldRng {
@@ -59,6 +59,7 @@ fn client() {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Riverbed".into(),
+                    present_mode: PresentMode::Mailbox,
                     ..default()
                 }),
                 ..default()

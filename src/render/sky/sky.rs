@@ -1,9 +1,32 @@
 use std::{f32::consts::PI, time::Duration};
-use bevy::{pbr::VolumetricLight, prelude::*};
+use bevy::prelude::*;
 use bevy_atmosphere::{prelude::{AtmospherePlugin, AtmosphereCamera, Nishita, AtmosphereModel}, system_param::AtmosphereMut};
 use crate::render::camera::{CameraSpawn, FpsCam};
 const DAY_LENGTH_MINUTES: f32 = 0.2;
 const C: f32 = DAY_LENGTH_MINUTES*120.*PI;
+
+pub struct SkyPlugin;
+
+impl Plugin for SkyPlugin {
+    fn build(&self, app: &mut App) {
+        app   
+            .insert_resource(AmbientLight {
+                color: Color::WHITE,
+                brightness: 1000.0,
+                ..Default::default()
+            })
+            .insert_resource(AtmosphereModel::new(Nishita::default()))
+            .insert_resource(CycleTimer(Timer::new(
+                 // Update our atmosphere every 500ms
+                Duration::from_millis(500),
+                TimerMode::Repeating,
+            )))
+            .add_plugins(AtmospherePlugin)
+            .add_systems(Startup, spawn_sun.after(CameraSpawn))
+            .add_systems(Update, daylight_cycle)
+            ;
+    }
+}
 
 // Timer for updating the daylight cycle (updating the atmosphere every frame is slow, so it's better to do incremental changes)
 #[derive(Resource)]
@@ -16,7 +39,11 @@ struct Sun;
 fn spawn_sun(mut commands: Commands, cam_query: Query<Entity, With<FpsCam>>) {
     let cam = cam_query.single().unwrap();
     commands.entity(cam).insert(AtmosphereCamera::default());
-    commands.spawn((Sun, VolumetricLight, DirectionalLight::default()));
+    commands.spawn((Sun, DirectionalLight {
+        // TODO: this crashes, maybe it will be fixed by following https://github.com/bevyengine/bevy/blob/main/assets/shaders/extended_material_bindless.wgsl
+        // shadows_enabled: true,
+        ..Default::default()
+    }));
 }
 
 // We can edit the Atmosphere resource and it will be updated automatically
@@ -38,29 +65,5 @@ fn daylight_cycle(
             light_trans.rotation = Quat::from_rotation_x(-t);
             directional.illuminance = t.sin().max(0.0).powf(2.0) * 50_000.0;
         }
-    }
-}
-
-pub struct SkyPlugin;
-
-
-impl Plugin for SkyPlugin {
-    fn build(&self, app: &mut App) {
-        app   
-            .insert_resource(AmbientLight {
-                color: Color::WHITE,
-                brightness: 1000.0,
-                ..Default::default()
-            })
-            .insert_resource(AtmosphereModel::new(Nishita::default()))
-            .insert_resource(CycleTimer(Timer::new(
-                 // Update our atmosphere every 500ms
-                Duration::from_millis(500),
-                TimerMode::Repeating,
-            )))
-            .add_plugins(AtmospherePlugin)
-            .add_systems(Startup, spawn_sun.after(CameraSpawn))
-            .add_systems(Update, daylight_cycle)
-            ;
     }
 }
