@@ -5,7 +5,7 @@ use crate::agents::Velocity;
 use crate::{agents::{PlayerControlled, PlayerSpawn, AABB}, ui::CursorGrabbed};
 use leafwing_input_manager::prelude::*;
 
-const CAMERA_PAN_RATE: f32 = 0.06;
+const CAMERA_PAN_RATE: f32 = 0.001;
 
 pub struct Camera3dPlugin;
 
@@ -96,12 +96,11 @@ pub fn adaptative_fov(
     }
 }
 
-pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>, time: Res<Time>) {
+pub fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>) {
     let (action_state, mut fpscam) = query.single_mut().unwrap();
     let camera_pan_vector = action_state.axis_pair(&CameraMovement::Pan);
-    let c = time.delta_secs() * CAMERA_PAN_RATE;
-    fpscam.yaw -= c*camera_pan_vector.x;
-    fpscam.pitch -= c*camera_pan_vector.y;
+    fpscam.yaw -= CAMERA_PAN_RATE*camera_pan_vector.x;
+    fpscam.pitch -= CAMERA_PAN_RATE*camera_pan_vector.y;
     fpscam.pitch = fpscam.pitch.clamp(-1.5, 1.5);
 }
 

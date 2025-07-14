@@ -1,4 +1,3 @@
-mod debug_gen;
 mod earth_gen;
 mod tree;
 mod biome;
