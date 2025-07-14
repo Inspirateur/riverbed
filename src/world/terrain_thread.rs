@@ -26,7 +26,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
             let mut player_cols: HashMap<ColPos, HashSet<u32>> = HashMap::new();
             // the list of all columns that must be generated
             let mut to_load: Vec<ColPos> = Vec::new();
-            loop {
+            'outer: loop {
                 // Queue load orders and unload terrain based on incoming player positions and RENDER_DISTANCE
                 loop {
                     // If to_load is empty, we block on player position updates to not waste resources
@@ -43,18 +43,22 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                     players_pos.insert(player_pos_update.id, player_pos_update.new_col);
                     // Handle columns that are no longer in the player's area
                     for col in player_area_diff.exclusive_in_other {
-                        if let Some(cols) = player_cols.get_mut(&col) {
-                            cols.remove(&player_pos_update.id);
-                            if cols.is_empty() {
-                                if let Some(i) = to_load.iter().position(|c| *c == col) {
-                                    to_load.swap_remove(i);
-                                } else {
-                                    load_world.unload_col(col);
-                                    trace!("{}", LogData::ColUnloaded(col));
-                                    if unload_sender.send(col).is_err() {
-                                        panic!("ColUnloadsReceiver channel is closed");
-                                    }
-                                }
+                        let Some(cols) = player_cols.get_mut(&col) else {
+                            continue;
+                        };
+                        cols.remove(&player_pos_update.id);
+                        if !cols.is_empty() {
+                            continue;
+                        }
+                        if let Some(i) = to_load.iter().position(|c| *c == col) {
+                            to_load.swap_remove(i);
+                        } else {
+                            load_world.unload_col(col);
+                            trace!("{}", LogData::ColUnloaded(col));
+                            if unload_sender.send(col).is_err() {
+                                // This means the game is shutting down, so we break the loop
+                                warn!("ColUnloadsReciever channel is closed, stopping terrain thread");
+                                break 'outer;
                             }
                         }
                     }

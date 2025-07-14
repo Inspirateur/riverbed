@@ -28,11 +28,15 @@ pub fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, textur
             }
             let mut mesh_cache: HashSet<ChunkPos> = HashSet::new();
             let mut mesh_orders: Vec<ChunkPos> = Vec::new();
-            loop {
+            'outer: loop {
                 loop {
                     // If mesh_orders is empty, we block on mesh order updates to not waste resources
                     let chunk_pos = if mesh_orders.len() == 0 {
-                        mesh_order_receiver.recv().expect("MeshOrder channel is closed")
+                        let Ok(pos) = mesh_order_receiver.recv() else {
+                            warn!("MeshOrderReceiver channel is closed, stopping mesh thread");
+                            break 'outer;
+                        };
+                        pos
                     } else {
                         match mesh_order_receiver.try_recv() {
                             Ok(update) => update,
