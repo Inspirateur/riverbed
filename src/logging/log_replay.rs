@@ -20,8 +20,7 @@ impl Plugin for LogReplayPlugin {
 
 fn feed_logs(mut log_events: EventWriter<LogEvent>) {
     let Ok(log_lines) = read_lines(LOG_PATH) else {
-        println!("No log file :(");
-        return;
+        panic!("No log file :(");
     };
     for line in log_lines.map_while(Result::ok) {
         let parts: Vec<_> = line.split(' ').filter(|part| part.len() > 0).collect();

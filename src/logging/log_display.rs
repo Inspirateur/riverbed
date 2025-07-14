@@ -133,6 +133,9 @@ fn display_info(
         Single<&mut Text, With<TextColumnMesh>>,
     )>,
 ) {
+    if event_queue.0.len() == 0 || !event_head.is_changed() {
+        return;
+    }
     let duration = event_queue.0[**event_head].timestamp - event_queue.0[0].timestamp;
     let total_meshed = mesh_count.0.values().fold(0, |a, b| a + b);
     let avg_mesh_count = total_meshed as f32/mesh_count.0.values().filter(|&&v| v > 0).count() as f32;

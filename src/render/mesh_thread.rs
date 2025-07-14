@@ -33,7 +33,7 @@ pub fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, textur
                     // If mesh_orders is empty, we block on mesh order updates to not waste resources
                     let chunk_pos = if mesh_orders.len() == 0 {
                         let Ok(pos) = mesh_order_receiver.recv() else {
-                            warn!("MeshOrderReceiver channel is closed, stopping mesh thread");
+                            warn!("MeshOrder channel is closed, stopping mesh thread");
                             break 'outer;
                         };
                         pos
@@ -69,7 +69,8 @@ pub fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, textur
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();
                     if mesh_sender.send((face_mesh, chunk_pos, face, LOD(lod))).is_err() {
-                        warn!("mesh for {:?} couldn't be sent", chunk_pos)
+                        warn!("Mesh channel is closed, stopping mesh thread");
+                        break 'outer;
                     };
                 }
             }

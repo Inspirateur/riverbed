@@ -9,9 +9,7 @@ mod sounds;
 mod generation;
 mod logging;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
-use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, prelude::*, window::PresentMode};
-#[cfg(feature = "verbose")]
-use bevy::log::Level;
+use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
 use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
@@ -24,7 +22,7 @@ use world::TerrainLoadPlugin;
 use crate::logging::InspectorPlugin;
 #[cfg(feature = "log_inspector")]
 use crate::logging::LogReplayPlugin;
-use crate::render::{MeshOrderReceiver, MeshOrderSender};
+use crate::{logging::RiverbedLogPlugin, render::{MeshOrderReceiver, MeshOrderSender}};
 const SEED: u64 = 42;
 pub const RENDER_DISTANCE: i32 = 32;
 
@@ -73,16 +71,9 @@ fn client() {
                     mipmap_filter: ImageFilterMode::Nearest,
                     ..default()
                 },
-            })
-            .disable::<bevy::log::LogPlugin>()
+            }).disable::<LogPlugin>()
         )
-        .add_plugins(logging::LogPlugin {
-            #[cfg(feature = "verbose")]
-            level: Level::TRACE,
-            #[cfg(feature = "verbose")]
-            filter: "warn,riverbed=trace".to_string(),
-            ..Default::default()
-        })
+        .add_plugins(RiverbedLogPlugin)
         .insert_resource(WorldRng {
             seed: SEED,
             rng: ChaCha8Rng::seed_from_u64(SEED)
