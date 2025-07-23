@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use crate::ClosestTrait;
+use crate::{ClosestResult, ClosestTrait};
 use anyhow::{Result, bail};
 use itertools::Itertools;
 
@@ -18,12 +18,16 @@ impl<const D: usize> PointDistSq for [f32; D] {
 }
 
 impl<const D: usize, E: Clone> ClosestTrait<D, E> for Vec<([f32; D], E)> {
-    fn closest(&self, point: [f32; D]) -> (&E, f32) {
+    fn closest(&self, point: [f32; D]) -> ClosestResult<E> {
         let mut candidates = self.iter()
             .map(|(points, value)| (value, points.dist(&point)));
         let mut closest1 = candidates.next().unwrap();
         let Some(mut closest2) = candidates.next() else {
-            return closest1;
+            return ClosestResult {
+                closest: closest1.0,
+                score: 1.,
+                next_closest: None,
+            }
         };
         if closest2.1 < closest1.1 {
             (closest1, closest2) = (closest2, closest1);
@@ -36,7 +40,11 @@ impl<const D: usize, E: Clone> ClosestTrait<D, E> for Vec<([f32; D], E)> {
                 closest2 = (v, dist);
             }
         }
-        (closest1.0, 1.-2.*closest1.1/(closest1.1 + closest2.1))
+        ClosestResult {
+            closest: closest1.0,
+            score: 1. - 2. * closest1.1 / (closest1.1 + closest2.1),
+            next_closest: Some(closest2.0),
+        }
     }
 
     fn values(&self) -> Vec<&E> {

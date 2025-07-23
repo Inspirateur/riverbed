@@ -91,11 +91,11 @@ impl Earth {
             } else if base_y <= WATER_H {
                 Block::Sand
             } else {
-                let (block, value) = self.soils.closest([t, h]);
-                if value < 0. {
+                let res = self.soils.closest([t, h]);
+                if res.score < 0. {
                     Block::Dirt
                 } else {
-                    *block
+                    *res.closest
                 }
             };
             world.set_yrange(col, (dx, dz), y, 4, block);
@@ -156,20 +156,20 @@ impl Earth {
             let h = (rng >> 5) & 0b11;
             let y = ys[[dx, dz]];
             if y > WATER_H {
-                let (tree, dist) = self.trees.closest([
+                let res = self.trees.closest([
                     ts[[dx, dz]],
                     hs[[dx, dz]],
                     ph[[dx, dz]],
                     y as f32 / MAX_GEN_HEIGHT as f32,
                 ]);
-                if dist >= 0. {
+                if res.score >= 0. {
                     let pos = BlockPos {
                         x: col.x * CHUNK_S1I + dx as i32,
                         y,
                         z: col.z * CHUNK_S1I + dz as i32,
                         realm: col.realm,
                     };
-                    tree.grow(world, pos, self.seed, dist + h as f32 / 10.);
+                    res.closest.grow(world, pos, self.seed, res.score + h as f32 / 10.);
                 }
             }
         }

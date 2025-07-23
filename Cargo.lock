@@ -4306,6 +4306,7 @@ dependencies = [
  "regex",
  "riverbed_block_def",
  "riverbed_closest",
+ "riverbed_noise",
  "ron 0.10.1",
  "serde",
  "strum 0.27.1",
@@ -4330,6 +4331,13 @@ dependencies = [
  "criterion",
  "csv",
  "itertools 0.14.0",
+]
+
+[[package]]
+name = "riverbed_noise"
+version = "0.1.0"
+dependencies = [
+ "simdnoise",
 ]
 
 [[package]]

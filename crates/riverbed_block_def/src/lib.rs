@@ -1,6 +1,6 @@
 mod parse;
-mod gen;
-use gen::generate;
+mod code_gen;
+use code_gen::generate;
 use parse::parse_file;
 
 

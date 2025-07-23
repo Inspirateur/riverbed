@@ -1,0 +1,1 @@
+A wrapper around simdnoise for ease of use in Riverbed's terrain generation code.

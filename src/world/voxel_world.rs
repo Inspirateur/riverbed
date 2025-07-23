@@ -166,8 +166,8 @@ impl VoxelWorld {
     }
 
     pub fn mark_change_single(&self, chunk_pos: ChunkPos) {
-        if let Some(mut chunk) = self.chunks.get_mut(&chunk_pos) {
-            self.chunk_changes.send(chunk_pos);
+        if self.chunks.contains_key(&chunk_pos) {
+            self.chunk_changes.send(chunk_pos).expect("Failed to send chunk change");
         }
     }
 

@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy::log::trace;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use crate::generation::Earth;
+use crate::generation::{Earth, TerrainGenerator};
 use crate::logging::LogData;
 use crate::world::{ColPos, ColUnloadEvent, PlayerCol, Realm, VoxelWorld};
 use crate::WorldRng;
@@ -19,7 +19,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
 
     thread_pool.spawn(
         async move {
-            let terrain_gen = Earth::new(seed_value as u32, HashMap::new());
+            let terrain_gen = TerrainGenerator::new(seed_value as u32);
             // local copy of players positions
             let mut players_pos = HashMap::new();
             // keeps track of which players see which columns

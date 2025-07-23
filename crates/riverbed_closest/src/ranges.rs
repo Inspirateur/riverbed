@@ -1,11 +1,11 @@
 use std::{ops::Range, str::FromStr};
 use itertools::Itertools;
 use anyhow::{Result, bail};
-use crate::{closest::ClosestTrait, utils::{range_from_str, RangesUtil}};
+use crate::{closest::ClosestTrait, utils::{range_from_str, RangesUtil}, ClosestResult};
 
 
 impl<const D: usize, E: Clone> ClosestTrait<D, E> for Vec<([Range<f32>; D], E)> {
-    fn closest(&self, point: [f32; D]) -> (&E, f32) {
+    fn closest(&self, point: [f32; D]) -> ClosestResult<E> {
         let mut candidates = self.iter()
             .map(|(ranges, value)| (value, ranges.sign_dist(&point)));
         let mut res = candidates.next().unwrap();
@@ -14,7 +14,7 @@ impl<const D: usize, E: Clone> ClosestTrait<D, E> for Vec<([Range<f32>; D], E)> 
                 res = (v, sign_dist);
             }
         }
-        res
+        ClosestResult { closest: res.0, score: res.1, next_closest: None }
     }
 
     fn values(&self) -> Vec<&E> {
