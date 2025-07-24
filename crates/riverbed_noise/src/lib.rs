@@ -4,6 +4,7 @@ use simdnoise::*;
 const S_FBM: f32 = 3.28;
 const S_RIDGE: f32 = 6.58;
 const C_RIDGE: f32 = -2.8482;
+
 /// 2D FBM with 3 octaves in [0;1]
 pub fn fbm(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) -> Vec<f32> {
     let (res, _, _) = NoiseBuilder::fbm_2d_offset(x, width, z, height)
@@ -30,7 +31,7 @@ pub fn fbm_scaled(
         .with_seed(seed as i32)
         .with_freq(freq)
         .generate();
-    res.into_iter().map(|v| v * S_FBM * (max - min) + min + 0.5).collect()
+    res.into_iter().map(|v| (v * S_FBM + 0.5) * (max - min) + min).collect()
 }
 
 /// 2D Ridge noise in [min;max]

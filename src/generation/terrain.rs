@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use riverbed_closest::{ClosestResult, ClosestTrait};
 use riverbed_noise::*;
+use strum::IntoEnumIterator;
 use crate::{generation::{biome_params::BiomeParameters, biomes::{Biome, Layer, LayerTag}}, world::{unchunked, ColPos, VoxelWorld, CHUNK_S1}, Block};
 
 pub struct TerrainGenerator {
@@ -60,7 +61,7 @@ impl TerrainGenerator {
                     .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
                     .map(|(i, _)| i)
                     .unwrap();
-                for i in 0..all_biome_layers[dominant_biome_index].len() {
+                for layer_tag in LayerTag::iter() {
                     let block = all_biome_layers[dominant_biome_index][i].0;
                     let layer = &all_biome_layers[dominant_biome_index][i].1;
                     let tag = all_biome_layers[dominant_biome_index][i].2;
@@ -79,7 +80,7 @@ impl TerrainGenerator {
                                 |a, i| a + layer_height(&all_biome_layers[i], tag, dx, dz)*column_biome_weights[i]
                             )
                     } as i32;
-                    if height < last_height {
+                    if height <= last_height {
                         continue; // Don't overwrite lower layers
                     }
                     world.set_yrange(col, (dx, dz), height, (height-last_height) as usize, block);               
@@ -98,19 +99,19 @@ fn layer_height(column: &Vec<(Block, Layer, LayerTag)>, layer: LayerTag, dx: usi
 }
 
 fn biome_weight(
-    biome_at_00: &ClosestResult<Biome>, 
-    biome_at_01: &ClosestResult<Biome>, 
-    biome_at_10: &ClosestResult<Biome>, 
-    biome_at_11: &ClosestResult<Biome>, 
+    biomes_at_00: &ClosestResult<Biome>, 
+    biomes_at_01: &ClosestResult<Biome>, 
+    biomes_at_10: &ClosestResult<Biome>, 
+    biomes_at_11: &ClosestResult<Biome>, 
     dx: usize, dz: usize,
     biome: Biome
 ) -> f32 {
     let x = (dx as f32) / (CHUNK_S1 - 1) as f32;
     let z = (dz as f32) / (CHUNK_S1 - 1) as f32;
     // Bilinear interpolation of the biome weights
-    let x0_weight = (1.-x) * biome_at_00.score(biome) +
-        x * biome_at_10.score(biome);
-    let x1_weight = (1.-x) * biome_at_01.score(biome) +
-        x * biome_at_11.score(biome);
+    let x0_weight = (1.-x) * biomes_at_00.score(biome) +
+        x * biomes_at_10.score(biome);
+    let x1_weight = (1.-x) * biomes_at_01.score(biome) +
+        x * biomes_at_11.score(biome);
     (1.-z) * x0_weight + z * x1_weight
 }

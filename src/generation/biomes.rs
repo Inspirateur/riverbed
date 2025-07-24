@@ -1,9 +1,9 @@
 use crate::{generation::biome_params::BiomeParameters, world::{unchunked, ColPos, CHUNK_S1, CHUNK_S2, WATER_H}, Block};
-use strum_macros::EnumString;
+use strum_macros::{EnumIter, EnumString};
 use riverbed_noise::*;
 
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, EnumIter)]
 pub enum LayerTag {
     Mantle,
     Soil, 
@@ -50,15 +50,16 @@ impl Biome {
 
     fn generate_polar_ocean(seed: u32, col: ColPos, params: &BiomeParameters) -> Vec<(Block, Layer, LayerTag)> {
         let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+        let minice = WATER_H as f32 - 2.;
         let icecap = fbm_scaled(
             x, CHUNK_S1, 
             z, CHUNK_S1, 
             seed, 
             0.01, 
-            WATER_H as f32-2., 
-            WATER_H as f32 + 10.0
+            minice, 
+            WATER_H as f32 + 5.0
         );
-        let icebottom = icecap.iter().map(|v| WATER_H as f32 - v.max(0.)*5.).collect();
+        let icebottom = icecap.iter().map(|v| WATER_H as f32 - (v-minice)*5.).collect();
         vec![
             (Block::Ice, Layer::Noise(icecap), LayerTag::Structure { base_height: WATER_H as usize }),
             (Block::SeaBlock, Layer::Noise(icebottom), LayerTag::Water),
@@ -89,7 +90,7 @@ impl Biome {
             x, CHUNK_S1, 
             z, CHUNK_S1, 
             seed, 
-            0.01, 
+            0.05, 
             WATER_H as f32, 
             WATER_H as f32 + 100.
         );
