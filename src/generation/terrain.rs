@@ -1,8 +1,7 @@
 use itertools::Itertools;
 use riverbed_closest::{ClosestResult, ClosestTrait};
 use riverbed_noise::*;
-use strum::IntoEnumIterator;
-use crate::{generation::{biome_params::BiomeParameters, biomes::{Biome, Layer, LayerTag}}, world::{unchunked, ColPos, VoxelWorld, CHUNK_S1}, Block};
+use crate::{generation::{biome_params::BiomeParameters, biomes::Biome, layer::LayerTag}, world::{unchunked, ColPos, VoxelWorld, CHUNK_S1}};
 
 pub struct TerrainGenerator {
     pub biomes_points: Vec<([f32; 2], Biome)>,
@@ -43,9 +42,9 @@ impl TerrainGenerator {
             .collect::<Vec<_>>();
         // Blend between biomes
         let mut column_biome_weights = vec![0.0; biomes.len()];
+        let mut layer_indexes = vec![0usize; biomes.len()];
         for dx in 0..CHUNK_S1 {
             for dz in 0..CHUNK_S1 {
-                let mut last_height = 0;
                 for (i, &biome) in biomes.iter().enumerate() {
                     column_biome_weights[i] = biome_weight(
                         &biomes_at_00, 
@@ -56,46 +55,53 @@ impl TerrainGenerator {
                         biome
                     );
                 }
-                let dominant_biome_index = column_biome_weights.iter()
-                    .enumerate()
-                    .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-                    .map(|(i, _)| i)
-                    .unwrap();
-                for layer_tag in LayerTag::iter() {
-                    let block = all_biome_layers[dominant_biome_index][i].0;
-                    let layer = &all_biome_layers[dominant_biome_index][i].1;
-                    let tag = all_biome_layers[dominant_biome_index][i].2;
-                    let weight = column_biome_weights[dominant_biome_index];
-                    let height = if let LayerTag::Structure { base_height } = tag {
-                        layer.height(dx, dz)*weight + base_height as f32 * (1. - weight)
-                    } else if i < all_biome_layers[dominant_biome_index].len() - 1 
-                        && let LayerTag::Structure { base_height } = all_biome_layers[dominant_biome_index][i + 1].2 
-                    {
-                        layer.height(dx, dz)*weight + base_height as f32 * (1. - weight)
+                layer_indexes.fill(0);
+                let mut last_height = 0;
+                while let Some(&min_layer_tag) = all_biome_layers.iter().zip(&layer_indexes).filter_map(|(layer, &i)| if i >= layer.len() { None } else { Some(&layer[i].tag) }).min() {
+                    let mut n_min = 0.;
+                    let mut h_min = 0.;
+                    let mut n_other = 0.;
+                    let mut h_other = 0.;
+                    let mut dominant_block = None;
+                    let mut max_weight = 0.;
+                    for ((layer_idx, layers), &weight) in layer_indexes.iter_mut().zip(&all_biome_layers).zip(&column_biome_weights) {
+                        if *layer_idx >= layers.len() {
+                            continue;
+                        }
+                        if layers[*layer_idx].tag != min_layer_tag && !matches!(layers[*layer_idx].tag, LayerTag::Fixed { height: _ }) {
+                            h_other += layers[*layer_idx].height(dx, dz) * weight;
+                            n_other += weight;
+                            continue;
+                        }
+                        h_min += layers[*layer_idx].height(dx, dz) * weight;
+                        n_min += weight;
+                        if weight > max_weight {
+                            max_weight = weight;
+                            dominant_block = Some(layers[*layer_idx].block);
+                        }
+                        *layer_idx += 1;
+                    }
+                    h_min /= n_min;
+                    if n_other > 0. {
+                        h_other /= n_other;
+                    }
+                    if let LayerTag::Fixed { height } = min_layer_tag {
+                        h_other = height as f32;
+                    }
+                    let height = if h_min < h_other {
+                        h_min
                     } else {
-                        (0..all_biome_layers.len())
-                            .filter(|&i| i != dominant_biome_index)
-                            .fold(
-                                layer.height(dx, dz)*weight, 
-                                |a, i| a + layer_height(&all_biome_layers[i], tag, dx, dz)*column_biome_weights[i]
-                            )
+                        h_min * n_min + h_other * n_other
                     } as i32;
                     if height <= last_height {
                         continue; // Don't overwrite lower layers
                     }
-                    world.set_yrange(col, (dx, dz), height, (height-last_height) as usize, block);               
+                    world.set_yrange(col, (dx, dz), height, (height-last_height) as usize, dominant_block.unwrap());               
                     last_height = height;
                 }
             }
         }
     }
-}
-
-fn layer_height(column: &Vec<(Block, Layer, LayerTag)>, layer: LayerTag, dx: usize, dz: usize) -> f32 {
-    column.iter()
-        .find(|(_, _, tag)| *tag == layer)
-        .map(|(_, layer, _)| layer.height(dx, dz))
-        .unwrap_or(0.0)
 }
 
 fn biome_weight(

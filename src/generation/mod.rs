@@ -2,6 +2,7 @@ mod earth_gen;
 mod tree;
 mod growables;
 mod biome_params;
+mod layer;
 mod biomes;
 mod terrain;
 use std::ops::Range;
