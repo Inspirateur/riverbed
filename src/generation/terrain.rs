@@ -60,17 +60,16 @@ impl TerrainGenerator {
                 while let Some(&min_layer_tag) = all_biome_layers.iter().zip(&layer_indexes).filter_map(|(layer, &i)| if i >= layer.len() { None } else { Some(&layer[i].tag) }).min() {
                     let mut n_min = 0.;
                     let mut h_min = 0.;
-                    let mut n_other = 0.;
                     let mut h_other = 0.;
                     let mut dominant_block = None;
                     let mut max_weight = 0.;
                     for ((layer_idx, layers), &weight) in layer_indexes.iter_mut().zip(&all_biome_layers).zip(&column_biome_weights) {
-                        if *layer_idx >= layers.len() {
-                            continue;
-                        }
-                        if layers[*layer_idx].tag != min_layer_tag && !matches!(layers[*layer_idx].tag, LayerTag::Fixed { height: _ }) {
-                            h_other += layers[*layer_idx].height(dx, dz) * weight;
-                            n_other += weight;
+                        if *layer_idx >= layers.len() || layers[*layer_idx].tag != min_layer_tag {
+                            // This layer is above the min tag, we interpolate with the top of the preceeding layer
+                            let target_height = if *layer_idx > 0 {
+                                layers[*layer_idx-1].height(dx, dz)
+                            } else { 0. };
+                            h_other += target_height * weight;
                             continue;
                         }
                         h_min += layers[*layer_idx].height(dx, dz) * weight;
@@ -81,7 +80,10 @@ impl TerrainGenerator {
                         }
                         *layer_idx += 1;
                     }
+                    // We shouldn't need this but floats accumulate errors 
+                    n_min = n_min.clamp(0., 1.);
                     h_min /= n_min;
+                    let n_other = 1. - n_min;
                     if n_other > 0. {
                         h_other /= n_other;
                     }
@@ -92,7 +94,7 @@ impl TerrainGenerator {
                         h_min
                     } else {
                         h_min * n_min + h_other * n_other
-                    } as i32;
+                    }.round() as i32;
                     if height <= last_height {
                         continue; // Don't overwrite lower layers
                     }

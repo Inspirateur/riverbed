@@ -2,7 +2,7 @@ use crate::{generation::{biome_params::BiomeParameters, layer::*}, world::{unchu
 use strum_macros::EnumString;
 use riverbed_noise::*;
 
-#[derive(Clone, Copy, EnumString, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, EnumString, PartialEq, Eq, Hash)]
 pub enum Biome {
     PolarOcean,
     Ocean,
