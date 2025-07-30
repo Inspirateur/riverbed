@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy::log::trace;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use crate::generation::{Earth, TerrainGenerator};
+use crate::generation::TerrainGenerator;
 use crate::logging::LogData;
 use crate::world::{ColPos, ColUnloadEvent, PlayerCol, Realm, VoxelWorld};
 use crate::WorldRng;

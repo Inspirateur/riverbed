@@ -34,7 +34,6 @@ parking_lot = "*"
 rand = "*"
 rand_chacha = "*"
 regex = "*"
-riverbed_closest = { path = "crates/riverbed_closest", version = "*" }
 riverbed_noise = { path = "crates/riverbed_noise", version = "*" }
 ron = "*"
 serde = "*"

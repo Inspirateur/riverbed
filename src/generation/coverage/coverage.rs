@@ -1,32 +1,14 @@
 use std::ops::Range;
+
 use itertools::Itertools;
-use crate::counter::Counter;
 
-pub struct ClosestResult<'a, E: Clone> {
-    pub closest: &'a E,
-    pub score: f32,
-    pub next_closest: Option<&'a E>,
-}
+use crate::generation::coverage::counter::Counter;
 
-impl<E: Clone + Eq> ClosestResult<'_, E> {
-    pub fn score(&self, element: E) -> f32 {
-        if self.closest == &element {
-            self.score
-        } else if self.next_closest.is_some_and(|next| next == &element) {
-            1.0 - self.score
-        } else {
-            0.0
-        }
-    }
-}
-
-pub trait ClosestTrait<const D: usize, E: Clone> {
+pub trait CoverageTrait<const D: usize, E: Clone> {
     /// Returns the closest object from the point and a matching score in ]-inf; 1]. 
     /// A matching score of 1 means exact match; negative values mean that the object is not "suitable".
     /// May panic if the collection is empty
-    fn closest(&self, point: [f32; D]) -> ClosestResult<E>;
-
-    fn values(&self) -> Vec<&E>;
+    fn closest(&self, point: [f32; D]) -> (&E, f32);
 
     /// Estimates the proportion space for which a non negative value is returned (ie covered space)
     fn coverage(&self, step: f32) -> Vec<(&E, f32)>
@@ -42,8 +24,8 @@ pub trait ClosestTrait<const D: usize, E: Clone> {
         let mut count = 0;
         for point in samples {
             let res = self.closest(point.try_into().unwrap());
-            if res.score >= 0. {
-                coverage.add(res.closest);
+            if res.1 >= 0. {
+                coverage.add(res.0);
             }
             count += 1;
         }

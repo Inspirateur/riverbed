@@ -1,16 +1,15 @@
-use itertools::Itertools;
-use riverbed_closest::{ClosestResult, ClosestTrait};
+use rand::Fill;
 use riverbed_noise::*;
-use crate::{generation::{biome_params::BiomeParameters, biomes::Biome, layer::LayerTag}, world::{unchunked, ColPos, VoxelWorld, CHUNK_S1}};
+use crate::{generation::{biome_params::{BiomeParameters, BiomePoints}, biomes::Biome, layer::LayerTag}, world::{unchunked, ColPos, VoxelWorld, CHUNK_S1}};
 
 pub struct TerrainGenerator {
-    pub biomes_points: Vec<([f32; 2], Biome)>,
+    pub biomes_points: BiomePoints<2>,
     pub seed: u32,
 }
 
 impl TerrainGenerator {
     pub fn new(seed: u32) -> Self {
-        let biomes_points = riverbed_closest::points::from_csv("assets/data/biomes.csv").unwrap();
+        let biomes_points = BiomePoints::from_csv("assets/gen/biomes.csv");
         TerrainGenerator { seed, biomes_points }
     }
 
@@ -22,21 +21,8 @@ impl TerrainGenerator {
             continentalness: continentalness,
             temperature: temperature,
         };
-        let biomes_at_00 = self.biomes_points.closest(params.at(0, 0));
-        let biomes_at_01 = self.biomes_points.closest(params.at(0, CHUNK_S1-1));
-        let biomes_at_10 = self.biomes_points.closest(params.at(CHUNK_S1-1, 0));
-        let biomes_at_11 = self.biomes_points.closest(params.at(CHUNK_S1-1, CHUNK_S1-1));
-        // In the worst case scenario we will blend between 8 biomes, but in most cases it will be 2.
-        let biomes: Vec<Biome> = [
-            *biomes_at_00.closest,
-            *biomes_at_00.next_closest.unwrap(),
-            *biomes_at_01.closest,
-            *biomes_at_01.next_closest.unwrap(),
-            *biomes_at_10.closest,
-            *biomes_at_10.next_closest.unwrap(),
-            *biomes_at_11.closest,
-            *biomes_at_11.next_closest.unwrap(),
-        ].into_iter().unique().collect();
+        // The biomes that will be considered for blending in this chunk
+        let biomes: Vec<Biome> = self.biomes_points.closest_biomes(params.at(CHUNK_S1/2, CHUNK_S1/2), 5.);
         let all_biome_layers = biomes.iter()
             .map(|b| b.generate(self.seed, col, &params))
             .collect::<Vec<_>>();
@@ -45,15 +31,15 @@ impl TerrainGenerator {
         let mut layer_indexes = vec![0usize; biomes.len()];
         for dx in 0..CHUNK_S1 {
             for dz in 0..CHUNK_S1 {
+                // Compute normalized biome weights for this block column
+                let biome_params = params.at(dx, dz);
+                let mut total = 0.;
                 for (i, &biome) in biomes.iter().enumerate() {
-                    column_biome_weights[i] = biome_weight(
-                        &biomes_at_00, 
-                        &biomes_at_01, 
-                        &biomes_at_10, 
-                        &biomes_at_11, 
-                        dx, dz,
-                        biome
-                    );
+                    column_biome_weights[i] = self.biomes_points.dist_from(&biome_params, &biome);
+                    total += column_biome_weights[i];
+                }
+                for i in 0..column_biome_weights.len() {
+                    column_biome_weights[i] = 1. - column_biome_weights[i]/total;
                 }
                 layer_indexes.fill(0);
                 let mut last_height = 0;
@@ -104,22 +90,4 @@ impl TerrainGenerator {
             }
         }
     }
-}
-
-fn biome_weight(
-    biomes_at_00: &ClosestResult<Biome>, 
-    biomes_at_01: &ClosestResult<Biome>, 
-    biomes_at_10: &ClosestResult<Biome>, 
-    biomes_at_11: &ClosestResult<Biome>, 
-    dx: usize, dz: usize,
-    biome: Biome
-) -> f32 {
-    let x = (dx as f32) / (CHUNK_S1 - 1) as f32;
-    let z = (dz as f32) / (CHUNK_S1 - 1) as f32;
-    // Bilinear interpolation of the biome weights
-    let x0_weight = (1.-x) * biomes_at_00.score(biome) +
-        x * biomes_at_10.score(biome);
-    let x1_weight = (1.-x) * biomes_at_01.score(biome) +
-        x * biomes_at_11.score(biome);
-    (1.-z) * x0_weight + z * x1_weight
 }

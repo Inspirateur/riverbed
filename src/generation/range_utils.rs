@@ -23,7 +23,6 @@ impl<const D: usize> RangesUtil<D> for [Range<f32>; D] {
     }
 }
 
-
 pub(crate) fn range_from_str(str: &str) -> Result<Range<f32>> {
     let (start, end) = str.trim().split_once(";").ok_or(
         anyhow!("expect format start;end, got '{}'", str)
