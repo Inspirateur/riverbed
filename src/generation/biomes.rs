@@ -56,8 +56,8 @@ impl Biome {
             z, CHUNK_S1, 
             seed, 
             0.001, 
-            WATER_H as f32 + 1., 
-            WATER_H as f32 + 3.
+            WATER_H as f32 + 3., 
+            WATER_H as f32 + 7.
         );
         vec![
             Layer { block: Block::Granite, height: Height::Constant(WATER_H as f32), tag: LayerTag::Mantle },
@@ -71,9 +71,9 @@ impl Biome {
             x, CHUNK_S1, 
             z, CHUNK_S1, 
             seed, 
-            0.05, 
+            0.02, 
             WATER_H as f32, 
-            WATER_H as f32 + 100.
+            WATER_H as f32 + 150.
         );
         vec![
             Layer { block: Block::Granite, height: Height::Noise(n), tag: LayerTag::Mantle }

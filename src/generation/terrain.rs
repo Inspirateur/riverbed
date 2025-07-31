@@ -1,9 +1,9 @@
-use rand::Fill;
 use riverbed_noise::*;
 use crate::{generation::{biome_params::{BiomeParameters, BiomePoints}, biomes::Biome, layer::LayerTag}, world::{unchunked, ColPos, VoxelWorld, CHUNK_S1}};
+const BIOME_SHARPENING: f32 = 50.;
 
 pub struct TerrainGenerator {
-    pub biomes_points: BiomePoints<2>,
+    pub biomes_points: BiomePoints<3>,
     pub seed: u32,
 }
 
@@ -15,14 +15,16 @@ impl TerrainGenerator {
 
     pub fn generate(&self, world: &VoxelWorld, col: ColPos) {
         let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
-        let continentalness= fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed, 0.0001);
-        let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed, 0.0005);
+        let continentalness= fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed, 0.0005);
+        let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+1, 0.001);
+        let mountain_veins = ridge(x, CHUNK_S1, z, CHUNK_S1, self.seed+2, 0.005);
+        let mountain_presence = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+3, 0.005);
+        let mountainness = mountain_presence.into_iter().zip(mountain_veins).map(|(p, v)| p*v).collect();
         let params = BiomeParameters {
-            continentalness: continentalness,
-            temperature: temperature,
+            continentalness, temperature, mountainness
         };
         // The biomes that will be considered for blending in this chunk
-        let biomes: Vec<Biome> = self.biomes_points.closest_biomes(params.at(CHUNK_S1/2, CHUNK_S1/2), 5.);
+        let biomes: Vec<Biome> = self.biomes_points.closest_biomes(params.at(CHUNK_S1/2, CHUNK_S1/2), 1.);
         let all_biome_layers = biomes.iter()
             .map(|b| b.generate(self.seed, col, &params))
             .collect::<Vec<_>>();
@@ -32,15 +34,20 @@ impl TerrainGenerator {
         for dx in 0..CHUNK_S1 {
             for dz in 0..CHUNK_S1 {
                 // Compute normalized biome weights for this block column
-                let biome_params = params.at(dx, dz);
-                let mut total = 0.;
-                for (i, &biome) in biomes.iter().enumerate() {
-                    column_biome_weights[i] = self.biomes_points.dist_from(&biome_params, &biome);
-                    total += column_biome_weights[i];
+                if biomes.len() > 1 {
+                    let biome_params = params.at(dx, dz);
+                    let mut total = 0.;
+                    for (i, &biome) in biomes.iter().enumerate() {
+                        column_biome_weights[i] = (-self.biomes_points.dist_from(&biome_params, &biome)*BIOME_SHARPENING).exp();
+                        total += column_biome_weights[i];
+                    }
+                    for i in 0..column_biome_weights.len() {
+                        column_biome_weights[i] = column_biome_weights[i]/total;
+                    }
+                } else {
+                    column_biome_weights[0] = 1.
                 }
-                for i in 0..column_biome_weights.len() {
-                    column_biome_weights[i] = 1. - column_biome_weights[i]/total;
-                }
+                // Blend biome layers
                 layer_indexes.fill(0);
                 let mut last_height = 0;
                 while let Some(&min_layer_tag) = all_biome_layers.iter().zip(&layer_indexes).filter_map(|(layer, &i)| if i >= layer.len() { None } else { Some(&layer[i].tag) }).min() {

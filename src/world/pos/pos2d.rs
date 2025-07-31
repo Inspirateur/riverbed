@@ -75,8 +75,8 @@ impl From<BlockPos2d> for (ColPos, ColedPos) {
 
 impl From<BlockPos2d> for ColPos {
     fn from(block_pos2d: BlockPos2d) -> Self {
-        let cx = block_pos2d.x/CHUNK_S1I;
-        let cz = block_pos2d.z/CHUNK_S1I;
+        let cx = block_pos2d.x.div_euclid(CHUNK_S1I);
+        let cz = block_pos2d.z.div_euclid(CHUNK_S1I);
         ColPos {
             x: cx,
             z: cz,
@@ -87,8 +87,8 @@ impl From<BlockPos2d> for ColPos {
 
 impl From<BlockPos> for ColPos {
     fn from(block_pos: BlockPos) -> Self {
-        let cx = block_pos.x/CHUNK_S1I;
-        let cz = block_pos.z/CHUNK_S1I;
+        let cx = block_pos.x.div_euclid(CHUNK_S1I);
+        let cz = block_pos.z.div_euclid(CHUNK_S1I);
         ColPos {
             x: cx,
             z: cz,

@@ -10,7 +10,7 @@ use super::{block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, Fre
 
 const WALK_SPEED: f32 = 7.;
 const FREE_FLY_X_SPEED: f32 = 500.;
-const SPAWN: Vec3 = Vec3 { x: 540., y: 500., z: 130.};
+const SPAWN: Vec3 = Vec3 { x: 280., y: 500., z: -150.};
 pub const HOTBAR_SLOTS: usize = 8;
 
 pub struct PlayerPlugin;

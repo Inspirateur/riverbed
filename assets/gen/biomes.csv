@@ -1,3 +1,4 @@
-id, continentalness, temperature
-Ocean, 0.0, 0.5
-Plain, 0.5, 0.5
+id, continentalness, temperature, mountainness
+Ocean, 0.0, 0.5, 0.5
+Plain, 1.0, 0.5, 0.0
+Mountain, 1.0, 0.5, 1.0
