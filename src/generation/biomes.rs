@@ -1,14 +1,19 @@
 use crate::{generation::{biome_params::BiomeParameters, layer::*}, world::{unchunked, ColPos, CHUNK_S1, CHUNK_S2, WATER_H}, Block};
 use strum_macros::EnumString;
 use riverbed_noise::*;
+const MOUNTAIN_H: f32 = 120.;
 
 #[derive(Debug, Clone, Copy, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Biome {
     PolarOcean,
+    Canyon,
     Ocean,
     Plain,
     Mountain,
-    Desert
+    Desert,
+    Tundra,
+    Savannah,
+    Jungle,
 }
 
 impl Biome {
@@ -16,10 +21,12 @@ impl Biome {
         match self {
             Biome::PolarOcean => Biome::generate_polar_ocean(seed, col, params),
             Biome::Ocean => Biome::generate_ocean(seed, col, params),
-            Biome::Plain => Biome::generate_plain(seed, col, params),
             Biome::Mountain => Biome::generate_mountain(seed, col, params),
             Biome::Desert => Biome::generate_desert(seed, col, params),
-            _ => Vec::new(),
+            Biome::Jungle => Biome::generate_jungle(seed, col, params),
+            Biome::Canyon => Biome::generate_canyon(seed, col, params),
+            // Plain is the default for any not yet implemented biomes
+            _ => Biome::generate_plain(seed, col, params),
         }
     }
 
@@ -55,9 +62,9 @@ impl Biome {
             x, CHUNK_S1, 
             z, CHUNK_S1, 
             seed, 
-            0.001, 
+            0.04, 
             WATER_H as f32 + 3., 
-            WATER_H as f32 + 7.
+            WATER_H as f32 + 10.
         );
         vec![
             Layer { block: Block::Granite, height: Height::Constant(WATER_H as f32), tag: LayerTag::Mantle },
@@ -67,16 +74,24 @@ impl Biome {
 
     fn generate_mountain(seed: u32, col: ColPos, params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
-        let n = fbm_scaled(
+        let mut mountain_presence = fbm(x, CHUNK_S1, z, CHUNK_S1, seed+1, 0.005);
+        powi(&mut mountain_presence, 2);
+        let mut n = fbm_scaled(
             x, CHUNK_S1, 
             z, CHUNK_S1, 
-            seed, 
-            0.02, 
-            WATER_H as f32, 
-            WATER_H as f32 + 150.
+            seed+2, 
+            0.05, 
+            WATER_H as f32 + 3., 
+            WATER_H as f32 + MOUNTAIN_H
         );
+        mul(&mut n, &mountain_presence);
+        add_const(&mut mountain_presence, -0.7);
+        mul_const(&mut mountain_presence, 5.);
+        powi(&mut mountain_presence, 2);
+        add(&mut mountain_presence, &n);
         vec![
-            Layer { block: Block::Granite, height: Height::Noise(n), tag: LayerTag::Mantle }
+            Layer { block: Block::Granite, height: Height::Noise(n), tag: LayerTag::Mantle },
+            Layer { block: Block::GrassBlock, height: Height::Noise(mountain_presence), tag: LayerTag::Soil }
         ]
     }
 
@@ -91,6 +106,40 @@ impl Biome {
         vec![
             Layer { block: Block::Granite, height: Height::Constant(WATER_H as f32), tag: LayerTag::Mantle },
             Layer { block: Block::Sand, height: Height::Noise(sin), tag: LayerTag::Deposit }, 
+        ]
+    }
+
+    fn generate_jungle(seed: u32, col: ColPos, params: &BiomeParameters) -> Vec<Layer> {
+        let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+        let mut n = fbm_scaled(
+            x, CHUNK_S1, 
+            z, CHUNK_S1, 
+            seed+2, 
+            0.1, 
+            WATER_H as f32, 
+            WATER_H as f32 + 60.
+        );
+        quantize(&mut n, 4.);
+        vec![
+            Layer { block: Block::Granite, height: Height::Constant(WATER_H as f32), tag: LayerTag::Mantle },
+            Layer { block: Block::Podzol, height: Height::Constant(WATER_H as f32 + 15.), tag: LayerTag::Soil },
+            Layer { block: Block::GrassBlock, height: Height::Noise(n), tag: LayerTag::Deposit }, 
+        ]
+    }
+
+    fn generate_canyon(seed: u32, col: ColPos, params: &BiomeParameters) -> Vec<Layer> {
+        let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+        let mut n = ridge(
+            x, CHUNK_S1, 
+            z, CHUNK_S1, 
+            seed+2, 
+            0.05, 
+        );
+        powi(&mut n, 4);
+        mul_const(&mut n, -100.);
+        add_const(&mut n, 100.);
+        vec![
+            Layer { block: Block::CoarseDirt, height: Height::Noise(n), tag: LayerTag::Mantle },
         ]
     }
 }

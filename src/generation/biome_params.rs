@@ -58,15 +58,17 @@ fn dist<const D: usize>(a: &[f32; D], b: &[f32; D]) -> f32 {
 
 pub struct BiomeParameters {
     pub continentalness: Vec<f32>,
+    pub mountainness: Vec<f32>,
     pub temperature: Vec<f32>,
-    pub mountainness: Vec<f32>
+    pub humidity: Vec<f32>
 }
 
 impl BiomeParameters {
-    pub fn at(&self, dx: usize, dz: usize) -> [f32; 3] {
+    pub fn at(&self, dx: usize, dz: usize) -> [f32; 4] {
         let continentalness = self.continentalness[dz*CHUNK_S1 + dx];
-        let temperature = self.temperature[dz*CHUNK_S1 + dx];
         let mountainness = self.mountainness[dz*CHUNK_S1 + dx];
-        [continentalness, temperature, mountainness]
+        let temperature = self.temperature[dz*CHUNK_S1 + dx];
+        let humidity = self.humidity[dz*CHUNK_S1 + dx];
+        [continentalness, mountainness, temperature, humidity]
     }
 }

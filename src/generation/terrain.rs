@@ -1,9 +1,9 @@
 use riverbed_noise::*;
-use crate::{generation::{biome_params::{BiomeParameters, BiomePoints}, biomes::Biome, layer::LayerTag}, world::{unchunked, ColPos, VoxelWorld, CHUNK_S1}};
+use crate::{generation::{biome_params::{BiomeParameters, BiomePoints}, biomes::Biome, layer::LayerTag}, world::{unchunked, BlockPos2d, ColPos, VoxelWorld, CHUNK_S1}, Block};
 const BIOME_SHARPENING: f32 = 50.;
 
 pub struct TerrainGenerator {
-    pub biomes_points: BiomePoints<3>,
+    pub biomes_points: BiomePoints<4>,
     pub seed: u32,
 }
 
@@ -16,12 +16,12 @@ impl TerrainGenerator {
     pub fn generate(&self, world: &VoxelWorld, col: ColPos) {
         let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
         let continentalness= fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed, 0.0005);
-        let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+1, 0.001);
-        let mountain_veins = ridge(x, CHUNK_S1, z, CHUNK_S1, self.seed+2, 0.005);
-        let mountain_presence = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+3, 0.005);
-        let mountainness = mountain_presence.into_iter().zip(mountain_veins).map(|(p, v)| p*v).collect();
+        let mountainness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+1, 0.005);
+        let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+2, 0.002);
+        let humidity = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+3, 0.002);
+        let trees = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+4, 0.005);
         let params = BiomeParameters {
-            continentalness, temperature, mountainness
+            continentalness, mountainness, temperature, humidity
         };
         // The biomes that will be considered for blending in this chunk
         let biomes: Vec<Biome> = self.biomes_points.closest_biomes(params.at(CHUNK_S1/2, CHUNK_S1/2), 1.);
@@ -91,7 +91,16 @@ impl TerrainGenerator {
                     if height <= last_height {
                         continue; // Don't overwrite lower layers
                     }
-                    world.set_yrange(col, (dx, dz), height, (height-last_height) as usize, dominant_block.unwrap());               
+                    let block = dominant_block.unwrap();
+                    let layer_width = height-last_height;
+                    if block == Block::GrassBlock {
+                        world.set_yrange(col, (dx, dz), height, 1, block);
+                        if layer_width > 1 {
+                            world.set_yrange(col, (dx, dz), height-1, (layer_width-1) as usize, Block::Dirt);
+                        }
+                    } else {
+                        world.set_yrange(col, (dx, dz), height, layer_width as usize, block);
+                    }
                     last_height = height;
                 }
             }

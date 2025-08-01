@@ -5,3 +5,7 @@ edition = "2024"
 
 [dependencies]
 simdnoise = "*"
+num-traits = "0.2"
+noise = "0.9"
+ndarray = "0.16"
+itertools = "0.13"
