@@ -32,20 +32,19 @@ impl Biome {
 
     fn generate_polar_ocean(seed: u32, col: ColPos, params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
-        let minice = WATER_H as f32 - 2.;
-        let icecap = fbm_scaled(
+        let mut n = ridge(
             x, CHUNK_S1, 
             z, CHUNK_S1, 
             seed, 
             0.01, 
-            minice, 
-            WATER_H as f32 + 5.0
         );
-        let icebottom = icecap.iter().map(|v| WATER_H as f32 - (v-minice)*5.).collect();
+        powi(&mut n, 4);
+        mul_const(&mut n, -2.);
+        add_const(&mut n, WATER_H as f32);
         vec![
             Layer { block: Block::Sand, height: Height::Constant(5.), tag: LayerTag::Soil },
-            Layer { block: Block::SeaBlock, height: Height::Noise(icebottom), tag: LayerTag::Fixed { height: WATER_H as usize } },
-            Layer { block: Block::Ice, height: Height::Noise(icecap), tag: LayerTag::Fixed { height: WATER_H as usize } },
+            Layer { block: Block::SeaBlock, height: Height::Constant(WATER_H as f32), tag: LayerTag::Fixed { height: WATER_H as usize } },
+            Layer { block: Block::Ice, height: Height::Noise(n), tag: LayerTag::Fixed { height: (WATER_H as usize) -1 } },
         ]
     }
 

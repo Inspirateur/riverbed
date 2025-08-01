@@ -1,16 +1,18 @@
 use riverbed_noise::*;
-use crate::{generation::{biome_params::{BiomeParameters, BiomePoints}, biomes::Biome, layer::LayerTag}, world::{unchunked, BlockPos2d, ColPos, VoxelWorld, CHUNK_S1}, Block};
+use crate::{generation::{biome_params::{BiomeParameters, BiomePoints}, biomes::Biome, coverage::CoverageTrait, layer::LayerTag, plant_params::PlantRanges}, world::{unchunked, BlockPos, BlockPos2d, ColPos, VoxelWorld, CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT}, Block};
 const BIOME_SHARPENING: f32 = 50.;
 
 pub struct TerrainGenerator {
     pub biomes_points: BiomePoints<4>,
+    pub plant_ranges: PlantRanges<4>,
     pub seed: u32,
 }
 
 impl TerrainGenerator {
     pub fn new(seed: u32) -> Self {
         let biomes_points = BiomePoints::from_csv("assets/gen/biomes.csv");
-        TerrainGenerator { seed, biomes_points }
+        let plant_ranges = PlantRanges::from_csv("assets/gen/plants.csv");
+        TerrainGenerator { seed, biomes_points, plant_ranges }
     }
 
     pub fn generate(&self, world: &VoxelWorld, col: ColPos) {
@@ -20,8 +22,12 @@ impl TerrainGenerator {
         let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+2, 0.002);
         let humidity = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+3, 0.002);
         let trees = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+4, 0.005);
+        let ph = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed+5, 0.005);
         let params = BiomeParameters {
-            continentalness, mountainness, temperature, humidity
+            continentalness: &continentalness, 
+            mountainness: &mountainness, 
+            temperature: &temperature, 
+            humidity: &humidity
         };
         // The biomes that will be considered for blending in this chunk
         let biomes: Vec<Biome> = self.biomes_points.closest_biomes(params.at(CHUNK_S1/2, CHUNK_S1/2), 1.);
@@ -103,6 +109,53 @@ impl TerrainGenerator {
                     }
                     last_height = height;
                 }
+            }
+        }
+        // TODO: add back vegetation
+        let tree_spots = [
+            (0, 0),
+            (15, 0),
+            (31, 0),
+            (46, 0),
+            (8, 15),
+            (24, 15),
+            (40, 15),
+            (0, 31),
+            (15, 31),
+            (31, 31),
+            (46, 31),
+            (8, 46),
+            (24, 46),
+            (40, 46),
+        ];
+        for spot in tree_spots {
+            let rng = <BlockPos2d>::from((col, spot)).prng(self.seed as i32);
+            let dx = spot.0 + (rng & 0b111);
+            let dz = spot.1 + ((rng >> 3) & 0b111);
+            let i = dx*CHUNK_S1 + dz;
+            let tree = trees[i];
+            if tree < 0.5 {
+                continue;
+            }
+            let h = (rng >> 5) & 0b11;
+            let (block, y) = world.top_block((col, (dx, dz)).into());
+            if !block.is_fertile_soil() {
+                continue;
+            }
+            let (tree, dist) = self.plant_ranges.closest([
+                temperature[i],
+                humidity[i],
+                ph[i],
+                y as f32 / MAX_GEN_HEIGHT as f32,
+            ]);
+            if dist >= 0. {
+                let pos = BlockPos {
+                    x: col.x * CHUNK_S1I + dx as i32,
+                    y,
+                    z: col.z * CHUNK_S1I + dz as i32,
+                    realm: col.realm,
+                };
+                tree.grow(world, pos, self.seed as i32, dist + h as f32 / 10.);
             }
         }
     }

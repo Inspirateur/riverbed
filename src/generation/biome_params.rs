@@ -56,14 +56,14 @@ fn dist<const D: usize>(a: &[f32; D], b: &[f32; D]) -> f32 {
     res.sqrt()/(D as f32).sqrt()
 }
 
-pub struct BiomeParameters {
-    pub continentalness: Vec<f32>,
-    pub mountainness: Vec<f32>,
-    pub temperature: Vec<f32>,
-    pub humidity: Vec<f32>
+pub struct BiomeParameters<'a> {
+    pub continentalness: &'a Vec<f32>,
+    pub mountainness: &'a Vec<f32>,
+    pub temperature: &'a Vec<f32>,
+    pub humidity: &'a Vec<f32>
 }
 
-impl BiomeParameters {
+impl BiomeParameters<'_> {
     pub fn at(&self, dx: usize, dz: usize) -> [f32; 4] {
         let continentalness = self.continentalness[dz*CHUNK_S1 + dx];
         let mountainness = self.mountainness[dz*CHUNK_S1 + dx];
