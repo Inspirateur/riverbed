@@ -28,7 +28,6 @@ itertools = "*"
 json5 = "*"
 lazy_static = "*"
 leafwing-input-manager = { git = "https://github.com/Leafwing-Studios/leafwing-input-manager.git", branch = "main" }
-noise-algebra = "*"
 packed-uints = "*"
 parking_lot = "*"
 rand = "*"

@@ -3174,19 +3174,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "noise-algebra"
-version = "0.1.28"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "042d69a3c838b07215704d9c3276296d25edc7362024fca1345a2498928e725c"
-dependencies = [
- "itertools 0.13.0",
- "ndarray",
- "noise",
- "num-traits",
- "simdnoise",
-]
-
-[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4118,7 +4105,6 @@ dependencies = [
  "json5",
  "lazy_static",
  "leafwing-input-manager",
- "noise-algebra",
  "packed-uints",
  "parking_lot",
  "rand 0.9.1",
