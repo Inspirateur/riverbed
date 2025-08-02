@@ -72,6 +72,7 @@ fn build_tex_array(
     let mut anim_offsets = vec![1];
     let mut index = 1;
     let loaded_folder: &LoadedFolder = loaded_folders.get(&block_textures.0).unwrap();
+    let mut water_layer = None;
     for handle in loaded_folder.handles.iter() {
         let id = handle.id().typed_unchecked::<Image>();
         let Some(texture) = textures.get(id) else {
@@ -88,6 +89,9 @@ fn build_tex_array(
         let frames = texture.height()/texture.width();
         texture_map.0.insert((block, face_specifier), index);
         texture_list.push(texture);
+        if block == Block::SeaBlock {
+            water_layer = Some(index);
+        }
         for _ in 0..frames {
             anim_offsets.push(frames);
             index += 1;    
@@ -119,22 +123,25 @@ fn build_tex_array(
             perceptual_roughness: 1.,
             reflectance: 0.1,
             alpha_mode: AlphaMode::AlphaToCoverage,
+            // TODO: remove back face culling when https://github.com/Inspirateur/riverbed/issues/54 is fixed
             ..Default::default()
         },
         extension: ArrayTextureMaterial {
-            array_texture: handle, anim_offsets: shader_buffers.add(ShaderStorageBuffer::from(anim_offsets))
+            array_texture: handle, anim_offsets: shader_buffers.add(ShaderStorageBuffer::from(anim_offsets)),
+            water_layer: water_layer.unwrap() as u32
         }
     });
     commands.insert_resource(BlockTextureArray(handle));
     next_state.set(BlockTexState::Mapped);
 }
 
-
 #[derive(Resource)]
 pub struct BlockTextureArray(pub Handle<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>);
 
 #[derive(Asset, AsBindGroup, Debug, Clone, TypePath)]
 pub struct ArrayTextureMaterial {
+    #[uniform(103)]
+    water_layer: u32,
     #[texture(100, dimension = "2d_array")]
     #[sampler(101)]
     array_texture: Handle<Image>,

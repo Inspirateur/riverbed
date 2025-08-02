@@ -111,7 +111,6 @@ impl TerrainGenerator {
                 }
             }
         }
-        // TODO: add back vegetation
         let tree_spots = [
             (0, 0),
             (15, 0),
@@ -137,7 +136,7 @@ impl TerrainGenerator {
             if tree < 0.5 {
                 continue;
             }
-            let h = (rng >> 5) & 0b11;
+            let h = (rng >> 6) & 0b11;
             let (block, y) = world.top_block((col, (dx, dz)).into());
             if !block.is_fertile_soil() {
                 continue;

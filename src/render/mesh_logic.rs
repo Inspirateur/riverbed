@@ -72,14 +72,19 @@ impl Chunk {
         let mut meshes = core::array::from_fn(|_| None);
         for (face_n, quads) in mesher.quads.iter().enumerate() {
             let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(quads.len()*4);
-            let indices = bgm::indices(quads.len());
             let face: Face = face_n.into();
+            let mut kept_quads = 0;
             for quad in quads {
                 let voxel_i = (quad >> 32) as usize;
                 let w = MASK_6 & (quad >> 18);
                 let h = MASK_6 & (quad >> 24);
                 let xyz = MASK_XYZ & quad;
                 let block = self.palette[voxel_i];
+                // TODO: remove this once https://github.com/Inspirateur/riverbed/issues/54 is fixed
+                if block == Block::SeaBlock && face_n != 0 {
+                    continue;
+                }
+                kept_quads += 1;
                 let layer = texture_map.get_texture_index(block, face) as u32;
                 let color = match (block, face) {
                     (Block::GrassBlock, Face::Up) => 0b011_111_001,
@@ -96,6 +101,7 @@ impl Chunk {
                     [vertices[3], quad_info]
                 ]);
             }
+            let indices = bgm::indices(kept_quads);
             meshes[face_n] = Some(
                 Mesh::new(
                     PrimitiveTopology::TriangleList,

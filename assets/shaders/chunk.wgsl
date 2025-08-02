@@ -22,6 +22,7 @@
 @group(2) @binding(100) var texture_pack: texture_2d_array<f32>;
 @group(2) @binding(101) var texture_sampler: sampler;
 @group(2) @binding(102) var<storage, read> anim_offsets: array<u32>;
+@group(2) @binding(103) var<uniform> water_layer: u32;
 
 const MASK2: u32 = 3;
 const MASK3: u32 = 7;
@@ -121,6 +122,9 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
     var c_id = (quad_info >> 3) & MASK9;
     var face_color = color_from_id(c_id);
     var texture_layer = quad_info >> 12;
+    if (texture_layer == water_layer) {
+        position.y -= 0.2;
+    }
     var face_light = light_from_id(n_id);
     var light = f32((quad_info >> 28) & MASK4) / f32(MASK4);
 
@@ -158,7 +162,6 @@ fn fragment(
 #ifdef VERTEX_COLORS
     vertex_output.color = in.color;
 #endif
-    // generate a PbrInput struct from the StandardMaterial bindings
     var pbr_input = pbr_input_from_standard_material(vertex_output, is_front);
     
     // sample texture
@@ -166,7 +169,13 @@ fn fragment(
     
     // alpha discard
     pbr_input.material.base_color = fns::alpha_discard(pbr_input.material, pbr_input.material.base_color);
-
+    if (in.texture_layer == water_layer) {
+        pbr_input.material.ior = 1.33;
+        pbr_input.material.perceptual_roughness = 0.2;
+        pbr_input.material.reflectance *= 2.0;
+        pbr_input.material.diffuse_transmission = 0.5;
+        pbr_input.material.flags |= STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT;
+    }
 #ifdef PREPASS_PIPELINE
     // in deferred mode we can't modify anything after that, as lighting is run in a separate fullscreen shader.
     let out = deferred_output(in, pbr_input);

@@ -10,13 +10,17 @@ pub fn grow_oak(world: &VoxelWorld, pos: BlockPos, _seed: i32, dist: f32) {
         pos.y += 1;
     }
 
-    pos.y -= 1;
-    leaf_disk(world, pos, 1, Block::OakLeaves);
+    pos.y -= 2;
+    leaf_disk(world, pos, 2, Block::OakLeaves);
+    pos.y += 1;
+    leaf_disk(world, pos, height as u32-2, Block::OakLeaves);
     pos.y += 1;
     leaf_disk(world, pos, height as u32-3, Block::OakLeaves);
-    pos.y += 1;
-    leaf_disk(world, pos, height as u32-4, Block::OakLeaves);
-    if height > 6 {
+    if height >= 5 {
+        pos.y += 1;
+        leaf_disk(world, pos, height as u32-4, Block::OakLeaves);
+    }
+    if height >= 6 {
         pos.y += 1;
         leaf_disk(world, pos, height as u32-5, Block::OakLeaves);
     }
