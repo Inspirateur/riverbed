@@ -94,11 +94,11 @@ impl TerrainGenerator {
                     } else {
                         h_min * n_min + h_other * n_other
                     }.round() as i32;
-                    if height <= last_height {
+                    if height < last_height {
                         continue; // Don't overwrite lower layers
                     }
                     let block = dominant_block.unwrap();
-                    let layer_width = height-last_height;
+                    let layer_width = (height-last_height).max(1);
                     if block == Block::GrassBlock {
                         world.set_yrange(col, (dx, dz), height, 1, block);
                         if layer_width > 1 {

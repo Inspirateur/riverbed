@@ -1,8 +1,9 @@
 id, continentalness, mountainness, temperature, humidity
 Ocean, 0.0, 0.0, 0.5, 0.5
+PolarOcean, 0.0, 0.0, 0.0, 0.5
 Plain, 1.0, 0.0, 0.3, 1.0
 Mountain, 1.0, 1.0, 0.3, 0.6
 Canyon, 1.0, 1.0, 1.0, 0.0
 Desert, 1.0, 0.0, 1.0, 0.0
 Jungle, 1.0, 0.0, 1.0, 1.0
-PolarOcean, 0.0, 0.0, 0.0, 0.5
+Tundra, 1.0, 0.0, 0.0, 0.5
