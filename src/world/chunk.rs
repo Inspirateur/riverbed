@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
-use crate::Block;
+use crate::{block::Face, world::CHUNK_S1I, Block};
 use super::{pos::{ChunkedPos, ColedPos}, utils::Palette, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, CHUNK_S1};
 
 #[derive(Debug)]
@@ -27,6 +27,11 @@ impl Chunk {
         self.data.set(idx, self.palette.index(block));
     }
 
+    pub fn set_unpadded(&mut self, (x, y, z): ChunkedPos, block: Block) {
+        let idx = linearize(x, y, z);
+        self.data.set(idx, self.palette.index(block));
+    }
+
     pub fn set_yrange(&mut self, (x, top, z): ChunkedPos, height: usize, block: Block) {
         let value = self.palette.index(block);
         // Note: we do end+1 because set_range(_step) is not inclusive
@@ -36,16 +41,6 @@ impl Chunk {
             CHUNKP_S2,
             value
         );
-    }
-
-    // Used for efficient construction of mesh data
-    pub fn copy_column(&self, buffer: &mut [Block], (x, z): ColedPos, lod: usize) {
-        let start = pad_linearize(x, 0, z);
-        let mut i = 0;
-        for idx in (start..(start+CHUNK_S1)).step_by(lod) {
-            buffer[i] = self.palette[self.data.get(idx)];
-            i += 1;
-        }
     }
 
     pub fn top(&self, (x, z): ColedPos) -> (&Block, usize) {
@@ -65,6 +60,41 @@ impl Chunk {
         }
         self.data.set(idx, self.palette.index(block));
         true
+    }
+
+    pub fn copy_side_from(&mut self, other: &Chunk, face: Face) {
+        // TODO: doesn't work, row step or col step are probably wrong
+        let row_step = match face {
+            Face::Left | Face::Right => CHUNKP_S1,
+            Face::Down | Face::Up => CHUNKP_S2,
+            Face::Back | Face::Front => 1,
+        };
+        let col_step = match face {
+            Face::Left | Face::Right => CHUNKP_S2,
+            Face::Down | Face::Up => 1,
+            Face::Back | Face::Front => CHUNKP_S1,
+        } - row_step * CHUNK_S1;
+        let [x, y, z] = face.n();
+        let mut self_i = linearize(
+            (x * (CHUNK_S1I + 1)).max(0) as usize,
+            (y * (CHUNK_S1I + 1)).max(0) as usize, 
+            (z * (CHUNK_S1I + 1)).max(0) as usize,
+        );
+        let [x, y, z] = face.opposite().n();
+        let mut other_i= linearize(
+            (x * CHUNK_S1I).max(1) as usize,
+            (y * CHUNK_S1I).max(1) as usize, 
+            (z * CHUNK_S1I).max(1) as usize,
+        );
+        for _ in 0..CHUNK_S1 {
+            for _ in 0..CHUNK_S1 {
+                self.data.set(self_i, other.data.get(other_i));
+                self_i += row_step;
+                other_i += row_step;
+            }
+            self_i += col_step;
+            other_i += col_step;
+        }
     }
 }
 

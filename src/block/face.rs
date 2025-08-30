@@ -46,6 +46,17 @@ impl Face {
             Self::Front => &FRONT_SPECIFIER, 
         }
     }
+
+    pub fn opposite(&self) -> Self {
+        match self {
+            Self::Left => Self::Right,
+            Self::Down => Self::Up,
+            Self::Back => Self::Front, 
+            Self::Right => Self::Left,
+            Self::Up => Self::Down,
+            Self::Front => Self::Back, 
+        }
+    }
 }
 
 // must match RIGHT_HANDED_Y_UP_CONFIG.faces from block-mesh-rs

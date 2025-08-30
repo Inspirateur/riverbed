@@ -2,7 +2,7 @@ use super::{
     chunked, pos2d::chunks_in_col, BlockPos, BlockPos2d, Chunk, ChunkPos, ChunkedPos, ColPos,
     ColedPos, Realm, CHUNK_S1, MAX_HEIGHT, Y_CHUNKS,
 };
-use crate::Block;
+use crate::{block::Face, world::CHUNKP_S1, Block};
 use bevy::prelude::{Resource, Vec3};
 use crossbeam::channel::Sender;
 use dashmap::DashMap;
@@ -39,19 +39,14 @@ impl VoxelWorld {
             .entry(chunk_pos)
             .or_insert_with(|| Chunk::new())
             .set(chunked_pos, block);
-        self.mark_change(chunk_pos, chunked_pos);
+        self.mark_change(chunk_pos, chunked_pos, block);
     }
 
     pub fn set_block_safe(&self, pos: BlockPos, block: Block) -> bool {
         if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 {
             return false;
         }
-        let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
-        self.chunks
-            .entry(chunk_pos)
-            .or_insert_with(|| Chunk::new())
-            .set(chunked_pos, block);
-        self.mark_change(chunk_pos, chunked_pos);
+        self.set_block(pos, block);
         true
     }
 
@@ -91,7 +86,7 @@ impl VoxelWorld {
             .or_insert_with(|| Chunk::new())
             .set_if_empty(chunked_pos, block)
         {
-            self.mark_change(chunk_pos, chunked_pos);
+            self.mark_change(chunk_pos, chunked_pos, block);
         }
     }
 
@@ -146,9 +141,37 @@ impl VoxelWorld {
         false
     }
 
+    fn sync_padding_info_one_way(&self, chunk_pos: ChunkPos, other_pos: ChunkPos, face: Face) {
+        let Some(mut chunk) = self.chunks.get_mut(&chunk_pos) else {
+            return;
+        };
+        // TODO: this unfortunately deadlocks as per .get() description
+        let Some(other) = self.chunks.get(&other_pos) else {
+            return;
+        };
+        chunk.copy_side_from(&other, face);
+    }
+
+    fn sync_padding_info(&self, chunk_pos: ChunkPos, face: Face) {
+        let other_pos = ChunkPos {
+            x: chunk_pos.x + face.n()[0],
+            y: chunk_pos.y + face.n()[1],
+            z: chunk_pos.z + face.n()[2],
+            realm: chunk_pos.realm,
+        };
+        self.sync_padding_info_one_way(chunk_pos, other_pos, face);
+        self.sync_padding_info_one_way(other_pos, chunk_pos, face.opposite());
+    }
+
     pub fn mark_change_col(&self, col_pos: ColPos) {
         // USE BY TERRAIN GEN to mass mark change on chunks for efficiency
         for chunk_pos in chunks_in_col(&col_pos) {
+            self.sync_padding_info(chunk_pos, Face::Left);
+            self.sync_padding_info(chunk_pos, Face::Right);
+            self.sync_padding_info(chunk_pos, Face::Front);
+            self.sync_padding_info(chunk_pos, Face::Back);
+            self.sync_padding_info(chunk_pos, Face::Up);
+            // no need to sync down because we're iterating over the column syncing up
             self.mark_change_single(chunk_pos);
         }
     }
@@ -181,28 +204,44 @@ impl VoxelWorld {
         }
     }
 
-    fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos) {
+    /// Mark a block change, reflecting in neighboring chunks if needed
+    fn mark_change(&self, chunk_pos: ChunkPos, (x, y, z): ChunkedPos, block: Block) {
         self.mark_change_single(chunk_pos);
         // register change for neighboring chunks
-        let border_sign_x = VoxelWorld::border_sign(chunked_pos.0);
+        let border_sign_x = VoxelWorld::border_sign(x);
         if border_sign_x != 0 {
             let mut neighbor = chunk_pos;
             neighbor.x += border_sign_x;
-            self.mark_change_single(neighbor);
+            let x = if border_sign_x < 0 { CHUNKP_S1 - 1 } else { 0 };
+            if let Some(mut neighbor_chunk) = self.chunks.get_mut(&neighbor) {
+                neighbor_chunk.set_unpadded((x, y, z), block);
+                self.mark_change_single(neighbor);
+            }
+            // it's possible that other border signs are also != 0 but then we don't care because this means the block is on an edge/corner
+            return;
         }
-        let border_sign_y = VoxelWorld::border_sign(chunked_pos.1);
+        let border_sign_y = VoxelWorld::border_sign(y);
         if border_sign_y != 0 {
             let mut neighbor = chunk_pos;
             neighbor.y += border_sign_y;
             if neighbor.y >= 0 && neighbor.y < Y_CHUNKS as i32 {
-                self.mark_change_single(neighbor);
+                let y = if border_sign_y < 0 { CHUNKP_S1 - 1 } else { 0 };
+                if let Some(mut neighbor_chunk) = self.chunks.get_mut(&neighbor) {
+                    neighbor_chunk.set_unpadded((x, y, z), block);
+                    self.mark_change_single(neighbor);
+                }
             }
+            return;
         }
-        let border_sign_z = VoxelWorld::border_sign(chunked_pos.2);
+        let border_sign_z = VoxelWorld::border_sign(z);
         if border_sign_z != 0 {
             let mut neighbor = chunk_pos;
             neighbor.z += border_sign_z;
-            self.mark_change_single(neighbor);
+            let z = if border_sign_z < 0 { CHUNKP_S1 - 1 } else { 0 };
+            if let Some(mut neighbor_chunk) = self.chunks.get_mut(&neighbor) {
+                neighbor_chunk.set_unpadded((x, y, z), block);
+                self.mark_change_single(neighbor);
+            }
         }
     }
 
