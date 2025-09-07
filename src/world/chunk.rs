@@ -65,26 +65,26 @@ impl Chunk {
     pub fn copy_side_from(&mut self, other: &Chunk, face: Face) {
         // TODO: doesn't work, row step or col step are probably wrong
         let row_step = match face {
-            Face::Left | Face::Right => CHUNKP_S1,
-            Face::Down | Face::Up => CHUNKP_S2,
-            Face::Back | Face::Front => 1,
-        };
-        let col_step = match face {
-            Face::Left | Face::Right => CHUNKP_S2,
+            Face::Left | Face::Right => 1,
             Face::Down | Face::Up => 1,
             Face::Back | Face::Front => CHUNKP_S1,
-        } - row_step * CHUNK_S1;
-        let [x, y, z] = face.n();
+        };
+        let col_step = match face {
+            Face::Left | Face::Right => CHUNKP_S2 - CHUNK_S1,
+            Face::Down | Face::Up => CHUNKP_S1 - CHUNK_S1,
+            Face::Back | Face::Front => CHUNKP_S1 + CHUNKP_S1,
+        };
+        let [nx, ny, nz] = face.n();
         let mut self_i = linearize(
-            (x * (CHUNK_S1I + 1)).max(0) as usize,
-            (y * (CHUNK_S1I + 1)).max(0) as usize, 
-            (z * (CHUNK_S1I + 1)).max(0) as usize,
+            ((nx * CHUNK_S1I).max(1) + nx) as usize,
+            ((ny * CHUNK_S1I).max(1) + ny) as usize, 
+            ((nz * CHUNK_S1I).max(1) + nz) as usize,
         );
-        let [x, y, z] = face.opposite().n();
+        let [nx, ny, nz] = face.opposite().n();
         let mut other_i= linearize(
-            (x * CHUNK_S1I).max(1) as usize,
-            (y * CHUNK_S1I).max(1) as usize, 
-            (z * CHUNK_S1I).max(1) as usize,
+            (nx * CHUNK_S1I).max(1) as usize,
+            (ny * CHUNK_S1I).max(1) as usize, 
+            (nz * CHUNK_S1I).max(1) as usize,
         );
         for _ in 0..CHUNK_S1 {
             for _ in 0..CHUNK_S1 {
@@ -116,5 +116,32 @@ impl Chunk {
             data: PackedUints::new(CHUNKP_S3),
             palette: palette, 
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{block::Face, world::{CHUNK_S1, CHUNK_S1I}};
+
+    fn print_chunk_face_indices(face: Face) {
+        let [nx, ny, nz] = face.n();
+        let x = ((nx * CHUNK_S1I).max(1) + nx) as usize;
+        let y = ((ny * CHUNK_S1I).max(1) + ny) as usize;
+        let z = ((nz * CHUNK_S1I).max(1) + nz) as usize;
+        eprintln!("{x}, {y}, {z}");
+        let [tx, ty, tz] = face.t();
+        for dy in 0..(CHUNK_S1*ty).max(1) {
+            for dx in 0..(CHUNK_S1*tx).max(1) {
+                for dz in 0..(CHUNK_S1*tz).max(1) {
+                    let idx = super::linearize(x + dx, y + dy, z + dz);
+                    eprint!("{}, ", idx);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_face_idx() {
+        print_chunk_face_indices(Face::Front);
     }
 }

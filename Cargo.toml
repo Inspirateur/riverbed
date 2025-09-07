@@ -23,7 +23,7 @@ chrono = { version = "*", features = ["serde", "rkyv"] }
 confy = "*"
 crossbeam = "*"
 csv = "*"
-dashmap = "*"
+hashbrown = "*"
 itertools = "*"
 json5 = "*"
 lazy_static = "*"

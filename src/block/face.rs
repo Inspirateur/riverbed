@@ -36,6 +36,17 @@ impl Face {
         }
     }
 
+    pub fn t(&self) -> [usize; 3] {
+        match self {
+            Self::Left => [0, 1, 1],
+            Self::Down => [1, 0, 1],
+            Self::Back => [1, 1, 0], 
+            Self::Right => [0, 1, 1],
+            Self::Up => [1, 0, 1],
+            Self::Front => [1, 1, 0],
+        }
+    }
+
     pub fn specifiers(&self) -> &[FaceSpecifier] {
         match self {
             Self::Left => &LEFT_SPECIFIER,

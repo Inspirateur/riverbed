@@ -23,7 +23,7 @@ impl Plugin for Draw3d {
             .add_plugins(TextureArrayPlugin)
             .insert_resource(ChunkEntities::new())
             .insert_resource(SharedPlayerCol::default())
-            .add_systems(Startup, setup_mesh_thread)
+            .add_systems(OnEnter(BlockTexState::Mapped),  setup_mesh_thread)
             .add_systems(Update, update_shared_load_area)
             .add_systems(Update, mark_lod_remesh)
             .add_systems(Update, pull_meshes.run_if(in_state(BlockTexState::Mapped)))
@@ -94,7 +94,7 @@ pub fn pull_meshes(
                 // the entity is not instanciated yet, we put it back
                 println!("entity wasn't ready to recieve updated mesh");
             }
-        } else if blocks.chunks.contains_key(&chunk_pos) {
+        } else if blocks.chunks.read().contains_key(&chunk_pos) {
             let ent = commands.spawn((
                 Mesh3d(meshes.add(mesh)),
                 MeshMaterial3d(block_tex_array.0.clone_weak()),

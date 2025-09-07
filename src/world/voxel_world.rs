@@ -5,7 +5,8 @@ use super::{
 use crate::{block::Face, world::CHUNKP_S1, Block};
 use bevy::prelude::{Resource, Vec3};
 use crossbeam::channel::Sender;
-use dashmap::DashMap;
+use hashbrown::HashMap;
+use parking_lot::RwLock;
 use std::sync::Arc;
 
 pub struct BlockRayCastHit {
@@ -21,21 +22,21 @@ impl PartialEq for BlockRayCastHit {
 
 #[derive(Resource, Clone)]
 pub struct VoxelWorld {
-    pub chunks: Arc<DashMap<ChunkPos, Chunk>>,
+    pub chunks: Arc<RwLock<HashMap<ChunkPos, Chunk>>>,
     chunk_changes: Sender<ChunkPos>,
 }
 
 impl VoxelWorld {
     pub fn new(chunk_changes: Sender<ChunkPos>) -> Self {
         VoxelWorld {
-            chunks: Arc::new(DashMap::new()),
+            chunks: Arc::new(RwLock::new(HashMap::new())),
             chunk_changes,
         }
     }
 
     pub fn set_block(&self, pos: BlockPos, block: Block) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
-        self.chunks
+        self.chunks.write()
             .entry(chunk_pos)
             .or_insert_with(|| Chunk::new())
             .set(chunked_pos, block);
@@ -68,7 +69,7 @@ impl VoxelWorld {
                 realm: col_pos.realm,
             };
             let h = height.min(dy);
-            self.chunks
+            self.chunks.write()
                 .entry(chunk_pos)
                 .or_insert_with(|| Chunk::new())
                 .set_yrange((x, dy, z), h, block);
@@ -82,6 +83,7 @@ impl VoxelWorld {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         if self
             .chunks
+            .write()
             .entry(chunk_pos)
             .or_insert_with(|| Chunk::new())
             .set_if_empty(chunked_pos, block)
@@ -92,7 +94,7 @@ impl VoxelWorld {
 
     pub fn get_block(&self, pos: BlockPos) -> Block {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
-        match self.chunks.get(&chunk_pos) {
+        match self.chunks.read().get(&chunk_pos) {
             None => Block::Air,
             Some(chunk) => chunk.get(chunked_pos).clone(),
         }
@@ -115,7 +117,7 @@ impl VoxelWorld {
                 z: col_pos.z,
                 realm: col_pos.realm,
             };
-            if let Some(chunk) = self.chunks.get(&chunk_pos) {
+            if let Some(chunk) = self.chunks.read().get(&chunk_pos) {
                 let (block, block_y) = chunk.top(pos2d);
                 if *block != Block::Air {
                     return (block.clone(), y * CHUNK_S1 as i32 + block_y as i32);
@@ -134,7 +136,7 @@ impl VoxelWorld {
                 z: chunk_pos.z,
                 realm: chunk_pos.realm,
             };
-            if self.chunks.contains_key(&chunk) {
+            if self.chunks.read().contains_key(&chunk) {
                 return true;
             }
         }
@@ -142,11 +144,8 @@ impl VoxelWorld {
     }
 
     fn sync_padding_info_one_way(&self, chunk_pos: ChunkPos, other_pos: ChunkPos, face: Face) {
-        let Some(mut chunk) = self.chunks.get_mut(&chunk_pos) else {
-            return;
-        };
-        // TODO: this unfortunately deadlocks as per .get() description
-        let Some(other) = self.chunks.get(&other_pos) else {
+        let mut wlock = self.chunks.write();
+        let [Some(chunk), Some(other)] = wlock.get_many_mut([&chunk_pos, &other_pos]) else {
             return;
         };
         chunk.copy_side_from(&other, face);
@@ -172,7 +171,7 @@ impl VoxelWorld {
             self.sync_padding_info(chunk_pos, Face::Back);
             self.sync_padding_info(chunk_pos, Face::Up);
             // no need to sync down because we're iterating over the column syncing up
-            self.mark_change_single(chunk_pos);
+            self.chunk_changes.send(chunk_pos).expect("Failed to send chunk change");
         }
     }
 
@@ -184,13 +183,7 @@ impl VoxelWorld {
                 z: col.z,
                 realm: col.realm,
             };
-            self.chunks.remove(&chunk_pos);
-        }
-    }
-
-    pub fn mark_change_single(&self, chunk_pos: ChunkPos) {
-        if self.chunks.contains_key(&chunk_pos) {
-            self.chunk_changes.send(chunk_pos).expect("Failed to send chunk change");
+            self.chunks.write().remove(&chunk_pos);
         }
     }
 
@@ -206,16 +199,16 @@ impl VoxelWorld {
 
     /// Mark a block change, reflecting in neighboring chunks if needed
     fn mark_change(&self, chunk_pos: ChunkPos, (x, y, z): ChunkedPos, block: Block) {
-        self.mark_change_single(chunk_pos);
+        self.chunk_changes.send(chunk_pos).expect("Failed to send chunk change");
         // register change for neighboring chunks
         let border_sign_x = VoxelWorld::border_sign(x);
         if border_sign_x != 0 {
             let mut neighbor = chunk_pos;
             neighbor.x += border_sign_x;
             let x = if border_sign_x < 0 { CHUNKP_S1 - 1 } else { 0 };
-            if let Some(mut neighbor_chunk) = self.chunks.get_mut(&neighbor) {
+            if let Some(neighbor_chunk) = self.chunks.write().get_mut(&neighbor) {
                 neighbor_chunk.set_unpadded((x, y, z), block);
-                self.mark_change_single(neighbor);
+                self.chunk_changes.send(neighbor).expect("Failed to send chunk change");
             }
             // it's possible that other border signs are also != 0 but then we don't care because this means the block is on an edge/corner
             return;
@@ -226,9 +219,9 @@ impl VoxelWorld {
             neighbor.y += border_sign_y;
             if neighbor.y >= 0 && neighbor.y < Y_CHUNKS as i32 {
                 let y = if border_sign_y < 0 { CHUNKP_S1 - 1 } else { 0 };
-                if let Some(mut neighbor_chunk) = self.chunks.get_mut(&neighbor) {
+                if let Some(neighbor_chunk) = self.chunks.write().get_mut(&neighbor) {
                     neighbor_chunk.set_unpadded((x, y, z), block);
-                    self.mark_change_single(neighbor);
+                    self.chunk_changes.send(neighbor).expect("Failed to send chunk change");
                 }
             }
             return;
@@ -238,9 +231,9 @@ impl VoxelWorld {
             let mut neighbor = chunk_pos;
             neighbor.z += border_sign_z;
             let z = if border_sign_z < 0 { CHUNKP_S1 - 1 } else { 0 };
-            if let Some(mut neighbor_chunk) = self.chunks.get_mut(&neighbor) {
+            if let Some(neighbor_chunk) = self.chunks.write().get_mut(&neighbor) {
                 neighbor_chunk.set_unpadded((x, y, z), block);
-                self.mark_change_single(neighbor);
+                self.chunk_changes.send(neighbor).expect("Failed to send chunk change");
             }
         }
     }

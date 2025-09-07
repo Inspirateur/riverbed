@@ -17,7 +17,7 @@ pub fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, textur
     let chunks = Arc::clone(&blocks.chunks);
     let (mesh_sender, mesh_reciever) = unbounded();
     commands.insert_resource(MeshReciever(mesh_reciever));
-    let texture_map = Arc::clone(&texture_map.0);
+    let texture_map = texture_map.0.clone();
     let mesh_order_receiver = mesh_order_receiver.0.clone();
     let shared_load_area = shared_load_area.0.clone();
     thread_pool.spawn(
@@ -61,10 +61,12 @@ pub fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, textur
                 mesh_orders.remove(i);
                 mesh_cache.remove(&chunk_pos);
                 let lod = choose_lod_level(dist as u32);
-                let Some(chunk) = chunks.get(&chunk_pos) else {
+                let rlock = chunks.read();
+                let Some(chunk) = rlock.get(&chunk_pos) else {
                     continue;
                 };
-                let face_meshes = chunk.create_face_meshes(&*texture_map, lod);
+                let face_meshes = chunk.create_face_meshes(&texture_map, lod);
+                drop(rlock);
                 trace!("{}", LogData::ChunkMeshed(chunk_pos));
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();
