@@ -63,6 +63,7 @@ impl Chunk {
     }
 
     pub fn copy_side_from(&mut self, other: &Chunk, face: Face) {
+        // TODO: there's still a problem somewhere. Some faces are invisible when they should be visible
         let row_step = match face {
             Face::Left | Face::Right => 1,
             Face::Down | Face::Up => 1,
