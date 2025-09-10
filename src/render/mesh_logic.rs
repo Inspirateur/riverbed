@@ -80,10 +80,6 @@ impl Chunk {
                 let h = MASK_6 & (quad >> 24);
                 let xyz = MASK_XYZ & quad;
                 let block = self.palette[voxel_i];
-                // TODO: remove this once https://github.com/Inspirateur/riverbed/issues/54 is fixed
-                if block == Block::SeaBlock && face_n != 0 {
-                    continue;
-                }
                 kept_quads += 1;
                 let layer = texture_map.get_texture_index(block, face) as u32;
                 let color = match (block, face) {

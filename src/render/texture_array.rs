@@ -122,7 +122,7 @@ fn build_tex_array(
             perceptual_roughness: 1.,
             reflectance: 0.1,
             alpha_mode: AlphaMode::AlphaToCoverage,
-            // TODO: remove back face culling when https://github.com/Inspirateur/riverbed/issues/54 is fixed
+            cull_mode: None,
             ..Default::default()
         },
         extension: ArrayTextureMaterial {

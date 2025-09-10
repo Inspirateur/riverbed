@@ -174,7 +174,6 @@ fn fragment(
         pbr_input.material.perceptual_roughness = 0.2;
         pbr_input.material.reflectance *= 2.0;
         pbr_input.material.diffuse_transmission = 0.5;
-        pbr_input.material.flags |= STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT;
     }
 #ifdef PREPASS_PIPELINE
     // in deferred mode we can't modify anything after that, as lighting is run in a separate fullscreen shader.
