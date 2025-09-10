@@ -63,7 +63,6 @@ impl Chunk {
     }
 
     pub fn copy_side_from(&mut self, other: &Chunk, face: Face) {
-        // TODO: doesn't work, row step or col step are probably wrong
         let row_step = match face {
             Face::Left | Face::Right => 1,
             Face::Down | Face::Up => 1,

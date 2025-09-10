@@ -94,7 +94,7 @@ pub fn pull_meshes(
                 // the entity is not instanciated yet, we put it back
                 println!("entity wasn't ready to recieve updated mesh");
             }
-        } else if blocks.chunks.read().contains_key(&chunk_pos) {
+        } else if blocks.chunks.contains_key(&chunk_pos) {
             let ent = commands.spawn((
                 Mesh3d(meshes.add(mesh)),
                 MeshMaterial3d(block_tex_array.0.clone_weak()),

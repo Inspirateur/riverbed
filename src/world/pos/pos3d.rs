@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::world::{Realm, CHUNK_S1};
 use super::{chunked, unchunked, ColPos, CHUNK_S1I};
 
-#[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Default, Debug, Hash, Serialize, Deserialize)]
 pub struct Pos3d<const U: usize> {
     pub x: i32,
     pub y: i32,
