@@ -1,6 +1,5 @@
-use std::sync::Arc;
 use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat}, storage::ShaderStorageBuffer}};
-use dashmap::DashMap;
+use hashbrown::HashMap;
 use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
 use super::{mesh_logic::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
 
@@ -9,7 +8,7 @@ pub struct TextureArrayPlugin;
 impl Plugin for TextureArrayPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(TextureMap(Arc::new(DashMap::new())))
+            .insert_resource(TextureMap(HashMap::new()))
             .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>::default())
             .add_systems(OnEnter(BlockTexState::Loaded), build_tex_array)
             ;
@@ -17,14 +16,14 @@ impl Plugin for TextureArrayPlugin {
 }
 
 #[derive(Resource)]
-pub struct TextureMap(pub Arc<DashMap<(Block, FaceSpecifier), usize>>);
+pub struct TextureMap(pub HashMap<(Block, FaceSpecifier), usize>);
 
 pub trait TextureMapTrait {
     fn get_texture_index(&self, block: Block, face: Face) -> usize;
 }
 
 
-impl TextureMapTrait for &DashMap<(Block, FaceSpecifier), usize> {
+impl TextureMapTrait for &HashMap<(Block, FaceSpecifier), usize> {
     // TODO: need to allow the user to create a json with "texture files links" such as:
     // grass_block_bottom.png -> dirt.png
     // furnace_bottom.png -> stone.png
@@ -63,7 +62,7 @@ fn build_tex_array(
     block_textures: Res<BlockTextureFolder>,
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut textures: ResMut<Assets<Image>>,
-    texture_map: Res<TextureMap>,
+    mut texture_map: ResMut<TextureMap>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
     mut next_state: ResMut<NextState<BlockTexState>>,
     mut shader_buffers: ResMut<Assets<ShaderStorageBuffer>>,
@@ -123,7 +122,7 @@ fn build_tex_array(
             perceptual_roughness: 1.,
             reflectance: 0.1,
             alpha_mode: AlphaMode::AlphaToCoverage,
-            // TODO: remove back face culling when https://github.com/Inspirateur/riverbed/issues/54 is fixed
+            cull_mode: None,
             ..Default::default()
         },
         extension: ArrayTextureMaterial {

@@ -58,7 +58,7 @@ impl Chunk {
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let voxels = self.voxel_data_lod(lod);
-        let mut mesher = bgm::Mesher::new();
+        let mut mesher: bgm::Mesher<CHUNK_S1> = bgm::Mesher::new();
         mesh_data_span.exit();
         let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
         let transparents = BTreeSet::from_iter(self.palette.iter().enumerate().filter_map(
@@ -75,15 +75,11 @@ impl Chunk {
             let face: Face = face_n.into();
             let mut kept_quads = 0;
             for quad in quads {
-                let voxel_i = (quad >> 32) as usize;
-                let w = MASK_6 & (quad >> 18);
-                let h = MASK_6 & (quad >> 24);
-                let xyz = MASK_XYZ & quad;
+                let voxel_i = (quad.0 >> 32) as usize;
+                let w = MASK_6 & (quad.0 >> 18);
+                let h = MASK_6 & (quad.0 >> 24);
+                let xyz = MASK_XYZ & quad.0;
                 let block = self.palette[voxel_i];
-                // TODO: remove this once https://github.com/Inspirateur/riverbed/issues/54 is fixed
-                if block == Block::SeaBlock && face_n != 0 {
-                    continue;
-                }
                 kept_quads += 1;
                 let layer = texture_map.get_texture_index(block, face) as u32;
                 let color = match (block, face) {

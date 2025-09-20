@@ -12,12 +12,18 @@ use crate::render::mesh_draw::{choose_lod_level, LOD};
 use crate::render::texture_array::TextureMap;
 use crate::world::{ChunkPos, ColPos, PlayerCol, VoxelWorld};
 
-pub fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, texture_map: Res<TextureMap>, shared_load_area: Res<SharedPlayerCol>, mesh_order_receiver: Res<MeshOrderReceiver>) {
+pub fn setup_mesh_thread(
+    mut commands: Commands, 
+    voxel_world: Res<VoxelWorld>, 
+    texture_map: Res<TextureMap>, 
+    shared_load_area: Res<SharedPlayerCol>, 
+    mesh_order_receiver: Res<MeshOrderReceiver>
+) {
     let thread_pool = AsyncComputeTaskPool::get();
-    let chunks = Arc::clone(&blocks.chunks);
+    let chunks = voxel_world.chunks.clone();
     let (mesh_sender, mesh_reciever) = unbounded();
     commands.insert_resource(MeshReciever(mesh_reciever));
-    let texture_map = Arc::clone(&texture_map.0);
+    let texture_map = texture_map.0.clone();
     let mesh_order_receiver = mesh_order_receiver.0.clone();
     let shared_load_area = shared_load_area.0.clone();
     thread_pool.spawn(
@@ -64,7 +70,7 @@ pub fn setup_mesh_thread(mut commands: Commands, blocks: Res<VoxelWorld>, textur
                 let Some(chunk) = chunks.get(&chunk_pos) else {
                     continue;
                 };
-                let face_meshes = chunk.create_face_meshes(&*texture_map, lod);
+                let face_meshes = chunk.value().read().create_face_meshes(&texture_map, lod);
                 trace!("{}", LogData::ChunkMeshed(chunk_pos));
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();

@@ -23,6 +23,10 @@ impl<E: Hash + Eq + PartialEq + Clone> Palette<E> {
             self.rightmap.len()-1
         })
     }
+
+    pub fn map_to(&self, other: &Palette<E>) -> Vec<Option<usize>> {
+        self.rightmap.iter().map(|e| other.leftmap.get(e).cloned()).collect()
+    }
 }
 
 impl<E: Hash> Index<usize> for Palette<E> {

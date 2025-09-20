@@ -23,7 +23,7 @@ impl Plugin for Draw3d {
             .add_plugins(TextureArrayPlugin)
             .insert_resource(ChunkEntities::new())
             .insert_resource(SharedPlayerCol::default())
-            .add_systems(Startup, setup_mesh_thread)
+            .add_systems(OnEnter(BlockTexState::Mapped),  setup_mesh_thread)
             .add_systems(Update, update_shared_load_area)
             .add_systems(Update, mark_lod_remesh)
             .add_systems(Update, pull_meshes.run_if(in_state(BlockTexState::Mapped)))
