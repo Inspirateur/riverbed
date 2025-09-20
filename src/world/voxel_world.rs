@@ -2,10 +2,10 @@ use super::{
     chunked, pos2d::chunks_in_col, BlockPos, BlockPos2d, Chunk, ChunkPos, ChunkedPos, ColPos,
     ColedPos, Realm, CHUNK_S1, MAX_HEIGHT, Y_CHUNKS,
 };
-use crate::{block::Face, world::CHUNKP_S1, Block};
+use crate::{block::Face, world::{chunk, CHUNKP_S1}, Block};
 use bevy::prelude::{Resource, Vec3};
 use crossbeam::channel::Sender;
-use crossbeam_skiplist::SkipMap;
+use crossbeam_skiplist::{map::Entry, SkipMap};
 use parking_lot::RwLock;
 use std::sync::Arc;
 
@@ -141,33 +141,41 @@ impl VoxelWorld {
         false
     }
 
-    fn sync_padding_info(&self, chunk_pos: ChunkPos, face: Face) {
+    fn sync_padding_info(&self, chunk: &Entry<ChunkPos, RwLock<Chunk>>, chunk_pos: ChunkPos, face: Face, send_change: bool) {
         let other_pos = ChunkPos {
             x: chunk_pos.x + face.n()[0],
             y: chunk_pos.y + face.n()[1],
             z: chunk_pos.z + face.n()[2],
             realm: chunk_pos.realm,
         };
-        let Some(chunk) = self.chunks.get(&chunk_pos) else {
-            return;
-        };
         let Some(other) = self.chunks.get(&other_pos) else {
             return;
         };
         chunk.value().write().copy_side_from(&other.value().read(), face);
         other.value().write().copy_side_from(&chunk.value().read(), face.opposite());
-        self.chunk_changes.send(other_pos).expect("Failed to send chunk change");
+        if send_change {
+            self.chunk_changes.send(other_pos).expect("Failed to send chunk change");
+        }
     }
 
     pub fn mark_change_col(&self, col_pos: ColPos) {
         // USE BY TERRAIN GEN to mass mark change on chunks for efficiency
         for chunk_pos in chunks_in_col(&col_pos) {
-            self.sync_padding_info(chunk_pos, Face::Left);
-            self.sync_padding_info(chunk_pos, Face::Right);
-            self.sync_padding_info(chunk_pos, Face::Front);
-            self.sync_padding_info(chunk_pos, Face::Back);
-            self.sync_padding_info(chunk_pos, Face::Up);
+            let Some(chunk) = self.chunks.get(&chunk_pos) else {
+                continue;
+            };
+            self.sync_padding_info(&chunk, chunk_pos, Face::Left, true);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Right, true);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Front, true);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Back, true);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Up, false);
             // no need to sync down because we're iterating over the column syncing up
+        }
+        // send changes for all chunks in the column after every syncing is done
+        for chunk_pos in chunks_in_col(&col_pos) {
+            if !self.chunks.contains_key(&chunk_pos) {
+                continue;
+            }
             self.chunk_changes.send(chunk_pos).expect("Failed to send chunk change");
         }
     }

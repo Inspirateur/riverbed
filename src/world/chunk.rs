@@ -63,7 +63,6 @@ impl Chunk {
     }
 
     pub fn copy_side_from(&mut self, other: &Chunk, face: Face) {
-        // TODO: there's still a problem somewhere. Some faces are invisible when they should be visible
         let row_step = match face {
             Face::Left | Face::Right => 1,
             Face::Down | Face::Up => 1,
@@ -86,9 +85,16 @@ impl Chunk {
             (ny * CHUNK_S1I).max(1) as usize, 
             (nz * CHUNK_S1I).max(1) as usize,
         );
+        let translation = other.palette.map_to(&self.palette);
         for _ in 0..CHUNK_S1 {
             for _ in 0..CHUNK_S1 {
-                self.data.set(self_i, other.data.get(other_i));
+                let other_value = other.data.get(other_i);
+                let value = if let Some(val) = translation[other_value] {
+                    val
+                } else {
+                    self.palette.index(other.palette[other_value].clone())
+                };
+                self.data.set(self_i, value);
                 self_i += row_step;
                 other_i += row_step;
             }
@@ -121,27 +127,67 @@ impl Chunk {
 
 #[cfg(test)]
 mod tests {
-    use crate::{block::Face, world::{CHUNK_S1, CHUNK_S1I}};
+    use crate::{block::Face, world::{linearize, CHUNKP_S1, CHUNKP_S2, CHUNK_S1, CHUNK_S1I}};
 
-    fn print_chunk_face_indices(face: Face) {
+    fn chunk_face_indices_safe(face: Face) -> Vec<usize>{
         let [nx, ny, nz] = face.n();
         let x = ((nx * CHUNK_S1I).max(1) + nx) as usize;
         let y = ((ny * CHUNK_S1I).max(1) + ny) as usize;
         let z = ((nz * CHUNK_S1I).max(1) + nz) as usize;
-        eprintln!("{x}, {y}, {z}");
         let [tx, ty, tz] = face.t();
+        let mut res = vec![];
         for dy in 0..(CHUNK_S1*ty).max(1) {
             for dx in 0..(CHUNK_S1*tx).max(1) {
                 for dz in 0..(CHUNK_S1*tz).max(1) {
                     let idx = super::linearize(x + dx, y + dy, z + dz);
-                    eprint!("{}, ", idx);
+                    res.push(idx);
                 }
             }
         }
+        res
+    }
+
+    fn chunk_face_indices_fast(face: Face) -> Vec<usize> {
+        let row_step = match face {
+            Face::Left | Face::Right => 1,
+            Face::Down | Face::Up => 1,
+            Face::Back | Face::Front => CHUNKP_S1,
+        };
+        let col_step = match face {
+            Face::Left | Face::Right => CHUNKP_S2 - CHUNK_S1,
+            Face::Down | Face::Up => CHUNKP_S1 - CHUNK_S1,
+            Face::Back | Face::Front => CHUNKP_S1 + CHUNKP_S1,
+        };
+        let [nx, ny, nz] = face.n();
+        let mut self_i = linearize(
+            ((nx * CHUNK_S1I).max(1) + nx) as usize,
+            ((ny * CHUNK_S1I).max(1) + ny) as usize, 
+            ((nz * CHUNK_S1I).max(1) + nz) as usize,
+        );
+        let mut res = vec![];
+        for _ in 0..CHUNK_S1 {
+            for _ in 0..CHUNK_S1 {
+                res.push(self_i);
+                self_i += row_step;
+            }
+            self_i += col_step;
+        }
+        res
+    }
+
+    fn assert_chunk_face_indices(face: Face) {
+        let safe = chunk_face_indices_safe(face);
+        let fast = chunk_face_indices_fast(face);
+        assert_eq!(safe, fast);
     }
 
     #[test]
     fn test_face_idx() {
-        print_chunk_face_indices(Face::Front);
+        assert_chunk_face_indices(Face::Left);
+        assert_chunk_face_indices(Face::Down);
+        assert_chunk_face_indices(Face::Back);
+        assert_chunk_face_indices(Face::Right);
+        assert_chunk_face_indices(Face::Up);
+        assert_chunk_face_indices(Face::Front);
     }
 }
