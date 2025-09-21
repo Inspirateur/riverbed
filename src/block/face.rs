@@ -36,14 +36,14 @@ impl Face {
         }
     }
 
-    pub fn t(&self) -> [usize; 3] {
+    pub fn quad_to_block(&self) -> [i32; 3] {
         match self {
-            Self::Left => [0, 1, 1],
-            Self::Down => [1, 0, 1],
-            Self::Back => [1, 1, 0], 
-            Self::Right => [0, 1, 1],
-            Self::Up => [1, 0, 1],
-            Self::Front => [1, 1, 0],
+            Self::Left => [-1, 0, 0],
+            Self::Down => [0, -1, 0],
+            Self::Back => [0, 0, -1], 
+            Self::Right => [0, 0, 0],
+            Self::Up => [0, 0, 0],
+            Self::Front => [-1, 0, 0],
         }
     }
 

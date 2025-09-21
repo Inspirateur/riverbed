@@ -75,19 +75,19 @@ fn normal_from_id(id: u32) -> vec3<f32> {
     return n;
 }
 
-fn light_from_id(id: u32) -> vec4<f32> {
+fn light_from_id(id: u32, light: f32) -> vec4<f32> {
     switch id {
         case 0u {
-            return vec4(1.0, 1.0, 1.0, 1.0); // top
+            return vec4(light, light, light, 1.0); // top
         }
         case 2u, 3u {
-            return vec4(0.7, 0.7, 0.7, 1.0); // right left
+            return vec4(light*0.7, light*0.7, light*0.7, 1.0); // right left
         }
         case 4u, 5u {
-            return vec4(0.5, 0.5, 0.5, 1.0); // front back
+            return vec4(light*0.5, light*0.5, light*0.5, 1.0); // front back
         }
         case 1u {
-            return vec4(0.3, 0.3, 0.3, 1.0); // bottom
+            return vec4(light*0.3, light*0.3, light*0.3, 1.0); // bottom
         }
         default {
             return vec4(0.0, 0.0, 0.0, 1.0);
@@ -96,9 +96,9 @@ fn light_from_id(id: u32) -> vec4<f32> {
 }
 
 fn color_from_id(id: u32) -> vec4<f32> {
-    var r = f32(id & MASK3)/f32(MASK3);
+    var b = f32(id & MASK3)/f32(MASK3);
     var g = f32((id >> 3) & MASK3)/f32(MASK3);
-    var b = f32((id >> 6) & MASK3)/f32(MASK3);
+    var r = f32((id >> 6) & MASK3)/f32(MASK3);
     return vec4(r, g, b, 1.0);
 }
 
@@ -121,13 +121,12 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
     var normal = normal_from_id(n_id);
     var c_id = (quad_info >> 3) & MASK9;
     var face_color = color_from_id(c_id);
-    var texture_layer = quad_info >> 12;
-    if (texture_layer == water_layer) {
-        position.y -= 0.2;
-    }
-    var face_light = light_from_id(n_id);
+    var texture_layer = (quad_info >> 12) & MASK16;
     var light = f32((quad_info >> 28) & MASK4) / f32(MASK4);
-
+    var face_light = light_from_id(n_id, light);
+    if (texture_layer == water_layer) {
+        position.y = min(position.y, 61.8);
+    }
     out.position = mesh_position_local_to_clip(
         get_world_from_local(vertex.instance_index),
         position,
@@ -136,6 +135,7 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
         get_world_from_local(vertex.instance_index),
         position,
     );
+
     out.world_normal = normal;
     out.uv = vec2(u, v);
     out.color = face_color;

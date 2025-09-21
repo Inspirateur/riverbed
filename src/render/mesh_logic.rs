@@ -8,11 +8,34 @@ use bevy::{
 };
 use binary_greedy_meshing as bgm;
 
-use crate::{Block, block::Face, world::{pad_linearize, Chunk, CHUNKP_S3}};
+use crate::{block::Face, world::{linearize, pad_linearize, Chunk, ChunkPos, CHUNKP_S3, WATER_H}, Block};
 use crate::world::CHUNK_S1;
 use super::texture_array::TextureMapTrait;
+const UNDERWATER_COLORS: [u32; 22] = [
+    0b111_111_111, 
+    0b110_111_111, 
+    0b101_110_111,
+    0b100_110_110,
+    0b011_101_110,
+    0b010_101_110,
+    0b001_100_101,
+    0b000_100_101,
+    0b000_011_101,
+    0b000_011_100,
+    0b000_010_100,
+    0b000_010_100,
+    0b000_001_011,
+    0b000_001_011,
+    0b000_000_011,
+    0b000_000_010,
+    0b000_000_010,
+    0b000_000_010,
+    0b000_000_001,
+    0b000_000_001,
+    0b000_000_001,
+    0b000_000_000,
+];
 
-const MASK_6: u64 = 0b111111;
 const MASK_XYZ: u64 = 0b111111_111111_111111;
 /// ## Compressed voxel vertex data
 /// first u32 (vertex dependant):
@@ -54,7 +77,8 @@ impl Chunk {
 
     /// Doesn't work with lod > 2, because chunks are of size 62 (to get to 64 with padding) and 62 = 2*31
     /// TODO: make it work with lod > 2 if necessary (by truncating quads)
-    pub fn create_face_meshes(&self, texture_map: impl TextureMapTrait, lod: usize) ->  [Option<Mesh>; 6] {
+    pub fn create_face_meshes(&self, texture_map: impl TextureMapTrait, lod: usize, chunk_pos: ChunkPos) ->  [Option<Mesh>; 6] {
+        let cy = chunk_pos.y as usize * CHUNK_S1 as usize;
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let voxels = self.voxel_data_lod(lod);
@@ -73,23 +97,34 @@ impl Chunk {
         for (face_n, quads) in mesher.quads.iter().enumerate() {
             let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(quads.len()*4);
             let face: Face = face_n.into();
+            let offset = face.quad_to_block();
             let mut kept_quads = 0;
             for quad in quads {
-                let voxel_i = (quad.0 >> 32) as usize;
-                let w = MASK_6 & (quad.0 >> 18);
-                let h = MASK_6 & (quad.0 >> 24);
+                let voxel_i = quad.voxel_id() as usize;
+                let w = quad.width();
+                let h = quad.height();
                 let xyz = MASK_XYZ & quad.0;
+                let [x, y, z] = quad.xyz();
                 let block = self.palette[voxel_i];
+                let neighbor_block = self.palette[self.data.get(linearize(
+                    (offset[0] + x as i32 + 1) as usize,
+                    (offset[1] + y as i32 + 1) as usize,
+                    (offset[2] + z as i32 + 1) as usize,
+                ))];
                 kept_quads += 1;
                 let layer = texture_map.get_texture_index(block, face) as u32;
-                let color = match (block, face) {
-                    (Block::GrassBlock, Face::Up) => 0b011_111_001,
-                    (Block::SeaBlock, _) => 0b110_011_001,
-                    (block, _) if block.is_foliage() => 0b010_101_001,
+                let mut color = match (block, face) {
+                    (Block::GrassBlock, Face::Up) => 0b001_111_011,
+                    (Block::SeaBlock, _) => 0b01_011_110,
+                    (block, _) if block.is_foliage() => 0b001_101_010,
                     _ => 0b111_111_111
                 };
+                if neighbor_block == Block::SeaBlock {
+                    color &= UNDERWATER_COLORS[(WATER_H as usize - cy - y as usize).clamp(0, UNDERWATER_COLORS.len()-1)];
+                }
+                let light = 0b1111;
                 let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32, lod as u32);
-                let quad_info = (layer << 12) | (color << 3) | face_n as u32;
+                let quad_info = (light << 28) | (layer << 12) | (color << 3) | face_n as u32;
                 voxel_data.extend_from_slice(&[
                     [vertices[0], quad_info], 
                     [vertices[1], quad_info], 

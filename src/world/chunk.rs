@@ -129,12 +129,23 @@ impl Chunk {
 mod tests {
     use crate::{block::Face, world::{linearize, CHUNKP_S1, CHUNKP_S2, CHUNK_S1, CHUNK_S1I}};
 
+    fn plane(face: Face)  -> [usize; 3] {
+        match face {
+            Face::Left => [0, 1, 1],
+            Face::Down => [1, 0, 1],
+            Face::Back => [1, 1, 0], 
+            Face::Right => [0, 1, 1],
+            Face::Up => [1, 0, 1],
+            Face::Front => [1, 1, 0],
+        }
+    }
+
     fn chunk_face_indices_safe(face: Face) -> Vec<usize>{
         let [nx, ny, nz] = face.n();
         let x = ((nx * CHUNK_S1I).max(1) + nx) as usize;
         let y = ((ny * CHUNK_S1I).max(1) + ny) as usize;
         let z = ((nz * CHUNK_S1I).max(1) + nz) as usize;
-        let [tx, ty, tz] = face.t();
+        let [tx, ty, tz] = plane(face);
         let mut res = vec![];
         for dy in 0..(CHUNK_S1*ty).max(1) {
             for dx in 0..(CHUNK_S1*tx).max(1) {
