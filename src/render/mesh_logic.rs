@@ -84,11 +84,11 @@ impl Chunk {
                 let xyz = MASK_XYZ & quad.0;
                 let [x, y, z] = quad.xyz();
                 let block = self.palette[voxel_i];
-                let neighbor_block = self.palette[self.data.get(linearize(
+                let neighbor_block = self.palette[voxels[linearize(
                     (offset[0] + x as i32 + 1) as usize,
                     (offset[1] + y as i32 + 1) as usize,
                     (offset[2] + z as i32 + 1) as usize,
-                ))];
+                )] as usize];
                 kept_quads += 1;
                 let layer = texture_map.get_texture_index(block, face) as u32;
                 let (mut r, mut g, mut b) = match (block, face) {
@@ -100,8 +100,8 @@ impl Chunk {
                 if neighbor_block == Block::SeaBlock {
                     let dist_to_surface = (WATER_H as usize - cy - y as usize) as f32;
                     r *= (-dist_to_surface*0.05).exp();
-                    g *= (-dist_to_surface*0.048).exp();
-                    b *= (-dist_to_surface*0.046).exp();
+                    g *= (-dist_to_surface*0.045).exp();
+                    b *= (-dist_to_surface*0.04).exp();
                 }
                 let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32, lod as u32);
                 let quad_info = (color(r, g, b) << 15) | (layer << 3) | face_n as u32;
