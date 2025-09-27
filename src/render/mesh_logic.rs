@@ -22,15 +22,15 @@ const MASK_XYZ: u64 = 0b111111_111111_111111;
 ///
 /// second u32 (vertex agnostic):
 ///     - normals: 3 bits (6 values) = face
-///     - texture layer: 14 bits
-///     - light/color: 15 bits (5 r, 5 g, 5 b)
+///     - texture layer: 12 bits
+///     - light/color: 17 bits (6 r, 6 g, 5 b)
 /// `0bllll_iiiiiiiiiiiiiiii_ccccccccc_nnn`
 pub const ATTRIBUTE_VOXEL_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("VoxelData", 48757581, VertexFormat::Uint32x2);
 
 /// Map channels between 0.0 and 1.0 to the correct range and pack them
 fn color(r: f32, g: f32, b: f32) -> u32 {
-    ((r*31.) as u32) << 10 | ((g*31.) as u32) << 5 | (b*31.) as u32
+    ((r*63.) as u32) << 11 | ((g*63.) as u32) << 5 | (b*31.) as u32
 }
 
 impl Chunk {
@@ -98,13 +98,13 @@ impl Chunk {
                     _ => (1., 1., 1.)
                 };
                 if neighbor_block == Block::SeaBlock {
-                    let dist_to_surface = ((WATER_H as usize - cy - y as usize) as f32).sqrt();
-                    r = (r-dist_to_surface*0.2).max(0.01);
-                    g = (g-dist_to_surface*0.12).max(0.04);
-                    b = (b-dist_to_surface*0.07).max(0.08);
+                    let dist_to_surface = (WATER_H as usize - cy - y as usize) as f32;
+                    r *= (-dist_to_surface*0.05).exp();
+                    g *= (-dist_to_surface*0.048).exp();
+                    b *= (-dist_to_surface*0.046).exp();
                 }
                 let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32, lod as u32);
-                let quad_info = (color(r, g, b) << 17) | (layer << 3) | face_n as u32;
+                let quad_info = (color(r, g, b) << 15) | (layer << 3) | face_n as u32;
                 voxel_data.extend_from_slice(&[
                     [vertices[0], quad_info], 
                     [vertices[1], quad_info], 
