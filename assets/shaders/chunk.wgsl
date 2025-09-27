@@ -27,9 +27,10 @@
 const MASK2: u32 = 3;
 const MASK3: u32 = 7;
 const MASK4: u32 = 15;
+const MASK5: u32 = 31;
 const MASK6: u32 = 63;
 const MASK9: u32 = 511;
-const MASK16: u32 = 65535;
+const MASK14: u32 = 16383;
 
 struct VertexInput {
     @builtin(instance_index) instance_index: u32,
@@ -75,19 +76,19 @@ fn normal_from_id(id: u32) -> vec3<f32> {
     return n;
 }
 
-fn light_from_id(id: u32, light: f32) -> vec4<f32> {
+fn light_from_id(id: u32) -> vec4<f32> {
     switch id {
         case 0u {
-            return vec4(light, light, light, 1.0); // top
+            return vec4(1.0, 1.0, 1.0, 1.0); // top
         }
         case 2u, 3u {
-            return vec4(light*0.7, light*0.7, light*0.7, 1.0); // right left
+            return vec4(0.7, 0.7, 0.7, 1.0); // right left
         }
         case 4u, 5u {
-            return vec4(light*0.5, light*0.5, light*0.5, 1.0); // front back
+            return vec4(0.5, 0.5, 0.5, 1.0); // front back
         }
         case 1u {
-            return vec4(light*0.3, light*0.3, light*0.3, 1.0); // bottom
+            return vec4(0.3, 0.3, 0.3, 1.0); // bottom
         }
         default {
             return vec4(0.0, 0.0, 0.0, 1.0);
@@ -96,9 +97,9 @@ fn light_from_id(id: u32, light: f32) -> vec4<f32> {
 }
 
 fn color_from_id(id: u32) -> vec4<f32> {
-    var b = f32(id & MASK3)/f32(MASK3);
-    var g = f32((id >> 3) & MASK3)/f32(MASK3);
-    var r = f32((id >> 6) & MASK3)/f32(MASK3);
+    var b = f32(id & MASK5)/f32(MASK5);
+    var g = f32((id >> 5) & MASK5)/f32(MASK5);
+    var r = f32((id >> 10) & MASK5)/f32(MASK5);
     return vec4(r, g, b, 1.0);
 }
 
@@ -119,11 +120,10 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
     var quad_info = vertex.voxel_data.y;
     var n_id = quad_info & MASK3;
     var normal = normal_from_id(n_id);
-    var c_id = (quad_info >> 3) & MASK9;
+    var texture_layer = (quad_info >> 3) & MASK14;
+    var c_id = quad_info >> 17;
     var face_color = color_from_id(c_id);
-    var texture_layer = (quad_info >> 12) & MASK16;
-    var light = f32((quad_info >> 28) & MASK4) / f32(MASK4);
-    var face_light = light_from_id(n_id, light);
+    var face_light = light_from_id(n_id);
     if (texture_layer == water_layer) {
         position.y = min(position.y, 61.8);
     }

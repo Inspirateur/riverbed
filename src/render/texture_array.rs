@@ -122,7 +122,6 @@ fn build_tex_array(
             perceptual_roughness: 1.,
             reflectance: 0.1,
             alpha_mode: AlphaMode::AlphaToCoverage,
-            cull_mode: None,
             ..Default::default()
         },
         extension: ArrayTextureMaterial {

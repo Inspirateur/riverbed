@@ -11,30 +11,6 @@ use binary_greedy_meshing as bgm;
 use crate::{block::Face, world::{linearize, pad_linearize, Chunk, ChunkPos, CHUNKP_S3, WATER_H}, Block};
 use crate::world::CHUNK_S1;
 use super::texture_array::TextureMapTrait;
-const UNDERWATER_COLORS: [u32; 22] = [
-    0b111_111_111, 
-    0b110_111_111, 
-    0b101_110_111,
-    0b100_110_110,
-    0b011_101_110,
-    0b010_101_110,
-    0b001_100_101,
-    0b000_100_101,
-    0b000_011_101,
-    0b000_011_100,
-    0b000_010_100,
-    0b000_010_100,
-    0b000_001_011,
-    0b000_001_011,
-    0b000_000_011,
-    0b000_000_010,
-    0b000_000_010,
-    0b000_000_010,
-    0b000_000_001,
-    0b000_000_001,
-    0b000_000_001,
-    0b000_000_000,
-];
 
 const MASK_XYZ: u64 = 0b111111_111111_111111;
 /// ## Compressed voxel vertex data
@@ -46,14 +22,16 @@ const MASK_XYZ: u64 = 0b111111_111111_111111;
 ///
 /// second u32 (vertex agnostic):
 ///     - normals: 3 bits (6 values) = face
-///     - color: 9 bits (3 r, 3 g, 3 b)
-///     - texture layer: 16 bits
-///     - light level: 4 bits (16 value)
-///
+///     - texture layer: 14 bits
+///     - light/color: 15 bits (5 r, 5 g, 5 b)
 /// `0bllll_iiiiiiiiiiiiiiii_ccccccccc_nnn`
 pub const ATTRIBUTE_VOXEL_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("VoxelData", 48757581, VertexFormat::Uint32x2);
 
+/// Map channels between 0.0 and 1.0 to the correct range and pack them
+fn color(r: f32, g: f32, b: f32) -> u32 {
+    ((r*31.) as u32) << 10 | ((g*31.) as u32) << 5 | (b*31.) as u32
+}
 
 impl Chunk {
     pub fn voxel_data_lod(&self, lod: usize) -> Vec<u16> {
@@ -113,18 +91,20 @@ impl Chunk {
                 ))];
                 kept_quads += 1;
                 let layer = texture_map.get_texture_index(block, face) as u32;
-                let mut color = match (block, face) {
-                    (Block::GrassBlock, Face::Up) => 0b001_111_011,
-                    (Block::SeaBlock, _) => 0b01_011_110,
-                    (block, _) if block.is_foliage() => 0b001_101_010,
-                    _ => 0b111_111_111
+                let (mut r, mut g, mut b) = match (block, face) {
+                    (Block::GrassBlock, Face::Up) => (0.1, 0.9, 0.2),
+                    (Block::SeaBlock, _) => (0.1, 0.3, 0.7),
+                    (block, _) if block.is_foliage() => (0.1, 0.8, 0.1),
+                    _ => (1., 1., 1.)
                 };
                 if neighbor_block == Block::SeaBlock {
-                    color &= UNDERWATER_COLORS[(WATER_H as usize - cy - y as usize).clamp(0, UNDERWATER_COLORS.len()-1)];
+                    let dist_to_surface = ((WATER_H as usize - cy - y as usize) as f32).sqrt();
+                    r = (r-dist_to_surface*0.2).max(0.01);
+                    g = (g-dist_to_surface*0.12).max(0.04);
+                    b = (b-dist_to_surface*0.07).max(0.08);
                 }
-                let light = 0b1111;
                 let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32, lod as u32);
-                let quad_info = (light << 28) | (layer << 12) | (color << 3) | face_n as u32;
+                let quad_info = (color(r, g, b) << 17) | (layer << 3) | face_n as u32;
                 voxel_data.extend_from_slice(&[
                     [vertices[0], quad_info], 
                     [vertices[1], quad_info], 
