@@ -8,16 +8,16 @@ use crate::{agents::{PlayerControlled, PlayerSpawn, AABB}, ui::CursorGrabbed};
 use leafwing_input_manager::prelude::*;
 
 const CAMERA_PAN_RATE: f32 = 0.001;
-const AIR_FALOFF: FogFalloff = FogFalloff::Linear {
-    start: 50.0,
-    end: 5000.0,
+const AIR_FALOFF: FogFalloff = FogFalloff::Atmospheric { 
+    extinction: Vec3::new(0.0003, 0.0002, 0.0001), 
+    inscattering: Vec3::new(0.0001, 0.0002, 0.0003),
 };
-const WATER_FALOFF: FogFalloff = FogFalloff::Linear {
-    start: 1.0,
-    end: 100.0,
+const WATER_FALOFF: FogFalloff = FogFalloff::Atmospheric { 
+    extinction: Vec3::new(0.003, 0.002, 0.001),
+    inscattering: Vec3::new(0.0, 0.0, 0.0),
 };
 const AIR_COLOR: Color = Color::linear_rgba(0.70, 0.85, 0.95, 1.0);
-const WATER_COLOR: Color = Color::linear_rgba(0.1, 0.3, 0.5, 1.0);
+const WATER_COLOR: Color = Color::linear_rgba(0.05, 0.1, 0.2, 1.0);
 
 pub struct Camera3dPlugin;
 

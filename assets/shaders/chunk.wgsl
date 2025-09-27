@@ -27,9 +27,10 @@
 const MASK2: u32 = 3;
 const MASK3: u32 = 7;
 const MASK4: u32 = 15;
+const MASK5: u32 = 31;
 const MASK6: u32 = 63;
 const MASK9: u32 = 511;
-const MASK16: u32 = 65535;
+const MASK12: u32 = 4095;
 
 struct VertexInput {
     @builtin(instance_index) instance_index: u32,
@@ -96,9 +97,9 @@ fn light_from_id(id: u32) -> vec4<f32> {
 }
 
 fn color_from_id(id: u32) -> vec4<f32> {
-    var r = f32(id & MASK3)/f32(MASK3);
-    var g = f32((id >> 3) & MASK3)/f32(MASK3);
-    var b = f32((id >> 6) & MASK3)/f32(MASK3);
+    var b = f32(id & MASK5)/f32(MASK5);
+    var g = f32((id >> 5) & MASK6)/f32(MASK6);
+    var r = f32((id >> 11) & MASK6)/f32(MASK6);
     return vec4(r, g, b, 1.0);
 }
 
@@ -119,15 +120,13 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
     var quad_info = vertex.voxel_data.y;
     var n_id = quad_info & MASK3;
     var normal = normal_from_id(n_id);
-    var c_id = (quad_info >> 3) & MASK9;
+    var texture_layer = (quad_info >> 3) & MASK12;
+    var c_id = quad_info >> 15;
     var face_color = color_from_id(c_id);
-    var texture_layer = quad_info >> 12;
-    if (texture_layer == water_layer) {
-        position.y -= 0.2;
-    }
     var face_light = light_from_id(n_id);
-    var light = f32((quad_info >> 28) & MASK4) / f32(MASK4);
-
+    if (texture_layer == water_layer) {
+        position.y = min(position.y, 61.8);
+    }
     out.position = mesh_position_local_to_clip(
         get_world_from_local(vertex.instance_index),
         position,
@@ -136,6 +135,7 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
         get_world_from_local(vertex.instance_index),
         position,
     );
+
     out.world_normal = normal;
     out.uv = vec2(u, v);
     out.color = face_color;

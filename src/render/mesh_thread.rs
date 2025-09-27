@@ -70,7 +70,7 @@ pub fn setup_mesh_thread(
                 let Some(chunk) = chunks.get(&chunk_pos) else {
                     continue;
                 };
-                let face_meshes = chunk.value().read().create_face_meshes(&texture_map, lod);
+                let face_meshes = chunk.value().read().create_face_meshes(&texture_map, lod, chunk_pos);
                 trace!("{}", LogData::ChunkMeshed(chunk_pos));
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();
