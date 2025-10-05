@@ -1,4 +1,4 @@
-use bevy::{asset::LoadedFolder, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{mesh::MeshVertexBufferLayoutRef, render_asset::RenderAssetUsages, render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat}, storage::ShaderStorageBuffer}};
+use bevy::{asset::{LoadedFolder, RenderAssetUsages}, mesh::MeshVertexBufferLayoutRef, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{render_resource::{AsBindGroup, Extent3d, TextureDimension, TextureFormat}, storage::ShaderStorageBuffer}, shader::ShaderRef};
 use hashbrown::HashMap;
 use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
 use super::{mesh_logic::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
@@ -138,13 +138,13 @@ pub struct BlockTextureArray(pub Handle<ExtendedMaterial<StandardMaterial, Array
 
 #[derive(Asset, AsBindGroup, Debug, Clone, TypePath)]
 pub struct ArrayTextureMaterial {
-    #[uniform(103)]
-    water_layer: u32,
     #[texture(100, dimension = "2d_array")]
     #[sampler(101)]
     array_texture: Handle<Image>,
     #[storage(102, read_only)]
     anim_offsets: Handle<ShaderStorageBuffer>,
+    #[uniform(103)]
+    water_layer: u32,
 }
 
 impl MaterialExtension for ArrayTextureMaterial {

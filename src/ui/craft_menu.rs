@@ -220,5 +220,5 @@ fn craft_action(
         let _ = hotbar[*slot].take(*qty);
     }
     hotbar.try_add(Stack::Some(recipe.out.0, recipe.out.1));
-    commands.trigger_targets(ItemGet, player);
+    commands.trigger(ItemGet { entity: player });
 }

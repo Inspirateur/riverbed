@@ -1,10 +1,7 @@
 use std::collections::BTreeSet;
 
 use bevy::{
-    log::info_span, prelude::Mesh, 
-    render::{mesh::{Indices, MeshVertexAttribute}, 
-    render_asset::RenderAssetUsages, 
-    render_resource::{PrimitiveTopology, VertexFormat}}
+    asset::RenderAssetUsages, log::info_span, mesh::{Indices, MeshVertexAttribute}, prelude::Mesh, render::render_resource::{PrimitiveTopology, VertexFormat}
 };
 use binary_greedy_meshing as bgm;
 

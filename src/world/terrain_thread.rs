@@ -145,7 +145,7 @@ pub struct ColUnloadsReciever(pub Receiver<ColPos>);
 
 pub fn on_unload_col(
     unload_cols: Res<ColUnloadsReciever>,
-    mut unload_event: EventWriter<ColUnloadEvent>,
+    mut unload_event: MessageWriter<ColUnloadEvent>,
 ) {
     while let Ok(col) = unload_cols.0.try_recv() {
         unload_event.write(ColUnloadEvent(col));

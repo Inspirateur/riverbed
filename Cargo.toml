@@ -15,8 +15,7 @@ members = [
 
 [dependencies]
 anyhow = "*"
-bevy = { version = "0.16" }
-bevy_atmosphere = "*"
+bevy = { version = "0.17" }
 binary-greedy-meshing = "*"
 cfg-if = "*"
 chrono = { version = "*", features = ["serde", "rkyv"] }
@@ -28,7 +27,7 @@ hashbrown = "*"
 itertools = "*"
 json5 = "*"
 lazy_static = "*"
-leafwing-input-manager = "0.17"
+leafwing-input-manager = "0.18"
 packed-uints = "*"
 parking_lot = "*"
 rand = "*"

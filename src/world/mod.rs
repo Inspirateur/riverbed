@@ -28,10 +28,10 @@ pub const Y_CHUNKS: usize = MAX_HEIGHT/CHUNK_S1;
 #[derive(Component, Default)]
 pub struct PlayerCol(pub ColPos);
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct ColUnloadEvent(pub ColPos);
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct ChunkChanged(pub ChunkPos);
 
 pub struct TerrainLoadPlugin;

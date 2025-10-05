@@ -31,7 +31,7 @@ fn hotbar_slot_change(
 ) {
     if selected_slot.is_changed() {
         commands.spawn((
-            AudioPlayer::<AudioSource>(ui_sounds.hotbar_slot.clone_weak()),
+            AudioPlayer::<AudioSource>(ui_sounds.hotbar_slot.clone()),
             PlaybackSettings {
                 mode: PlaybackMode::Despawn,
                 ..Default::default()
@@ -47,7 +47,7 @@ fn on_item_slot_click(
 ) {
     if dragged_item.is_changed() {
         commands.spawn((
-            AudioPlayer::<AudioSource>(ui_sounds.item_clicked.clone_weak()),
+            AudioPlayer::<AudioSource>(ui_sounds.item_clicked.clone()),
             PlaybackSettings {
                 mode: PlaybackMode::Despawn,
                 ..Default::default()

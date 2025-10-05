@@ -1,5 +1,5 @@
 use std::ffi::OsStr;
-use bevy::{asset::LoadedFolder, prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
+use bevy::{asset::LoadedFolder, image::TRANSPARENT_IMAGE_HANDLE, prelude::*};
 use itertools::Itertools;
 use crate::{agents::{BlockActionType, BlockLootAction, TargetBlock}, render::{BlockTexState, BlockTextureFolder}};
 
@@ -56,7 +56,7 @@ fn add_break_animation(
     mut materials: ResMut<Assets<StandardMaterial>>,
     break_stages: Res<BreakStageSprites>
 ) {
-    let texture_handle = break_stages.0[0].clone_weak();
+    let texture_handle = break_stages.0[0].clone();
 
     for (player, target_opt, breaking) in block_action_query.iter() {
         if !matches!(breaking.action_type, BlockActionType::Breaking) {

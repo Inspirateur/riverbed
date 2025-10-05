@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use bevy::{asset::LoadedFolder, color::palettes::css, prelude::*, render::texture::TRANSPARENT_IMAGE_HANDLE};
+use bevy::{asset::LoadedFolder, color::palettes::css, image::TRANSPARENT_IMAGE_HANDLE, prelude::*};
 use itertools::Itertools;
 use crate::{asset_processing::from_filename, block::{Face, FaceSpecifier}, items::{Item, Stack}, render::{parse_block_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}, Block};
 pub const SLOT_SIZE_PERCENT: f32 = 4.;

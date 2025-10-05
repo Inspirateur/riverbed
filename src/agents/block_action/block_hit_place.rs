@@ -212,7 +212,7 @@ fn break_action(
                 continue;
             };
             if hotbar.try_add(Stack::Some(drop, quantity)).is_none() {
-                commands.trigger_targets(ItemGet, player);
+                commands.trigger(ItemGet { entity: player });
             }
         }
         commands.entity(player).remove::<BlockLootAction>();

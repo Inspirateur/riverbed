@@ -16,7 +16,7 @@ pub use hotbar::SelectedHotbarSlot;
 use debug_display::DebugDisplayPlugin;
 use game_menu::MenuPlugin;
 use hotbar::HotbarPlugin;
-use bevy::{prelude::*, window::{CursorGrabMode, SystemCursorIcon}, winit::cursor::CursorIcon};
+use bevy::{prelude::*, window::{CursorGrabMode, CursorIcon, CursorOptions, SystemCursorIcon}};
 use in_hand::InHandPlugin;
 use leafwing_input_manager::prelude::*;
 use ui_tex_map::UiTexMapPlugin;
@@ -157,23 +157,23 @@ fn process_ui_actions(
 }
 
 fn grab_cursor(
-    mut windows: Query<&mut Window>,
+    mut cursor_options: Query<&mut CursorOptions>,
 ) {
-    let Ok(mut window) = windows.single_mut() else {
+    let Ok(mut cursor_options) = cursor_options.single_mut() else {
         return;
     };
-    window.cursor_options.visible = false;
-    window.cursor_options.grab_mode = CursorGrabMode::Confined;
+    cursor_options.visible = false;
+    cursor_options.grab_mode = CursorGrabMode::Confined;
 }
 
 fn free_cursor(
-    mut windows: Query<&mut Window>,
+    mut cursor_options: Query<&mut CursorOptions>,
 ) {
-    let Ok(mut window) = windows.single_mut() else {
+    let Ok(mut cursor_options) = cursor_options.single_mut() else {
         return;
     };
-    window.cursor_options.visible = true;
-    window.cursor_options.grab_mode = CursorGrabMode::None;
+    cursor_options.visible = true;
+    cursor_options.grab_mode = CursorGrabMode::None;
 }
 
 fn highlight_hover(

@@ -1,6 +1,5 @@
 use std::{f32::consts::PI, time::Duration};
-use bevy::prelude::*;
-use bevy_atmosphere::{prelude::{AtmospherePlugin, AtmosphereCamera, Nishita, AtmosphereModel}, system_param::AtmosphereMut};
+use bevy::{pbr::Atmosphere, prelude::*};
 use crate::render::camera::{CameraSpawn, FpsCam};
 const DAY_LENGTH_MINUTES: f32 = 0.2;
 const C: f32 = DAY_LENGTH_MINUTES*120.*PI;
@@ -15,13 +14,11 @@ impl Plugin for SkyPlugin {
                 brightness: 1000.0,
                 ..Default::default()
             })
-            .insert_resource(AtmosphereModel::new(Nishita::default()))
             .insert_resource(CycleTimer(Timer::new(
                  // Update our atmosphere every 500ms
                 Duration::from_millis(500),
                 TimerMode::Repeating,
             )))
-            .add_plugins(AtmospherePlugin)
             .add_systems(Startup, spawn_sun.after(CameraSpawn))
             .add_systems(Update, daylight_cycle)
             ;
@@ -38,7 +35,7 @@ struct Sun;
 
 fn spawn_sun(mut commands: Commands, cam_query: Query<Entity, With<FpsCam>>) {
     let cam = cam_query.single().unwrap();
-    commands.entity(cam).insert(AtmosphereCamera::default());
+    commands.entity(cam).insert(Atmosphere::default());
     commands.spawn((Sun, DirectionalLight {
         // TODO: this crashes, maybe it will be fixed by following https://github.com/bevyengine/bevy/blob/main/assets/shaders/extended_material_bindless.wgsl
         // shadows_enabled: true,
@@ -46,20 +43,17 @@ fn spawn_sun(mut commands: Commands, cam_query: Query<Entity, With<FpsCam>>) {
     }));
 }
 
-// We can edit the Atmosphere resource and it will be updated automatically
 fn daylight_cycle(
-    mut atmosphere: AtmosphereMut<Nishita>,
     mut query: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
     mut timer: ResMut<CycleTimer>,
     time: Res<Time>,
 ) {
     timer.0.tick(time.delta());
 
-    if timer.0.finished() {
+    if timer.0.is_finished() {
         // let t = 0.6 + time.elapsed_seconds_wrapped() / C;
         // TODO: make night time prettier with a skybox, freeze the sun in the meantime
         let t = 0.6f32;
-        atmosphere.sun_position = Vec3::new(0., t.sin(), t.cos());
 
         if let Some((mut light_trans, mut directional)) = query.single_mut().unwrap().into() {
             light_trans.rotation = Quat::from_rotation_x(-t);

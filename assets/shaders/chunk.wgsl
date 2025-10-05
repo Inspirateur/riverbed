@@ -19,10 +19,10 @@
 }
 #endif
 
-@group(2) @binding(100) var texture_pack: texture_2d_array<f32>;
-@group(2) @binding(101) var texture_sampler: sampler;
-@group(2) @binding(102) var<storage, read> anim_offsets: array<u32>;
-@group(2) @binding(103) var<uniform> water_layer: u32;
+@group(#{MATERIAL_BIND_GROUP}) @binding(100) var texture_pack: texture_2d_array<f32>;
+@group(#{MATERIAL_BIND_GROUP}) @binding(101) var texture_sampler: sampler;
+@group(#{MATERIAL_BIND_GROUP}) @binding(102) var<storage, read> anim_offsets: array<u32>;
+@group(#{MATERIAL_BIND_GROUP}) @binding(103) var<uniform> water_layer: u32;
 
 const MASK2: u32 = 3;
 const MASK3: u32 = 7;

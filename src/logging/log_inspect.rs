@@ -25,7 +25,7 @@ impl Plugin for InspectorPlugin {
 }
 
 fn on_log_event(
-    mut events: EventReader<LogEvent>, 
+    mut events: MessageReader<LogEvent>, 
     mut event_queue: ResMut<EventQueue>,
     mut event_head: ResMut<EventHead>, 
     mut live_load_state: ResMut<LiveLoadState>,

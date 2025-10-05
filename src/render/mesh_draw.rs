@@ -1,7 +1,7 @@
 use std::collections::HashMap;
+use bevy::camera::primitives::Aabb;
+use bevy::camera::visibility::NoFrustumCulling;
 use bevy::prelude::*;
-use bevy::render::primitives::Aabb;
-use bevy::render::view::NoFrustumCulling;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use crate::agents::PlayerControlled;
@@ -97,7 +97,7 @@ pub fn pull_meshes(
         } else if blocks.chunks.contains_key(&chunk_pos) {
             let ent = commands.spawn((
                 Mesh3d(meshes.add(mesh)),
-                MeshMaterial3d(block_tex_array.0.clone_weak()),
+                MeshMaterial3d(block_tex_array.0.clone()),
                 Transform::from_translation(
                     Vec3::new(chunk_pos.x as f32, chunk_pos.y as f32, chunk_pos.z as f32) * CHUNK_S1 as f32,
                 ),
@@ -113,7 +113,7 @@ pub fn pull_meshes(
 
 pub fn on_col_unload(
     mut commands: Commands,
-    mut ev_unload: EventReader<ColUnloadEvent>,
+    mut ev_unload: MessageReader<ColUnloadEvent>,
     mut chunk_ents: ResMut<ChunkEntities>,
     mesh_query: Query<&Mesh3d>,
     mut meshes: ResMut<Assets<Mesh>>,

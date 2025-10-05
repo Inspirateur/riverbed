@@ -1,6 +1,6 @@
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 use bevy::prelude::*;
-use bevy::window::CursorGrabMode;
+use bevy::window::{CursorGrabMode, CursorOptions};
 use crate::agents::Velocity;
 use crate::world::{Realm, VoxelWorld};
 use crate::Block;
@@ -54,7 +54,7 @@ pub struct FpsCam {
 #[derive(SystemSet, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CameraSpawn;
 
-fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player_query: Query<(Entity, &AABB), With<PlayerControlled>>) {
+fn cam_setup(mut commands: Commands, mut cursor_options: Query<&mut CursorOptions>, player_query: Query<(Entity, &AABB), With<PlayerControlled>>) {
     let input_map = InputMap::default()
         .with_dual_axis(CameraMovement::Pan, MouseMove::default());
     let (player, aabb) = player_query.single().unwrap();
@@ -81,9 +81,9 @@ fn cam_setup(mut commands: Commands, mut windows: Query<&mut Window>, player_que
         .insert(FpsCam::default())
         .id();
     commands.entity(player).add_child(cam);
-    let mut window = windows.single_mut().unwrap();
-    window.cursor_options.grab_mode = CursorGrabMode::Locked;
-    window.cursor_options.visible = false;
+    let mut cursor_options = cursor_options.single_mut().unwrap();
+    cursor_options.grab_mode = CursorGrabMode::Locked;
+    cursor_options.visible = false;
 }
 
 fn adaptative_fov(

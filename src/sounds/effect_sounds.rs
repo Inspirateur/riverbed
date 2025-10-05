@@ -37,12 +37,14 @@ fn setup_effect_sounds(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-#[derive(Event)]
-pub struct ItemGet;
+#[derive(EntityEvent)]
+pub struct ItemGet {
+    pub entity: Entity,
+}
 
-pub fn on_item_get(_: Trigger<ItemGet>, mut commands: Commands, effect_sounds: Res<EffectSounds>) {
+pub fn on_item_get(_: On<ItemGet>, mut commands: Commands, effect_sounds: Res<EffectSounds>) {
     commands.spawn((
-        AudioPlayer::<AudioSource>(effect_sounds.item_get.clone_weak()),
+        AudioPlayer::<AudioSource>(effect_sounds.item_get.clone()),
         PlaybackSettings {
             mode: PlaybackMode::Despawn,
             ..Default::default()
@@ -51,7 +53,7 @@ pub fn on_item_get(_: Trigger<ItemGet>, mut commands: Commands, effect_sounds: R
 }
 
 pub fn on_block_placed(
-    block_placed: Trigger<BlockPlaced>,
+    block_placed: On<BlockPlaced>,
     mut commands: Commands,
     effect_sounds: Res<EffectSounds>,
 ) {
@@ -61,7 +63,7 @@ pub fn on_block_placed(
             Visibility::default(),
         ))
         .insert((
-            AudioPlayer::<AudioSource>(effect_sounds.block_placed.clone_weak()),
+            AudioPlayer::<AudioSource>(effect_sounds.block_placed.clone()),
             PlaybackSettings {
                 mode: PlaybackMode::Despawn,
                 spatial: true,
