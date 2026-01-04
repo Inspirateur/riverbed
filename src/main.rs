@@ -22,7 +22,7 @@ use world::TerrainLoadPlugin;
 use crate::logging::InspectorPlugin;
 #[cfg(feature = "log_inspector")]
 use crate::logging::LogReplayPlugin;
-use crate::{logging::RiverbedLogPlugin, render::{MeshOrderReceiver, MeshOrderSender}};
+use crate::{logging::RiverbedLogPlugin, render::MeshOrderReceiver};
 const SEED: u64 = 42;
 pub const RENDER_DISTANCE: i32 = 32;
 
@@ -51,7 +51,6 @@ fn client() {
     app
         .insert_resource(VoxelWorld::new(mesh_order_sender.clone()))
         .insert_resource(MeshOrderReceiver(mesh_order_receiver))
-        .insert_resource(MeshOrderSender(mesh_order_sender))
         .add_plugins(
             DefaultPlugins
             .set(WindowPlugin {

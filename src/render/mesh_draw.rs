@@ -6,12 +6,11 @@ use itertools::Itertools;
 use strum::IntoEnumIterator;
 use crate::agents::PlayerControlled;
 use crate::block::Face;
-use crate::render::mesh_thread::{setup_mesh_thread, update_shared_load_area, MeshReciever, SharedPlayerCol};
-use crate::render::MeshOrderSender;
+use crate::render::mesh_thread::{setup_mesh_thread, update_shared_load_area, SharedPlayerCol};
+use crate::render::quad_data::InstanceQuads;
 use crate::world::pos2d::chunks_in_col;
 use crate::world::{ChunkPos, ColUnloadEvent, PlayerCol, VoxelWorld, CHUNK_S1};
 use super::chunk_culling::chunk_culling;
-use super::texture_array::BlockTextureArray;
 use super::BlockTexState;
 use super::texture_array::TextureArrayPlugin;
 
@@ -21,12 +20,10 @@ impl Plugin for Draw3d {
     fn build(&self, app: &mut App) {
         app
             .add_plugins(TextureArrayPlugin)
-            .insert_resource(ChunkEntities::new())
             .insert_resource(SharedPlayerCol::default())
             .add_systems(OnEnter(BlockTexState::Mapped),  setup_mesh_thread)
             .add_systems(Update, update_shared_load_area)
-            .add_systems(Update, mark_lod_remesh)
-            .add_systems(Update, pull_meshes.run_if(in_state(BlockTexState::Mapped)))
+            //.add_systems(Update, pull_meshes.run_if(in_state(BlockTexState::Mapped)))
             .add_systems(Update, on_col_unload)
             .add_systems(PostUpdate, chunk_culling)
             ;
@@ -42,7 +39,7 @@ pub fn choose_lod_level(chunk_dist: u32) -> usize {
     }
     return 2;
 }
-
+/*
 fn mark_lod_remesh(
     player_query: Single<&PlayerCol, (With<PlayerControlled>, Changed<PlayerCol>)>, 
     chunk_ents: ResMut<ChunkEntities>, 
@@ -109,34 +106,19 @@ pub fn pull_meshes(
             chunk_ents.0.insert((chunk_pos, face), ent);
         }
     }
-}
+} */
 
 pub fn on_col_unload(
-    mut commands: Commands,
     mut ev_unload: MessageReader<ColUnloadEvent>,
-    mut chunk_ents: ResMut<ChunkEntities>,
-    mesh_query: Query<&Mesh3d>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    quads: Single<&mut InstanceQuads>,
 ) {
+    if ev_unload.is_empty() {
+        return;
+    }
+    let mut quads = quads.0.write();
     for col_ev in ev_unload.read() {
         for chunk_pos in chunks_in_col(&col_ev.0) {
-            for face in Face::iter() {
-                if let Some(ent) = chunk_ents.0.remove(&(chunk_pos, face)) {
-                    if let Ok(handle) = mesh_query.get(ent) {
-                        meshes.remove(handle);
-                    }
-                    commands.entity(ent).despawn();
-                }
-            }
+            quads.remove(chunk_pos);
         }
-    }
-}
-
-#[derive(Resource)]
-pub struct ChunkEntities(pub HashMap::<(ChunkPos, Face), Entity>);
-
-impl ChunkEntities {
-    pub fn new() -> Self {
-        ChunkEntities(HashMap::new())
     }
 }

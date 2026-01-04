@@ -1,37 +1,37 @@
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
-use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam::channel::Receiver;
 use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
 use crate::agents::PlayerControlled;
-use crate::block::Face;
 use crate::logging::LogData;
 use crate::render::mesh_draw::{choose_lod_level, LOD};
+use crate::render::quad_data::InstanceQuads;
 use crate::render::texture_array::TextureMap;
 use crate::world::{ChunkPos, ColPos, PlayerCol, VoxelWorld};
 
 pub fn setup_mesh_thread(
-    mut commands: Commands, 
     voxel_world: Res<VoxelWorld>, 
     texture_map: Res<TextureMap>, 
     shared_load_area: Res<SharedPlayerCol>, 
-    mesh_order_receiver: Res<MeshOrderReceiver>
+    mesh_order_receiver: Res<MeshOrderReceiver>,
+    instances_data: Single<&InstanceQuads>,
 ) {
     let thread_pool = AsyncComputeTaskPool::get();
     let chunks = voxel_world.chunks.clone();
-    let (mesh_sender, mesh_reciever) = unbounded();
-    commands.insert_resource(MeshReciever(mesh_reciever));
     let texture_map = texture_map.0.clone();
     let mesh_order_receiver = mesh_order_receiver.0.clone();
     let shared_load_area = shared_load_area.0.clone();
+    let instances_data = instances_data.0.clone();
     thread_pool.spawn(
         async move {
             // Busy wait until the texture map is loaded (ugly but only costly on startup)
             while texture_map.len() == 0 {
                 yield_now()
             }
+            
             let mut mesh_cache: HashSet<ChunkPos> = HashSet::new();
             let mut mesh_orders: Vec<ChunkPos> = Vec::new();
             'outer: loop {
@@ -70,25 +70,15 @@ pub fn setup_mesh_thread(
                 let Some(chunk) = chunks.get(&chunk_pos) else {
                     continue;
                 };
-                let face_meshes = chunk.value().read().create_face_meshes(&texture_map, lod, chunk_pos);
+                let face_meshes = chunk.value().read().create_quads(&texture_map, lod, chunk_pos);
                 trace!("{}", LogData::ChunkMeshed(chunk_pos));
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
-                    let face = i.into();
-                    if mesh_sender.send((face_mesh, chunk_pos, face, LOD(lod))).is_err() {
-                        warn!("Mesh channel is closed, stopping mesh thread");
-                        break 'outer;
-                    };
+                    instances_data.write().add(face_mesh, i, chunk_pos);
                 }
             }
         }
     ).detach();
 }
-
-#[derive(Resource)]
-pub struct MeshReciever(pub Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
-
-#[derive(Resource)]
-pub struct MeshOrderSender(pub Sender<ChunkPos>);
 
 #[derive(Resource)]
 pub struct MeshOrderReceiver(pub Receiver<ChunkPos>);

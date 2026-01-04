@@ -8,7 +8,7 @@ pub struct SkyPlugin;
 
 impl Plugin for SkyPlugin {
     fn build(&self, app: &mut App) {
-        app   
+        app  
             .insert_resource(AmbientLight {
                 color: Color::WHITE,
                 brightness: 1000.0,
@@ -37,8 +37,8 @@ fn spawn_sun(mut commands: Commands, cam_query: Query<Entity, With<FpsCam>>) {
     let cam = cam_query.single().unwrap();
     commands.entity(cam).insert(Atmosphere::default());
     commands.spawn((Sun, DirectionalLight {
-        // TODO: this crashes, maybe it will be fixed by following https://github.com/bevyengine/bevy/blob/main/assets/shaders/extended_material_bindless.wgsl
-        // shadows_enabled: true,
+        // TODO: this crashes, maybe it will be fixed by following https://github.com/bevyengine/bevy/blob/main/assets/shaders/extended_material.wgsl
+        shadows_enabled: true,
         ..Default::default()
     }));
 }

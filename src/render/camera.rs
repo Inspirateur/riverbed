@@ -1,5 +1,6 @@
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 use bevy::prelude::*;
+use bevy::render::view::NoIndirectDrawing;
 use bevy::window::{CursorGrabMode, CursorOptions};
 use crate::agents::Velocity;
 use crate::world::{Realm, VoxelWorld};
@@ -73,6 +74,10 @@ fn cam_setup(mut commands: Commands, mut cursor_options: Query<&mut CursorOption
                     falloff: AIR_FALOFF,
                     ..default()
                 },
+                // We need this component if we use `draw_indexed` and `draw`
+                // instead of `draw_indirect_indexed` and `draw_indirect` in
+                // `DrawMeshInstanced::render`.
+                // NoIndirectDrawing,
             )
         )
         // TODO: We would like SSAO very much but it doesn't like that Mesh data is compressed

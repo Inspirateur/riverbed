@@ -17,6 +17,7 @@ members = [
 anyhow = "*"
 bevy = { version = "0.17" }
 binary-greedy-meshing = "*"
+bytemuck = "*"
 cfg-if = "*"
 chrono = { version = "*", features = ["serde", "rkyv"] }
 confy = "*"

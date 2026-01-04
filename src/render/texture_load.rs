@@ -38,7 +38,7 @@ fn load_block_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn check_block_textures(
     mut next_state: ResMut<NextState<BlockTexState>>,
     texture_folder: ResMut<BlockTextureFolder>,
-    mut events: EventReader<AssetEvent<LoadedFolder>>,
+    mut events: MessageReader<AssetEvent<LoadedFolder>>,
 ) {
     // Advance the `AppState` once all sprite handles have been loaded by the `AssetServer`
     for event in events.read() {

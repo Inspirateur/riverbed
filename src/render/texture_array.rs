@@ -1,7 +1,7 @@
-use bevy::{asset::{LoadedFolder, RenderAssetUsages}, mesh::MeshVertexBufferLayoutRef, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{render_resource::{AsBindGroup, Extent3d, TextureDimension, TextureFormat}, storage::ShaderStorageBuffer}, shader::ShaderRef};
+use bevy::{asset::{LoadedFolder, RenderAssetUsages}, prelude::*, render::{extract_resource::ExtractResource, render_resource::{Extent3d, TextureDimension, TextureFormat}, storage::ShaderStorageBuffer}};
 use hashbrown::HashMap;
-use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
-use super::{mesh_logic::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
+use crate::{Block, block::{Face, FaceSpecifier}, render::{parse_block_tex_name}};
+use super::{BlockTexState, BlockTextureFolder};
 
 pub struct TextureArrayPlugin;
 
@@ -9,7 +9,6 @@ impl Plugin for TextureArrayPlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(TextureMap(HashMap::new()))
-            .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>::default())
             .add_systems(OnEnter(BlockTexState::Loaded), build_tex_array)
             ;
     }
@@ -52,7 +51,7 @@ fn missing_tex(model: &Image) -> Image {
         if x != y {
             continue;
         }
-        img.set_color_at(x, y, Color::srgb(1., 0.5, 0.5));
+        let _ = img.set_color_at(x, y, Color::srgb(1., 0.5, 0.5));
     }
     img
 }
@@ -63,7 +62,6 @@ fn build_tex_array(
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut textures: ResMut<Assets<Image>>,
     mut texture_map: ResMut<TextureMap>,
-    mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
     mut next_state: ResMut<NextState<BlockTexState>>,
     mut shader_buffers: ResMut<Assets<ShaderStorageBuffer>>,
 ) {
@@ -117,53 +115,15 @@ fn build_tex_array(
         RenderAssetUsages::default()
     );
     let handle = textures.add(array_tex);
-    let handle = materials.add(ExtendedMaterial {
-        base: StandardMaterial {
-            perceptual_roughness: 1.,
-            reflectance: 0.1,
-            alpha_mode: AlphaMode::AlphaToCoverage,
-            ..Default::default()
-        },
-        extension: ArrayTextureMaterial {
-            array_texture: handle, anim_offsets: shader_buffers.add(ShaderStorageBuffer::from(anim_offsets)),
-            water_layer: water_layer.unwrap() as u32
-        }
+    commands.insert_resource(BindGroupHandles {
+        array_texture: handle.clone(),
+        anim_offsets: shader_buffers.add(ShaderStorageBuffer::from(anim_offsets)),
     });
-    commands.insert_resource(BlockTextureArray(handle));
     next_state.set(BlockTexState::Mapped);
 }
 
-#[derive(Resource)]
-pub struct BlockTextureArray(pub Handle<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>);
-
-#[derive(Asset, AsBindGroup, Debug, Clone, TypePath)]
-pub struct ArrayTextureMaterial {
-    #[texture(100, dimension = "2d_array")]
-    #[sampler(101)]
-    array_texture: Handle<Image>,
-    #[storage(102, read_only)]
-    anim_offsets: Handle<ShaderStorageBuffer>,
-    #[uniform(103)]
-    water_layer: u32,
-}
-
-impl MaterialExtension for ArrayTextureMaterial {
-    fn vertex_shader() -> ShaderRef {
-        "shaders/chunk.wgsl".into()
-    }
-
-    fn fragment_shader() -> ShaderRef {
-        "shaders/chunk.wgsl".into()
-    }
-
-    fn specialize(
-            _pipeline: &MaterialExtensionPipeline,
-            descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
-            layout: &MeshVertexBufferLayoutRef,
-            _key: MaterialExtensionKey<ArrayTextureMaterial>,
-        ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
-            let vertex_layout = layout.0.get_layout(&[ATTRIBUTE_VOXEL_DATA.at_shader_location(0)])?;
-            descriptor.vertex.buffers = vec![vertex_layout];
-            Ok(())
-    }
+#[derive(Default, ExtractResource, Resource, Clone)]
+pub struct BindGroupHandles {
+    pub array_texture: Handle<Image>,
+    pub anim_offsets: Handle<ShaderStorageBuffer>,
 }
