@@ -7,10 +7,11 @@
     },
     pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing}
 };
-
+const CHUNK_SIZE: i32 = 62;
 @group(3) @binding(0) var array_texture: texture_2d_array<f32>;
 @group(3) @binding(1) var texture_sampler: sampler;
 @group(3) @binding(2) var<storage, read> anim_offsets: array<u32>;
+@group(3) @binding(3) var<storage, read> chunk_face_groups: array<vec4<i32>>;
 
 struct VertexIn {
     @location(0) corner: vec3<f32>,   // unit quad corners
@@ -73,8 +74,12 @@ fn vertex(v: VertexIn) -> VertexOut {
         let tmp = lx; lx = 0.0; lz = tmp; // customize
     }
 
-    let local = vec4(x + lx, y + ly, z + lz, 1.0);
-
+    let chunk_face_group = chunk_face_groups[v.instance];
+    let chunk_offset = vec4<f32>(
+        vec3<f32>(chunk_face_group.xyz) * f32(CHUNK_SIZE),
+        0.0
+    );
+    let local = vec4(x + lx, y + ly, z + lz, 1.0) + chunk_offset;
     let world_from_local = get_world_from_local(0);
     out.clip_position = mesh_position_local_to_clip(world_from_local, local);
     out.world_position = mesh_position_local_to_world(world_from_local, local);

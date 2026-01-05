@@ -116,6 +116,7 @@ impl QuadBuffer {
         let mut indirect_buffer = Vec::with_capacity(chunk_count);
         // No culling for now
         for (face_index, face_buffer) in self.0.iter().enumerate() {
+            let offset = quad_buffer.len();
             quad_buffer.extend_from_slice(&face_buffer.quads);
             chunk_buffer.extend_from_slice(
                 &face_buffer.chunk_spans.iter().map(|(chunk_pos, _, _)| ChunkBuffer {
@@ -126,7 +127,7 @@ impl QuadBuffer {
                 }).collect::<Vec<_>>()
             );
             indirect_buffer.extend_from_slice(
-                &face_buffer.chunk_spans.iter().map(|(_, i, count)| (*i, *count)).collect::<Vec<_>>()
+                &face_buffer.chunk_spans.iter().map(|(_, i, count)| (*i+offset, *count)).collect::<Vec<_>>()
             );
         }
         (quad_buffer, indirect_buffer, chunk_buffer)
@@ -138,7 +139,7 @@ pub struct InstanceQuads(pub Arc<RwLock<QuadBuffer>>);
 
 #[cfg(test)]
 mod tests {
-    use crate::{render::quad_data::QuadData, world::{ChunkPos, Realm}};
+    use crate::{render::quad_data::{FaceBuffer, QuadData}, world::{ChunkPos, Realm}};
 
     fn random_quads() -> Vec<QuadData> {
         use rand::Rng;
@@ -151,10 +152,13 @@ mod tests {
         }).collect()
     }
 
-    #[test]
-    fn test_free_span_merging() {
-        let mut face_buffer = super::FaceBuffer::default();
-        for i in 0..100 {
+    /// Produces a face buffer that has had a good amount of random additions and removal
+    fn random_face_buffer() -> FaceBuffer {
+        use rand::seq::IndexedRandom;
+
+        let mut rng = rand::rng();
+        let mut face_buffer = FaceBuffer::default();
+        for i in 0..1000 {
             // Add two chunks and remove one to try to induce fragmentation
             let quads = random_quads();
             let chunk_pos = ChunkPos { realm: Realm::Overworld, x: i, y: 0, z: rand::random() };
@@ -162,9 +166,15 @@ mod tests {
             let quads = random_quads();
             let chunk_pos = ChunkPos { realm: Realm::Overworld, x: i, y: 1, z: rand::random() };
             face_buffer.add(quads, chunk_pos);
-            let &random_chunk_pos = face_buffer.chunks.iter().next().unwrap();
-            face_buffer.remove(random_chunk_pos);
+            let (random_chunk_pos, _, _) = face_buffer.chunk_spans.choose(&mut rng).unwrap();
+            face_buffer.remove(*random_chunk_pos);
         }
+        face_buffer
+    }
+
+    #[test]
+    fn test_free_span_merging() {
+        let mut face_buffer = random_face_buffer();
         // Remove all the chunks
         let remaining_chunks = face_buffer.chunks.clone();
         for chunk_pos in remaining_chunks {
@@ -178,18 +188,7 @@ mod tests {
 
     #[test]
     fn test_chunk_spans() {
-        let mut face_buffer = super::FaceBuffer::default();
-        // messy add/remove pattern
-        for i in 0..100 {
-            let quads = random_quads();
-            let chunk_pos = ChunkPos { realm: Realm::Overworld, x: i, y: 0, z: rand::random() };
-            face_buffer.add(quads, chunk_pos);
-            let quads = random_quads();
-            let chunk_pos = ChunkPos { realm: Realm::Overworld, x: i, y: 1, z: rand::random() };
-            face_buffer.add(quads, chunk_pos);
-            let &random_chunk_pos = face_buffer.chunks.iter().next().unwrap();
-            face_buffer.remove(random_chunk_pos);
-        }
+        let face_buffer = random_face_buffer();
         // check that chunk spans + free spans cover the entire buffer without overlap
         let mut covered = vec![false; face_buffer.quads.len()];
         for (start, count) in face_buffer.free_spans.iter() {

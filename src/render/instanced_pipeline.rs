@@ -161,13 +161,12 @@ fn prepare_voxel_buffers(
         indirect_buffer, 
         chunk_face_groups
     ) = instance_data.read().culled(view_direction, view_origin);
-    println!("{:?}", indirect_buffer);
     // create the quad buffer and associated indirect buffer
     let quad_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
         label: Some("instance data buffer"),
         contents: bytemuck::cast_slice(instance_data.as_slice()),
         usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-    });
+    }); 
     let indirect_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
         label: Some("indirect draw buffer"),
         contents: bytemuck::cast_slice(indirect_buffer.iter().map(|(i, c)|
@@ -175,27 +174,13 @@ fn prepare_voxel_buffers(
                 // The amount of vertices in Plane3d is 6
                 index_count: 6,
                 instance_count: *c as u32,
-                first_index: *i as u32,
+                first_index: 0,
                 base_vertex: 0,
-                first_instance: 0,
+                first_instance: *i as u32,
             }
         ).collect::<Vec<_>>().as_slice()),
         usage: BufferUsages::INDIRECT | BufferUsages::COPY_DST,
     });
-    /* 
-    let indirect_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-        label: Some("indirect draw buffer"),
-        contents: bytemuck::cast_slice([DrawIndexedIndirectArgs {
-                // The amount of vertices in Plane3d is 6
-                index_count: 6,
-                instance_count: instance_data.len() as u32,
-                first_index: 0 as u32,
-                base_vertex: 0,
-                first_instance: 0,
-            }].as_slice()),
-        usage: BufferUsages::INDIRECT | BufferUsages::COPY_DST,
-    });*/
-
     let chunk_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
         label: Some("chunk face groups buffer"),
         contents: bytemuck::cast_slice(chunk_face_groups.as_slice()),
@@ -247,7 +232,7 @@ fn init_custom_pipeline(
     let layout = render_device.create_bind_group_layout(
         "voxel bind group layout",
         &BindGroupLayoutEntries::sequential(
-            ShaderStages::FRAGMENT,
+            ShaderStages::VERTEX | ShaderStages::FRAGMENT,
             (
                 binding_types::texture_2d_array(TextureSampleType::Float { filterable: true }),
                 binding_types::sampler(SamplerBindingType::Filtering),
@@ -387,7 +372,12 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
                 };
 
                 pass.set_index_buffer(index_buffer_slice.buffer.slice(..), 0, *index_format);
-                pass.draw_indexed_indirect(&instance_buffer.indirect_buffer, 0);
+                let stride = size_of::<DrawIndexedIndirectArgs>() as u32;
+                pass.multi_draw_indexed_indirect(
+                    &instance_buffer.indirect_buffer, 
+                    0, 
+                    instance_buffer.indirect_buffer.size() as u32/stride
+                );
             }
             RenderMeshBufferInfo::NonIndexed => {
                 pass.draw(vertex_buffer_slice.range, 0..instance_buffer.length as u32);
