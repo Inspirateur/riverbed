@@ -31,12 +31,13 @@ pub struct FaceBuffer {
 }
 
 // Chunk buffer associated to faces in the quad buffer
+#[derive(Clone, Copy, Default, Pod, Zeroable)]
+#[repr(C)]
 pub struct ChunkBuffer {
-    // index 
-    pub start: usize,
-    pub count: usize,
-    pub chunk_pos: ChunkPos,
-    pub face: usize,
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+    pub face: u32,
 }
 
 impl FaceBuffer {
@@ -105,11 +106,30 @@ impl QuadBuffer {
         }
     }
 
-    pub fn culled(&self, view_direction: Vec3, view_origin: Vec3) -> (Vec<QuadData>, Vec<()) {
+    pub fn culled(&self, view_direction: Vec3, view_origin: Vec3) 
+        -> (Vec<QuadData>, Vec<(usize, usize)>, Vec<ChunkBuffer>) 
+    {
+        let quad_count = self.0.iter().map(|face_buffer| face_buffer.quads.len()).sum();
+        let mut quad_buffer = Vec::with_capacity(quad_count);
+        let chunk_count = self.0.iter().map(|face_buffer| face_buffer.chunks.len()).sum();
+        let mut chunk_buffer = Vec::with_capacity(chunk_count);
+        let mut indirect_buffer = Vec::with_capacity(chunk_count);
         // No culling for now
-        self.0.iter().flat_map(|face_buffer| 
-            face_buffer.chunk_spans.iter().flat_map(|(_, i, c)| &face_buffer.quads[*i..(*i+*c)])
-        ).cloned().collect()
+        for (face_index, face_buffer) in self.0.iter().enumerate() {
+            quad_buffer.extend_from_slice(&face_buffer.quads);
+            chunk_buffer.extend_from_slice(
+                &face_buffer.chunk_spans.iter().map(|(chunk_pos, _, _)| ChunkBuffer {
+                    x: chunk_pos.x,
+                    y: chunk_pos.y,
+                    z: chunk_pos.z,
+                    face: face_index as u32,
+                }).collect::<Vec<_>>()
+            );
+            indirect_buffer.extend_from_slice(
+                &face_buffer.chunk_spans.iter().map(|(_, i, count)| (*i, *count)).collect::<Vec<_>>()
+            );
+        }
+        (quad_buffer, indirect_buffer, chunk_buffer)
     }
 }
 
@@ -154,5 +174,36 @@ mod tests {
         assert_eq!(face_buffer.free_spans.len(), 1);
         assert_eq!(face_buffer.free_spans[0].0, 0);
         assert_eq!(face_buffer.free_spans[0].1, face_buffer.quads.len());
+    }
+
+    #[test]
+    fn test_chunk_spans() {
+        let mut face_buffer = super::FaceBuffer::default();
+        // messy add/remove pattern
+        for i in 0..100 {
+            let quads = random_quads();
+            let chunk_pos = ChunkPos { realm: Realm::Overworld, x: i, y: 0, z: rand::random() };
+            face_buffer.add(quads, chunk_pos);
+            let quads = random_quads();
+            let chunk_pos = ChunkPos { realm: Realm::Overworld, x: i, y: 1, z: rand::random() };
+            face_buffer.add(quads, chunk_pos);
+            let &random_chunk_pos = face_buffer.chunks.iter().next().unwrap();
+            face_buffer.remove(random_chunk_pos);
+        }
+        // check that chunk spans + free spans cover the entire buffer without overlap
+        let mut covered = vec![false; face_buffer.quads.len()];
+        for (start, count) in face_buffer.free_spans.iter() {
+            for i in *start..(*start + *count) {
+                assert!(!covered[i], "Overlap in free spans");
+                covered[i] = true;
+            }
+        }
+        for (_, start, count) in face_buffer.chunk_spans.iter() {
+            for i in *start..(*start + *count) {
+                assert!(!covered[i], "Overlap of a chunk span with a free span or a previous chunk span");
+                covered[i] = true;
+            }
+        }
+        assert!(covered.iter().all(|&c| c), "Not all quads are covered by spans");
     }
 }

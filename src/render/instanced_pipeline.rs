@@ -2,6 +2,7 @@ use crate::render::quad_data::*;
 use crate::render::texture_array::BindGroupHandles;
 use bevy::pbr::{MaterialPipeline, SetMaterialBindGroup, SetMeshViewBindingArrayBindGroup};
 use bevy::render::Extract;
+use bevy::render::renderer::RenderQueue;
 use bevy::render::storage::{GpuShaderStorageBuffer, ShaderStorageBuffer};
 use bevy::render::texture::GpuImage;
 use bevy::{
@@ -51,8 +52,7 @@ impl Plugin for InstancedPipelinePlugin {
                 Render,
                 (
                     queue_custom.in_set(RenderSystems::QueueMeshes),
-                    prepare_instance_buffers.in_set(RenderSystems::PrepareResources),
-                    prepare_voxel_bind_group.in_set(RenderSystems::PrepareResources),
+                    prepare_voxel_buffers.in_set(RenderSystems::PrepareResources),
                 ),
             );
     }
@@ -139,17 +139,30 @@ struct InstanceBuffer {
     length: usize,
 }
 
-fn prepare_instance_buffers(
+fn prepare_voxel_buffers(
     mut commands: Commands,
     query: Single<(Entity, &InstanceQuads)>,
     cam: Single<&Transform, With<Camera>>,
+    handles: If<Res<BindGroupHandles>>,
+    gpu_images: Res<RenderAssets<GpuImage>>,
     render_device: Res<RenderDevice>,
+    render_queue: Res<RenderQueue>,
+    custom_pipeline: Res<CustomPipeline>,
+    shader_buffers: Res<RenderAssets<GpuShaderStorageBuffer>>,
+    existing_bind_group: Option<Res<VoxelBindGroup>>,
 ) {
+    // get the quads to send to the GPU
     let cam = cam.into_inner();
     let view_direction = cam.forward().normalize();
     let view_origin = cam.translation;
     let (entity, instance_data) = query.into_inner();
-    let instance_data = instance_data.read().culled(view_direction, view_origin);
+    let (
+        instance_data, 
+        indirect_buffer, 
+        chunk_face_groups
+    ) = instance_data.read().culled(view_direction, view_origin);
+    println!("{:?}", indirect_buffer);
+    // create the quad buffer and associated indirect buffer
     let quad_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
         label: Some("instance data buffer"),
         contents: bytemuck::cast_slice(instance_data.as_slice()),
@@ -157,35 +170,47 @@ fn prepare_instance_buffers(
     });
     let indirect_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
         label: Some("indirect draw buffer"),
-        contents: bytemuck::cast_slice(&[DrawIndexedIndirectArgs {
-            // The amount of vertices in Plane3d is 6
-            index_count: 6,
-            instance_count: instance_data.len() as u32,
-            first_index: 0,
-            base_vertex: 0,
-            first_instance: 0,
-        }]),
+        contents: bytemuck::cast_slice(indirect_buffer.iter().map(|(i, c)|
+            DrawIndexedIndirectArgs {
+                // The amount of vertices in Plane3d is 6
+                index_count: 6,
+                instance_count: *c as u32,
+                first_index: *i as u32,
+                base_vertex: 0,
+                first_instance: 0,
+            }
+        ).collect::<Vec<_>>().as_slice()),
         usage: BufferUsages::INDIRECT | BufferUsages::COPY_DST,
     });
+    /* 
+    let indirect_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+        label: Some("indirect draw buffer"),
+        contents: bytemuck::cast_slice([DrawIndexedIndirectArgs {
+                // The amount of vertices in Plane3d is 6
+                index_count: 6,
+                instance_count: instance_data.len() as u32,
+                first_index: 0 as u32,
+                base_vertex: 0,
+                first_instance: 0,
+            }].as_slice()),
+        usage: BufferUsages::INDIRECT | BufferUsages::COPY_DST,
+    });*/
+
+    let chunk_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+        label: Some("chunk face groups buffer"),
+        contents: bytemuck::cast_slice(chunk_face_groups.as_slice()),
+        usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
+    });
+    if chunk_buffer.size() == 0 {
+        return;
+    }
+    // insert the quad and associated indirect buffer to the entity
     commands.entity(entity).insert(InstanceBuffer {
         quad_buffer,
         indirect_buffer,
         length: instance_data.len(),
     });
-}
-
-fn prepare_voxel_bind_group(
-    mut commands: Commands,
-    handles: If<Res<BindGroupHandles>>,
-    gpu_images: Res<RenderAssets<GpuImage>>,
-    custom_pipeline: Res<CustomPipeline>,
-    shader_buffers: Res<RenderAssets<GpuShaderStorageBuffer>>,
-    render_device: Res<RenderDevice>,
-    existing_bind_group: Option<Res<VoxelBindGroup>>,
-) {
-    if existing_bind_group.is_some() {
-        return;
-    }
+    // (re)create the voxel bind group because chunk buffer can change size each frame 
     let gpu_image = gpu_images.get(&handles.array_texture).unwrap();
     let anim = shader_buffers.get(&handles.anim_offsets).unwrap();
 
@@ -193,11 +218,18 @@ fn prepare_voxel_bind_group(
         "voxel bind group",
         &custom_pipeline.voxel_bind_group_layout,
         &BindGroupEntries::sequential(
-            (&gpu_image.texture_view, &gpu_image.sampler, anim.buffer.as_entire_binding())
+            (
+                &gpu_image.texture_view, 
+                &gpu_image.sampler, 
+                anim.buffer.as_entire_binding(),
+                chunk_buffer.as_entire_binding(),
+            )
         ),
     );
     commands.insert_resource(VoxelBindGroup(bind_group));
+   
 }
+
 
 #[derive(Resource)]
 pub struct CustomPipeline {
@@ -219,7 +251,8 @@ fn init_custom_pipeline(
             (
                 binding_types::texture_2d_array(TextureSampleType::Float { filterable: true }),
                 binding_types::sampler(SamplerBindingType::Filtering),
-                binding_types::storage_buffer_read_only_sized(false, None)
+                binding_types::storage_buffer_read_only_sized(false, None),
+                binding_types::storage_buffer_read_only_sized(false, None),
             ),
         ),
     );
