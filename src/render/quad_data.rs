@@ -8,16 +8,41 @@ use crate::world::ChunkPos;
 #[derive(Clone, Copy, Default, Pod, Zeroable)]
 #[repr(C)]
 pub struct QuadData {
-    /// `0b00_hhhhhh_wwwwww_zzzzzz_yyyyyy_xxxxxx`
+    /// `0btthhhhhhwwwwwwzzzzzzyyyyyyxxxxxx`
     /// - x, y, z origin of quad in chunk: 3x6 bits
     /// - w, h size of quad: 2x6 bits
-    /// - 2 bits unused
+    /// - 2 bits of texture layer
     pub quad_pos: u32,
-    /// `0brrrrrr_gggggg_bbbbb_tttttttttttt_nnn`
-    /// - n normals: 3 bits (6 values) = face
-    /// - t texture layer: 12 bits
-    /// - r, g, b light/color: 17 bits (6, 6, 5)
+    /// `0brrrrrrrggggggggbbbbbbbtttttttttt`
+    /// - 10 bits of texture layer
+    /// - r, g, b light/color: 24 bits (7, 8, 7)
     pub quad_info: u32,
+    // TODO: remove this when a proper draw id is implemented in WGPU
+    // https://github.com/gfx-rs/wgpu/issues/6823#issuecomment-3714274449
+    pub draw_id: u32,
+}
+
+// Maps a float between 0.0 and 1.0 to an N-bit integer
+fn float_to_nbit<const N: usize>(value: f32) -> u32 {
+    let max_value = (1 << N) - 1;
+    (value * (max_value as f32)).round() as u32
+}
+
+impl QuadData {
+    pub fn new(x: u32, y: u32, z: u32, w: u32, h: u32, t: u32, r: f32, g: f32, b: f32) -> Self {
+        let quad_pos = t << 30 | h << 24 | w << 18 | z << 12 | y << 6 | x;
+        // we lose a bit of accuracy for red and blue to fit everything in 32 bits
+        let r = float_to_nbit::<7>(r);
+        let g = float_to_nbit::<8>(g);
+        let b = float_to_nbit::<7>(b);
+        let quad_info = r << 25 | g << 17 | b << 10 | t >> 2;
+        Self {
+            quad_pos,
+            quad_info,
+            // valued only by culling() function in QuadBuffer
+            draw_id: 0,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -117,6 +142,7 @@ impl QuadBuffer {
         // No culling for now
         for (face_index, face_buffer) in self.0.iter().enumerate() {
             let offset = quad_buffer.len();
+            let chunk_offset = chunk_buffer.len();
             quad_buffer.extend_from_slice(&face_buffer.quads);
             chunk_buffer.extend_from_slice(
                 &face_buffer.chunk_spans.iter().map(|(chunk_pos, _, _)| ChunkBuffer {
@@ -127,8 +153,19 @@ impl QuadBuffer {
                 }).collect::<Vec<_>>()
             );
             indirect_buffer.extend_from_slice(
-                &face_buffer.chunk_spans.iter().map(|(_, i, count)| (*i+offset, *count)).collect::<Vec<_>>()
+                &face_buffer.chunk_spans.iter()
+                    .map(|(_, i, count)| (*i+offset, *count))
+                    .collect::<Vec<_>>()
             );
+            // Manually set draw_id for each quad 
+            // (ugly workaround that will be removed when wgpu supports proper draw id)
+            for (span_idx, (_, start, count)) in face_buffer.chunk_spans.iter().enumerate() {
+                let start = offset + *start;
+                let draw_id = (chunk_offset + span_idx) as u32;
+                for i in start..(start + *count) {
+                    quad_buffer[i].draw_id = draw_id;
+                }
+            }
         }
         (quad_buffer, indirect_buffer, chunk_buffer)
     }
@@ -147,7 +184,8 @@ mod tests {
         (0..rng.random_range(10..1000)).map(|_| {
             QuadData {
                 quad_pos: rng.random(),
-                quad_info: rng.random(),
+                quad_info: 0,
+                draw_id: 0,
             }
         }).collect()
     }

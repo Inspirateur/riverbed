@@ -1,6 +1,7 @@
 use bevy::{asset::{LoadedFolder, RenderAssetUsages}, prelude::*, render::{extract_resource::ExtractResource, render_resource::{Extent3d, TextureDimension, TextureFormat}, storage::ShaderStorageBuffer}};
+use binary_greedy_meshing::Face;
 use hashbrown::HashMap;
-use crate::{Block, block::{Face, FaceSpecifier}, render::{parse_block_tex_name}};
+use crate::{Block, block::{FaceSpecifier, FaceSpecifierTrait}, render::parse_block_tex_name};
 use super::{BlockTexState, BlockTextureFolder};
 
 pub struct TextureArrayPlugin;

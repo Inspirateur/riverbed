@@ -5,12 +5,10 @@ use bevy::prelude::*;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use crate::agents::PlayerControlled;
-use crate::block::Face;
 use crate::render::mesh_thread::{setup_mesh_thread, update_shared_load_area, SharedPlayerCol};
 use crate::render::quad_data::InstanceQuads;
 use crate::world::pos2d::chunks_in_col;
 use crate::world::{ChunkPos, ColUnloadEvent, PlayerCol, VoxelWorld, CHUNK_S1};
-use super::chunk_culling::chunk_culling;
 use super::BlockTexState;
 use super::texture_array::TextureArrayPlugin;
 
@@ -25,7 +23,6 @@ impl Plugin for Draw3d {
             .add_systems(Update, update_shared_load_area)
             //.add_systems(Update, pull_meshes.run_if(in_state(BlockTexState::Mapped)))
             .add_systems(Update, on_col_unload)
-            .add_systems(PostUpdate, chunk_culling)
             ;
     }
 }

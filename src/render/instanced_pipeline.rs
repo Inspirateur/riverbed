@@ -264,7 +264,7 @@ impl SpecializedMeshPipeline for CustomPipeline {
             array_stride: size_of::<QuadData>() as u64,
             step_mode: VertexStepMode::Instance,
             attributes: vec![VertexAttribute {
-                format: VertexFormat::Uint32x2,
+                format: VertexFormat::Uint32x3,
                 offset: 0,
                 shader_location: 3, // shader locations 0-2 are taken up by Position, Normal and UV attributes
             }],

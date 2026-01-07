@@ -1,6 +1,7 @@
+use binary_greedy_meshing::Face;
 use itertools::Itertools;
 use packed_uints::PackedUints;
-use crate::{block::Face, world::CHUNK_S1I, Block};
+use crate::{world::CHUNK_S1I, Block};
 use super::{pos::{ChunkedPos, ColedPos}, utils::Palette, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, CHUNK_S1};
 
 #[derive(Debug)]
@@ -127,7 +128,9 @@ impl Chunk {
 
 #[cfg(test)]
 mod tests {
-    use crate::{block::Face, world::{linearize, CHUNKP_S1, CHUNKP_S2, CHUNK_S1, CHUNK_S1I}};
+    use binary_greedy_meshing::Face;
+
+    use crate::{world::{linearize, CHUNKP_S1, CHUNKP_S2, CHUNK_S1, CHUNK_S1I}};
 
     fn plane(face: Face)  -> [usize; 3] {
         match face {

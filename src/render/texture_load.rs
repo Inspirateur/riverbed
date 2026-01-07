@@ -1,6 +1,7 @@
 use std::ffi::OsStr;
 use bevy::{asset::LoadedFolder, prelude::*};
-use crate::{Block, block::{Face, FaceSpecifier}, asset_processing::from_filename};
+use binary_greedy_meshing::Face;
+use crate::{Block, block::{FaceSpecifier}, asset_processing::from_filename};
 
 const DIGITS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 

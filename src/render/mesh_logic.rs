@@ -1,14 +1,9 @@
 use std::collections::BTreeSet;
 use bevy::log::info_span;
-use binary_greedy_meshing::{self as bgm};
-use crate::{Block, block::Face, render::quad_data::QuadData, world::{CHUNKP_S3, Chunk, ChunkPos, WATER_H, linearize, pad_linearize}};
+use binary_greedy_meshing::{self as bgm, Face};
+use crate::{Block, render::quad_data::QuadData, world::{CHUNKP_S3, Chunk, ChunkPos, WATER_H, linearize, pad_linearize}};
 use crate::world::CHUNK_S1;
 use super::texture_array::TextureMapTrait;
-
-/// Map channels between 0.0 and 1.0 to the correct range and pack them
-fn color(r: f32, g: f32, b: f32) -> u32 {
-    ((r*63.) as u32) << 11 | ((g*63.) as u32) << 5 | (b*31.) as u32
-}
 
 impl Chunk {
     pub fn voxel_data_lod(&self, lod: usize) -> Vec<u16> {
@@ -51,19 +46,13 @@ impl Chunk {
         let mut meshes = core::array::from_fn(|_| Vec::new());
         for (face_n, quads) in mesher.quads.iter().enumerate() {
             let mut instances: Vec<QuadData> = Vec::with_capacity(quads.len());
-            let face: Face = face_n.into();
-            let offset = face.quad_to_block();
+            let face: Face = Face::from(face_n as u8);
             for quad in quads {
                 let voxel_i = quad.voxel_id() as usize;
                 let w = quad.width();
                 let h = quad.height();
                 let [x, y, z] = quad.xyz();
                 let block = self.palette[voxel_i];
-                let neighbor_block = self.palette[voxels[linearize(
-                    (offset[0] + x as i32 + 1) as usize,
-                    (offset[1] + y as i32 + 1) as usize,
-                    (offset[2] + z as i32 + 1) as usize,
-                )] as usize];
                 let layer = texture_map.get_texture_index(block, face) as u32;
                 let (mut r, mut g, mut b) = match (block, face) {
                     (Block::GrassBlock, Face::Up) => (0.1, 0.9, 0.2),
@@ -71,16 +60,12 @@ impl Chunk {
                     (block, _) if block.is_foliage() => (0.1, 0.8, 0.1),
                     _ => (1., 1., 1.)
                 };
-                if neighbor_block == Block::SeaBlock {
-                    let dist_to_surface = (WATER_H as usize - cy - y as usize) as f32;
-                    r *= (-dist_to_surface*0.05).exp();
-                    g *= (-dist_to_surface*0.045).exp();
-                    b *= (-dist_to_surface*0.04).exp();
-                }
-                instances.push(QuadData { 
-                    quad_pos: (h as u32) << 24 | (w as u32) << 18 | (z as u32) << 12 | (y as u32) << 6 | (x as u32),
-                    quad_info: (color(r, g, b) << 15) | (layer << 3) | face_n as u32,
-                });
+                instances.push(QuadData::new(
+                    x as u32, y as u32, z as u32, 
+                    w as u32, h as u32, 
+                    layer as u32, 
+                    r, g, b
+                ));
             }
 
             meshes[face_n] = instances;
