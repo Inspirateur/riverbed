@@ -69,6 +69,8 @@ pub fn parse_block_tex_name(filename: &OsStr) -> Option<(Block, FaceSpecifier)> 
         Some((block, "top")) => (block, FaceSpecifier::Specific(Face::Up)),
         Some((block, "front")) => (block, FaceSpecifier::Specific(Face::Front)),
         Some((block, "back")) => (block, FaceSpecifier::Specific(Face::Back)),
+        Some((block, "left")) => (block, FaceSpecifier::Specific(Face::Left)),
+        Some((block, "right")) => (block, FaceSpecifier::Specific(Face::Right)),
         _ => (filename, FaceSpecifier::All),
     };
     Some((from_filename(block)?, face))

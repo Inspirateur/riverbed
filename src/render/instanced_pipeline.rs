@@ -161,6 +161,15 @@ fn prepare_voxel_buffers(
         indirect_buffer, 
         chunk_face_groups
     ) = instance_data.read().culled(view_direction, view_origin);
+
+    if indirect_buffer.len() != chunk_face_groups.len() {
+        println!(
+            "voxel indirect draws ({}) != chunk_face_groups ({}) -> skipping frame to avoid OOB",
+            indirect_buffer.len(),
+            chunk_face_groups.len()
+        );
+        return;
+    }
     // create the quad buffer and associated indirect buffer
     let quad_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
         label: Some("instance data buffer"),

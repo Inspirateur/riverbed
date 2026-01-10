@@ -24,7 +24,7 @@ use crate::logging::InspectorPlugin;
 use crate::logging::LogReplayPlugin;
 use crate::{logging::RiverbedLogPlugin, render::MeshOrderReceiver};
 const SEED: u64 = 42;
-pub const RENDER_DISTANCE: i32 = 2;
+pub const RENDER_DISTANCE: i32 = 16;
 
 #[derive(Resource)]
 pub struct WorldRng {
