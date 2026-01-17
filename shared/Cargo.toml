@@ -13,6 +13,7 @@ hashbrown = { workspace = true }
 itertools = { workspace = true }
 json5 = { workspace = true }
 packed-uints = { workspace = true }
+rand_chacha = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 
