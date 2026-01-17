@@ -21,6 +21,8 @@ pub struct ServerPlayer {
     pub is_flying: bool,
     /// The last input timestamp we've processed for this player
     pub last_input_processed: u64,
+    /// Whether the player has completed authentication
+    pub is_authenticated: bool,
 }
 
 impl ServerPlayer {
@@ -32,6 +34,7 @@ impl ServerPlayer {
             orientation: Quat::IDENTITY,
             is_flying: false,
             last_input_processed: 0,
+            is_authenticated: false,
         }
     }
 }
@@ -67,8 +70,20 @@ impl PlayerRegistry {
     }
 
     /// Get player position by client ID (for chunk broadcasting)
+    /// Only returns position for authenticated players
     pub fn get_player_position(&self, client_id: ClientId) -> Option<Vec3> {
-        self.players.get(&client_id).map(|p| p.position)
+        self.players
+            .get(&client_id)
+            .filter(|p| p.is_authenticated)
+            .map(|p| p.position)
+    }
+
+    /// Check if a player is authenticated
+    pub fn is_authenticated(&self, client_id: ClientId) -> bool {
+        self.players
+            .get(&client_id)
+            .map(|p| p.is_authenticated)
+            .unwrap_or(false)
     }
 }
 
@@ -94,6 +109,12 @@ pub fn handle_player_inputs_system(
             warn!("Received input from unknown player {}", ev.client_id);
             continue;
         };
+
+        // Skip unauthenticated players
+        if !player.is_authenticated {
+            debug!("Ignoring input from unauthenticated player {}", ev.client_id);
+            continue;
+        }
 
         // Calculate movement direction from inputs
         let mut move_dir = Vec3::ZERO;
@@ -148,8 +169,8 @@ pub fn broadcast_player_updates_system(
     registry: Res<PlayerRegistry>,
     mut server: ResMut<RenetServer>,
 ) {
-    // For each player, broadcast their current state to all clients
-    for player in registry.players.values() {
+    // Only broadcast authenticated players
+    for player in registry.players.values().filter(|p| p.is_authenticated) {
         let update = PlayerUpdateEvent {
             id: player.id,
             position: player.position,
