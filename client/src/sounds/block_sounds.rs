@@ -1,5 +1,7 @@
 use super::block_sound_load::{BlockSound, BlockSoundLoadPlugin, BlockSounds};
 use crate::agents::{BlockActionType, BlockLootAction, SteppingOn, Velocity};
+use crate::world::BlockChanged;
+use crate::Block;
 use bevy::{
     audio::{PlaybackMode, SpatialScale},
     prelude::*,
@@ -15,7 +17,8 @@ impl Plugin for BlockSoundPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_plugins(BlockSoundLoadPlugin)
             .add_systems(Update, footsteps)
-            .add_systems(Update, breaking);
+            .add_systems(Update, breaking)
+            .add_systems(Update, on_block_changed);
     }
 }
 
@@ -95,6 +98,43 @@ fn breaking(
                 },
             ));
         sound_cd.0 = 0.3;
+    }
+}
+
+/// Plays breaking sounds when blocks are destroyed.
+/// 
+/// Listens for `BlockChanged` events and plays the appropriate breaking sound
+/// when a non-air block is replaced with air.
+fn on_block_changed(
+    mut commands: Commands,
+    block_sounds: Res<BlockSounds>,
+    mut block_changed_events: MessageReader<BlockChanged>,
+) {
+    for event in block_changed_events.read() {
+        // Only play sound when a block is broken (replaced with air)
+        if event.old_block == Block::Air || event.new_block != Block::Air {
+            continue;
+        }
+        
+        let Some(sound) = block_sounds.sound_for(event.old_block, BlockSound::Breaking) else {
+            continue;
+        };
+        
+        commands
+            .spawn((
+                Transform::from_translation(event.pos.into()),
+                Visibility::default(),
+            ))
+            .insert((
+                AudioPlayer::<AudioSource>(sound.clone()),
+                PlaybackSettings {
+                    mode: PlaybackMode::Despawn,
+                    spatial: true,
+                    spatial_scale: Some(SpatialScale::new(0.2)),
+                    speed: 1. + ((rand::rng().random::<f32>() - 0.5) * RAND_AMPLITUDE),
+                    ..Default::default()
+                },
+            ));
     }
 }
 
