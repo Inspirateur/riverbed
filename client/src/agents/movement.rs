@@ -171,10 +171,20 @@ fn apply_acc_free_fly(mut query: Query<(&Heading, &mut Velocity), With<FreeFly>>
 fn apply_velocity(
     blocks: Res<ClientWorldMap>, 
     time: Res<Time>, 
-    mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>
+    mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB, Option<&FreeFly>)>
 ) {
-    for (mut velocity, mut transform, realm, aabb) in query.iter_mut() {
-        if !blocks.is_col_loaded(transform.translation, *realm) {
+    for (mut velocity, mut transform, realm, aabb, free_fly) in query.iter_mut() {
+        let col_loaded = blocks.is_col_loaded(transform.translation, *realm);
+        
+        // In FreeFly mode, skip collision detection entirely and just apply velocity
+        if free_fly.is_some() {
+            let applied_velocity = velocity.0 * time.delta_secs();
+            transform.translation += applied_velocity;
+            continue;
+        }
+        
+        // For walking mode, require the column to be loaded
+        if !col_loaded {
             continue;
         }
         let applied_velocity = velocity.0*time.delta_secs();
