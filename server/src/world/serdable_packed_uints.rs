@@ -1,3 +1,5 @@
+use packed_uints::PackedUints;
+
 #[derive(Clone, Debug)]
 pub struct SerdablePackedUints(pub PackedUints);
 
