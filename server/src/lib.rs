@@ -1,3 +1,3 @@
 mod generation;
 mod logging;
-mod world;
+pub mod world;
