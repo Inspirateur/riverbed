@@ -1,1 +1,1 @@
-A wrapper around simdnoise for ease of use in Riverbed's terrain generation code.
+A wrapper around the `noise` crate for ease of use in Riverbed's terrain generation code.
