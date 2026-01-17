@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use shared::world::chunk::ChunkTrait;
 use crate::{Block, block::Face, world::{CHUNK_S1I, serdable_packed_uints::SerdablePackedUints}};
 use super::{pos::{ChunkedPos, ColedPos}, utils::Palette, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, CHUNK_S1};
 
