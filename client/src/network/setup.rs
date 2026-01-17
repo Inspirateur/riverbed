@@ -56,7 +56,6 @@ pub struct WorldSeed(pub u32);
 pub enum TargetServerState {
     Initial,
     Establishing,
-    ConnectionEstablished,
     FullyReady,
 }
 
