@@ -1,5 +1,5 @@
 use crate::{
-    agents::{Gravity, Heading, Jumping, Velocity, AABB},
+    agents::{Velocity, AABB, Speed},
     sounds::{on_item_get, BlockSoundCD, FootstepCD},
     ui::CursorGrabbed,
 };
@@ -67,14 +67,7 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
             },
             Visibility::default(),
             realm,
-            Gravity(PLAYER_GRAVITY),
-            Heading(Vec3::default()),
             Speed(WALK_SPEED),
-            Jumping {
-                force: PLAYER_JUMP_FORCE,
-                cd: Timer::new(Duration::from_millis(500), TimerMode::Once),
-                intent: false,
-            },
             AABB(PLAYER_AABB),
             Velocity(Vec3::default()),
             TargetBlock(None),

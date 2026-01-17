@@ -47,10 +47,6 @@ pub struct Speed(pub f32);
 #[derive(Component)]
 pub struct AABB(pub Vec3);
 
-/// Desired movement direction and speed (set by input system)
-#[derive(Component)]
-pub struct Heading(pub Vec3);
-
 /// Current velocity vector
 #[derive(Component)]
 pub struct Velocity(pub Vec3);
