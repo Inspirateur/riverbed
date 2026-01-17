@@ -2,11 +2,6 @@ use bevy::{platform::collections::HashSet, prelude::*};
 use shared::messages::ClientPlayerInput;
 use shared::net::clock::TickClock;
 
-#[derive(Debug, Default, Resource)]
-pub struct PlayerTickInputsBuffer {
-    pub buffer: Vec<ClientPlayerInput>,
-}
-
 #[derive(Resource, Default)]
 pub struct CurrentFrameInputs(pub ClientPlayerInput);
 

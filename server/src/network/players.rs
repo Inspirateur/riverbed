@@ -126,6 +126,11 @@ pub fn handle_player_inputs_system(
             continue;
         };
 
+        // Drop stale/duplicate inputs based on last processed timestamp.
+        if ev.input.time_ms <= player.last_input_processed {
+            continue;
+        }
+
         let delta_seconds = ev.input.delta_ms as f32 / 1000.0;
         let state = PhysicsState {
             position: transform.translation,

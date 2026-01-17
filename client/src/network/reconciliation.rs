@@ -20,7 +20,8 @@ use shared::physics::{
 use shared::world::realm::Realm;
 
 use crate::agents::{PlayerControlled, Velocity, FreeFly, Walking, Speed};
-use crate::network::{CurrentPlayerProfile, UnacknowledgedInputs};
+use crate::network::CurrentPlayerProfile;
+use shared::net::input_history::InputHistory;
 use crate::world::ClientWorldMap;
 
 /// Threshold for position correction. If the difference between client and server
@@ -58,7 +59,7 @@ pub fn reconcile_player_state(
     mut commands: Commands,
     player_entity: Query<Entity, With<PlayerControlled>>,
     current_player: Res<CurrentPlayerProfile>,
-    mut unack_inputs: ResMut<UnacknowledgedInputs>,
+    mut input_history: ResMut<InputHistory>,
     world: Res<ClientWorldMap>,
 ) {
     for event in ev_update.read() {
@@ -68,15 +69,13 @@ pub fn reconcile_player_state(
         }
 
         // Remove acknowledged inputs (server has processed these)
-        let old_count = unack_inputs.0.len();
-        unack_inputs.0.retain(|input| input.time_ms > event.last_ack_time);
-        let acked_count = old_count - unack_inputs.0.len();
-        
+        let acked_count = input_history.ack_until(event.last_ack_time);
+
         if acked_count > 0 {
             debug!(
                 "Acknowledged {} inputs (remaining: {})",
                 acked_count,
-                unack_inputs.0.len()
+                input_history.unacked.len()
             );
         }
 
@@ -128,7 +127,7 @@ pub fn reconcile_player_state(
             debug!(
                 "Position error: {:.3}m, replaying {} unacked inputs",
                 position_error,
-                unack_inputs.0.len()
+                input_history.unacked.len()
             );
 
             // Start from server's authoritative state
@@ -141,7 +140,7 @@ pub fn reconcile_player_state(
             };
 
             // Replay all unacknowledged inputs
-            for input in unack_inputs.0.iter() {
+            for input in input_history.unacked.iter() {
                 let delta_seconds = input.delta_ms as f32 / 1000.0;
                 let step = apply_player_input_step(
                     &*world,

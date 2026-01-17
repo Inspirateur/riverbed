@@ -8,21 +8,19 @@ use crate::agents::Velocity;
 use crate::render::FpsCam;
 use crate::ui::SelectedHotbarSlot;
 
-use super::buffered_client::{CurrentFrameInputs, CurrentFrameInputsExt, PlayerTickInputsBuffer, SyncTime, SyncTimeExt};
+use super::buffered_client::{CurrentFrameInputs, CurrentFrameInputsExt, SyncTime, SyncTimeExt};
+use shared::net::input_history::InputHistory;
 use super::SendGameMessageExtension;
-
-#[derive(Debug, Default, Resource)]
-pub struct UnacknowledgedInputs(pub Vec<ClientPlayerInput>);
 
 pub fn pre_input_update_system(
     mut frame_inputs: ResMut<CurrentFrameInputs>,
-    mut tick_buffer: ResMut<PlayerTickInputsBuffer>,
+    mut input_history: ResMut<InputHistory>,
     mut sync_time: ResMut<SyncTime>,
 ) {
     sync_time.advance();
 
     let inputs_of_last_frame = frame_inputs.0.clone();
-    tick_buffer.buffer.push(inputs_of_last_frame);
+    input_history.push_frame(inputs_of_last_frame);
     
     frame_inputs.reset(sync_time.clock.curr_ms, sync_time.delta());
 }
@@ -80,20 +78,15 @@ pub fn update_frame_inputs_system(
 
 pub fn upload_player_inputs_system(
     mut client: ResMut<RenetClient>,
-    mut inputs: ResMut<PlayerTickInputsBuffer>,
-    mut unacknowledged_inputs: ResMut<UnacknowledgedInputs>,
+    mut input_history: ResMut<InputHistory>,
 ) {
     if client.is_disconnected() {
-        inputs.buffer.clear();
-        unacknowledged_inputs.0.clear();
+        input_history.clear_all();
         return;
     }
 
-    let mut frames = vec![];
-    for input in inputs.buffer.iter() {
-        frames.push(input.clone());
-        unacknowledged_inputs.0.push(input.clone());
+    let frames = input_history.take_pending();
+    if !frames.is_empty() {
+        client.send_game_message(ClientToServerMessage::PlayerInputs(frames));
     }
-    client.send_game_message(ClientToServerMessage::PlayerInputs(frames));
-    inputs.buffer.clear();
 }

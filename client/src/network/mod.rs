@@ -19,8 +19,9 @@ pub use setup::*;
 use bevy::prelude::*;
 use shared::messages::{ServerItemStackUpdate, ServerPlayerSpawn, ServerPlayerUpdate};
 
-use crate::network::buffered_client::{CurrentFrameInputs, PlayerTickInputsBuffer, SyncTime};
+use crate::network::buffered_client::{CurrentFrameInputs, SyncTime};
 use crate::ui::CursorGrabbed;
+use shared::net::input_history::InputHistory;
 
 pub struct NetworkPlugin;
 impl Plugin for NetworkPlugin {
@@ -30,10 +31,9 @@ impl Plugin for NetworkPlugin {
         
         // Initialize resources
         app.init_resource::<CurrentPlayerProfile>()
-            .init_resource::<PlayerTickInputsBuffer>()
             .init_resource::<CurrentFrameInputs>()
             .init_resource::<SyncTime>()
-            .init_resource::<UnacknowledgedInputs>()
+            .init_resource::<InputHistory>()
             .init_resource::<SelectedWorld>()
             .init_resource::<ServerTickAtConnect>()
             .init_resource::<WorldSeed>();
