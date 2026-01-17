@@ -1873,6 +1873,7 @@ dependencies = [
  "crossbeam",
  "hashbrown 0.16.1",
  "itertools 0.14.0",
+ "json5",
  "leafwing-input-manager",
  "parking_lot",
  "rand 0.9.2",
