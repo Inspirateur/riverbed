@@ -4527,6 +4527,7 @@ dependencies = [
  "chrono",
  "csv",
  "itertools 0.14.0",
+ "packed-uints",
  "riverbed_noise",
  "ron 0.11.0",
  "serde",

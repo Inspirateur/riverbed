@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use bevy::prelude::{Component, Resource};
 use serde::Deserialize;
-use crate::{ui::ItemHolder, BlockFamily};
+use crate::{BlockFamily, items::item_slots::ItemHolder};
 
 use super::{Item, Stack};
 

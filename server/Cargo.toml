@@ -10,6 +10,7 @@ logging = []
 shared = { path = "../shared" }
 
 itertools = { workspace = true }
+packed-uints = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 
