@@ -1,5 +1,6 @@
 use std::ops::DerefMut;
 use leafwing_input_manager::prelude::*;
+use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
 use bevy::color::palettes::css;
 use shared::logging::logging::{EventHead, EventQueue, IsLive, LoadState, MeshCount, PlayerPos};
@@ -10,13 +11,19 @@ impl Plugin for InspectorDisplayPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app
             .add_plugins(
-                DefaultPlugins.set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Riverbed".into(),
+                DefaultPlugins
+                    .set(AssetPlugin {
+                        // Assets folder is at repo root, not in client folder
+                        file_path: "../assets".to_string(),
                         ..default()
-                    }),
-                    ..default()
-                })
+                    })
+                    .set(WindowPlugin {
+                        primary_window: Some(Window {
+                            title: "Riverbed Log Inspector".into(),
+                            ..default()
+                        }),
+                        ..default()
+                    })
             )
             .add_plugins(InputManagerPlugin::<CameraMovement>::default())
             .add_plugins(InputManagerPlugin::<TimeControl>::default())
