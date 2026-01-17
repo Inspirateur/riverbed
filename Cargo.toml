@@ -1,13 +1,5 @@
-[package]
-name = "riverbed"
-version = "0.1.0"
-edition = "2024"
-
-[features]
-logging = []
-log_inspector = []
-
 [workspace]
+resolver = "2"
 members = [
     "client",
     "server",
@@ -40,9 +32,6 @@ ron = "*"
 serde = "*"
 strum = "*"
 strum_macros = "*"
-
-[build-dependencies]
-riverbed_block_def = { path = "crates/riverbed_block_def", version = "*" }
 
 [profile.dev]
 opt-level = 1
