@@ -4,86 +4,24 @@
 //! when running in singleplayer mode (local server).
 
 mod generation;
+mod init;
 mod logging;
 mod network;
 pub mod world;
 
 use std::net::{IpAddr, SocketAddr, UdpSocket};
-use std::time::{Duration, SystemTime};
 
-use bevy::app::ScheduleRunnerPlugin;
 use bevy::log::{error, info};
 use bevy::prelude::*;
-use bevy_renet::netcode::{NetcodeServerPlugin, NetcodeServerTransport, ServerAuthentication, ServerConfig};
-use bevy_renet::renet::RenetServer;
-use bevy_renet::RenetServerPlugin;
-use crossbeam::channel;
-use shared::world::pos::pos3d::ChunkPos;
-use shared::world::world_rng::WorldRng;
-use shared::world::WorldSeed;
-use shared::{get_shared_renet_config, GameServerConfig, PROTOCOL_ID, TICKS_PER_SECOND};
+use shared::GameServerConfig;
 
-use crate::network::broadcast_world::ChunkChangesReceiver;
-use crate::network::dispatcher::ServerNetworkPlugin;
-use crate::world::voxel_world::VoxelWorld;
-use crate::world::TerrainLoadPlugin;
+pub use init::{setup_netcode, NetcodeSetupError};
 
 /// Acquires a UDP socket bound to an ephemeral port on the given IP address.
 /// Used by the client to create a socket for the local server.
 pub fn acquire_local_ephemeral_udp_socket(ip: IpAddr) -> std::io::Result<UdpSocket> {
     let addr = SocketAddr::new(ip, 0); // Port 0 = ephemeral port
     UdpSocket::bind(addr)
-}
-
-/// Error types that can occur during server netcode setup
-#[derive(Debug)]
-pub enum NetcodeSetupError {
-    SocketAddr(std::io::Error),
-    Time(std::time::SystemTimeError),
-    Transport(String),
-}
-
-impl std::fmt::Display for NetcodeSetupError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            NetcodeSetupError::SocketAddr(err) => {
-                write!(f, "Failed to get socket local address: {err}")
-            }
-            NetcodeSetupError::Time(err) => {
-                write!(f, "System time error: {err}")
-            }
-            NetcodeSetupError::Transport(err) => {
-                write!(f, "Failed to create netcode transport: {err}")
-            }
-        }
-    }
-}
-
-/// Sets up the netcode networking layer for the server.
-/// Returns the RenetServer, transport, and the address the server is bound to.
-fn setup_netcode(
-    socket: UdpSocket,
-) -> Result<(RenetServer, NetcodeServerTransport, SocketAddr), NetcodeSetupError> {
-    let local_addr = socket.local_addr().map_err(NetcodeSetupError::SocketAddr)?;
-
-    let current_time = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map_err(NetcodeSetupError::Time)?;
-
-    let server_config = ServerConfig {
-        current_time,
-        max_clients: 64,
-        protocol_id: PROTOCOL_ID,
-        public_addresses: vec![local_addr],
-        authentication: ServerAuthentication::Unsecure,
-    };
-
-    let transport = NetcodeServerTransport::new(server_config, socket)
-        .map_err(|err| NetcodeSetupError::Transport(err.to_string()))?;
-
-    let server = RenetServer::new(get_shared_renet_config());
-
-    Ok((server, transport, local_addr))
 }
 
 /// Initialize and run the server with the given configuration.
@@ -124,46 +62,19 @@ pub fn init(socket: UdpSocket, config: GameServerConfig) {
 
     info!("Server starting on {}", addr);
 
-    // Create chunk changes channel for VoxelWorld
-    let (chunk_changes_tx, chunk_changes_rx) = channel::unbounded::<ChunkPos>();
-    let mut voxel_world = VoxelWorld::new(chunk_changes_tx);
-    voxel_world.render_distance = config.broadcast_render_distance as u32;
-
-    // Build the Bevy app
     let mut app = App::new();
 
-    // Minimal plugins for headless server
-    app.add_plugins(
-        MinimalPlugins.set(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
-            1.0 / TICKS_PER_SECOND as f64,
-        ))),
+    init::configure_server_app(
+        &mut app,
+        server,
+        transport,
+        init::ServerInitConfig {
+            game_config: config,
+            add_log_plugin: false, // Client already has logging configured
+            add_log_broadcast: false, // Not needed for embedded server
+        },
     );
-    // Note: We don't add LogPlugin here because when running embedded in the client,
-    // the client already has logging configured. Adding it here would cause a conflict.
 
-    // Networking plugins
-    app.add_plugins(RenetServerPlugin);
-    app.add_plugins(NetcodeServerPlugin);
-
-    // Insert network resources
-    app.insert_resource(server);
-    app.insert_resource(transport);
-
-    // Insert game resources
-    let seed: u64 = 42; // TODO: Load from world save or generate randomly
-    app.insert_resource(config);
-    app.insert_resource(voxel_world);
-    app.insert_resource(ChunkChangesReceiver(chunk_changes_rx));
-    app.insert_resource(WorldSeed(seed as u32));
-    app.insert_resource(WorldRng::new(seed));
-
-    // Add server network plugin (handles connections, auth, chunk broadcasting)
-    app.add_plugins(ServerNetworkPlugin);
-
-    // Add terrain loading plugin (handles terrain generation based on player positions)
-    app.add_plugins(TerrainLoadPlugin);
-
-    info!("Server initialized, entering main loop");
-
+    info!("Server entering main loop");
     app.run();
 }
