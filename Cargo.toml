@@ -16,6 +16,7 @@ itertools = "*"
 json5 = "*"
 packed-uints = "*"
 parking_lot = "*"
+rand_chacha = "*"
 ron = "*"
 serde = "*"
 

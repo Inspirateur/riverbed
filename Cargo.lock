@@ -4559,6 +4559,7 @@ dependencies = [
  "json5",
  "lazy_static",
  "packed-uints",
+ "rand_chacha",
  "regex",
  "riverbed_block_def",
  "ron 0.11.0",
