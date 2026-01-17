@@ -1,4 +1,5 @@
 use packed_uints::PackedUints;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub struct SerdablePackedUints(pub PackedUints);
