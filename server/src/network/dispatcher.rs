@@ -11,6 +11,7 @@ use shared::messages::{
     AuthRegisterRequest, AuthRegisterResponse, ClientToServerMessage, PlayerSave,
     ServerPlayerSpawn, ServerToClientMessage,
 };
+use shared::net::clock;
 use shared::physics::MovementMode;
 use shared::world::realm::Realm;
 use shared::world::WorldSeed;
@@ -233,10 +234,7 @@ fn handle_auth_requests(
             });
         }
 
-        let timestamp_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let timestamp_ms = clock::now_ms();
 
         let auth_response = AuthRegisterResponse {
             username: username.clone(),

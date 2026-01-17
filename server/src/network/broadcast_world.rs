@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer};
 use crossbeam::channel::Receiver;
 use shared::messages::{ServerToClientMessage, ServerWorldUpdate};
+use shared::net::clock;
 use shared::world::chunk::Chunk;
 use shared::world::pos::pos2d::{chunks_in_col, ColPos};
 use shared::world::pos::pos3d::ChunkPos;
@@ -146,10 +147,7 @@ pub fn broadcast_world_state(
 
         let message = ServerWorldUpdate {
             tick: tick.0,
-            time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64,
+            time: clock::now_ms(),
             new_map: chunks_to_send,
             item_stacks: vec![],
         };

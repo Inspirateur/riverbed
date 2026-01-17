@@ -1,5 +1,6 @@
 use bevy::{platform::collections::HashSet, prelude::*};
 use shared::messages::ClientPlayerInput;
+use shared::net::clock::TickClock;
 
 #[derive(Debug, Default, Resource)]
 pub struct PlayerTickInputsBuffer {
@@ -29,20 +30,13 @@ impl CurrentFrameInputsExt for CurrentFrameInputs {
 
 #[derive(Resource)]
 pub struct SyncTime {
-    pub last_time_ms: u64,
-    pub curr_time_ms: u64,
+    pub clock: TickClock,
 }
 
 impl Default for SyncTime {
     fn default() -> Self {
-        let current_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
-
         Self {
-            last_time_ms: current_time_ms,
-            curr_time_ms: current_time_ms,
+            clock: TickClock::new(),
         }
     }
 }
@@ -50,18 +44,24 @@ impl Default for SyncTime {
 pub trait SyncTimeExt {
     fn delta(&self) -> u64;
     fn advance(&mut self);
+    fn set_offset(&mut self, offset_ms: i64);
+    fn now_synced(&self) -> i64;
 }
 
 impl SyncTimeExt for SyncTime {
     fn delta(&self) -> u64 {
-        self.curr_time_ms - self.last_time_ms
+        self.clock.delta()
     }
 
     fn advance(&mut self) {
-        self.last_time_ms = self.curr_time_ms;
-        self.curr_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        self.clock.advance();
+    }
+
+    fn set_offset(&mut self, offset_ms: i64) {
+        self.clock.set_offset(offset_ms);
+    }
+
+    fn now_synced(&self) -> i64 {
+        self.clock.synced_now_ms()
     }
 }

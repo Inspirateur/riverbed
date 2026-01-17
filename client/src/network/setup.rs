@@ -9,6 +9,7 @@ use shared::{
     SOCKET_BIND_ERROR, TARGET_SERVER_ADDR_ERROR, NETCODE_CLIENT_TRANSPORT_ERROR, 
     UNIX_EPOCH_TIME_ERROR, RENDER_DISTANCE,
 };
+use shared::net::clock;
 
 use crate::network::world::update_world_from_network;
 use crate::network::CachedChatConversation;
@@ -26,6 +27,7 @@ use std::time::Duration;
 use std::{net::UdpSocket, time::SystemTime};
 
 use super::SendGameMessageExtension;
+use super::buffered_client::{SyncTime, SyncTimeExt};
 
 #[derive(Resource, Debug, Default)]
 pub struct PlayerNameSupplied {
@@ -262,6 +264,7 @@ pub fn establish_authenticated_connection_to_server(
     mut ev_spawn: MessageWriter<ServerPlayerSpawn>,
     mut server_tick: ResMut<ServerTickAtConnect>,
     mut world_seed: ResMut<WorldSeed>,
+    mut sync_time: ResMut<SyncTime>,
 ) {
     if target.session_token.is_some() {
         return;
@@ -291,6 +294,13 @@ pub fn establish_authenticated_connection_to_server(
                 target.state = TargetServerState::ConnectionEstablished;
                 server_tick.0 = response.tick;
                 world_seed.0 = response.world_seed;
+
+                let local_now = clock::now_ms();
+                let offset_ms = clock::compute_offset(response.timestamp_ms, local_now);
+                sync_time.clock.last_ms = local_now;
+                sync_time.clock.curr_ms = local_now;
+                sync_time.set_offset(offset_ms);
+
                 info!("Successfully authenticated as {}", username);
                 info!("Received world seed: {}", response.world_seed);
                 for player in response.players {

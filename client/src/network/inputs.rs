@@ -24,7 +24,7 @@ pub fn pre_input_update_system(
     let inputs_of_last_frame = frame_inputs.0.clone();
     tick_buffer.buffer.push(inputs_of_last_frame);
     
-    frame_inputs.reset(sync_time.curr_time_ms, sync_time.delta());
+    frame_inputs.reset(sync_time.clock.curr_ms, sync_time.delta());
 }
 
 pub fn capture_player_inputs_system(
