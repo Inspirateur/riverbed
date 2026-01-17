@@ -1950,6 +1950,7 @@ dependencies = [
  "rand_chacha",
  "ron 0.11.0",
  "serde",
+ "server",
  "shared",
  "strum",
 ]

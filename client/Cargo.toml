@@ -8,6 +8,7 @@ logging = []
 
 [dependencies]
 shared = { path = "../shared" }
+server = { path = "../server" }
 
 bevy = { workspace = true }
 bevy_renet = { workspace = true }

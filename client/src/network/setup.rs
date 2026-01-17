@@ -5,9 +5,9 @@ use bevy_renet::netcode::{
 use bevy_renet::{renet::RenetClient, RenetClientPlugin};
 use rand::Rng;
 use shared::{
-    get_shared_renet_config, STC_AUTH_CHANNEL,
+    get_shared_renet_config, GameServerConfig, STC_AUTH_CHANNEL,
     SOCKET_BIND_ERROR, TARGET_SERVER_ADDR_ERROR, NETCODE_CLIENT_TRANSPORT_ERROR, 
-    UNIX_EPOCH_TIME_ERROR, USERNAME_MISSING_AUTHENTICATED_ERROR,
+    UNIX_EPOCH_TIME_ERROR, USERNAME_MISSING_AUTHENTICATED_ERROR, RENDER_DISTANCE,
 };
 
 use crate::network::world::update_world_from_network;
@@ -21,6 +21,8 @@ use shared::messages::{
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::thread;
+use std::time::Duration;
 use std::{net::UdpSocket, time::SystemTime};
 
 use super::SendGameMessageExtension;
@@ -32,9 +34,19 @@ pub struct PlayerNameSupplied {
 }
 
 // Resource for selected world (for world selection menu)
-#[derive(Resource, Default, Debug, Clone)]
+#[derive(Resource, Debug, Clone)]
 pub struct SelectedWorld {
     pub name: Option<String>,
+}
+
+impl Default for SelectedWorld {
+    fn default() -> Self {
+        // Default to "default" world for singleplayer MVP
+        // This will be replaced by a world selection menu later
+        Self {
+            name: Some("default".to_string()),
+        }
+    }
 }
 
 // Resource for client-side time tracking
@@ -127,16 +139,49 @@ pub fn launch_local_server_system(
     if let Some(world_name) = &selected_world.name {
         info!("Launching local server with world: {}", world_name);
 
-        // TODO: Implement server launching once server crate is ready
-        // For now, we'll need to run the server separately and connect to it
-        // The server should be started on 127.0.0.1 with an ephemeral port
-        
-        // Placeholder: Set a default local address for testing
-        // In production, this should actually launch the server and get its address
-        let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8000);
-        warn!("Server auto-launch not yet implemented. Expecting server at {}", addr);
+        // Acquire an ephemeral UDP socket for the local server
+        let socket = match server::acquire_local_ephemeral_udp_socket(IpAddr::V4(Ipv4Addr::new(
+            127, 0, 0, 1,
+        ))) {
+            Ok(socket) => socket,
+            Err(err) => {
+                error!("{}: {err}", SOCKET_BIND_ERROR);
+                return;
+            }
+        };
 
+        // Get the address the socket was bound to
+        let addr = match socket.local_addr() {
+            Ok(addr) => addr,
+            Err(err) => {
+                error!("Failed to get socket local address: {err}");
+                return;
+            }
+        };
+        info!("Local server will bind to: {}", addr);
+
+        // Clone data needed for the server thread
+        let world_name_clone = world_name.clone();
+
+        // Spawn the server in a separate thread
+        thread::spawn(move || {
+            server::init(
+                socket,
+                GameServerConfig {
+                    world_name: world_name_clone,
+                    is_solo: true,
+                    broadcast_render_distance: RENDER_DISTANCE,
+                },
+            );
+        });
+
+        // Give the server thread a moment to initialize before we try to connect
+        // The socket is already bound, but the server needs to set up its Bevy app
+        thread::sleep(Duration::from_millis(100));
+
+        // Store the server address for the client to connect to
         target.address = Some(addr);
+        info!("Local server launched, client will connect to {}", addr);
     } else {
         error!("Error: No world selected. Unable to launch the server.");
     }
