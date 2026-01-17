@@ -84,7 +84,9 @@ pub fn pull_meshes(
     {
         let Some(mesh) = mesh_opt else {
             if let Some(ent) = chunk_ents.0.remove(&(chunk_pos, face)) {
-                commands.entity(ent).despawn();
+                // Use try_despawn since the entity may have already been despawned
+                // by on_col_unload if the column was unloaded
+                commands.entity(ent).try_despawn();
             }
             continue;
         };

@@ -14,11 +14,30 @@ use shared::{
         pos::{
             pos2d::ColPos,
             pos3d::{BlockPos, ChunkPos},
+            PlayerCol,
         },
     },
 };
 use std::sync::Arc;
 use crate::network::models::client_chunk::ClientChunk;
+use crate::agents::PlayerControlled;
+
+/// Client-side render distance configuration.
+/// 
+/// This controls how far chunks are rendered on the client side.
+/// The server may send chunks for a larger area, but the client will only
+/// render and keep in memory chunks within this distance.
+#[derive(Resource)]
+pub struct RenderDistance {
+    /// Render distance in chunks
+    pub distance: i32,
+}
+
+impl Default for RenderDistance {
+    fn default() -> Self {
+        Self { distance: 32 }
+    }
+}
 
 /// Client-side world map resource.
 /// 
@@ -30,8 +49,6 @@ pub struct ClientWorldMap {
     pub chunks: Arc<SkipMap<ChunkPos, RwLock<ClientChunk>>>,
     /// Channel to notify mesh thread of chunk changes
     chunk_changes: Sender<ChunkPos>,
-    /// Render distance in chunks
-    pub render_distance: u32,
 }
 
 impl ClientWorldMap {
@@ -39,7 +56,6 @@ impl ClientWorldMap {
         ClientWorldMap {
             chunks: Arc::new(SkipMap::new()),
             chunk_changes,
-            render_distance: 32,
         }
     }
 
@@ -74,6 +90,21 @@ impl ClientWorldMap {
     /// Mark a chunk as changed (triggers mesh rebuild)
     pub fn mark_chunk_changed(&self, chunk_pos: ChunkPos) {
         let _ = self.chunk_changes.send(chunk_pos);
+    }
+
+    /// Get all unique column positions that have at least one chunk loaded
+    pub fn loaded_columns(&self) -> Vec<ColPos> {
+        use std::collections::HashSet;
+        let mut cols: HashSet<ColPos> = HashSet::new();
+        for entry in self.chunks.iter() {
+            let chunk_pos = entry.key();
+            cols.insert(ColPos {
+                x: chunk_pos.x,
+                z: chunk_pos.z,
+                realm: chunk_pos.realm,
+            });
+        }
+        cols.into_iter().collect()
     }
 }
 
@@ -118,10 +149,47 @@ pub struct ClientWorldPlugin;
 impl Plugin for ClientWorldPlugin {
     fn build(&self, app: &mut App) {
         app
+            .init_resource::<RenderDistance>()
             .add_message::<SetBlockRequest>()
             .add_message::<BlockChanged>()
             .add_message::<ColUnloadEvent>()
-            .add_systems(Update, process_block_requests);
+            .add_systems(Update, process_block_requests)
+            .add_systems(Update, unload_distant_columns);
+    }
+}
+
+/// Unloads columns that are outside the client's render distance.
+/// 
+/// This system prevents memory from growing unbounded as the player travels.
+/// The server may send chunks for a larger area than the client renders,
+/// allowing clients to adjust render distance for their hardware performance.
+fn unload_distant_columns(
+    world_map: Option<Res<ClientWorldMap>>,
+    render_distance: Res<RenderDistance>,
+    player_query: Query<&PlayerCol, With<PlayerControlled>>,
+    mut unload_events: MessageWriter<ColUnloadEvent>,
+) {
+    let Some(world_map) = world_map else {
+        return;
+    };
+    
+    let Ok(player_col) = player_query.single() else {
+        return;
+    };
+    
+    let player_pos = player_col.0;
+    let distance = render_distance.distance;
+    
+    for col in world_map.loaded_columns() {
+        // Check if column is outside render distance (using square distance for efficiency)
+        let dx = (col.x - player_pos.x).abs();
+        let dz = (col.z - player_pos.z).abs();
+        
+        // Also check realm - unload columns from different realms
+        if col.realm != player_pos.realm || dx > distance || dz > distance {
+            world_map.unload_col(col);
+            unload_events.write(ColUnloadEvent(col));
+        }
     }
 }
 
