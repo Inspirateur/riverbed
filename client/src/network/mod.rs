@@ -15,6 +15,7 @@ pub use inputs::*;
 pub use setup::*;
 
 use bevy::prelude::*;
+use shared::messages::{ItemStackUpdateEvent, PlayerSpawnEvent, PlayerUpdateEvent};
 
 use crate::network::buffered_client::{CurrentFrameInputs, PlayerTickInputsBuffer, SyncTime};
 
@@ -30,6 +31,11 @@ impl Plugin for NetworkPlugin {
             .init_resource::<SelectedWorld>()
             .init_resource::<ClientTime>()
             .init_resource::<WorldSeed>();
+        
+        // Register network messages/events
+        app.add_message::<PlayerSpawnEvent>()
+            .add_message::<PlayerUpdateEvent>()
+            .add_message::<ItemStackUpdateEvent>();
         
         // Setup base netcode plugins (RenetClientPlugin, NetcodeClientPlugin)
         add_base_netcode(app);

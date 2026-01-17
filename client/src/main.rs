@@ -17,7 +17,8 @@ use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
 use ui::UIPlugin;
 use render::{Render, TextureLoadPlugin};
-use agents::{MovementPlugin, PlayerPlugin};
+use agents::{MovementPlugin, OtherPlayersPlugin, PlayerPlugin};
+use network::NetworkPlugin;
 use world::{ClientWorldMap, ClientWorldPlugin};
 #[cfg(feature = "log_inspector")]
 use crate::logging::InspectorPlugin;
@@ -70,11 +71,13 @@ fn client() {
             }).disable::<LogPlugin>()
         )
         .add_plugins(RiverbedLogPlugin)
+        .add_plugins(NetworkPlugin)
         .insert_resource(WorldRng {
             seed: SEED,
             rng: ChaCha8Rng::seed_from_u64(SEED)
         })
         .add_plugins(PlayerPlugin)
+        .add_plugins(OtherPlayersPlugin)
         .add_plugins(TextureLoadPlugin)
         .add_plugins(UIPlugin)
         .add_plugins(MovementPlugin)

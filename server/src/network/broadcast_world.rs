@@ -4,15 +4,16 @@
 //! and tracking which chunks each client has already received.
 
 use bevy::prelude::*;
-use bevy_renet::renet::RenetServer;
+use bevy_renet::renet::{ClientId, RenetServer};
 use crossbeam::channel::Receiver;
 use shared::messages::{PlayerId, ServerToClientMessage, WorldUpdate};
 use shared::world::chunk::Chunk;
 use shared::world::pos::pos2d::{chunks_in_col, ColPos};
 use shared::world::pos::pos3d::ChunkPos;
-use shared::world::pos::PlayerCol;
+use shared::world::realm::Realm;
 use std::collections::{HashMap, HashSet};
 
+use crate::network::players::PlayerRegistry;
 use crate::world::voxel_world::VoxelWorld;
 
 use super::extensions::SendGameMessageExtension;
@@ -34,7 +35,7 @@ pub struct ChunkSendTracker {
 
 impl ChunkSendTracker {
     /// Mark a chunk as sent to a client
-    pub fn mark_sent(&mut self, client_id: PlayerId, chunk_pos: ChunkPos) {
+    pub fn mark_sent(&mut self, client_id: ClientId, chunk_pos: ChunkPos) {
         self.sent_chunks
             .entry(client_id)
             .or_default()
@@ -42,7 +43,7 @@ impl ChunkSendTracker {
     }
 
     /// Check if a chunk has been sent to a client
-    pub fn was_sent(&self, client_id: PlayerId, chunk_pos: &ChunkPos) -> bool {
+    pub fn was_sent(&self, client_id: ClientId, chunk_pos: &ChunkPos) -> bool {
         self.sent_chunks
             .get(&client_id)
             .map(|chunks| chunks.contains(chunk_pos))
@@ -57,7 +58,7 @@ impl ChunkSendTracker {
     }
 
     /// Remove tracking for a disconnected client
-    pub fn remove_client(&mut self, client_id: PlayerId) {
+    pub fn remove_client(&mut self, client_id: ClientId) {
         self.sent_chunks.remove(&client_id);
     }
 
@@ -96,20 +97,24 @@ pub fn broadcast_world_state(
     mut tick: ResMut<ServerTick>,
     world: Res<VoxelWorld>,
     mut tracker: ResMut<ChunkSendTracker>,
-    player_query: Query<(Entity, &PlayerCol)>,
+    registry: Res<PlayerRegistry>,
 ) {
     tick.0 += 1;
     let render_distance = world.render_distance as i32;
 
     for client_id in server.clients_id() {
-        // Find the player entity for this client
-        // For now, we use a simple approach - find any player with a PlayerCol
-        // In a full implementation, you'd map client_id to entity
-        let Some((_, player_col)) = player_query.iter().next() else {
+        // Get player position from registry
+        let Some(player_pos) = registry.get_player_position(client_id) else {
             continue;
         };
 
-        let player_chunk_col = player_col.0;
+        // Convert player position to chunk column position
+        let player_chunk_col = ColPos {
+            x: (player_pos.x / 16.0).floor() as i32,
+            z: (player_pos.z / 16.0).floor() as i32,
+            realm: Realm::Overworld, // TODO: Get actual realm from player
+        };
+
         let mut chunks_to_send: HashMap<ChunkPos, Chunk> = HashMap::new();
 
         // Iterate over chunks within render distance
