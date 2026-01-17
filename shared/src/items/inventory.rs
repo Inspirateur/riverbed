@@ -1,7 +1,9 @@
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+
 use super::{craft_table::Recipe, item::Item, CraftEntry};
 
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Default, Debug, PartialEq, Eq, Deserialize, Serialize, Clone)]
 pub enum Stack {
     Some(Item, u32),
     #[default]

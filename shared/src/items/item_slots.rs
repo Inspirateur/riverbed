@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::{items::{InventoryTrait, Item, Stack}};
 
 pub enum FurnaceSlot {
@@ -21,6 +22,26 @@ impl From<usize> for FurnaceSlot {
             2 => FurnaceSlot::Output,
             _ => unreachable!()
         }
+    }
+}
+
+pub mod inventory_serde {
+    use super::*;
+    use serde::{Deserializer, Serializer};
+
+    pub fn serialize<S>(data: &Box<[Stack]>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        data.as_ref().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Box<[Stack]>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let vec: Vec<Stack> = Vec::deserialize(deserializer)?;
+        Ok(vec.into_boxed_slice())
     }
 }
 

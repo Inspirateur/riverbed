@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use crate::Block;
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
@@ -19,7 +19,7 @@ pub enum ToolFamily {
     Shovel,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Item {
     Brick,
     Clay,

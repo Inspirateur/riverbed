@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use bevy::platform::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
+use crate::items::{Stack, item_slots::inventory_serde};
+
 use super::PlayerId;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy, Eq, Hash)]
@@ -37,7 +39,8 @@ pub struct PlayerUpdateEvent {
     pub position: Vec3,
     pub orientation: Quat,
     pub last_ack_time: u64,
-    pub inventory: Inventory,
+    #[serde(with = "inventory_serde")]
+    pub inventory: Box<[Stack]>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
