@@ -106,7 +106,7 @@ fn load_block_stepping_sounds(mut commands: Commands, asset_server: Res<AssetSer
 fn check_break_sounds(
     mut next_state: ResMut<NextState<BreakSoundsState>>,
     texture_folder: ResMut<BreakSoundFolder>,
-    mut events: EventReader<AssetEvent<LoadedFolder>>,
+    mut events: MessageReader<AssetEvent<LoadedFolder>>,
 ) {
     // Advance the `AppState` once all sprite handles have been loaded by the `AssetServer`
     for event in events.read() {
@@ -119,7 +119,7 @@ fn check_break_sounds(
 fn check_harvest_sounds(
     mut next_state: ResMut<NextState<HarvestSoundsState>>,
     texture_folder: ResMut<HarvestSoundFolder>,
-    mut events: EventReader<AssetEvent<LoadedFolder>>,
+    mut events: MessageReader<AssetEvent<LoadedFolder>>,
 ) {
     // Advance the `AppState` once all sprite handles have been loaded by the `AssetServer`
     for event in events.read() {
@@ -132,7 +132,7 @@ fn check_harvest_sounds(
 fn check_step_sounds(
     mut next_state: ResMut<NextState<StepSoundsState>>,
     texture_folder: ResMut<StepSoundFolder>,
-    mut events: EventReader<AssetEvent<LoadedFolder>>,
+    mut events: MessageReader<AssetEvent<LoadedFolder>>,
 ) {
     // Advance the `AppState` once all sprite handles have been loaded by the `AssetServer`
     for event in events.read() {
