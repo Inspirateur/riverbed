@@ -75,7 +75,7 @@ pub fn reconcile_player_state(
             debug!(
                 "Acknowledged {} inputs (remaining: {})",
                 acked_count,
-                input_history.unacked.len()
+                input_history.unacknowledged.len()
             );
         }
 
@@ -127,7 +127,7 @@ pub fn reconcile_player_state(
             debug!(
                 "Position error: {:.3}m, replaying {} unacked inputs",
                 position_error,
-                input_history.unacked.len()
+                input_history.unacknowledged.len()
             );
 
             // Start from server's authoritative state
@@ -140,7 +140,7 @@ pub fn reconcile_player_state(
             };
 
             // Replay all unacknowledged inputs
-            for input in input_history.unacked.iter() {
+            for input in input_history.unacknowledged.iter() {
                 let delta_seconds = input.delta_ms as f32 / 1000.0;
                 let step = apply_player_input_step(
                     &*world,

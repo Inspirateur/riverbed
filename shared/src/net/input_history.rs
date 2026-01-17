@@ -7,7 +7,7 @@ use crate::messages::ClientPlayerInput;
 #[derive(Debug, Default, Clone, Resource)]
 pub struct InputHistory {
     pending: Vec<ClientPlayerInput>,
-    pub unacked: Vec<ClientPlayerInput>,
+    pub unacknowledged: Vec<ClientPlayerInput>,
 }
 
 impl InputHistory {
@@ -19,21 +19,21 @@ impl InputHistory {
     /// Move pending frames into a vector for transmission and mark them as unacked.
     pub fn take_pending(&mut self) -> Vec<ClientPlayerInput> {
         let frames = std::mem::take(&mut self.pending);
-        self.unacked.extend(frames.clone());
+        self.unacknowledged.extend(frames.clone());
         frames
     }
 
     /// Remove all inputs with timestamp <= ack_time. Returns count removed.
     pub fn ack_until(&mut self, ack_time: u64) -> usize {
-        let before = self.unacked.len();
-        self.unacked.retain(|i| i.time_ms > ack_time);
-        before - self.unacked.len()
+        let before = self.unacknowledged.len();
+        self.unacknowledged.retain(|i| i.time_ms > ack_time);
+        before - self.unacknowledged.len()
     }
 
     /// Clear all pending and unacked inputs (e.g., on disconnect).
     pub fn clear_all(&mut self) {
         self.pending.clear();
-        self.unacked.clear();
+        self.unacknowledged.clear();
     }
 }
 
