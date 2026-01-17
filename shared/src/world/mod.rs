@@ -3,6 +3,7 @@ pub mod chunk;
 pub mod pos;
 pub mod utils;
 pub mod realm;
+pub mod serdable_packed_uints;
 pub mod world_rng;
 
 pub const CHUNK_S1: usize = 62;

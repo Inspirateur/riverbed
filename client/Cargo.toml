@@ -10,6 +10,7 @@ logging = []
 shared = { path = "../shared" }
 
 bevy = { workspace = true }
+crossbeam = { workspace = true }
 cfg-if = { workspace = true }
 hashbrown = { workspace = true }
 itertools = { workspace = true }
@@ -17,6 +18,7 @@ parking_lot = { workspace = true }
 rand_chacha = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+strum = { workspace = true }
 
 binary-greedy-meshing = "*"
 confy = "*"

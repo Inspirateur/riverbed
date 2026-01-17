@@ -16,6 +16,10 @@ impl SerdablePackedUints {
     pub fn set_range_step(&mut self, start: usize, end: usize, step: usize, value: usize) {
         self.0.set_range_step(start, end, step, value);
     }
+
+    pub fn unpack_u16(&self) -> Vec<u16> {
+        self.0.unpack_u16()
+    }
 }
 
 impl Default for SerdablePackedUints {

@@ -4,9 +4,9 @@ use bevy::{
     asset::RenderAssetUsages, log::info_span, mesh::{Indices, MeshVertexAttribute}, prelude::Mesh, render::render_resource::{PrimitiveTopology, VertexFormat}
 };
 use binary_greedy_meshing as bgm;
+use serde::{Deserialize, Serialize};
+use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNKP_S3, WATER_H, pos::{ChunkPos, linearize, pad_linearize}, serdable_packed_uints::SerdablePackedUints, utils::Palette}};
 
-use crate::{block::Face, world::{linearize, pad_linearize, Chunk, ChunkPos, CHUNKP_S3, WATER_H}, Block};
-use crate::world::CHUNK_S1;
 use super::texture_array::TextureMapTrait;
 
 const MASK_XYZ: u64 = 0b111111_111111_111111;
@@ -30,7 +30,13 @@ fn color(r: f32, g: f32, b: f32) -> u32 {
     ((r*63.) as u32) << 11 | ((g*63.) as u32) << 5 | (b*31.) as u32
 }
 
-impl Chunk {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ClientChunk {
+    pub data: SerdablePackedUints,
+    pub palette: Palette<Block>,
+}
+
+impl ClientChunk {
     pub fn voxel_data_lod(&self, lod: usize) -> Vec<u16> {
         let voxels = self.data.unpack_u16();
         if lod == 1 {

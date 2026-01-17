@@ -1,21 +1,12 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
 use serde::{Deserialize, Serialize};
-use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, chunk::ChunkTrait, pos::{ChunkedPos, ColedPos}, utils::Palette}};
-use crate::{world::{serdable_packed_uints::SerdablePackedUints}};
+use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, chunk::ChunkTrait, pos::{ChunkedPos, ColedPos, linearize, pad_linearize}, serdable_packed_uints::SerdablePackedUints, utils::Palette}};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerChunk {
     pub data: SerdablePackedUints,
     pub palette: Palette<Block>,
-}
-
-pub fn linearize(x: usize, y: usize, z: usize) -> usize {
-    z + x * CHUNKP_S1 + y * CHUNKP_S2
-}
-
-pub fn pad_linearize(x: usize, y: usize, z: usize) -> usize {
-    z + 1 + (x+1) * CHUNKP_S1 + (y+1) * CHUNKP_S2
 }
 
 impl ChunkTrait for ServerChunk {

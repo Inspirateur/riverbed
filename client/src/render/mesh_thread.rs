@@ -2,15 +2,15 @@ use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use parking_lot::RwLock;
+use shared::world::pos::{ChunkPos, ColPos};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
 use crate::agents::PlayerControlled;
 use crate::block::Face;
-use crate::logging::LogData;
+use shared::logging::LogData;
 use crate::render::mesh_draw::{choose_lod_level, LOD};
 use crate::render::texture_array::TextureMap;
-use crate::world::{ChunkPos, ColPos, PlayerCol, VoxelWorld};
 
 pub fn setup_mesh_thread(
     mut commands: Commands, 
@@ -83,6 +83,9 @@ pub fn setup_mesh_thread(
         }
     ).detach();
 }
+
+#[derive(Component, Default)]
+pub struct PlayerCol(pub ColPos);
 
 #[derive(Resource)]
 pub struct MeshReciever(pub Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
