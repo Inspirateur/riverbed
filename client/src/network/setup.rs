@@ -4,20 +4,10 @@ use bevy_renet::netcode::{
 };
 use bevy_renet::{renet::RenetClient, RenetClientPlugin};
 use rand::Rng;
-use shared::constants::{
-    RENDER_DISTANCE, NETCODE_CLIENT_TRANSPORT_ERROR, SOCKET_BIND_ERROR,
-    SOCKET_LOCAL_ADDR_ERROR, TARGET_SERVER_ADDR_ERROR, UNIX_EPOCH_TIME_ERROR,
-    USERNAME_MISSING_AUTHENTICATED_ERROR,
-};
-use shared::messages::mob::MobUpdateEvent;
 use shared::{get_shared_renet_config, GameServerConfig, STC_AUTH_CHANNEL};
 
-use crate::menus::solo::SelectedWorld;
 use crate::network::world::update_world_from_network;
 use crate::network::CachedChatConversation;
-use crate::world::time::ClientTime;
-use crate::world::WorldRenderRequestUpdateEvent;
-use crate::PlayerNameSupplied;
 use shared::messages::{
     AuthRegisterRequest, ItemStackUpdateEvent, PlayerId, PlayerSpawnEvent, PlayerUpdateEvent,
     ServerToClientMessage,
@@ -26,9 +16,6 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::{net::UdpSocket, thread, time::SystemTime};
-
-use crate::world::ClientWorldMap;
-use shared::GameFolderPaths;
 
 use super::SendGameMessageExtension;
 
@@ -105,7 +92,6 @@ pub fn add_base_netcode(app: &mut App) {
 pub fn launch_local_server_system(
     mut target: ResMut<TargetServer>,
     selected_world: Res<SelectedWorld>,
-    paths: Res<GameFolderPaths>,
 ) {
     if target.address.is_some() {
         debug!("Skipping launch local server");
@@ -158,7 +144,6 @@ pub fn poll_network_messages(
     mut world: ResMut<ClientWorldMap>,
     mut ev_render: MessageWriter<WorldRenderRequestUpdateEvent>,
     mut ev_player_spawn: MessageWriter<PlayerSpawnEvent>,
-    mut ev_mob_update: MessageWriter<MobUpdateEvent>,
     mut ev_item_stacks_update: MessageWriter<ItemStackUpdateEvent>,
     mut ev_player_update: MessageWriter<PlayerUpdateEvent>,
 ) {
@@ -168,7 +153,6 @@ pub fn poll_network_messages(
         &mut world,
         &mut ev_render,
         &mut ev_player_spawn,
-        &mut ev_mob_update,
         &mut ev_item_stacks_update,
         &mut ev_player_update,
     );

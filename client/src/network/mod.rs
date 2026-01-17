@@ -15,11 +15,9 @@ pub use inputs::*;
 pub use setup::*;
 
 use bevy::prelude::*;
-use shared::sets::{GameSets, PreGameLoadingSets};
 
 use crate::{
     network::buffered_client::{CurrentFrameInputs, PlayerTickInputsBuffer, SyncTime},
-    GameState,
 };
 
 pub struct NetworkPlugin;

@@ -4,7 +4,6 @@ use bevy::color::palettes::css;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 use crate::Block;
-use crate::world::VoxelWorld;
 use crate::agents::{PlayerControlled, TargetBlock};
 
 pub struct DebugDisplayPlugin;

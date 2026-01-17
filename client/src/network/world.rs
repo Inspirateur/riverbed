@@ -1,18 +1,13 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::world::ClientChunk;
 use bevy::prelude::*;
 use bevy_renet::renet::RenetClient;
 use shared::messages::{
-    mob::MobUpdateEvent, ItemStackUpdateEvent, PlayerSpawnEvent, PlayerUpdateEvent,
+    ItemStackUpdateEvent, PlayerSpawnEvent, PlayerUpdateEvent,
     ServerToClientMessage,
 };
 use shared::STC_AUTH_CHANNEL;
-
-use crate::world::ClientWorldMap;
-
-use crate::world::WorldRenderRequestUpdateEvent;
 
 use super::SendGameMessageExtension;
 
@@ -21,7 +16,6 @@ pub fn update_world_from_network(
     world: &mut ResMut<ClientWorldMap>,
     ev_render: &mut MessageWriter<WorldRenderRequestUpdateEvent>,
     ev_player_spawn: &mut MessageWriter<PlayerSpawnEvent>,
-    ev_mob_update: &mut MessageWriter<MobUpdateEvent>,
     ev_item_stacks_update: &mut MessageWriter<ItemStackUpdateEvent>,
     ev_player_update: &mut MessageWriter<PlayerUpdateEvent>,
 ) {
@@ -55,11 +49,6 @@ pub fn update_world_from_network(
                     ev_render.write(WorldRenderRequestUpdateEvent::ChunkToReload(pos));
                 }
 
-                for (id, mob) in world_update.mobs {
-                    debug!("ServerMob received: {:?}", mob);
-                    ev_mob_update.write(MobUpdateEvent { id, mob });
-                }
-
                 ev_item_stacks_update.write_batch(world_update.item_stacks);
 
                 // get current time
@@ -68,10 +57,6 @@ pub fn update_world_from_network(
             ServerToClientMessage::PlayerSpawn(spawn_event) => {
                 info!("Received SINGLE spawn event {:?}", spawn_event);
                 ev_player_spawn.write(spawn_event);
-            }
-            ServerToClientMessage::MobUpdate(update_event) => {
-                // info!("Received mob update event {:?}", update_event);
-                ev_mob_update.write(update_event);
             }
             ServerToClientMessage::PlayerUpdate(update) => {
                 ev_player_update.write(update);

@@ -1,8 +1,8 @@
 use std::fs;
 use bevy::{prelude::*, color::palettes::css};
 use leafwing_input_manager::action_state::ActionState;
-use shared::items::{InventoryRecipes, InventoryTrait, item_slots::ItemHolder};
-use crate::{agents::{Action, PlayerControlled, HOTBAR_SLOTS}, items::{new_inventory, parse_recipes, CraftEntry, InventoryTrait, InventoryRecipes, Item, Recipe, Stack}, sounds::ItemGet};
+use shared::items::{CraftEntry, InventoryRecipes, InventoryTrait, Item, Recipe, Stack, item_slots::ItemHolder, new_inventory, parse_recipes};
+use crate::{agents::{Action, HOTBAR_SLOTS, PlayerControlled}, sounds::ItemGet};
 use super::{game_menu::despawn_screen, ui_tex_map::{UiSlotKind, UiTextureMap}, GameUiState, UIAction};
 
 pub struct CraftMenuPlugin;

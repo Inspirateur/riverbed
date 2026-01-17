@@ -1,11 +1,12 @@
 use std::time::Duration;
-use crate::{agents::{Gravity, Heading, Jumping, Velocity, AABB}, items::{new_inventory, InventoryTrait, Item, Stack}, sounds::{on_item_get, BlockSoundCD, FootstepCD}, ui::{CursorGrabbed, ItemHolder}, Block};
-use crate::world::{Realm, BlockRayCastHit};
 use bevy::{
     math::Vec3,
     prelude::*,
 };
 use leafwing_input_manager::prelude::*;
+use shared::{block::Block, items::{Item, Stack, item_slots::ItemHolder, new_inventory}, world::realm::Realm};
+use crate::{agents::{AABB, Gravity, Heading, Jumping, Velocity}, sounds::{BlockSoundCD, FootstepCD, on_item_get}, ui::CursorGrabbed};
+
 use super::{block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, FreeFly, Speed, SteppingOn, Walking};
 
 const WALK_SPEED: f32 = 7.;

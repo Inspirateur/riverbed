@@ -1,7 +1,7 @@
 use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
+use shared::world::{pos::BlockPos, realm::Realm};
 use crate::Block;
-use crate::world::{BlockPos, VoxelWorld, Realm};
 const FREE_FLY_Y_SPEED: f32 = 100.;
 const ACC_MULT: f32 = 150.;
 
