@@ -3,6 +3,7 @@ pub mod chunk;
 pub mod pos;
 pub mod utils;
 pub mod realm;
+pub mod world_rng;
 
 pub const CHUNK_S1: usize = 62;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
