@@ -118,8 +118,8 @@ pub struct ClientWorldPlugin;
 impl Plugin for ClientWorldPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<SetBlockRequest>()
-            .add_event::<BlockChanged>()
+            .add_message::<SetBlockRequest>()
+            .add_message::<BlockChanged>()
             .add_message::<ColUnloadEvent>()
             .add_systems(Update, process_block_requests);
     }
