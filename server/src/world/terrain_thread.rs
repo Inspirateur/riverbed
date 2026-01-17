@@ -4,7 +4,7 @@ use bevy::log::trace;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use shared::{logging::logging::LogData, world::{pos::{PlayerCol, pos2d::ColPos}, realm::Realm, world_rng::WorldRng}};
-use crate::{generation::TerrainGenerator, world::{ColUnloadEvent, voxel_world::VoxelWorld}};
+use crate::{generation::TerrainGenerator, network::players::ClientPredictedPosition, world::{ColUnloadEvent, voxel_world::VoxelWorld}};
 
 pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_rng: Res<WorldRng>) {
     let (player_pos_sender, player_pos_recv) = unbounded::<PlayerColumnUpdate>();
@@ -91,10 +91,11 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
 pub fn assign_player_col(
     mut commands: Commands, 
     sender: Res<PlayerColumnUpdateSender>, 
-    player_query: Query<(Entity, &Transform, &Realm), Without<PlayerCol>>,
+    player_query: Query<(Entity, &ClientPredictedPosition, &Realm), Without<PlayerCol>>,
 ) {
-    for (player, transform, realm) in player_query.iter() {
-        let col = ColPos::from((transform.translation, *realm));
+    for (player, predicted_pos, realm) in player_query.iter() {
+        // Use client's predicted position for terrain generation
+        let col = ColPos::from((predicted_pos.0, *realm));
         commands.entity(player).insert(PlayerCol(col));
         let update = PlayerColumnUpdate {
             id: player.index(),
@@ -110,10 +111,11 @@ pub fn assign_player_col(
 
 pub fn send_player_pos_update(
     sender: Res<PlayerColumnUpdateSender>, 
-    mut player_query: Query<(Entity, &Transform, &Realm, &mut PlayerCol)>,
+    mut player_query: Query<(Entity, &ClientPredictedPosition, &Realm, &mut PlayerCol)>,
 ) {
-    for (player, transform, realm, mut player_col) in player_query.iter_mut() {
-        let new_col = ColPos::from((transform.translation, *realm));
+    for (player, predicted_pos, realm, mut player_col) in player_query.iter_mut() {
+        // Use client's predicted position for terrain generation
+        let new_col = ColPos::from((predicted_pos.0, *realm));
         if player_col.0 != new_col {
             // send the update only if the column has changed
             let update = PlayerColumnUpdate {

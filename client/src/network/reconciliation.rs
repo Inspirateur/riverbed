@@ -32,11 +32,12 @@ pub const POSITION_CORRECTION_THRESHOLD: f32 = 0.05;
 
 /// Maximum allowed position error before we force a hard snap (teleport).
 /// Below this threshold, we interpolate smoothly.
-pub const HARD_SNAP_THRESHOLD: f32 = 5.0;
+pub const HARD_SNAP_THRESHOLD: f32 = 2.0;
 
 /// Interpolation factor for smooth corrections (0.0 = no correction, 1.0 = instant snap).
 /// Lower values = smoother but slower correction. Higher values = faster but more visible.
-pub const CORRECTION_LERP_FACTOR: f32 = 0.15;
+/// Using a higher value (0.3) to correct drift more quickly during fast movement.
+pub const CORRECTION_LERP_FACTOR: f32 = 0.3;
 
 /// Plugin for client-side reconciliation
 pub struct ReconciliationPlugin;
