@@ -1,10 +1,8 @@
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer};
-use shared::messages::{
-    PlayerId, ClientPlayerInput, ServerPlayerUpdate, ServerToClientMessage, TransmittableAction,
-};
+use shared::messages::{PlayerId, ClientPlayerInput, ServerPlayerUpdate, ServerToClientMessage};
 use shared::physics::{
-    actions_to_movement_input, MovementMode, PhysicsState, simulate_physics_step,
+    player_step::apply_player_input_step, MovementMode, PhysicsState,
 };
 use shared::world::realm::Realm;
 use std::collections::HashMap;
@@ -128,24 +126,7 @@ pub fn handle_player_inputs_system(
             continue;
         };
 
-        // Handle fly mode toggle
-        if ev.input.inputs.contains(&TransmittableAction::ToggleFlyMode) {
-            physics_state.movement_mode = match physics_state.movement_mode {
-                MovementMode::Walking => MovementMode::Flying,
-                MovementMode::Flying => MovementMode::Walking,
-            };
-            // Reset velocity when toggling fly mode
-            if physics_state.movement_mode == MovementMode::Walking {
-                physics_state.velocity = Vec3::ZERO;
-            }
-        }
-
         let delta_seconds = ev.input.delta_ms as f32 / 1000.0;
-        
-        // Convert inputs to movement input
-        let movement_input = actions_to_movement_input(&ev.input.inputs, &ev.input.camera);
-        
-        // Build physics state for simulation
         let state = PhysicsState {
             position: transform.translation,
             velocity: physics_state.velocity,
@@ -153,15 +134,14 @@ pub fn handle_player_inputs_system(
             realm: *realm,
             on_ground: physics_state.on_ground,
         };
-        
-        // Run authoritative physics simulation
-        let result = simulate_physics_step(&*world, &state, &movement_input, delta_seconds);
-        
-        // Apply results
-        transform.translation = result.new_position;
+
+        let step = apply_player_input_step(&*world, &state, &ev.input.inputs, &ev.input.camera, delta_seconds);
+
+        transform.translation = step.position;
         transform.rotation = ev.input.camera.rotation;
-        physics_state.velocity = result.new_velocity;
-        physics_state.on_ground = result.on_ground;
+        physics_state.velocity = step.velocity;
+        physics_state.on_ground = step.on_ground;
+        physics_state.movement_mode = step.movement_mode;
         
         player.last_input_processed = ev.input.time_ms;
     }

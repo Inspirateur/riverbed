@@ -13,11 +13,10 @@
 //!    - If mismatch, snap to server state and replay unacknowledged inputs
 
 use bevy::prelude::*;
-use shared::messages::{ClientPlayerInput, ServerPlayerUpdate};
+use shared::messages::ServerPlayerUpdate;
 use shared::physics::{
-    actions_to_movement_input, MovementMode, PhysicsState, simulate_physics_step,
+    player_step::apply_player_input_step, MovementMode, PhysicsState,
 };
-use shared::world::block_access::BlockAccess;
 use shared::world::realm::Realm;
 
 use crate::agents::{PlayerControlled, Velocity, FreeFly, Walking, Speed};
@@ -133,31 +132,35 @@ pub fn reconcile_player_state(
             );
 
             // Start from server's authoritative state
-            let mut corrected_position = event.position;
-            let mut corrected_velocity = event.velocity;
+            let mut corrected_state = PhysicsState {
+                position: event.position,
+                velocity: event.velocity,
+                movement_mode: event.movement_mode,
+                realm: *realm,
+                on_ground: false,
+            };
 
             // Replay all unacknowledged inputs
             for input in unack_inputs.0.iter() {
-                let movement_input = actions_to_movement_input(&input.inputs, &input.camera);
                 let delta_seconds = input.delta_ms as f32 / 1000.0;
+                let step = apply_player_input_step(
+                    &*world,
+                    &corrected_state,
+                    &input.inputs,
+                    &input.camera,
+                    delta_seconds,
+                );
 
-                let state = PhysicsState {
-                    position: corrected_position,
-                    velocity: corrected_velocity,
-                    movement_mode: event.movement_mode,
-                    realm: *realm,
-                    on_ground: false, // Will be recalculated
-                };
-
-                let result = simulate_physics_step(&*world, &state, &movement_input, delta_seconds);
-                corrected_position = result.new_position;
-                corrected_velocity = result.new_velocity;
+                corrected_state.position = step.position;
+                corrected_state.velocity = step.velocity;
+                corrected_state.movement_mode = step.movement_mode;
+                corrected_state.on_ground = step.on_ground;
             }
 
             // Apply the corrected state with smooth interpolation
             // This reduces visual jitter while still correcting errors
-            transform.translation = transform.translation.lerp(corrected_position, CORRECTION_LERP_FACTOR);
-            velocity.0 = corrected_velocity;
+            transform.translation = transform.translation.lerp(corrected_state.position, CORRECTION_LERP_FACTOR);
+            velocity.0 = corrected_state.velocity;
         }
     }
 }

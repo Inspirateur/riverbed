@@ -8,6 +8,8 @@
 use bevy::prelude::*;
 use itertools::{iproduct, Itertools};
 
+pub mod player_step;
+
 use crate::block::Block;
 use crate::world::block_access::BlockAccess;
 use crate::world::pos::pos3d::BlockPos;
