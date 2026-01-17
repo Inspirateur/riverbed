@@ -1,6 +1,6 @@
 use std::{fmt::Debug, str::FromStr};
 use itertools::Itertools;
-use crate::{asset_processing::RecipeExpander, Soil, Wood};
+use crate::{asset_processing::RecipeExpander, block};
 use super::Item;
 
 #[derive(Debug, Clone)]
@@ -48,8 +48,8 @@ pub fn parse_recipe<S: AsRef<str>>(recipe: S) -> Recipe {
 
 pub fn parse_recipes(recipes: &str) -> Vec<CraftEntry> {
     let mut expander = RecipeExpander::new();
-    expander.register_enum::<Wood>();
-    expander.register_enum::<Soil>();    
+    expander.register_enum::<block::Wood>();
+    expander.register_enum::<block::Soil>();    
     recipes.trim().lines().map(|recipe| {
         match expander.try_expand(recipe) {
             None => CraftEntry::Recipe(parse_recipe(recipe)),
