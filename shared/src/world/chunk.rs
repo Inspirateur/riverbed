@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
 use serde::{Deserialize, Serialize};
-use crate::{Block, block::Face, world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, pos::{linearize, pad_linearize}, utils::SerdablePackedUints}};
-use super::{pos::{ChunkedPos, ColedPos}, utils::Palette};
+use crate::{Block, block::Face, world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, pos::{linearize, pad_linearize, pos2d::ColedPos, pos3d::ChunkedPos}, utils::SerdablePackedUints}};
+use super::{utils::Palette};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chunk {

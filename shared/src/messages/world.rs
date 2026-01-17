@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::items::Stack;
 use crate::world::chunk::Chunk;
-use crate::world::pos::ChunkPos;
+use crate::world::pos::pos3d::ChunkPos;
 
 /// WorldUpdate is a message sent from the server to the client to update the client's world state.
 /// Only chunks which have been updated since the last message are sent.

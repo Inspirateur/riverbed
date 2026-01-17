@@ -6,7 +6,8 @@ use bevy::{log::LogPlugin, prelude::*};
 #[cfg(feature = "logging")]
 use bevy::log::{tracing, tracing_subscriber::{self, filter::{FromEnvError, ParseError}, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry}};
 
-use crate::world::pos::{ChunkPos, ColPos};
+use crate::world::pos::{pos2d::ColPos, pos3d::ChunkPos};
+
 pub(crate) const LOG_PATH: &'static str = "output.log";
 
 pub struct RiverbedLogPlugin;
