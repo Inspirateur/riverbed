@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use shared::items::item_slots::ItemHolder;
 use crate::{agents::{BlockActionType, BlockLootAction, PlayerControlled}, render::{CameraSpawn, FpsCam}};
-use super::{ui_tex_map::UiTextureMap, ItemHolder, SelectedHotbarSlot};
+use super::{ui_tex_map::UiTextureMap, SelectedHotbarSlot};
 
 pub struct InHandPlugin;
 

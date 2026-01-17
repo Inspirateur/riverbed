@@ -1,6 +1,7 @@
 use bevy::{color::palettes::css, prelude::*};
+use shared::items::item_slots::{FurnaceSlot, ItemHolder};
 use crate::agents::Furnace;
-use super::{game_menu::despawn_screen, ui_tex_map::{UiSlotKind, UiTextureMap}, FurnaceSlot, GameUiState, ItemHolder, UISlot};
+use super::{game_menu::despawn_screen, ui_tex_map::{UiSlotKind, UiTextureMap}, GameUiState, UISlot};
 
 pub struct FurnaceMenuPlugin;
 
