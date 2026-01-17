@@ -1,6 +1,5 @@
-use shared::block::Block;
+use shared::{block::Block, world::CHUNK_S1};
 
-use crate::{world::CHUNK_S1};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LayerTag {
