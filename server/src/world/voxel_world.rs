@@ -1,12 +1,8 @@
-use super::{
-    chunked, pos2d::chunks_in_col, BlockPos, BlockPos2d, Chunk, ChunkPos, ChunkedPos, ColPos,
-    ColedPos, Realm, CHUNK_S1, MAX_HEIGHT, Y_CHUNKS,
-};
-use crate::{block::Face, world::{chunk, CHUNKP_S1}, Block};
 use bevy::prelude::{Resource, Vec3};
 use crossbeam::channel::Sender;
 use crossbeam_skiplist::{map::Entry, SkipMap};
 use parking_lot::RwLock;
+use shared::{block::Block, world::{chunk::Chunk, pos::{BlockPos, ChunkPos, ColPos, ColedPos, chunked}}};
 use std::sync::Arc;
 
 pub struct BlockRayCastHit {
