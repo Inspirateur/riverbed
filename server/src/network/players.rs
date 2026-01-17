@@ -3,19 +3,41 @@ use bevy_renet::renet::{ClientId, RenetServer};
 use shared::messages::{
     PlayerId, ClientPlayerInput, ServerPlayerUpdate, ServerToClientMessage, TransmittableAction,
 };
-use shared::{WALK_SPEED, FLY_SPEED};
+use shared::physics::{
+    actions_to_movement_input, MovementMode, PhysicsState, simulate_physics_step,
+};
+use shared::world::realm::Realm;
 use std::collections::HashMap;
+
+use crate::world::voxel_world::VoxelWorld;
 
 use super::dispatcher::NetworkPlayer;
 use super::extensions::SendGameMessageExtension;
 
 pub const DEFAULT_SPAWN_POSITION: Vec3 = Vec3::new(280., 500., -150.);
 
+/// Server-side physics state for a player entity
+#[derive(Component, Debug, Clone)]
+pub struct ServerPhysicsState {
+    pub velocity: Vec3,
+    pub movement_mode: MovementMode,
+    pub on_ground: bool,
+}
+
+impl Default for ServerPhysicsState {
+    fn default() -> Self {
+        Self {
+            velocity: Vec3::ZERO,
+            movement_mode: MovementMode::Walking,
+            on_ground: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ServerPlayer {
     pub id: PlayerId,
     pub name: String,
-    pub is_flying: bool,
     pub last_input_processed: u64,
     pub is_authenticated: bool,
 }
@@ -25,7 +47,6 @@ impl ServerPlayer {
         Self {
             id,
             name: format!("Player-{}", id),
-            is_flying: false,
             last_input_processed: 0,
             is_authenticated: false,
         }
@@ -76,10 +97,16 @@ pub struct PlayerInputsEvent {
     pub input: ClientPlayerInput,
 }
 
+/// Server-authoritative player input handling system.
+/// 
+/// This system receives player inputs from clients and simulates physics
+/// authoritatively on the server. The server is the single source of truth
+/// for player positions.
 pub fn handle_player_inputs_system(
     mut events: MessageReader<PlayerInputsEvent>,
     mut registry: ResMut<PlayerRegistry>,
-    mut player_transforms: Query<(&NetworkPlayer, &mut Transform)>,
+    mut player_query: Query<(&NetworkPlayer, &mut Transform, &mut ServerPhysicsState, &Realm)>,
+    world: Res<VoxelWorld>,
 ) {
     for ev in events.read() {
         let Some(player) = registry.get_player_mut(ev.client_id) else {
@@ -92,52 +119,49 @@ pub fn handle_player_inputs_system(
             continue;
         }
 
-        let Some((_, mut transform)) = player_transforms
+        let Some((_, mut transform, mut physics_state, realm)) = player_query
             .iter_mut()
-            .find(|(np, _)| np.client_id == ev.client_id)
+            .find(|(np, _, _, _)| np.client_id == ev.client_id)
         else {
             warn!("No ECS entity found for authenticated player {}", ev.client_id);
             continue;
         };
 
-        let mut movement_direction = Vec3::ZERO;
-        let delta_seconds = ev.input.delta_ms as f32 / 1000.0;
-
-        let forward = ev.input.camera.forward().as_vec3();
-        let right = ev.input.camera.right().as_vec3();
-        let forward_horizontal = Vec3::new(forward.x, 0.0, forward.z).normalize_or_zero();
-        let right_horizontal = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
-
-        for action in &ev.input.inputs {
-            match action {
-                TransmittableAction::MoveForward => movement_direction += forward_horizontal,
-                TransmittableAction::MoveBackward => movement_direction -= forward_horizontal,
-                TransmittableAction::MoveRight => movement_direction += right_horizontal,
-                TransmittableAction::MoveLeft => movement_direction -= right_horizontal,
-                TransmittableAction::JumpOrFlyUp => {
-                    if player.is_flying {
-                        movement_direction += Vec3::Y;
-                    }
-                }
-                TransmittableAction::CrouchOrFlyDown => {
-                    if player.is_flying {
-                        movement_direction -= Vec3::Y;
-                    }
-                }
-                TransmittableAction::ToggleFlyMode => {
-                    player.is_flying = !player.is_flying;
-                }
-                TransmittableAction::Hit | TransmittableAction::Modify => {}
+        // Handle fly mode toggle
+        if ev.input.inputs.contains(&TransmittableAction::ToggleFlyMode) {
+            physics_state.movement_mode = match physics_state.movement_mode {
+                MovementMode::Walking => MovementMode::Flying,
+                MovementMode::Flying => MovementMode::Walking,
+            };
+            // Reset velocity when toggling fly mode
+            if physics_state.movement_mode == MovementMode::Walking {
+                physics_state.velocity = Vec3::ZERO;
             }
         }
 
-        if movement_direction.length_squared() > 0.0 {
-            movement_direction = movement_direction.normalize();
-            let speed = if player.is_flying { FLY_SPEED } else { WALK_SPEED };
-            transform.translation += movement_direction * speed * delta_seconds;
-        }
-
+        let delta_seconds = ev.input.delta_ms as f32 / 1000.0;
+        
+        // Convert inputs to movement input
+        let movement_input = actions_to_movement_input(&ev.input.inputs, &ev.input.camera);
+        
+        // Build physics state for simulation
+        let state = PhysicsState {
+            position: transform.translation,
+            velocity: physics_state.velocity,
+            movement_mode: physics_state.movement_mode,
+            realm: *realm,
+            on_ground: physics_state.on_ground,
+        };
+        
+        // Run authoritative physics simulation
+        let result = simulate_physics_step(&*world, &state, &movement_input, delta_seconds);
+        
+        // Apply results
+        transform.translation = result.new_position;
         transform.rotation = ev.input.camera.rotation;
+        physics_state.velocity = result.new_velocity;
+        physics_state.on_ground = result.on_ground;
+        
         player.last_input_processed = ev.input.time_ms;
     }
 }
@@ -145,21 +169,23 @@ pub fn handle_player_inputs_system(
 pub fn broadcast_player_updates_system(
     registry: Res<PlayerRegistry>,
     mut server: ResMut<RenetServer>,
-    player_transforms: Query<(&NetworkPlayer, &Transform)>,
+    player_query: Query<(&NetworkPlayer, &Transform, &ServerPhysicsState)>,
 ) {
     // Only broadcast authenticated players
     for player in registry.players.values().filter(|p| p.is_authenticated) {
-        // Get position and orientation from ECS Transform
-        let (position, orientation) = player_transforms
+        // Get position, orientation, and physics state from ECS
+        let (position, orientation, velocity, movement_mode) = player_query
             .iter()
-            .find(|(np, _)| np.client_id == player.id)
-            .map(|(_, t)| (t.translation, t.rotation))
-            .unwrap_or((DEFAULT_SPAWN_POSITION, Quat::IDENTITY));
+            .find(|(np, _, _)| np.client_id == player.id)
+            .map(|(_, t, ps)| (t.translation, t.rotation, ps.velocity, ps.movement_mode))
+            .unwrap_or((DEFAULT_SPAWN_POSITION, Quat::IDENTITY, Vec3::ZERO, MovementMode::Walking));
 
         let update = ServerPlayerUpdate {
             id: player.id,
             position,
+            velocity,
             orientation,
+            movement_mode,
             last_ack_time: player.last_input_processed,
             inventory: Box::new([]), // TODO: Implement inventory sync
         };

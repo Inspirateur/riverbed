@@ -2,7 +2,7 @@ use crate::network::block_interactions::{handle_block_interactions, BlockInterac
 use crate::network::broadcast_world::{ChunkBroadcastPlugin, ChunkSendTracker, ServerTick};
 use crate::network::players::{
     broadcast_player_updates_system, handle_player_inputs_system, PlayerInputsEvent,
-    PlayerRegistry,
+    PlayerRegistry, ServerPhysicsState,
 };
 use bevy::log::info;
 use bevy::prelude::*;
@@ -11,6 +11,7 @@ use shared::messages::{
     AuthRegisterRequest, AuthRegisterResponse, ClientToServerMessage, PlayerSave,
     ServerPlayerSpawn, ServerToClientMessage,
 };
+use shared::physics::MovementMode;
 use shared::world::realm::Realm;
 use shared::world::WorldSeed;
 use shared::GameServerConfig;
@@ -151,7 +152,7 @@ fn handle_auth_requests(
     mut chunk_tracker: ResMut<ChunkSendTracker>,
     tick: Res<ServerTick>,
     world_seed: Res<WorldSeed>,
-    existing_players: Query<(&NetworkPlayer, &Transform)>,
+    existing_players: Query<(&NetworkPlayer, &Transform, Option<&ServerPhysicsState>)>,
 ) {
     use crate::network::players::DEFAULT_SPAWN_POSITION;
 
@@ -194,6 +195,7 @@ fn handle_auth_requests(
             Transform::from_translation(spawn_position),
             Realm::Overworld,
             NetworkPlayer { client_id },
+            ServerPhysicsState::default(),
         ));
         info!(
             "Spawned ECS entity for player {} at {:?}",
@@ -205,14 +207,19 @@ fn handle_auth_requests(
         let mut all_player_spawns: Vec<ServerPlayerSpawn> = Vec::new();
         
         for player in registry.players.values().filter(|p| p.is_authenticated) {
-            let (position, orientation) = if player.id == client_id {
-                (spawn_position, Quat::IDENTITY)
+            let (position, orientation, is_flying) = if player.id == client_id {
+                (spawn_position, Quat::IDENTITY, false)
             } else {
                 existing_players
                     .iter()
-                    .find(|(np, _)| np.client_id == player.id)
-                    .map(|(_, transform)| (transform.translation, transform.rotation))
-                    .unwrap_or((DEFAULT_SPAWN_POSITION, Quat::IDENTITY))
+                    .find(|(np, _, _)| np.client_id == player.id)
+                    .map(|(_, transform, physics)| {
+                        let is_flying = physics
+                            .map(|p| p.movement_mode == MovementMode::Flying)
+                            .unwrap_or(false);
+                        (transform.translation, transform.rotation, is_flying)
+                    })
+                    .unwrap_or((DEFAULT_SPAWN_POSITION, Quat::IDENTITY, false))
             };
 
             all_player_spawns.push(ServerPlayerSpawn {
@@ -221,7 +228,7 @@ fn handle_auth_requests(
                 data: PlayerSave {
                     position,
                     camera_transform: Transform::from_rotation(orientation),
-                    is_flying: player.is_flying,
+                    is_flying,
                 },
             });
         }
@@ -255,7 +262,7 @@ fn handle_auth_requests(
             data: PlayerSave {
                 position: spawn_position,
                 camera_transform: Transform::default(),
-                is_flying: new_player.is_flying,
+                is_flying: false, // New players start in walking mode
             },
         };
 

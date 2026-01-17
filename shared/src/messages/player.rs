@@ -3,6 +3,7 @@ use bevy::platform::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 use crate::items::{Stack, item_slots::inventory_serde};
+use crate::physics::MovementMode;
 
 use super::PlayerId;
 
@@ -37,7 +38,9 @@ pub struct ServerPlayerSpawn {
 pub struct ServerPlayerUpdate {
     pub id: PlayerId,
     pub position: Vec3,
+    pub velocity: Vec3,
     pub orientation: Quat,
+    pub movement_mode: MovementMode,
     pub last_ack_time: u64,
     #[serde(with = "inventory_serde")]
     pub inventory: Box<[Stack]>,
@@ -50,6 +53,8 @@ pub struct ClientPlayerInput {
     pub inputs: HashSet<TransmittableAction>,
     pub camera: Transform,
     pub hotbar_slot: u32,
-    #[serde(skip)]
+    /// Client's predicted position at time of input (for validation)
     pub position: Vec3,
+    /// Client's current velocity (for physics simulation)
+    pub velocity: Vec3,
 }

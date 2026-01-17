@@ -21,6 +21,7 @@ impl CurrentFrameInputsExt for CurrentFrameInputs {
             inputs: HashSet::default(),
             camera: Transform::default(),
             position: Vec3::default(),
+            velocity: Vec3::default(),
             hotbar_slot: 0,
         };
     }

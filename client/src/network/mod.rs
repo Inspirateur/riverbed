@@ -4,6 +4,7 @@ mod cleanup;
 pub mod extensions;
 mod inputs;
 pub mod models;
+pub mod reconciliation;
 pub mod save;
 mod setup;
 mod world;
@@ -12,6 +13,7 @@ pub use chat::*;
 pub use cleanup::*;
 pub use extensions::SendGameMessageExtension;
 pub use inputs::*;
+pub use reconciliation::ReconciliationPlugin;
 pub use setup::*;
 
 use bevy::prelude::*;
@@ -23,6 +25,9 @@ use crate::ui::CursorGrabbed;
 pub struct NetworkPlugin;
 impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
+        // Add reconciliation plugin for server-authoritative sync
+        app.add_plugins(ReconciliationPlugin);
+        
         // Initialize resources
         app.init_resource::<CurrentPlayerProfile>()
             .init_resource::<PlayerTickInputsBuffer>()

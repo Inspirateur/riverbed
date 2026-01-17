@@ -4,11 +4,14 @@
 //! - Spawning visual entities for other players when they join
 //! - Updating their positions based on server updates
 //! - Removing them when they disconnect
+//!
+//! Note: Local player reconciliation is handled by the reconciliation module
+//! in client/src/network/reconciliation.rs
 
 use bevy::prelude::*;
 use shared::messages::{PlayerId, ServerPlayerSpawn, ServerPlayerUpdate};
 
-use crate::network::{CurrentPlayerProfile, UnacknowledgedInputs};
+use crate::network::CurrentPlayerProfile;
 
 /// Marker component for other players (not the local player)
 #[derive(Component)]
@@ -61,21 +64,18 @@ fn spawn_other_players(
     }
 }
 
-/// System to update other players' positions from server updates
+/// System to update other players' positions from server updates.
+/// 
+/// Note: Local player updates are handled by the reconciliation system
+/// in the network module, not here.
 fn update_other_players(
     mut ev_update: MessageReader<ServerPlayerUpdate>,
     mut other_players: Query<(&OtherPlayer, &mut Transform)>,
     current_player: Res<CurrentPlayerProfile>,
-    mut unack_inputs: ResMut<UnacknowledgedInputs>,
 ) {
     for event in ev_update.read() {
-        // Handle our own player update (for server reconciliation)
+        // Skip our own player - handled by reconciliation module
         if event.id == current_player.id {
-            // Remove acknowledged inputs
-            unack_inputs.0.retain(|input| input.time_ms > event.last_ack_time);
-            
-            // TODO: Implement proper client-side prediction reconciliation
-            // For now, we trust the server position
             continue;
         }
 
