@@ -3,6 +3,7 @@ pub mod block;
 pub mod items;
 pub mod logging;
 pub mod messages;
+pub mod net;
 pub mod physics;
 pub mod world;
 pub mod utils;
