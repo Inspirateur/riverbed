@@ -4,7 +4,11 @@ use bevy_renet::netcode::{
 };
 use bevy_renet::{renet::RenetClient, RenetClientPlugin};
 use rand::Rng;
-use shared::{get_shared_renet_config, GameServerConfig, STC_AUTH_CHANNEL};
+use shared::{
+    get_shared_renet_config, STC_AUTH_CHANNEL,
+    SOCKET_BIND_ERROR, TARGET_SERVER_ADDR_ERROR, NETCODE_CLIENT_TRANSPORT_ERROR, 
+    UNIX_EPOCH_TIME_ERROR, USERNAME_MISSING_AUTHENTICATED_ERROR,
+};
 
 use crate::network::world::update_world_from_network;
 use crate::network::CachedChatConversation;
@@ -15,9 +19,29 @@ use shared::messages::{
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::{net::UdpSocket, thread, time::SystemTime};
+use std::{net::UdpSocket, time::SystemTime};
 
 use super::SendGameMessageExtension;
+
+// Resource for player name input (for multiplayer)
+#[derive(Resource, Debug, Default)]
+pub struct PlayerNameSupplied {
+    pub name: String,
+}
+
+// Resource for selected world (for world selection menu)
+#[derive(Resource, Default, Debug, Clone)]
+pub struct SelectedWorld {
+    pub name: Option<String>,
+}
+
+// Resource for client-side time tracking
+#[derive(Resource, Default, Debug, Clone)]
+pub struct ClientTime(pub u64);
+
+// Resource for world seed
+#[derive(Resource, Default, Debug, Clone)]
+pub struct WorldSeed(pub u32);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TargetServerState {
@@ -101,35 +125,14 @@ pub fn launch_local_server_system(
     if let Some(world_name) = &selected_world.name {
         info!("Launching local server with world: {}", world_name);
 
-        let socket = match server::acquire_local_ephemeral_udp_socket(IpAddr::V4(Ipv4Addr::new(
-            127, 0, 0, 1,
-        ))) {
-            Ok(socket) => socket,
-            Err(err) => {
-                error!("{}: {err}", SOCKET_BIND_ERROR);
-                return;
-            }
-        };
-        let Ok(addr) = socket.local_addr() else {
-            error!("{}", SOCKET_LOCAL_ADDR_ERROR);
-            return;
-        };
-        debug!("Obtained UDP socket: {}", addr);
-
-        let world_name_clone = world_name.clone();
-        let cloned_paths = paths.clone();
-
-        thread::spawn(move || {
-            server::init(
-                socket,
-                GameServerConfig {
-                    world_name: world_name_clone,
-                    is_solo: true,
-                    broadcast_render_distance: RENDER_DISTANCE,
-                },
-                cloned_paths,
-            );
-        });
+        // TODO: Implement server launching once server crate is ready
+        // For now, we'll need to run the server separately and connect to it
+        // The server should be started on 127.0.0.1 with an ephemeral port
+        
+        // Placeholder: Set a default local address for testing
+        // In production, this should actually launch the server and get its address
+        let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8000);
+        warn!("Server auto-launch not yet implemented. Expecting server at {}", addr);
 
         target.address = Some(addr);
     } else {
@@ -141,17 +144,14 @@ pub fn poll_network_messages(
     mut client: ResMut<RenetClient>,
     // mut chat_state: ResMut<CachedChatConversation>,
     // client_time: ResMut<ClientTime>,
-    mut world: ResMut<ClientWorldMap>,
-    mut ev_render: MessageWriter<WorldRenderRequestUpdateEvent>,
+    // mut world: ResMut<ClientWorldMap>,
+    // mut ev_render: MessageWriter<WorldRenderRequestUpdateEvent>,
     mut ev_player_spawn: MessageWriter<PlayerSpawnEvent>,
     mut ev_item_stacks_update: MessageWriter<ItemStackUpdateEvent>,
     mut ev_player_update: MessageWriter<PlayerUpdateEvent>,
 ) {
-    // poll_reliable_ordered_messages(&mut client, &mut chat_state);
     update_world_from_network(
         &mut client,
-        &mut world,
-        &mut ev_render,
         &mut ev_player_spawn,
         &mut ev_item_stacks_update,
         &mut ev_player_update,
@@ -229,7 +229,7 @@ pub fn establish_authenticated_connection_to_server(
     current_profile: Res<CurrentPlayerProfile>,
     mut ev_spawn: MessageWriter<PlayerSpawnEvent>,
     mut client_time: ResMut<ClientTime>,
-    mut world_seed: ResMut<shared::world::WorldSeed>,
+    mut world_seed: ResMut<WorldSeed>,
 ) {
     if target.session_token.is_some() {
         let Some(username) = target.username.as_ref() else {

@@ -17,6 +17,22 @@ use crate::utils::format_bytes;
 
 use crate::messages::{ClientToServerMessage, ServerToClientMessage};
 
+// Network protocol constants
+pub const PROTOCOL_ID: u64 = 0;
+pub const TICKS_PER_SECOND: u64 = 20;
+pub const RENDER_DISTANCE: i32 = 32;
+
+// Error message constants
+pub const UNIX_EPOCH_TIME_ERROR: &str = "System time is before UNIX_EPOCH";
+pub const SOCKET_LOCAL_ADDR_ERROR: &str = "Failed to retrieve local address for UDP socket";
+pub const SOCKET_BIND_ERROR: &str = "Failed to bind UDP socket";
+pub const TARGET_SERVER_ADDR_ERROR: &str =
+    "Target server address missing when initializing connection";
+pub const NETCODE_CLIENT_TRANSPORT_ERROR: &str = "Failed to create Netcode client transport";
+pub const NETCODE_SERVER_TRANSPORT_ERROR: &str = "Failed to create Netcode server transport";
+pub const USERNAME_MISSING_AUTHENTICATED_ERROR: &str =
+    "Username missing while handling authenticated session token";
+
 #[derive(Resource)]
 pub struct GameServerConfig {
     pub world_name: String,

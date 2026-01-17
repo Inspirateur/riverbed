@@ -1,4 +1,4 @@
-use bevy::math::Vec3;
+use bevy::prelude::*;
 
 use crate::world::pos::pos3d::BlockPos;
 
@@ -20,6 +20,10 @@ pub const MAX_HEIGHT: usize = 496;
 pub const MAX_GEN_HEIGHT: usize = 400;
 pub const WATER_H: i32 = 61;
 pub const Y_CHUNKS: usize = MAX_HEIGHT/CHUNK_S1;
+
+/// World seed resource, used for world generation
+#[derive(Resource, Default, Debug, Clone, Copy)]
+pub struct WorldSeed(pub u32);
 
 pub struct BlockRayCastHit {
     pub pos: BlockPos,
