@@ -33,7 +33,9 @@ impl Default for KeyBinds {
 }
 
 impl KeyBinds {
-    pub fn keycode_to_action(&self, keycode: KeyCode) -> Option<TransmittableAction> {
+    /// Map a keycode to a continuous action (held keys like movement).
+    /// Excludes one-shot actions like toggle fly mode.
+    pub fn keycode_to_continuous_action(&self, keycode: KeyCode) -> Option<TransmittableAction> {
         match keycode {
             k if k == self.forward => Some(TransmittableAction::MoveForward),
             k if k == self.backward => Some(TransmittableAction::MoveBackward),
@@ -41,6 +43,14 @@ impl KeyBinds {
             k if k == self.right => Some(TransmittableAction::MoveRight),
             k if k == self.jump => Some(TransmittableAction::JumpOrFlyUp),
             k if k == self.crouch => Some(TransmittableAction::CrouchOrFlyDown),
+            _ => None,
+        }
+    }
+
+    /// Map a keycode to a one-shot action (triggered once on key press).
+    /// These actions should only be captured with `get_just_pressed()`, not `get_pressed()`.
+    pub fn keycode_to_oneshot_action(&self, keycode: KeyCode) -> Option<TransmittableAction> {
+        match keycode {
             k if k == self.toggle_fly => Some(TransmittableAction::ToggleFlyMode),
             _ => None,
         }

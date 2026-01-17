@@ -88,24 +88,44 @@ pub fn reconcile_player_state(
             continue;
         };
 
-        // Handle movement mode changes from server
-        let server_is_flying = event.movement_mode == MovementMode::Flying;
+        // Calculate position difference
+        let position_diff = event.position - transform.translation;
+        let position_error = position_diff.length();
+
+        // Determine the final movement mode by replaying unacknowledged inputs.
+        // This is necessary because the server state may not yet reflect toggle
+        // actions that the client has sent but not been acknowledged.
+        let final_movement_mode = if input_history.unacknowledged.is_empty() {
+            // No unacked inputs, server state is authoritative
+            event.movement_mode
+        } else {
+            // Replay unacked inputs to determine predicted movement mode
+            let mut mode = event.movement_mode;
+            for input in input_history.unacknowledged.iter() {
+                if input.inputs.contains(&shared::messages::TransmittableAction::ToggleFlyMode) {
+                    mode = match mode {
+                        MovementMode::Walking => MovementMode::Flying,
+                        MovementMode::Flying => MovementMode::Walking,
+                    };
+                }
+            }
+            mode
+        };
+
+        // Update ECS components to match the predicted movement mode (after replay)
+        let predicted_is_flying = final_movement_mode == MovementMode::Flying;
         let client_is_flying = free_fly_opt.is_some();
         
-        if server_is_flying != client_is_flying {
-            if server_is_flying {
+        if predicted_is_flying != client_is_flying {
+            if predicted_is_flying {
                 commands.entity(entity).remove::<Walking>().insert(FreeFly);
                 commands.entity(entity).insert(Speed(shared::FLY_SPEED));
             } else {
                 commands.entity(entity).remove::<FreeFly>().insert(Walking);
                 commands.entity(entity).insert(Speed(shared::WALK_SPEED));
             }
-            info!("Movement mode corrected by server: flying={}", server_is_flying);
+            info!("Movement mode corrected: flying={}", predicted_is_flying);
         }
-
-        // Calculate position difference
-        let position_diff = event.position - transform.translation;
-        let position_error = position_diff.length();
 
         if position_error < POSITION_CORRECTION_THRESHOLD {
             // Position is close enough, no correction needed

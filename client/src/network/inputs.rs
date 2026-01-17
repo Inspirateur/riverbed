@@ -36,8 +36,9 @@ pub fn capture_player_inputs_system(
         return;
     }
 
+    // Capture continuous actions (movement) - these fire every frame while held
     for keycode in keyboard.get_pressed() {
-        if let Some(action) = key_binds.keycode_to_action(*keycode) {
+        if let Some(action) = key_binds.keycode_to_continuous_action(*keycode) {
             frame_inputs.0.inputs.insert(action);
         }
     }
@@ -48,8 +49,11 @@ pub fn capture_player_inputs_system(
         }
     }
 
+    // Capture one-shot actions (toggles) - these fire only on the frame the key is pressed
+    // This prevents toggle actions from being added to multiple frames when the key is held,
+    // which would cause them to toggle back and forth during input replay/reconciliation.
     for keycode in keyboard.get_just_pressed() {
-        if let Some(action) = key_binds.keycode_to_action(*keycode) {
+        if let Some(action) = key_binds.keycode_to_oneshot_action(*keycode) {
             frame_inputs.0.inputs.insert(action);
         }
     }
