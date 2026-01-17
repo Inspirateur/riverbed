@@ -1,12 +1,14 @@
 use std::{collections::HashMap, hash::Hash, ops::Index, slice::Iter};
 
-#[derive(Debug)]
-pub struct Palette<E: Hash> {
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Palette<E: Hash + Eq> {
     leftmap: HashMap<E, usize>,
     rightmap: Vec<E>
 }
 
-impl<E: Hash> Palette<E> {
+impl<E: Hash + Eq> Palette<E> {
     pub fn iter(&self) -> Iter<'_, E> {
         self.rightmap.iter()
     }
@@ -29,7 +31,7 @@ impl<E: Hash + Eq + PartialEq + Clone> Palette<E> {
     }
 }
 
-impl<E: Hash> Index<usize> for Palette<E> {
+impl<E: Hash + Eq> Index<usize> for Palette<E> {
     type Output = E;
 
     fn index(&self, index: usize) -> &Self::Output {

@@ -4,6 +4,20 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug)]
 pub struct SerdablePackedUints(pub PackedUints);
 
+impl SerdablePackedUints {
+    pub fn get(&self, index: usize) -> usize {
+        self.0.get(index)
+    }
+
+    pub fn set(&mut self, index: usize, value: usize) {
+        self.0.set(index, value);
+    }
+
+    pub fn set_range_step(&mut self, start: usize, end: usize, step: usize, value: usize) {
+        self.0.set_range_step(start, end, step, value);
+    }
+}
+
 impl Default for SerdablePackedUints {
     fn default() -> Self {
         Self(PackedUints::new(0))
