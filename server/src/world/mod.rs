@@ -2,19 +2,23 @@ mod chunk;
 mod load_area;
 mod terrain_thread;
 mod serdable_packed_uints;
+mod block_entities;
 
 use crate::world::{block_entities::unload_block_entities, terrain_thread::{assign_player_col, on_unload_col, send_player_pos_update, setup_load_thread}};
-pub const CHUNK_S1: usize = 62;
-pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
-pub const CHUNKP_S1: usize = CHUNK_S1 + 2;
-pub const CHUNKP_S2: usize = CHUNKP_S1.pow(2);
-pub const CHUNKP_S3: usize = CHUNKP_S1.pow(3);
-pub const CHUNK_S1I: i32 = CHUNK_S1 as i32;
 
-pub const MAX_HEIGHT: usize = 496;
-pub const MAX_GEN_HEIGHT: usize = 400;
-pub const WATER_H: i32 = 61;
-pub const Y_CHUNKS: usize = MAX_HEIGHT/CHUNK_S1;
+pub use shared::world::{
+	CHUNK_S1,
+	CHUNK_S2,
+	CHUNKP_S1,
+	CHUNKP_S2,
+	CHUNKP_S3,
+	CHUNK_S1I,
+	MAX_HEIGHT,
+	MAX_GEN_HEIGHT,
+	WATER_H,
+	Y_CHUNKS,
+};
+
 
 #[derive(Component, Default)]
 pub struct PlayerCol(pub ColPos);

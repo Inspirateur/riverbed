@@ -1,7 +1,8 @@
 use std::ops::{Add, BitXor};
 use bevy::prelude::Vec3;
 use serde::{Deserialize, Serialize};
-use crate::world::{Realm, CHUNK_S1};
+use crate::world::{CHUNK_S1, realm::Realm};
+
 use super::{chunked, unchunked, ColPos, CHUNK_S1I};
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Default, Debug, Hash, Serialize, Deserialize)]
