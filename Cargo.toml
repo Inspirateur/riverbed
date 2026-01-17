@@ -9,6 +9,7 @@ members = [
 
 [workspace.dependencies]
 bevy = { version = "0.17" }
+bevy_renet = "3.0.0"
 cfg-if = "*"
 clap = { version = "4.5.19", features = ["derive"] }
 crossbeam = "*"
