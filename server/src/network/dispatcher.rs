@@ -12,7 +12,7 @@ use bevy::log::info;
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer, ServerEvent};
 use shared::messages::{
-    AuthRegisterRequest, AuthRegisterResponse, ClientToServerMessage, PlayerId, PlayerSave,
+    AuthRegisterRequest, AuthRegisterResponse, ClientToServerMessage, PlayerSave,
     PlayerSpawnEvent, ServerToClientMessage,
 };
 use shared::world::realm::Realm;
@@ -172,6 +172,11 @@ pub struct PlayerExitEvent {
 
 /// Handle authentication requests from clients.
 /// Sends back AuthRegisterResponse with session info and broadcasts player spawn to all clients.
+/// 
+/// Note: This system spawns ECS entities for new players. The Transform on these entities
+/// is the single source of truth for player position. For existing players, we query their
+/// ECS Transform; for the newly authenticating player, we use DEFAULT_SPAWN_POSITION since
+/// their entity won't be queryable until the next frame.
 fn handle_auth_requests(
     mut commands: Commands,
     mut ev_auth: MessageReader<AuthRegisterEvent>,
@@ -180,7 +185,10 @@ fn handle_auth_requests(
     mut chunk_tracker: ResMut<ChunkSendTracker>,
     tick: Res<ServerTick>,
     world_seed: Res<WorldSeed>,
+    existing_players: Query<(&NetworkPlayer, &Transform)>,
 ) {
+    use crate::network::players::DEFAULT_SPAWN_POSITION;
+
     for event in ev_auth.read() {
         let client_id = event.client_id;
         let username = event.request.username.clone();
@@ -218,40 +226,50 @@ fn handle_auth_requests(
         }
 
         // Spawn an ECS entity for this player with Transform and Realm
-        // This is needed for the terrain thread to track player positions
-        let player_pos = registry
-            .get_player(client_id)
-            .map(|p| p.position)
-            .unwrap_or(Vec3::new(280., 500., -150.));
+        // The Transform is the single source of truth for player position
+        let spawn_pos = DEFAULT_SPAWN_POSITION;
         
         commands.spawn((
-            Transform::from_translation(player_pos),
+            Transform::from_translation(spawn_pos),
             Realm::Overworld,
             NetworkPlayer { client_id },
         ));
         info!(
             "Spawned ECS entity for player {} at {:?}",
-            client_id, player_pos
+            client_id, spawn_pos
         );
 
         // Reset chunk tracking for this client (they may be reconnecting)
         chunk_tracker.remove_client(client_id);
 
-        // Build list of all player spawn events (including the new player)
-        let all_player_spawns: Vec<PlayerSpawnEvent> = registry
-            .players
-            .values()
-            .filter(|p| p.is_authenticated)
-            .map(|p| PlayerSpawnEvent {
-                id: p.id,
-                name: p.name.clone(),
+        // Build list of all player spawn events
+        // For existing players, get position from their ECS Transform
+        // For the new player (just authenticated), use the spawn position we just set
+        let mut all_player_spawns: Vec<PlayerSpawnEvent> = Vec::new();
+        
+        for player in registry.players.values().filter(|p| p.is_authenticated) {
+            let (position, orientation) = if player.id == client_id {
+                // New player - use spawn position (entity not queryable yet)
+                (spawn_pos, Quat::IDENTITY)
+            } else {
+                // Existing player - query ECS Transform
+                existing_players
+                    .iter()
+                    .find(|(np, _)| np.client_id == player.id)
+                    .map(|(_, t)| (t.translation, t.rotation))
+                    .unwrap_or((DEFAULT_SPAWN_POSITION, Quat::IDENTITY))
+            };
+
+            all_player_spawns.push(PlayerSpawnEvent {
+                id: player.id,
+                name: player.name.clone(),
                 data: PlayerSave {
-                    position: p.position,
-                    camera_transform: Transform::from_rotation(p.orientation),
-                    is_flying: p.is_flying,
+                    position,
+                    camera_transform: Transform::from_rotation(orientation),
+                    is_flying: player.is_flying,
                 },
-            })
-            .collect();
+            });
+        }
 
         // Get current timestamp
         let timestamp_ms = std::time::SystemTime::now()
@@ -265,7 +283,7 @@ fn handle_auth_requests(
             session_token: client_id,
             tick: tick.0,
             timestamp_ms,
-            players: all_player_spawns.clone(),
+            players: all_player_spawns,
             world_seed: world_seed.0,
         };
 
@@ -283,8 +301,8 @@ fn handle_auth_requests(
             id: new_player.id,
             name: new_player.name.clone(),
             data: PlayerSave {
-                position: new_player.position,
-                camera_transform: Transform::from_rotation(new_player.orientation),
+                position: spawn_pos,
+                camera_transform: Transform::default(),
                 is_flying: new_player.is_flying,
             },
         };

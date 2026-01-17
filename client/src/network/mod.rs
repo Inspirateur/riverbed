@@ -30,7 +30,7 @@ impl Plugin for NetworkPlugin {
             .init_resource::<SyncTime>()
             .init_resource::<UnacknowledgedInputs>()
             .init_resource::<SelectedWorld>()
-            .init_resource::<ClientTime>()
+            .init_resource::<ServerTickAtConnect>()
             .init_resource::<WorldSeed>();
         
         // Register network messages/events

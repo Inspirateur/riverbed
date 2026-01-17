@@ -65,15 +65,4 @@ impl SendGameMessageExtension for RenetClient {
         }
         None
     }
-
-    // fn receive_game_message(&mut self) -> Option<Result<ServerToClientMessage, Box<ErrorKind>>> {
-    //     let channels = get_customized_server_to_client_channels();
-    //     for channel in channels {
-    //         let res = self.receive_game_message_by_channel(channel.channel_id);
-    //         if let Some(res) = res {
-    //             return Some(res);
-    //         }
-    //     }
-    //     None
-    // }
 }

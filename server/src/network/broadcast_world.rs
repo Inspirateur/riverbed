@@ -6,13 +6,14 @@
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer};
 use crossbeam::channel::Receiver;
-use shared::messages::{PlayerId, ServerToClientMessage, WorldUpdate};
+use shared::messages::{ServerToClientMessage, WorldUpdate};
 use shared::world::chunk::Chunk;
 use shared::world::pos::pos2d::{chunks_in_col, ColPos};
 use shared::world::pos::pos3d::ChunkPos;
 use shared::world::realm::Realm;
 use std::collections::{HashMap, HashSet};
 
+use crate::network::dispatcher::NetworkPlayer;
 use crate::network::players::PlayerRegistry;
 use crate::world::voxel_world::VoxelWorld;
 
@@ -30,7 +31,7 @@ pub struct ServerTick(pub u64);
 #[derive(Resource, Default)]
 pub struct ChunkSendTracker {
     /// Maps client ID to the set of chunk positions they've received
-    sent_chunks: HashMap<PlayerId, HashSet<ChunkPos>>,
+    sent_chunks: HashMap<ClientId, HashSet<ChunkPos>>,
 }
 
 impl ChunkSendTracker {
@@ -92,27 +93,39 @@ pub fn process_chunk_changes(
 
 /// System that broadcasts world state to all connected clients.
 /// Sends chunks that are within render distance and haven't been sent yet.
+/// 
+/// Player positions are read from ECS `Transform` components (single source of truth).
 pub fn broadcast_world_state(
     mut server: ResMut<RenetServer>,
     mut tick: ResMut<ServerTick>,
     world: Res<VoxelWorld>,
     mut tracker: ResMut<ChunkSendTracker>,
     registry: Res<PlayerRegistry>,
+    player_transforms: Query<(&NetworkPlayer, &Transform, &Realm)>,
 ) {
     tick.0 += 1;
     let render_distance = world.render_distance as i32;
 
     for client_id in server.clients_id() {
-        // Get player position from registry
-        let Some(player_pos) = registry.get_player_position(client_id) else {
+        // Skip unauthenticated players
+        if !registry.is_authenticated(client_id) {
+            continue;
+        }
+
+        // Get player position and realm from ECS (single source of truth)
+        let Some((_, transform, realm)) = player_transforms
+            .iter()
+            .find(|(np, _, _)| np.client_id == client_id)
+        else {
             continue;
         };
+        let player_pos = transform.translation;
 
         // Convert player position to chunk column position
         let player_chunk_col = ColPos {
             x: (player_pos.x / 16.0).floor() as i32,
             z: (player_pos.z / 16.0).floor() as i32,
-            realm: Realm::Overworld, // TODO: Get actual realm from player
+            realm: *realm,
         };
 
         let mut chunks_to_send: HashMap<ChunkPos, Chunk> = HashMap::new();

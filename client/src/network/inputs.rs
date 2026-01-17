@@ -5,7 +5,7 @@ use shared::messages::{ClientToServerMessage, PlayerFrameInput};
 use crate::agents::key_binds::KeyBinds;
 use crate::agents::PlayerControlled;
 use crate::render::FpsCam;
-use crate::ui::{CursorGrabbed, SelectedHotbarSlot};
+use crate::ui::SelectedHotbarSlot;
 
 use super::buffered_client::{CurrentFrameInputs, CurrentFrameInputsExt, PlayerTickInputsBuffer, SyncTime, SyncTimeExt};
 use super::SendGameMessageExtension;

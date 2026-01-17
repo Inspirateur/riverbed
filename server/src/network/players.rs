@@ -1,6 +1,17 @@
 //! Player management for the server.
 //!
-//! Tracks connected players, their positions, and handles player input processing.
+//! Tracks connected players and handles player input processing.
+//! 
+//! # Architecture
+//! 
+//! Player state is split between two locations:
+//! - **ECS entities**: Position (`Transform`) and realm (`Realm`) live on entities with
+//!   the `NetworkPlayer` component. This is the single source of truth for spatial data.
+//! - **PlayerRegistry**: Metadata like name, authentication status, and input timing.
+//!   This provides O(1) lookup by `ClientId` without needing ECS queries.
+//!
+//! When a player authenticates, we spawn an ECS entity and add them to the registry.
+//! When they disconnect, both are cleaned up.
 
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer};
@@ -9,19 +20,29 @@ use shared::messages::{
 };
 use std::collections::HashMap;
 
+use super::dispatcher::NetworkPlayer;
 use super::extensions::SendGameMessageExtension;
 
-/// Represents a player connected to the server.
+/// Default spawn position for new players.
+/// TODO: This should be loaded from world data or calculated based on terrain.
+pub const DEFAULT_SPAWN_POSITION: Vec3 = Vec3::new(280., 500., -150.);
+
+/// Metadata for a player connected to the server.
+/// 
+/// Note: Position and orientation are stored on the player's ECS entity (`Transform`),
+/// not here. This struct only contains non-spatial metadata.
 #[derive(Debug, Clone)]
 pub struct ServerPlayer {
+    /// The player's network client ID. This is the same as `PlayerId` (both are `u64`).
     pub id: PlayerId,
+    /// Display name chosen during authentication.
     pub name: String,
-    pub position: Vec3,
-    pub orientation: Quat,
+    /// Whether the player is currently flying (affects movement physics).
     pub is_flying: bool,
-    /// The last input timestamp we've processed for this player
+    /// The timestamp (ms) of the last input we've processed for this player.
+    /// Used for acknowledgment in `PlayerUpdateEvent`.
     pub last_input_processed: u64,
-    /// Whether the player has completed authentication
+    /// Whether the player has completed the authentication handshake.
     pub is_authenticated: bool,
 }
 
@@ -30,8 +51,6 @@ impl ServerPlayer {
         Self {
             id,
             name: format!("Player-{}", id),
-            position: Vec3::new(280., 500., -150.), // Default spawn position
-            orientation: Quat::IDENTITY,
             is_flying: false,
             last_input_processed: 0,
             is_authenticated: false,
@@ -69,15 +88,6 @@ impl PlayerRegistry {
         self.players.get(&client_id)
     }
 
-    /// Get player position by client ID (for chunk broadcasting)
-    /// Only returns position for authenticated players
-    pub fn get_player_position(&self, client_id: ClientId) -> Option<Vec3> {
-        self.players
-            .get(&client_id)
-            .filter(|p| p.is_authenticated)
-            .map(|p| p.position)
-    }
-
     /// Check if a player is authenticated
     pub fn is_authenticated(&self, client_id: ClientId) -> bool {
         self.players
@@ -99,10 +109,13 @@ const WALK_SPEED: f32 = 7.0;
 const FLY_SPEED: f32 = 15.0;
 
 /// Process player inputs and update positions.
-/// This is a simplified server-side simulation.
+/// 
+/// This system reads input events, updates the player's ECS `Transform` for position,
+/// and updates `PlayerRegistry` for metadata (flying state, last processed input).
 pub fn handle_player_inputs_system(
     mut events: MessageReader<PlayerInputsEvent>,
     mut registry: ResMut<PlayerRegistry>,
+    mut player_transforms: Query<(&NetworkPlayer, &mut Transform)>,
 ) {
     for ev in events.read() {
         let Some(player) = registry.get_player_mut(ev.client_id) else {
@@ -115,6 +128,15 @@ pub fn handle_player_inputs_system(
             debug!("Ignoring input from unauthenticated player {}", ev.client_id);
             continue;
         }
+
+        // Find the player's ECS entity to update Transform
+        let Some((_, mut transform)) = player_transforms
+            .iter_mut()
+            .find(|(np, _)| np.client_id == ev.client_id)
+        else {
+            warn!("No ECS entity found for authenticated player {}", ev.client_id);
+            continue;
+        };
 
         // Calculate movement direction from inputs
         let mut move_dir = Vec3::ZERO;
@@ -151,30 +173,42 @@ pub fn handle_player_inputs_system(
             }
         }
 
-        // Normalize and apply speed
+        // Normalize and apply speed to ECS Transform (single source of truth for position)
         if move_dir.length_squared() > 0.0 {
             move_dir = move_dir.normalize();
             let speed = if player.is_flying { FLY_SPEED } else { WALK_SPEED };
-            player.position += move_dir * speed * delta_secs;
+            transform.translation += move_dir * speed * delta_secs;
         }
 
-        // Update orientation from camera
-        player.orientation = ev.input.camera.rotation;
+        // Update orientation on ECS Transform
+        transform.rotation = ev.input.camera.rotation;
+        
+        // Update metadata in registry
         player.last_input_processed = ev.input.time_ms;
     }
 }
 
 /// Broadcast player updates to all connected clients.
+/// 
+/// Reads position/orientation from ECS `Transform` and metadata from `PlayerRegistry`.
 pub fn broadcast_player_updates_system(
     registry: Res<PlayerRegistry>,
     mut server: ResMut<RenetServer>,
+    player_transforms: Query<(&NetworkPlayer, &Transform)>,
 ) {
     // Only broadcast authenticated players
     for player in registry.players.values().filter(|p| p.is_authenticated) {
+        // Get position and orientation from ECS Transform
+        let (position, orientation) = player_transforms
+            .iter()
+            .find(|(np, _)| np.client_id == player.id)
+            .map(|(_, t)| (t.translation, t.rotation))
+            .unwrap_or((DEFAULT_SPAWN_POSITION, Quat::IDENTITY));
+
         let update = PlayerUpdateEvent {
             id: player.id,
-            position: player.position,
-            orientation: player.orientation,
+            position,
+            orientation,
             last_ack_time: player.last_input_processed,
             inventory: Box::new([]), // TODO: Implement inventory sync
         };

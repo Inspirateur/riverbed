@@ -7,7 +7,7 @@ use rand::Rng;
 use shared::{
     get_shared_renet_config, GameServerConfig, STC_AUTH_CHANNEL,
     SOCKET_BIND_ERROR, TARGET_SERVER_ADDR_ERROR, NETCODE_CLIENT_TRANSPORT_ERROR, 
-    UNIX_EPOCH_TIME_ERROR, USERNAME_MISSING_AUTHENTICATED_ERROR, RENDER_DISTANCE,
+    UNIX_EPOCH_TIME_ERROR, RENDER_DISTANCE,
 };
 
 use crate::network::world::update_world_from_network;
@@ -49,9 +49,14 @@ impl Default for SelectedWorld {
     }
 }
 
-// Resource for client-side time tracking
+/// Tracks the server's tick count as received during authentication.
+/// 
+/// This is set once during the auth handshake and represents the server's
+/// logical tick at the time of connection. Used for synchronizing game state.
+/// 
+/// Note: This is distinct from `SyncTime` which tracks wall-clock time for input timestamps.
 #[derive(Resource, Default, Debug, Clone)]
-pub struct ClientTime(pub u64);
+pub struct ServerTickAtConnect(pub u64);
 
 // Resource for world seed
 #[derive(Resource, Default, Debug, Clone)]
@@ -275,7 +280,7 @@ pub fn establish_authenticated_connection_to_server(
     mut target: ResMut<TargetServer>,
     current_profile: Res<CurrentPlayerProfile>,
     mut ev_spawn: MessageWriter<PlayerSpawnEvent>,
-    mut client_time: ResMut<ClientTime>,
+    mut server_tick: ResMut<ServerTickAtConnect>,
     mut world_seed: ResMut<WorldSeed>,
 ) {
     // Already authenticated, nothing to do
@@ -305,7 +310,7 @@ pub fn establish_authenticated_connection_to_server(
                 target.username = Some(message.username);
                 target.session_token = Some(message.session_token);
                 target.state = TargetServerState::ConnectionEstablished;
-                client_time.0 = message.tick;
+                server_tick.0 = message.tick;
                 world_seed.0 = message.world_seed;
                 info!("Successfully authenticated as {}", username);
                 info!("Received world seed: {}", message.world_seed);
