@@ -9,13 +9,17 @@ logging = []
 [dependencies]
 shared = { path = "../shared" }
 
+bevy = { workspace = true }
+crossbeam = { workspace = true }
 itertools = { workspace = true }
 packed-uints = { workspace = true }
+parking_lot = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 
 anyhow = "*"
 chrono = { version = "*", features = ["serde", "rkyv"] }
+crossbeam-skiplist = "*"
 csv = "*"
 riverbed_noise = { path = "../crates/riverbed_noise", version = "*" }
 
