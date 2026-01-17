@@ -15,7 +15,7 @@ use crate::network::CachedChatConversation;
 use crate::render::MeshOrderSender;
 use crate::world::ClientWorldMap;
 use shared::messages::{
-    AuthRegisterRequest, ItemStackUpdateEvent, PlayerId, PlayerSpawnEvent, PlayerUpdateEvent,
+    AuthRegisterRequest, ServerItemStackUpdate, PlayerId, ServerPlayerSpawn, ServerPlayerUpdate,
     ServerToClientMessage,
 };
 use std::collections::hash_map::DefaultHasher;
@@ -27,13 +27,11 @@ use std::{net::UdpSocket, time::SystemTime};
 
 use super::SendGameMessageExtension;
 
-// Resource for player name input (for multiplayer)
 #[derive(Resource, Debug, Default)]
 pub struct PlayerNameSupplied {
     pub name: String,
 }
 
-// Resource for selected world (for world selection menu)
 #[derive(Resource, Debug, Clone)]
 pub struct SelectedWorld {
     pub name: Option<String>,
@@ -41,24 +39,15 @@ pub struct SelectedWorld {
 
 impl Default for SelectedWorld {
     fn default() -> Self {
-        // Default to "default" world for singleplayer MVP
-        // This will be replaced by a world selection menu later
         Self {
             name: Some("default".to_string()),
         }
     }
 }
 
-/// Tracks the server's tick count as received during authentication.
-/// 
-/// This is set once during the auth handshake and represents the server's
-/// logical tick at the time of connection. Used for synchronizing game state.
-/// 
-/// Note: This is distinct from `SyncTime` which tracks wall-clock time for input timestamps.
 #[derive(Resource, Default, Debug, Clone)]
 pub struct ServerTickAtConnect(pub u64);
 
-// Resource for world seed
 #[derive(Resource, Default, Debug, Clone)]
 pub struct WorldSeed(pub u32);
 
@@ -67,7 +56,7 @@ pub enum TargetServerState {
     Initial,
     Establishing,
     ConnectionEstablished,
-    FullyReady, // player has spawned
+    FullyReady,
 }
 
 #[derive(Resource, Clone)]
@@ -120,10 +109,8 @@ pub fn add_base_netcode(app: &mut App) {
     let client = RenetClient::new(get_shared_renet_config());
     app.insert_resource(client);
 
-    // Setup the transport layer
     app.add_plugins(NetcodeClientPlugin);
 
-    // TODO: change username
     app.insert_resource(TargetServer {
         address: None,
         username: None,
@@ -144,7 +131,6 @@ pub fn launch_local_server_system(
     if let Some(world_name) = &selected_world.name {
         info!("Launching local server with world: {}", world_name);
 
-        // Acquire an ephemeral UDP socket for the local server
         let socket = match server::acquire_local_ephemeral_udp_socket(IpAddr::V4(Ipv4Addr::new(
             127, 0, 0, 1,
         ))) {
@@ -155,20 +141,17 @@ pub fn launch_local_server_system(
             }
         };
 
-        // Get the address the socket was bound to
-        let addr = match socket.local_addr() {
-            Ok(addr) => addr,
+        let address = match socket.local_addr() {
+            Ok(address) => address,
             Err(err) => {
                 error!("Failed to get socket local address: {err}");
                 return;
             }
         };
-        info!("Local server will bind to: {}", addr);
+        info!("Local server will bind to: {}", address);
 
-        // Clone data needed for the server thread
         let world_name_clone = world_name.clone();
 
-        // Spawn the server in a separate thread
         thread::spawn(move || {
             server::init(
                 socket,
@@ -180,13 +163,10 @@ pub fn launch_local_server_system(
             );
         });
 
-        // Give the server thread a moment to initialize before we try to connect
-        // The socket is already bound, but the server needs to set up its Bevy app
         thread::sleep(Duration::from_millis(100));
 
-        // Store the server address for the client to connect to
-        target.address = Some(addr);
-        info!("Local server launched, client will connect to {}", addr);
+        target.address = Some(address);
+        info!("Local server launched, client will connect to {}", address);
     } else {
         error!("Error: No world selected. Unable to launch the server.");
     }
@@ -196,9 +176,9 @@ pub fn poll_network_messages(
     mut client: ResMut<RenetClient>,
     world_map: Option<Res<ClientWorldMap>>,
     mesh_order_sender: Option<Res<MeshOrderSender>>,
-    mut ev_player_spawn: MessageWriter<PlayerSpawnEvent>,
-    mut ev_item_stacks_update: MessageWriter<ItemStackUpdateEvent>,
-    mut ev_player_update: MessageWriter<PlayerUpdateEvent>,
+    mut ev_player_spawn: MessageWriter<ServerPlayerSpawn>,
+    mut ev_item_stacks_update: MessageWriter<ServerItemStackUpdate>,
+    mut ev_player_update: MessageWriter<ServerPlayerUpdate>,
 ) {
     update_world_from_network(
         &mut client,
@@ -215,7 +195,7 @@ pub fn init_server_connection(
     target: Res<TargetServer>,
     current_player_id: Res<CurrentPlayerProfile>,
 ) {
-    let Some(addr) = target.address else {
+    let Some(address) = target.address else {
         error!("{TARGET_SERVER_ADDR_ERROR}");
         return;
     };
@@ -226,7 +206,7 @@ pub fn init_server_connection(
         world.remove_resource::<CachedChatConversation>();
 
         let authentication = ClientAuthentication::Unsecure {
-            server_addr: addr,
+            server_addr: address,
             client_id: id,
             user_data: None,
             protocol_id: shared::PROTOCOL_ID,
@@ -234,7 +214,7 @@ pub fn init_server_connection(
 
         info!(
             "Attempting to connect to: {} with data {:?}",
-            addr, authentication
+            address, authentication
         );
 
         let socket = match UdpSocket::bind("0.0.0.0:0") {
@@ -270,8 +250,8 @@ pub fn init_server_connection(
 }
 
 pub fn network_failure_handler(mut renet_error: MessageReader<NetcodeTransportError>) {
-    for e in renet_error.read() {
-        error!("network error: {}", e);
+    for error in renet_error.read() {
+        error!("network error: {}", error);
     }
 }
 
@@ -279,11 +259,10 @@ pub fn establish_authenticated_connection_to_server(
     mut client: ResMut<RenetClient>,
     mut target: ResMut<TargetServer>,
     current_profile: Res<CurrentPlayerProfile>,
-    mut ev_spawn: MessageWriter<PlayerSpawnEvent>,
+    mut ev_spawn: MessageWriter<ServerPlayerSpawn>,
     mut server_tick: ResMut<ServerTickAtConnect>,
     mut world_seed: ResMut<WorldSeed>,
 ) {
-    // Already authenticated, nothing to do
     if target.session_token.is_some() {
         return;
     }
@@ -295,28 +274,26 @@ pub fn establish_authenticated_connection_to_server(
 
         let username = target.username.as_ref().unwrap();
 
-        let auth_msg = AuthRegisterRequest {
+        let auth_request = AuthRegisterRequest {
             username: username.clone(),
         };
-        info!("Sending auth request: {:?}", auth_msg);
-        client.send_game_message(auth_msg.into());
+        info!("Sending auth request: {:?}", auth_request);
+        client.send_game_message(auth_request.into());
         target.state = TargetServerState::Establishing;
     }
 
     while let Some(Ok(message)) = client.receive_game_message_by_channel(STC_AUTH_CHANNEL) {
         match message {
-            ServerToClientMessage::AuthRegisterResponse(message) => {
-                let username = message.username.clone();
-                target.username = Some(message.username);
-                target.session_token = Some(message.session_token);
+            ServerToClientMessage::AuthRegisterResponse(response) => {
+                let username = response.username.clone();
+                target.username = Some(response.username);
+                target.session_token = Some(response.session_token);
                 target.state = TargetServerState::ConnectionEstablished;
-                server_tick.0 = message.tick;
-                world_seed.0 = message.world_seed;
+                server_tick.0 = response.tick;
+                world_seed.0 = response.world_seed;
                 info!("Successfully authenticated as {}", username);
-                info!("Received world seed: {}", message.world_seed);
-                // TODO: handle clock sync using the timestamp_ms field
-                // it will become very important if the lantency is high
-                for player in message.players {
+                info!("Received world seed: {}", response.world_seed);
+                for player in response.players {
                     ev_spawn.write(player);
                 }
                 info!("Connected! {:?}", target);

@@ -9,20 +9,17 @@ use crate::items::Stack;
 use crate::world::chunk::Chunk;
 use crate::world::pos::pos3d::{BlockPos, ChunkPos};
 
-/// WorldUpdate is a message sent from the server to the client to update the client's world state.
-/// Only chunks which have been updated since the last message are sent.
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
-pub struct WorldUpdate {
+pub struct ServerWorldUpdate {
     pub tick: u64,
     pub time: u64,
     pub new_map: HashMap<ChunkPos, Chunk>,
-    pub item_stacks: Vec<ItemStackUpdateEvent>,
+    pub item_stacks: Vec<ServerItemStackUpdate>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Message)]
-pub struct ItemStackUpdateEvent {
+pub struct ServerItemStackUpdate {
     pub id: u128,
-    /// `None` if the stack has been deleted, `Some` if it has been updated in any way (position, number of items...)
     pub data: Option<(Stack, Vec3)>,
 }
 
@@ -31,12 +28,8 @@ pub struct ChunkUpdate {
     pub chunk: Chunk,
 }
 
-/// Message sent from client to server when the player interacts with a block.
-/// Used for breaking, placing, or modifying blocks.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct BlockInteraction {
-    /// The position of the block being interacted with
-    pub pos: BlockPos,
-    /// The new block to place (Block::Air for breaking)
+pub struct ClientBlockInteraction {
+    pub position: BlockPos,
     pub new_block: Block,
 }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{ClientToServerMessage, PlayerSpawnEvent, ServerToClientMessage};
+use super::{ClientToServerMessage, ServerPlayerSpawn, ServerToClientMessage};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct AuthRegisterRequest {
@@ -19,8 +19,8 @@ pub struct AuthRegisterResponse {
     pub session_token: u64,
     pub tick: u64,
     pub timestamp_ms: u64,
-    pub players: Vec<PlayerSpawnEvent>, // all players (including the new one)
-    pub world_seed: u32,                // World seed for biome calculation
+    pub players: Vec<ServerPlayerSpawn>,
+    pub world_seed: u32,
 }
 
 impl From<AuthRegisterResponse> for ServerToClientMessage {

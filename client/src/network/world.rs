@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_renet::renet::RenetClient;
 use shared::messages::{
-    ItemStackUpdateEvent, PlayerSpawnEvent, PlayerUpdateEvent,
+    ServerItemStackUpdate, ServerPlayerSpawn, ServerPlayerUpdate,
     ServerToClientMessage,
 };
 use shared::STC_AUTH_CHANNEL;
@@ -12,33 +12,27 @@ use crate::world::ClientWorldMap;
 
 use super::SendGameMessageExtension;
 
-/// Process incoming network messages from the server.
-/// 
-/// Handles world updates (chunks) and player-related events.
 pub fn update_world_from_network(
     client: &mut ResMut<RenetClient>,
     world_map: Option<Res<ClientWorldMap>>,
     mesh_order_sender: Option<Res<MeshOrderSender>>,
-    ev_player_spawn: &mut MessageWriter<PlayerSpawnEvent>,
-    ev_item_stacks_update: &mut MessageWriter<ItemStackUpdateEvent>,
-    ev_player_update: &mut MessageWriter<PlayerUpdateEvent>,
+    ev_player_spawn: &mut MessageWriter<ServerPlayerSpawn>,
+    ev_item_stacks_update: &mut MessageWriter<ServerItemStackUpdate>,
+    ev_player_update: &mut MessageWriter<ServerPlayerUpdate>,
 ) {
-    while let Some(Ok(msg)) = client.receive_game_message_except_channel(STC_AUTH_CHANNEL) {
-        match msg {
+    while let Some(Ok(message)) = client.receive_game_message_except_channel(STC_AUTH_CHANNEL) {
+        match message {
             ServerToClientMessage::WorldUpdate(world_update) => {
                 let chunk_count = world_update.new_map.len();
                 
                 if chunk_count > 0 {
                     if let (Some(world_map), Some(mesh_sender)) = (&world_map, &mesh_order_sender) {
-                        // Process each chunk from the update
-                        for (chunk_pos, chunk) in world_update.new_map {
-                            // Convert shared Chunk to ClientChunk and insert into world
+                        for (chunk_position, chunk) in world_update.new_map {
                             let client_chunk = ClientChunk::from(chunk);
-                            world_map.insert_chunk(chunk_pos, client_chunk);
+                            world_map.insert_chunk(chunk_position, client_chunk);
                             
-                            // Request mesh generation for this chunk
-                            if mesh_sender.0.send(chunk_pos).is_err() {
-                                warn!("Failed to send mesh order for chunk {:?}", chunk_pos);
+                            if mesh_sender.0.send(chunk_position).is_err() {
+                                warn!("Failed to send mesh order for chunk {:?}", chunk_position);
                             }
                         }
                         
@@ -54,18 +48,17 @@ pub fn update_world_from_network(
                     }
                 }
 
-                // Process item stack updates
                 ev_item_stacks_update.write_batch(world_update.item_stacks);
             }
             ServerToClientMessage::PlayerSpawn(spawn_event) => {
-                info!("Received SINGLE spawn event {:?}", spawn_event);
+                info!("Received spawn event {:?}", spawn_event);
                 ev_player_spawn.write(spawn_event);
             }
             ServerToClientMessage::PlayerUpdate(update) => {
                 ev_player_update.write(update);
             }
             ServerToClientMessage::AuthRegisterResponse(_) => {}
-            ServerToClientMessage::ChatConversation(_) => {}
+            ServerToClientMessage::ChatHistory(_) => {}
         }
     }
 }

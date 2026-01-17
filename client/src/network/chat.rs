@@ -1,15 +1,15 @@
 use bevy::prelude::*;
-use shared::messages::ChatConversation;
+use shared::messages::ServerChatHistory;
 
 #[derive(Resource, Default, Debug)]
 pub struct CachedChatConversation {
     pub _last_update: u64,
-    pub data: Option<ChatConversation>,
+    pub data: Option<ServerChatHistory>,
 }
 
 pub fn _update_cached_chat_state(
     chat_state: &mut ResMut<CachedChatConversation>,
-    new_state: ChatConversation,
+    new_state: ServerChatHistory,
 ) {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

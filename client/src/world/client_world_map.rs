@@ -173,11 +173,11 @@ fn process_block_requests(
         // Send to server for authoritative processing
         if let Some(ref mut client) = client {
             use crate::network::SendGameMessageExtension;
-            use shared::messages::{BlockInteraction, ClientToServerMessage};
+            use shared::messages::{ClientBlockInteraction, ClientToServerMessage};
             
             client.send_game_message(ClientToServerMessage::BlockInteraction(
-                BlockInteraction {
-                    pos: request.pos,
+                ClientBlockInteraction {
+                    position: request.pos,
                     new_block: request.block,
                 },
             ));

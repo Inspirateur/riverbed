@@ -14,6 +14,6 @@ pub struct FullChatMessage {
 }
 
 #[derive(Resource, Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct ChatConversation {
+pub struct ServerChatHistory {
     pub messages: Vec<FullChatMessage>,
 }

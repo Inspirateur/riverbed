@@ -1,48 +1,21 @@
-//! Player management for the server.
-//!
-//! Tracks connected players and handles player input processing.
-//! 
-//! # Architecture
-//! 
-//! Player state is split between two locations:
-//! - **ECS entities**: Position (`Transform`) and realm (`Realm`) live on entities with
-//!   the `NetworkPlayer` component. This is the single source of truth for spatial data.
-//! - **PlayerRegistry**: Metadata like name, authentication status, and input timing.
-//!   This provides O(1) lookup by `ClientId` without needing ECS queries.
-//!
-//! When a player authenticates, we spawn an ECS entity and add them to the registry.
-//! When they disconnect, both are cleaned up.
-
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer};
 use shared::messages::{
-    PlayerId, PlayerFrameInput, PlayerUpdateEvent, ServerToClientMessage, TransmittableAction,
+    PlayerId, ClientPlayerInput, ServerPlayerUpdate, ServerToClientMessage, TransmittableAction,
 };
 use std::collections::HashMap;
 
 use super::dispatcher::NetworkPlayer;
 use super::extensions::SendGameMessageExtension;
 
-/// Default spawn position for new players.
-/// TODO: This should be loaded from world data or calculated based on terrain.
 pub const DEFAULT_SPAWN_POSITION: Vec3 = Vec3::new(280., 500., -150.);
 
-/// Metadata for a player connected to the server.
-/// 
-/// Note: Position and orientation are stored on the player's ECS entity (`Transform`),
-/// not here. This struct only contains non-spatial metadata.
 #[derive(Debug, Clone)]
 pub struct ServerPlayer {
-    /// The player's network client ID. This is the same as `PlayerId` (both are `u64`).
     pub id: PlayerId,
-    /// Display name chosen during authentication.
     pub name: String,
-    /// Whether the player is currently flying (affects movement physics).
     pub is_flying: bool,
-    /// The timestamp (ms) of the last input we've processed for this player.
-    /// Used for acknowledgment in `PlayerUpdateEvent`.
     pub last_input_processed: u64,
-    /// Whether the player has completed the authentication handshake.
     pub is_authenticated: bool,
 }
 
@@ -58,7 +31,6 @@ impl ServerPlayer {
     }
 }
 
-/// Registry of all connected players.
 #[derive(Resource, Default)]
 pub struct PlayerRegistry {
     pub players: HashMap<PlayerId, ServerPlayer>,
@@ -97,21 +69,15 @@ impl PlayerRegistry {
     }
 }
 
-/// Event fired when player inputs are received from a client.
 #[derive(Message, Debug)]
 pub struct PlayerInputsEvent {
     pub client_id: ClientId,
-    pub input: PlayerFrameInput,
+    pub input: ClientPlayerInput,
 }
 
-/// Movement constants
 const WALK_SPEED: f32 = 7.0;
 const FLY_SPEED: f32 = 15.0;
 
-/// Process player inputs and update positions.
-/// 
-/// This system reads input events, updates the player's ECS `Transform` for position,
-/// and updates `PlayerRegistry` for metadata (flying state, last processed input).
 pub fn handle_player_inputs_system(
     mut events: MessageReader<PlayerInputsEvent>,
     mut registry: ResMut<PlayerRegistry>,
@@ -123,13 +89,11 @@ pub fn handle_player_inputs_system(
             continue;
         };
 
-        // Skip unauthenticated players
         if !player.is_authenticated {
             debug!("Ignoring input from unauthenticated player {}", ev.client_id);
             continue;
         }
 
-        // Find the player's ECS entity to update Transform
         let Some((_, mut transform)) = player_transforms
             .iter_mut()
             .find(|(np, _)| np.client_id == ev.client_id)
@@ -138,59 +102,48 @@ pub fn handle_player_inputs_system(
             continue;
         };
 
-        // Calculate movement direction from inputs
-        let mut move_dir = Vec3::ZERO;
-        let delta_secs = ev.input.delta_ms as f32 / 1000.0;
+        let mut movement_direction = Vec3::ZERO;
+        let delta_seconds = ev.input.delta_ms as f32 / 1000.0;
 
-        // Get camera forward/right vectors (horizontal only for walking)
         let forward = ev.input.camera.forward().as_vec3();
         let right = ev.input.camera.right().as_vec3();
-        let forward_flat = Vec3::new(forward.x, 0.0, forward.z).normalize_or_zero();
-        let right_flat = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
+        let forward_horizontal = Vec3::new(forward.x, 0.0, forward.z).normalize_or_zero();
+        let right_horizontal = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
 
         for action in &ev.input.inputs {
             match action {
-                TransmittableAction::MoveForward => move_dir += forward_flat,
-                TransmittableAction::MoveBackward => move_dir -= forward_flat,
-                TransmittableAction::MoveRight => move_dir += right_flat,
-                TransmittableAction::MoveLeft => move_dir -= right_flat,
+                TransmittableAction::MoveForward => movement_direction += forward_horizontal,
+                TransmittableAction::MoveBackward => movement_direction -= forward_horizontal,
+                TransmittableAction::MoveRight => movement_direction += right_horizontal,
+                TransmittableAction::MoveLeft => movement_direction -= right_horizontal,
                 TransmittableAction::JumpOrFlyUp => {
                     if player.is_flying {
-                        move_dir += Vec3::Y;
+                        movement_direction += Vec3::Y;
                     }
                 }
                 TransmittableAction::CrouchOrFlyDown => {
                     if player.is_flying {
-                        move_dir -= Vec3::Y;
+                        movement_direction -= Vec3::Y;
                     }
                 }
                 TransmittableAction::ToggleFlyMode => {
                     player.is_flying = !player.is_flying;
                 }
-                TransmittableAction::Hit | TransmittableAction::Modify => {
-                    // Block interactions - handled separately
-                }
+                TransmittableAction::Hit | TransmittableAction::Modify => {}
             }
         }
 
-        // Normalize and apply speed to ECS Transform (single source of truth for position)
-        if move_dir.length_squared() > 0.0 {
-            move_dir = move_dir.normalize();
+        if movement_direction.length_squared() > 0.0 {
+            movement_direction = movement_direction.normalize();
             let speed = if player.is_flying { FLY_SPEED } else { WALK_SPEED };
-            transform.translation += move_dir * speed * delta_secs;
+            transform.translation += movement_direction * speed * delta_seconds;
         }
 
-        // Update orientation on ECS Transform
         transform.rotation = ev.input.camera.rotation;
-        
-        // Update metadata in registry
         player.last_input_processed = ev.input.time_ms;
     }
 }
 
-/// Broadcast player updates to all connected clients.
-/// 
-/// Reads position/orientation from ECS `Transform` and metadata from `PlayerRegistry`.
 pub fn broadcast_player_updates_system(
     registry: Res<PlayerRegistry>,
     mut server: ResMut<RenetServer>,
@@ -205,7 +158,7 @@ pub fn broadcast_player_updates_system(
             .map(|(_, t)| (t.translation, t.rotation))
             .unwrap_or((DEFAULT_SPAWN_POSITION, Quat::IDENTITY));
 
-        let update = PlayerUpdateEvent {
+        let update = ServerPlayerUpdate {
             id: player.id,
             position,
             orientation,

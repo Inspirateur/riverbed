@@ -27,14 +27,14 @@ pub struct PlayerSave {
 }
 
 #[derive(Message, Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct PlayerSpawnEvent {
+pub struct ServerPlayerSpawn {
     pub id: PlayerId,
     pub name: String,
     pub data: PlayerSave,
 }
 
 #[derive(Message, Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct PlayerUpdateEvent {
+pub struct ServerPlayerUpdate {
     pub id: PlayerId,
     pub position: Vec3,
     pub orientation: Quat,
@@ -44,7 +44,7 @@ pub struct PlayerUpdateEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct PlayerFrameInput {
+pub struct ClientPlayerInput {
     pub time_ms: u64,
     pub delta_ms: u64,
     pub inputs: HashSet<TransmittableAction>,

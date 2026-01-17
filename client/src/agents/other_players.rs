@@ -6,7 +6,7 @@
 //! - Removing them when they disconnect
 
 use bevy::prelude::*;
-use shared::messages::{PlayerId, PlayerSpawnEvent, PlayerUpdateEvent};
+use shared::messages::{PlayerId, ServerPlayerSpawn, ServerPlayerUpdate};
 
 use crate::network::{CurrentPlayerProfile, UnacknowledgedInputs};
 
@@ -29,7 +29,7 @@ impl Plugin for OtherPlayersPlugin {
 /// System to spawn entities for other players when they join
 fn spawn_other_players(
     mut commands: Commands,
-    mut ev_spawn: MessageReader<PlayerSpawnEvent>,
+    mut ev_spawn: MessageReader<ServerPlayerSpawn>,
     current_player: Res<CurrentPlayerProfile>,
     existing_players: Query<&OtherPlayer>,
 ) {
@@ -63,7 +63,7 @@ fn spawn_other_players(
 
 /// System to update other players' positions from server updates
 fn update_other_players(
-    mut ev_update: MessageReader<PlayerUpdateEvent>,
+    mut ev_update: MessageReader<ServerPlayerUpdate>,
     mut other_players: Query<(&OtherPlayer, &mut Transform)>,
     current_player: Res<CurrentPlayerProfile>,
     mut unack_inputs: ResMut<UnacknowledgedInputs>,
