@@ -9,8 +9,14 @@ logging = []
 [dependencies]
 shared = { path = "../shared" }
 
+itertools = { workspace = true }
+ron = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+
+anyhow = "*"
 chrono = { version = "*", features = ["serde", "rkyv"] }
 csv = "*"
+riverbed_noise = { path = "../crates/riverbed_noise", version = "*" }
 
 # Define the library target
 [lib]

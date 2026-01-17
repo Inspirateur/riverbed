@@ -8,18 +8,22 @@ logging = []
 
 [dependencies]
 bevy = { workspace = true }
-itertools = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-json5 = { workspace = true }
-ron = { workspace = true }
 cfg_if = { workspace = true }
 crossbeam = { workspace = true }
+hashbrown = { workspace = true }
+itertools = { workspace = true }
+json5 = { workspace = true }
+packed-uints = { workspace = true }
+parking_lot = { workspace = true }
+ron = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 
 chrono = { version = "*", features = ["serde", "rkyv"] }
 crossbeam-skiplist = "*"
-
+lazy_static = "*"
 strum = "*"
 strum_macros = "*"
+regex = "*"
 
 [build-dependencies]
 riverbed_block_def = { path = "../crates/riverbed_block_def", version = "*" }

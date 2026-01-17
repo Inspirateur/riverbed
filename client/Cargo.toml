@@ -9,4 +9,15 @@ logging = []
 [dependencies]
 shared = { path = "../shared" }
 
+bevy = { workspace = true }
+hashbrown = { workspace = true }
+itertools = { workspace = true }
+parking_lot = { workspace = true }
+ron = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+
+binary-greedy-meshing = "*"
 confy = "*"
+leafwing-input-manager = "0.18"
+rand = "*"
+rand_chacha = "*"

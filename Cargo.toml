@@ -8,22 +8,14 @@ members = [
 ]
 
 [workspace.dependencies]
-anyhow = "*"
 bevy = { version = "0.17" }
-binary-greedy-meshing = "*"
 cfg-if = "*"
 crossbeam = "*"
 hashbrown = "*"
 itertools = "*"
 json5 = "*"
-lazy_static = "*"
-leafwing-input-manager = "0.18"
 packed-uints = "*"
 parking_lot = "*"
-rand = "*"
-rand_chacha = "*"
-regex = "*"
-riverbed_noise = { path = "crates/riverbed_noise", version = "*" }
 ron = "*"
 serde = "*"
 
