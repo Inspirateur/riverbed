@@ -13,16 +13,17 @@ use std::thread::yield_now;
 use crate::agents::PlayerControlled;
 use crate::render::mesh_draw::{choose_lod_level, LOD};
 use crate::render::texture_array::TextureMap;
+use crate::world::ClientWorldMap;
 
 pub fn setup_mesh_thread(
     mut commands: Commands, 
-    voxel_world: Res<VoxelWorld>, 
+    world: Res<ClientWorldMap>, 
     texture_map: Res<TextureMap>, 
     shared_load_area: Res<SharedPlayerCol>, 
     mesh_order_receiver: Res<MeshOrderReceiver>
 ) {
     let thread_pool = AsyncComputeTaskPool::get();
-    let chunks = voxel_world.chunks.clone();
+    let chunks = world.chunks.clone();
     let (mesh_sender, mesh_reciever) = unbounded();
     commands.insert_resource(MeshReciever(mesh_reciever));
     let texture_map = texture_map.0.clone();

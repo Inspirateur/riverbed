@@ -1,5 +1,7 @@
 use crate::{
-    agents::{Action, PlayerControlled, TargetBlock}, ui::{GameUiState, OpenFurnace},
+    agents::{Action, PlayerControlled, TargetBlock}, 
+    ui::{GameUiState, OpenFurnace},
+    world::{ClientWorldMap, SetBlockRequest},
 };
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
@@ -35,7 +37,7 @@ pub struct Furnace {
 
 fn open_furnace_menu(
     mut commands: Commands,
-    world: Res<VoxelWorld>,
+    world: Res<ClientWorldMap>,
     block_action_query: Query<(&TargetBlock, &ActionState<Action>), With<PlayerControlled>>,
     furnace_query: Query<&Furnace>,
     mut block_entities: ResMut<BlockEntities>,
@@ -87,7 +89,8 @@ fn open_furnace_menu(
 }
 
 fn on_furnace_edit(
-    voxel_world: Res<VoxelWorld>,
+    world: Res<ClientWorldMap>,
+    mut set_block_events: MessageWriter<SetBlockRequest>,
     mut commands: Commands,
     item_holders: Query<(Entity, &ItemHolder, &Furnace, Option<&LitFurnace>), Changed<ItemHolder>>,
     firing_table: Res<FiringTable>,
@@ -96,10 +99,10 @@ fn on_furnace_edit(
         let Some(mut new_lit_furnace) = firing_table.get(item_holder, furnace.temp) else {
             // Turn furnace off
             commands.entity(furnace_entt).remove::<LitFurnace>();
-            voxel_world.set_block(
-                furnace.block_pos,
-                voxel_world.get_block(furnace.block_pos).off(),
-            );
+            set_block_events.write(SetBlockRequest {
+                pos: furnace.block_pos,
+                block: world.get_block(furnace.block_pos).off(),
+            });
             continue;
         };
         // If firing continues we inherit the previous remaining fuel sec
@@ -110,10 +113,10 @@ fn on_furnace_edit(
         }
         // Replace the previous value
         commands.entity(furnace_entt).insert(new_lit_furnace);
-        voxel_world.set_block(
-            furnace.block_pos,
-            voxel_world.get_block(furnace.block_pos).on(),
-        );
+        set_block_events.write(SetBlockRequest {
+            pos: furnace.block_pos,
+            block: world.get_block(furnace.block_pos).on(),
+        });
     }
 }
 

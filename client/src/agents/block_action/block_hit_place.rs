@@ -10,6 +10,7 @@ use shared::world::world_rng::WorldRng;
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
 use crate::ui::{CursorGrabbed, GameUiState, SelectedHotbarSlot};
+use crate::world::{ClientWorldMap, SetBlockRequest};
 use crate::Block;
 use crate::agents::{TargetBlock, Action, PlayerControlled};
 use leafwing_input_manager::prelude::*;
@@ -84,7 +85,7 @@ pub struct Renewable {
 fn target_block(
     mut player: Query<(&mut TargetBlock, &Realm), With<PlayerControlled>>, 
     player_cam: Query<&GlobalTransform, With<FpsCam>>,
-    world: Res<VoxelWorld>
+    world: Res<ClientWorldMap>
 ) {
     let (mut target_block, realm) = player.single_mut().unwrap();
     let transform = player_cam.single().unwrap();
@@ -120,7 +121,8 @@ fn block_outline(mut gizmos: Gizmos, target_block_query: Query<&TargetBlock>) {
 
 fn break_action(
     mut commands: Commands,
-    world: Res<VoxelWorld>, 
+    world: Res<ClientWorldMap>,
+    mut set_block_events: MessageWriter<SetBlockRequest>,
     mut block_action_query: Query<(Entity, &TargetBlock, &mut ItemHolder, &ActionState<Action>, Option<&mut BlockLootAction>)>,
     selected_slot: Res<SelectedHotbarSlot>,
     block_break_table: Res<BlockBreakTable>,
@@ -181,7 +183,10 @@ fn break_action(
         };
         match looting.action_type {
             BlockActionType::Breaking => {
-                world.set_block(target_block.pos, Block::Air);
+                set_block_events.write(SetBlockRequest {
+                    pos: target_block.pos,
+                    block: Block::Air,
+                });
                 if let Some(entity) = col_entities.get(&target_block.pos) {
                     if let Ok(block_pos) = block_entt_query.get(entity) {
                         if block_pos.0 == target_block.pos {
@@ -192,7 +197,10 @@ fn break_action(
             }
             BlockActionType::Harvesting => {
                 let depleted = world.get_block(target_block.pos).depleted();
-                world.set_block(target_block.pos, depleted);
+                set_block_events.write(SetBlockRequest {
+                    pos: target_block.pos,
+                    block: depleted,
+                });
                 if let Some(renewal_minutes) = depleted.renewal_minutes() {
                     let renew_entt = commands.spawn((
                         Renewable { renew_after: Instant::now().checked_add(Duration::from_secs(renewal_minutes as u64)).unwrap() }, 
@@ -227,7 +235,8 @@ pub struct BlockPlaced(pub BlockPos);
 
 fn place_block(
     mut commands: Commands,
-    world: Res<VoxelWorld>, 
+    world: Res<ClientWorldMap>,
+    mut set_block_events: MessageWriter<SetBlockRequest>,
     mut block_action_query: Query<(&TargetBlock, &mut ItemHolder, &ActionState<Action>)>, 
     selected_slot: Res<SelectedHotbarSlot>
 ) {
@@ -249,10 +258,12 @@ fn place_block(
                 continue;
             }
         };
-        if !world.set_block_safe(pos, block) {
-            // If the block couldn't be added we add it back
+        // Check bounds before placing
+        if pos.y < 0 || pos.y >= shared::world::MAX_HEIGHT as i32 {
+            // Out of bounds, return the block to inventory
             hotbar.get_mut(selected_slot.0).try_add(Stack::Some(Item::Block(block), 1));
         } else {
+            set_block_events.write(SetBlockRequest { pos, block });
             commands.trigger(BlockPlaced(pos));
         }
     }
@@ -260,13 +271,18 @@ fn place_block(
 
 fn renew_block(
     mut commands: Commands,
-    world: Res<VoxelWorld>,
+    world: Res<ClientWorldMap>,
+    mut set_block_events: MessageWriter<SetBlockRequest>,
     renewables: Query<(Entity, &Renewable, &BlockAttached)>,
 ) {
     let now = Instant::now();
     for (entity, renewable, pos) in renewables.iter() {
         if now >= renewable.renew_after {
-            world.set_block(pos.0, world.get_block(pos.0).renewed());
+            let renewed_block = world.get_block(pos.0).renewed();
+            set_block_events.write(SetBlockRequest {
+                pos: pos.0,
+                block: renewed_block,
+            });
             commands.entity(entity).despawn();
         }
     }

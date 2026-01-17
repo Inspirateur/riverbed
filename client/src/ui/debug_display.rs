@@ -5,6 +5,7 @@ use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 use crate::Block;
 use crate::agents::{PlayerControlled, TargetBlock};
+use crate::world::ClientWorldMap;
 
 pub struct DebugDisplayPlugin;
 
@@ -99,7 +100,7 @@ fn update_pos_display(
 fn update_block_display(
     player_query: Query<&TargetBlock, With<PlayerControlled>>,
     mut block_text_query: Query<&mut Text, With<DebugTextBlock>>, 
-    world: Res<VoxelWorld>,
+    world: Res<ClientWorldMap>,
 ) {
     let target_block = player_query.single().unwrap();
     let block = if let Some(raycast_hit) = &target_block.0 {

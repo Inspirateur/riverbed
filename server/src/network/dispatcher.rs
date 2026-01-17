@@ -8,6 +8,7 @@ use shared::messages::{
     AuthRegisterResponse, ChatConversation, ClientToServerMessage, FullChatMessage, PlayerSave,
     PlayerSpawnEvent, ServerToClientMessage,
 };
+use shared::world::WorldSeed;
 
 use super::extensions::SendGameMessageExtension;
 

@@ -2,7 +2,7 @@ use std::ops::DerefMut;
 use leafwing_input_manager::prelude::*;
 use bevy::prelude::*;
 use bevy::color::palettes::css;
-use shared::logging::logging::{LoadState, PlayerPos};
+use shared::logging::logging::{EventHead, EventQueue, IsLive, LoadState, MeshCount, PlayerPos};
 
 pub struct InspectorDisplayPlugin;
 

@@ -2,6 +2,7 @@ use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
 use shared::world::{pos::pos3d::BlockPos, realm::Realm};
 use crate::Block;
+use crate::world::ClientWorldMap;
 const FREE_FLY_Y_SPEED: f32 = 100.;
 const ACC_MULT: f32 = 150.;
 
@@ -82,7 +83,7 @@ fn blocks_perp_x(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = B
     })
 }
 
-fn update_stepped_block(blocks: Res<VoxelWorld>, mut query: Query<(&Transform, &Realm, &AABB, &mut SteppingOn)>) {
+fn update_stepped_block(blocks: Res<ClientWorldMap>, mut query: Query<(&Transform, &Realm, &AABB, &mut SteppingOn)>) {
     for (transform, realm, aabb, mut stepping_on) in query.iter_mut() {
         let below = transform.translation + Vec3::new(0., -0.01, 0.);
         let mut closest_block = Block::Air;
@@ -122,7 +123,7 @@ fn process_freefly(mut query: Query<(&mut Velocity, &Jumping, &Crouching), With<
     }
 }
 
-fn apply_gravity(blocks: Res<VoxelWorld>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &mut Velocity, &Gravity), With<Walking>>) {
+fn apply_gravity(blocks: Res<ClientWorldMap>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &mut Velocity, &Gravity), With<Walking>>) {
     for (transform, realm, mut velocity, gravity) in query.iter_mut() {
         if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
@@ -132,7 +133,7 @@ fn apply_gravity(blocks: Res<VoxelWorld>, time: Res<Time>, mut query: Query<(&Tr
 }
 
 fn apply_acc(
-    blocks: Res<VoxelWorld>,
+    blocks: Res<ClientWorldMap>,
     time: Res<Time>,
     mut query: Query<(&Heading, &mut Velocity, &Transform, &Realm, &SteppingOn), With<Walking>>
 ) {
@@ -168,7 +169,7 @@ fn apply_acc_free_fly(mut query: Query<(&Heading, &mut Velocity), With<FreeFly>>
 }
 
 fn apply_velocity(
-    blocks: Res<VoxelWorld>, 
+    blocks: Res<ClientWorldMap>, 
     time: Res<Time>, 
     mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>
 ) {

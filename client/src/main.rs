@@ -4,18 +4,21 @@ mod agents;
 mod network;
 mod sounds;
 mod logging;
+mod world;
 
 // Re-export Block and BlockFamily from shared crate
 pub use shared::block::{Block, BlockFamily};
 
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
+use shared::logging::logging::RiverbedLogPlugin;
 use shared::world::world_rng::WorldRng;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
 use ui::UIPlugin;
 use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, PlayerPlugin};
+use world::{ClientWorldMap, ClientWorldPlugin};
 #[cfg(feature = "log_inspector")]
 use crate::logging::InspectorPlugin;
 #[cfg(feature = "log_inspector")]
@@ -41,9 +44,10 @@ fn client() {
     let mut app = App::new();
     let (mesh_order_sender, mesh_order_receiver) = unbounded();
     app
-        .insert_resource(VoxelWorld::new(mesh_order_sender.clone()))
+        .insert_resource(ClientWorldMap::new(mesh_order_sender.clone()))
         .insert_resource(MeshOrderReceiver(mesh_order_receiver))
         .insert_resource(MeshOrderSender(mesh_order_sender))
+        .add_plugins(ClientWorldPlugin)
         .add_plugins(
             DefaultPlugins
             .set(WindowPlugin {

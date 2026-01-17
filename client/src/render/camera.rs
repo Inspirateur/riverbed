@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
 use shared::world::realm::Realm;
 use crate::agents::Velocity;
+use crate::world::ClientWorldMap;
 use crate::Block;
 use crate::{agents::{PlayerControlled, PlayerSpawn, AABB}, ui::CursorGrabbed};
 use leafwing_input_manager::prelude::*;
@@ -114,11 +115,11 @@ fn apply_fps_cam(mut query: Query<(&mut Transform, &FpsCam)>) {
     transform.rotation = Quat::from_axis_angle(Vec3::Y, fpscam.yaw) * Quat::from_axis_angle(Vec3::X, fpscam.pitch);
 }
 
-fn water_fog(cam: Single<(&mut DistanceFog, &GlobalTransform)>, player: Single<&Realm, With<PlayerControlled>>, voxel_world: Res<VoxelWorld>) {
+fn water_fog(cam: Single<(&mut DistanceFog, &GlobalTransform)>, player: Single<&Realm, With<PlayerControlled>>, world: Res<ClientWorldMap>) {
     let (mut fog, transform) = cam.into_inner(); 
     let &realm = player.into_inner();
     let block_pos = (transform.translation(), realm).into();
-    if voxel_world.get_block(block_pos) == Block::SeaBlock {
+    if world.get_block(block_pos) == Block::SeaBlock {
         fog.color = WATER_COLOR;
         fog.falloff = WATER_FALOFF;
     } else {

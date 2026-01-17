@@ -12,6 +12,7 @@ use strum::IntoEnumIterator;
 use crate::agents::PlayerControlled;
 use crate::render::mesh_thread::{setup_mesh_thread, update_shared_load_area, MeshReciever, SharedPlayerCol};
 use crate::render::MeshOrderSender;
+use crate::world::{ClientWorldMap, ColUnloadEvent};
 use super::chunk_culling::chunk_culling;
 use super::texture_array::BlockTextureArray;
 use super::BlockTexState;
@@ -74,7 +75,7 @@ pub fn pull_meshes(
     mut mesh_query: Query<(&mut Mesh3d, &mut LOD)>,
     mut meshes: ResMut<Assets<Mesh>>,
     block_tex_array: Res<BlockTextureArray>,
-    blocks: Res<VoxelWorld>
+    world: Res<ClientWorldMap>
 ) {
     let received_meshes: Vec<_> = mesh_reciever.0.try_iter()
         .collect();
@@ -96,7 +97,7 @@ pub fn pull_meshes(
                 // the entity is not instanciated yet, we put it back
                 println!("entity wasn't ready to recieve updated mesh");
             }
-        } else if blocks.chunks.contains_key(&chunk_pos) {
+        } else if world.chunks.contains_key(&chunk_pos) {
             let ent = commands.spawn((
                 Mesh3d(meshes.add(mesh)),
                 MeshMaterial3d(block_tex_array.0.clone()),

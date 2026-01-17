@@ -1,11 +1,6 @@
-use std::collections::{HashMap, HashSet};
-use std::iter::Rev;
-use std::ops::{Deref, Range};
 use bevy::prelude::*;
-use chrono::TimeDelta;
-use shared::logging::logging::{LoadState, PlayerPos};
+use shared::logging::logging::{EventHead, EventQueue, IsLive, LiveLoadState, LoadState, MeshCount, PlayerPos};
 use shared::logging::logging::{LogEvent, LogData};
-use shared::world::pos::pos2d::ColPos;
 
 pub struct InspectorPlugin;
 
@@ -105,61 +100,3 @@ fn on_head_change(
         }
     }
 }
-
-#[derive(Resource)]
-pub struct IsLive(pub bool);
-
-#[derive(Default, Resource)]
-pub struct EventHead {
-    previous: usize,
-    current: usize
-}
-
-impl EventHead {
-    pub fn set(&mut self, i: usize) {
-        self.previous = self.current;
-        self.current = i;
-    }
-
-    pub fn moved_forward(&self) -> bool {
-        self.current >= self.previous
-    }
-
-    pub fn forward_span(&self) -> Range<usize> {
-        self.previous..self.current
-    }
-
-    pub fn backward_span(&self) -> Rev<Range<usize>> {
-        (self.current..self.previous).rev()
-    }
-}
-
-impl Deref for EventHead {
-    type Target = usize;
-
-    fn deref(&self) -> &Self::Target {
-        &self.current
-    }
-}
-
-#[derive(Default, Resource)]
-pub struct EventQueue(pub Vec<LogEvent>);
-
-impl EventQueue {
-    pub fn index_at(&self, fraction: f32) -> usize {
-        let duration = TimeDelta::milliseconds(
-            ((self.0[self.0.len()-1].timestamp - self.0[0].timestamp).num_milliseconds() as f32*fraction) as i64
-        );
-        let target_timestamp = self.0[0].timestamp+duration;
-        match self.0.binary_search_by(|v| v.timestamp.cmp(&target_timestamp)) {
-            Ok(i) => i,
-            Err(i) => i,
-        }
-    }
-}
-
-#[derive(Default, Resource)]
-pub struct MeshCount(pub HashMap<ColPos, u32>);
-
-#[derive(Default, Resource)]
-struct LiveLoadState(pub HashSet<ColPos>);

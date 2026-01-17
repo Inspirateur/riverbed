@@ -13,6 +13,7 @@ bevy = { workspace = true }
 bevy_renet = { workspace = true }
 bincode = { workspace = true }
 crossbeam = { workspace = true }
+crossbeam-skiplist = "*"
 cfg-if = { workspace = true }
 hashbrown = { workspace = true }
 itertools = { workspace = true }
