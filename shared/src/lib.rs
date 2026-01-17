@@ -82,6 +82,7 @@ pub fn get_customized_client_to_server_channels() -> Vec<ChannelConfig> {
 pub const STC_STANDARD_CHANNEL: u8 = 0;
 pub const STC_CHUNK_DATA_CHANNEL: u8 = 1;
 pub const STC_AUTH_CHANNEL: u8 = 2;
+pub const STC_LOG_EVENTS_CHANNEL: u8 = 3;
 
 pub fn get_customized_server_to_client_channels() -> Vec<ChannelConfig> {
     vec![
@@ -101,6 +102,13 @@ pub fn get_customized_server_to_client_channels() -> Vec<ChannelConfig> {
         },
         ChannelConfig {
             channel_id: STC_AUTH_CHANNEL,
+            max_memory_usage_bytes: MAX_MEMORY,
+            send_type: SendType::ReliableOrdered {
+                resend_time: RESEND_TIME,
+            },
+        },
+        ChannelConfig {
+            channel_id: STC_LOG_EVENTS_CHANNEL,
             max_memory_usage_bytes: MAX_MEMORY,
             send_type: SendType::ReliableOrdered {
                 resend_time: RESEND_TIME,
@@ -158,6 +166,7 @@ impl ChannelResolvableExt for ServerToClientMessage {
         match self {
             ServerToClientMessage::WorldUpdate(_) => STC_CHUNK_DATA_CHANNEL,
             ServerToClientMessage::AuthRegisterResponse(_) => STC_AUTH_CHANNEL,
+            ServerToClientMessage::LogEvents(_) => STC_LOG_EVENTS_CHANNEL,
             _ => STC_STANDARD_CHANNEL,
         }
     }

@@ -13,6 +13,7 @@ pub use reconciliation::ReconciliationPlugin;
 pub use setup::*;
 
 use bevy::prelude::*;
+use shared::logging::logging::LogEvent;
 use shared::messages::{ServerItemStackUpdate, ServerPlayerSpawn, ServerPlayerUpdate};
 
 use crate::network::buffered_client::{CurrentFrameInputs, SyncTime};
@@ -38,7 +39,8 @@ impl Plugin for NetworkPlugin {
         app.add_message::<ServerPlayerSpawn>()
             .add_message::<ServerPlayerUpdate>()
             .add_message::<ServerItemStackUpdate>()
-            .add_message::<ExitRequestEvent>();
+            .add_message::<ExitRequestEvent>()
+            .add_message::<LogEvent>();
         
         // Setup base netcode plugins (RenetClientPlugin, NetcodeClientPlugin)
         add_base_netcode(app);

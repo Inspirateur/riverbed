@@ -55,7 +55,7 @@ impl Plugin for RiverbedLogPlugin {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum LogData {
     ColGenerated(ColPos),
     ChunkMeshed(ChunkPos),
@@ -73,7 +73,7 @@ impl std::fmt::Display for LogData {
     }
 }
 
-#[derive(Serialize, Deserialize, Message, Clone)]
+#[derive(Serialize, Deserialize, Message, Clone, Debug)]
 pub struct LogEvent {
     pub timestamp: DateTime<Utc>,
     pub data: LogData

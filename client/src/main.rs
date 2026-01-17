@@ -22,7 +22,7 @@ use agents::{MovementPlugin, OtherPlayersPlugin, PlayerPlugin};
 use network::NetworkPlugin;
 use world::{ClientWorldMap, ClientWorldPlugin};
 #[cfg(feature = "logging")]
-use crate::logging::InspectorDisplayPlugin;
+use crate::logging::{InspectorDisplayPlugin, LogInspectorPlugin};
 use crate::{render::{MeshOrderReceiver, MeshOrderSender}};
 const SEED: u64 = 42;
 pub const RENDER_DISTANCE: i32 = 32;
@@ -95,10 +95,16 @@ fn client() {
 
 #[cfg(feature = "logging")]
 fn inspect_log() {
+    use shared::logging::LogReplayPlugin;
+    
     let mut app = App::new();
 
     app
+        // LogReplayPlugin reads from log file and writes LogEvent messages
         .add_plugins(LogReplayPlugin)
+        // LogInspectorPlugin processes LogEvent messages into inspector state
+        .add_plugins(LogInspectorPlugin)
+        // InspectorDisplayPlugin displays the inspector UI
         .add_plugins(InspectorDisplayPlugin)
         .run()
         ;

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_renet::renet::RenetClient;
+use shared::logging::logging::LogEvent;
 use shared::messages::{
     ServerItemStackUpdate, ServerPlayerSpawn, ServerPlayerUpdate,
     ServerToClientMessage,
@@ -19,6 +20,7 @@ pub fn update_world_from_network(
     ev_player_spawn: &mut MessageWriter<ServerPlayerSpawn>,
     ev_item_stacks_update: &mut MessageWriter<ServerItemStackUpdate>,
     ev_player_update: &mut MessageWriter<ServerPlayerUpdate>,
+    ev_log_events: &mut MessageWriter<LogEvent>,
 ) {
     while let Some(Ok(message)) = client.receive_game_message_except_channel(STC_AUTH_CHANNEL) {
         match message {
@@ -58,6 +60,9 @@ pub fn update_world_from_network(
                 ev_player_update.write(update);
             }
             ServerToClientMessage::AuthRegisterResponse(_) => {}
+            ServerToClientMessage::LogEvents(events) => {
+                ev_log_events.write_batch(events);
+            }
         }
     }
 }

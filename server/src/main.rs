@@ -91,6 +91,9 @@ fn main() {
     app.add_plugins(RenetServerPlugin);
     app.add_plugins(NetcodeServerPlugin);
     
+    // Logging plugin (must be before other plugins that use LogEventSender)
+    app.add_plugins(logging::LogBroadcastPlugin);
+    
     // Insert network resources
     app.insert_resource(server);
     app.insert_resource(transport);

@@ -9,6 +9,7 @@ use shared::{
     SOCKET_BIND_ERROR, TARGET_SERVER_ADDR_ERROR, NETCODE_CLIENT_TRANSPORT_ERROR, 
     UNIX_EPOCH_TIME_ERROR, RENDER_DISTANCE,
 };
+use shared::logging::logging::LogEvent;
 use shared::net::clock;
 
 use crate::network::world::update_world_from_network;
@@ -179,6 +180,7 @@ pub fn poll_network_messages(
     mut ev_player_spawn: MessageWriter<ServerPlayerSpawn>,
     mut ev_item_stacks_update: MessageWriter<ServerItemStackUpdate>,
     mut ev_player_update: MessageWriter<ServerPlayerUpdate>,
+    mut ev_log_events: MessageWriter<LogEvent>,
 ) {
     update_world_from_network(
         &mut client,
@@ -187,6 +189,7 @@ pub fn poll_network_messages(
         &mut ev_player_spawn,
         &mut ev_item_stacks_update,
         &mut ev_player_update,
+        &mut ev_log_events,
     );
 }
 

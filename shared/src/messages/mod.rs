@@ -7,6 +7,8 @@ pub use player::*;
 use serde::{Deserialize, Serialize};
 pub use world::*;
 
+use crate::logging::logging::LogEvent;
+
 pub type PlayerId = u64;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -24,4 +26,5 @@ pub enum ServerToClientMessage {
     WorldUpdate(ServerWorldUpdate),
     PlayerSpawn(ServerPlayerSpawn),
     PlayerUpdate(ServerPlayerUpdate),
+    LogEvents(Vec<LogEvent>),
 }
