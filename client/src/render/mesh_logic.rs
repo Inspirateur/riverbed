@@ -7,7 +7,7 @@ use binary_greedy_meshing as bgm;
 use serde::{Deserialize, Serialize};
 use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNKP_S3, WATER_H, pos::{ChunkPos, linearize, pad_linearize}, serdable_packed_uints::SerdablePackedUints, utils::Palette}};
 
-use crate::network::data::ClientChunk;
+use crate::network::client_chunk::ClientChunk;
 
 use super::texture_array::TextureMapTrait;
 

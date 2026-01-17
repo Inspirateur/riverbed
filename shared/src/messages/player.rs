@@ -7,16 +7,16 @@ use crate::items::{Stack, item_slots::inventory_serde};
 use super::PlayerId;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy, Eq, Hash)]
-pub enum NetworkAction {
+pub enum TransmittableAction {
     MoveForward,
-    MoveRight,
     MoveBackward,
     MoveLeft,
+    MoveRight,
     JumpOrFlyUp,
-    SneakOrFlyDown,
+    CrouchOrFlyDown,
     ToggleFlyMode,
-    LeftClick,
-    RightClick,
+    Hit,
+    Modify,
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Debug, Clone)]
@@ -47,7 +47,7 @@ pub struct PlayerUpdateEvent {
 pub struct PlayerFrameInput {
     pub time_ms: u64,
     pub delta_ms: u64,
-    pub inputs: HashSet<NetworkAction>,
+    pub inputs: HashSet<TransmittableAction>,
     pub camera: Transform,
     pub hotbar_slot: u32,
     #[serde(skip)]
