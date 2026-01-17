@@ -10,6 +10,7 @@ logging = []
 shared = { path = "../shared" }
 
 bevy = { workspace = true }
+cfg-if = { workspace = true }
 hashbrown = { workspace = true }
 itertools = { workspace = true }
 parking_lot = { workspace = true }

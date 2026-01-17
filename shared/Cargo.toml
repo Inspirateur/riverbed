@@ -8,7 +8,7 @@ logging = []
 
 [dependencies]
 bevy = { workspace = true }
-cfg_if = { workspace = true }
+cfg-if = { workspace = true }
 crossbeam = { workspace = true }
 hashbrown = { workspace = true }
 itertools = { workspace = true }
