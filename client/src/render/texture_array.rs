@@ -54,7 +54,8 @@ fn missing_tex(model: &Image) -> Image {
         if x != y {
             continue;
         }
-        img.set_color_at(x, y, Color::srgb(1., 0.5, 0.5));
+        // TODO: more graceful Result handling?
+        let _ = img.set_color_at(x, y, Color::srgb(1., 0.5, 0.5));
     }
     img
 }
