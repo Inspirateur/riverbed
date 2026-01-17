@@ -141,9 +141,6 @@ fn handle_client_message(
             info!("Auth request from {}: {:?}", client_id, request);
             ev_auth.write(AuthRegisterEvent { client_id, request });
         }
-        ClientToServerMessage::ChatMessage(message) => {
-            info!("Chat from {}: {:?}", client_id, message);
-        }
         ClientToServerMessage::SaveWorldRequest => {
             info!("Save request from {}", client_id);
         }

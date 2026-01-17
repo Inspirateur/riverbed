@@ -12,7 +12,6 @@ use shared::{
 use shared::net::clock;
 
 use crate::network::world::update_world_from_network;
-use crate::network::CachedChatConversation;
 use crate::render::MeshOrderSender;
 use crate::world::ClientWorldMap;
 use shared::messages::{
@@ -205,7 +204,6 @@ pub fn init_server_connection(
     commands.queue(move |world: &mut World| {
         world.remove_resource::<RenetClient>();
         world.remove_resource::<NetcodeClientTransport>();
-        world.remove_resource::<CachedChatConversation>();
 
         let authentication = ClientAuthentication::Unsecure {
             server_addr: address,
@@ -244,8 +242,6 @@ pub fn init_server_connection(
         let client = RenetClient::new(get_shared_renet_config());
         world.insert_resource(client);
         world.insert_resource(transport);
-
-        world.insert_resource(CachedChatConversation { ..default() });
 
         info!("Network subsystem initialized");
     })

@@ -58,7 +58,6 @@ pub fn update_world_from_network(
                 ev_player_update.write(update);
             }
             ServerToClientMessage::AuthRegisterResponse(_) => {}
-            ServerToClientMessage::ChatHistory(_) => {}
         }
     }
 }
