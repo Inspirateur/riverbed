@@ -76,7 +76,6 @@ fn client() {
         .add_plugins(TextureLoadPlugin)
         .add_plugins(UIPlugin)
         .add_plugins(MovementPlugin)
-        .add_plugins(TerrainLoadPlugin)
         .add_plugins(Render)
         .add_plugins(SoundPlugin)
         ;
