@@ -2,9 +2,9 @@ pub mod pos3d;
 pub mod pos2d;
 pub mod load_area;
 use bevy::math::{I64Vec3, Vec3};
-pub use pos3d::{BlockPos, ChunkPos, ChunkedPos};
-pub use pos2d::{BlockPos2d, ColPos, ColedPos};
+use bevy::prelude::Component;
 
+use crate::world::pos::pos2d::ColPos;
 use crate::world::{CHUNKP_S1, CHUNKP_S2};
 
 use super::CHUNK_S1I;
@@ -35,3 +35,7 @@ pub fn linearize(x: usize, y: usize, z: usize) -> usize {
 pub fn pad_linearize(x: usize, y: usize, z: usize) -> usize {
     z + 1 + (x+1) * CHUNKP_S1 + (y+1) * CHUNKP_S2
 }
+
+
+#[derive(Component, Default)]
+pub struct PlayerCol(pub ColPos);

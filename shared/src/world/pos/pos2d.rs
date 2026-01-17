@@ -1,9 +1,9 @@
 use std::ops::BitXor;
 use bevy::prelude::Vec3;
 use serde::{Deserialize, Serialize};
-use crate::world::{CHUNK_S1, Y_CHUNKS, realm::Realm};
+use crate::world::{CHUNK_S1, Y_CHUNKS, pos::pos3d::{BlockPos, ChunkPos}, realm::Realm};
 
-use super::{chunked, pos3d::Pos3d, unchunked, BlockPos, ChunkPos, CHUNK_S1I};
+use super::{chunked, pos3d::Pos3d, unchunked, CHUNK_S1I};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash, Serialize, Deserialize)]
 pub struct Pos2d<const U: usize> {

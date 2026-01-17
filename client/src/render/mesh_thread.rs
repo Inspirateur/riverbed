@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
 use crate::agents::PlayerControlled;
+use crate::render::PlayerCol;
 use shared::logging::LogData;
 use crate::render::mesh_draw::{choose_lod_level, LOD};
 use crate::render::texture_array::TextureMap;
@@ -83,9 +84,6 @@ pub fn setup_mesh_thread(
         }
     ).detach();
 }
-
-#[derive(Component, Default)]
-pub struct PlayerCol(pub ColPos);
 
 #[derive(Resource)]
 pub struct MeshReciever(pub Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
