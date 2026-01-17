@@ -110,7 +110,7 @@ fn process_jumps(
 ) {
     for (mut jumping, mut velocity, stepping_on) in query.iter_mut() {
         jumping.cd.tick(time.delta());
-        if jumping.intent && jumping.cd.finished() && !stepping_on.0.is_traversable() {
+        if jumping.intent && jumping.cd.is_finished() && !stepping_on.0.is_traversable() {
             velocity.0.y += jumping.force;
             jumping.cd.reset();
         }
