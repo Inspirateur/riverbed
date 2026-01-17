@@ -53,8 +53,9 @@ pub struct ServerTickAtConnect(pub u64);
 #[derive(Resource, Default, Debug, Clone)]
 pub struct WorldSeed(pub u32);
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum TargetServerState {
+    #[default]
     Initial,
     Establishing,
     FullyReady,
@@ -96,7 +97,7 @@ impl FromWorld for CurrentPlayerProfile {
     }
 }
 
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Debug, Clone, Default)]
 pub struct TargetServer {
     pub address: Option<SocketAddr>,
     pub username: Option<String>,
@@ -112,12 +113,8 @@ pub fn add_base_netcode(app: &mut App) {
 
     app.add_plugins(NetcodeClientPlugin);
 
-    app.insert_resource(TargetServer {
-        address: None,
-        username: None,
-        session_token: None,
-        state: TargetServerState::Initial,
-    });
+    // Only insert TargetServer if not already present (may be set by CLI arg)
+    app.init_resource::<TargetServer>();
 }
 
 pub fn launch_local_server_system(
@@ -125,7 +122,7 @@ pub fn launch_local_server_system(
     selected_world: Res<SelectedWorld>,
 ) {
     if target.address.is_some() {
-        debug!("Skipping launch local server");
+        debug!("Skipping launch local server - address already set");
         return;
     }
 

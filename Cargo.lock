@@ -1938,6 +1938,7 @@ dependencies = [
  "binary-greedy-meshing",
  "bincode",
  "cfg-if",
+ "clap",
  "confy",
  "crossbeam",
  "crossbeam-skiplist",

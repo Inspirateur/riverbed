@@ -2,19 +2,21 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 
 use bevy::app::ScheduleRunnerPlugin;
-use bevy::log::{info, LogPlugin};
+use bevy::log::info;
 use bevy::prelude::*;
 use bevy_renet::netcode::{NetcodeServerPlugin, NetcodeServerTransport, ServerAuthentication, ServerConfig};
 use bevy_renet::renet::RenetServer;
 use bevy_renet::RenetServerPlugin;
 use clap::Parser;
 use crossbeam::channel;
+use shared::logging::logging::RiverbedLogPlugin;
 use shared::world::pos::pos3d::ChunkPos;
 use shared::world::WorldSeed;
 use shared::{get_shared_renet_config, GameServerConfig, PROTOCOL_ID, RENDER_DISTANCE, TICKS_PER_SECOND};
 
 use crate::network::dispatcher::ServerNetworkPlugin;
 use crate::world::voxel_world::VoxelWorld;
+use crate::world::TerrainLoadPlugin;
 
 mod generation;
 mod logging;
@@ -44,7 +46,7 @@ fn main() {
     }
 
     // Bind UDP socket
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), args.port);
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), args.port);
     let socket = match UdpSocket::bind(addr) {
         Ok(s) => s,
         Err(e) => {
@@ -85,7 +87,7 @@ fn main() {
             1.0 / TICKS_PER_SECOND as f64,
         ))),
     );
-    app.add_plugins(LogPlugin::default());
+    app.add_plugins(RiverbedLogPlugin);
     
     // Networking plugins
     app.add_plugins(RenetServerPlugin);
@@ -110,6 +112,9 @@ fn main() {
     
     // Add server network plugin (handles chunk broadcasting)
     app.add_plugins(ServerNetworkPlugin);
+    
+    // Add terrain generation plugin
+    app.add_plugins(TerrainLoadPlugin);
     
     info!("Server starting on {}", local_addr);
     

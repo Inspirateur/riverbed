@@ -9,7 +9,10 @@ mod world;
 // Re-export Block and BlockFamily from shared crate
 pub use shared::block::{Block, BlockFamily};
 
+use std::net::SocketAddr;
+
 use bevy::{asset::AssetPlugin, image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
+use clap::Parser;
 use crossbeam::channel::unbounded;
 use shared::logging::logging::RiverbedLogPlugin;
 use shared::world::block_entities::BlockEntities;
@@ -27,7 +30,18 @@ use crate::{render::{MeshOrderReceiver, MeshOrderSender}};
 const SEED: u64 = 42;
 pub const RENDER_DISTANCE: i32 = 32;
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Connect to an external server instead of launching an embedded one
+    /// Example: --server 127.0.0.1:8000
+    #[arg(short, long)]
+    server: Option<SocketAddr>,
+}
+
 fn main() {
+    let args = Args::parse();
+    
     // TODO: Ideally we would do another executable instead of putting log_inspector in main
     // but this require making a riverbed lib to share structs and I don't want to bother for now
     // see https://doc.rust-lang.org/cargo/reference/features.html#mutually-exclusive-features
@@ -35,12 +49,12 @@ fn main() {
         if #[cfg(feature = "logging")] {
             inspect_log();
         } else {
-            client();
+            client(args);
         }
     }
 }
 
-fn client() {
+fn client(args: Args) {
     let mut app = App::new();
     let (mesh_order_sender, mesh_order_receiver) = unbounded();
     app
@@ -76,6 +90,10 @@ fn client() {
             }).disable::<LogPlugin>()
         )
         .add_plugins(RiverbedLogPlugin)
+        .insert_resource(network::TargetServer {
+            address: args.server,
+            ..default()
+        })
         .add_plugins(NetworkPlugin)
         .insert_resource(WorldRng {
             seed: SEED,
