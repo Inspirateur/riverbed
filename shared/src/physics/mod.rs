@@ -75,12 +75,12 @@ pub struct PhysicsStepResult {
 
 /// Compute the extent of positions to check for a given coordinate and size
 fn extent(v: f32, size: f32) -> Vec<i32> {
-    if size > 0. {
-        ((v.floor() as i32)..=((size + v).floor() as i32)).collect_vec()
+    let start = v.floor() as i32;
+    let end = (size + v).floor() as i32;
+    if size > 0.0 {
+        (start..=end).collect()
     } else {
-        (((size + v).floor() as i32)..=(v.floor() as i32))
-            .rev()
-            .collect_vec()
+        (end..=start).rev().collect()
     }
 }
 

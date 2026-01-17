@@ -6,6 +6,7 @@
 
 use bevy::{prelude::*, time::Timer};
 use itertools::iproduct;
+use shared::physics::get_stepped_block;
 use shared::physics::{player_step::apply_player_input_step, MovementMode, PhysicsState};
 use shared::world::{pos::pos3d::BlockPos, realm::Realm, BlockAccess};
 use shared::{FLY_SPEED, WALK_SPEED};
@@ -42,18 +43,6 @@ pub struct FreeFly;
 #[derive(Component)]
 pub struct Speed(pub f32);
 
-/// Jump state component
-#[derive(Component)]
-pub struct Jumping {
-    pub force: f32,
-    pub cd: Timer,
-    pub intent: bool,
-}
-
-/// Crouch state component
-#[derive(Component)]
-pub struct Crouching(pub bool);
-
 /// Axis-aligned bounding box for collision detection
 #[derive(Component)]
 pub struct AABB(pub Vec3);
@@ -66,52 +55,17 @@ pub struct Heading(pub Vec3);
 #[derive(Component)]
 pub struct Velocity(pub Vec3);
 
-/// Gravity strength for the entity
-#[derive(Component)]
-pub struct Gravity(pub f32);
-
-// Helper functions for stepped block detection (used for footstep sounds)
-fn extent(v: f32, size: f32) -> Vec<i32> {
-    let start = v.floor() as i32;
-    let end = (size + v).floor() as i32;
-    if size > 0.0 {
-        (start..=end).collect()
-    } else {
-        (end..=start).rev().collect()
-    }
-}
-
-fn blocks_perp_y(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
-    iproduct!(extent(pos.x, aabb.0.x), extent(pos.z, aabb.0.z)).map(move |(x, z)| BlockPos {
-        x,
-        y: pos.y.floor() as i32,
-        z,
-        realm,
-    })
-}
-
 /// Updates the SteppingOn component to track what block the player is standing on.
 /// This is used for footstep sounds and other effects.
 fn update_stepped_block(
-    blocks: Res<ClientWorldMap>,
+    world: Res<ClientWorldMap>,
     mut query: Query<(&Transform, &Realm, &AABB, &mut SteppingOn)>,
 ) {
+    let Some(world) = world.single() else {
+        return;
+    }
     for (transform, realm, aabb, mut stepping_on) in query.iter_mut() {
-        let below = transform.translation + Vec3::new(0., -0.01, 0.);
-        let mut closest_block = Block::Air;
-        let mut min_dist = f32::INFINITY;
-        for block_pos in blocks_perp_y(below, *realm, aabb) {
-            let block = blocks.get_block(block_pos);
-            if block.is_traversable() {
-                continue;
-            }
-            let dist = (below.x - block_pos.x as f32).abs() - (below.y - block_pos.y as f32).abs();
-            if dist < min_dist {
-                min_dist = dist;
-                closest_block = block;
-            }
-        }
-        stepping_on.0 = closest_block;
+        stepping_on.0 = get_stepped_block(world, transform.translation, *realm, aabb.0);
     }
 }
 

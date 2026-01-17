@@ -23,11 +23,6 @@ pub struct ServerItemStackUpdate {
     pub data: Option<(Stack, Vec3)>,
 }
 
-pub struct ChunkUpdate {
-    pub position: IVec3,
-    pub chunk: Chunk,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ClientBlockInteraction {
     pub position: BlockPos,
