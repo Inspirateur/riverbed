@@ -34,7 +34,7 @@ impl Plugin for RiverbedLogPlugin {
                                 eprintln!("LogPlugin failed to parse filter from env: {}", parse_err);
                             });
 
-                        Ok::<EnvFilter, FromEnvError>(EnvFilter::builder().parse_lossy("riverbed=trace"))
+                        Ok::<EnvFilter, FromEnvError>(EnvFilter::builder().parse_lossy("server=trace,client=trace,shared=trace"))
                     })
                     .unwrap();
 

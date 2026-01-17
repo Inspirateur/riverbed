@@ -1,3 +1,4 @@
+use bevy::log::trace;
 use bevy::prelude::*;
 use bevy_renet::renet::RenetServer;
 use crossbeam::channel::{unbounded, Receiver, Sender};
@@ -33,6 +34,9 @@ pub trait LogEventSenderExt {
 
 impl LogEventSenderExt for LogEventSender {
     fn log(&self, data: LogData) {
+        // Also write to tracing (which goes to file when logging feature is enabled)
+        trace!("{}", data);
+        
         let event = LogEvent {
             timestamp: Utc::now(),
             data,
