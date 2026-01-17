@@ -3,5 +3,10 @@ name = "client"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+logging = []
+
 [dependencies]
 shared = { path = "../shared" }
+
+confy = "*"

@@ -3,8 +3,21 @@ name = "shared"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+logging = []
+
 [dependencies]
 bevy = { workspace = true }
+itertools = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+json5 = { workspace = true }
+ron = { workspace = true }
+cfg_if = { workspace = true }
+crossbeam = { workspace = true }
+
+chrono = { version = "*", features = ["serde", "rkyv"] }
+crossbeam-skiplist = "*"
+
 strum = "*"
 strum_macros = "*"
 

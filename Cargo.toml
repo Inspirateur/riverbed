@@ -12,11 +12,7 @@ anyhow = "*"
 bevy = { version = "0.17" }
 binary-greedy-meshing = "*"
 cfg-if = "*"
-chrono = { version = "*", features = ["serde", "rkyv"] }
-confy = "*"
 crossbeam = "*"
-crossbeam-skiplist = "*"
-csv = "*"
 hashbrown = "*"
 itertools = "*"
 json5 = "*"
