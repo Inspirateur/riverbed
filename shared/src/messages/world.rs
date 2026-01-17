@@ -4,6 +4,7 @@ use bevy::math::{IVec3, Vec3};
 use bevy::ecs::message::Message;
 use serde::{Deserialize, Serialize};
 
+use crate::world::chunk::Chunk;
 use crate::world::pos::ChunkPos;
 
 /// WorldUpdate is a message sent from the server to the client to update the client's world state.
@@ -12,7 +13,7 @@ use crate::world::pos::ChunkPos;
 pub struct WorldUpdate {
     pub tick: u64,
     pub time: u64,
-    pub new_map: HashMap<ChunkPos, ServerChunk>,
+    pub new_map: HashMap<ChunkPos, Chunk>,
     pub item_stacks: Vec<ItemStackUpdateEvent>,
 }
 
@@ -25,5 +26,5 @@ pub struct ItemStackUpdateEvent {
 
 pub struct ChunkUpdate {
     pub position: IVec3,
-    pub chunk: ServerChunk,
+    pub chunk: Chunk,
 }

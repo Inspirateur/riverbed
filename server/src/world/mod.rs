@@ -1,4 +1,3 @@
-mod chunk;
 mod terrain_thread;
 mod block_entities;
 pub mod voxel_world;

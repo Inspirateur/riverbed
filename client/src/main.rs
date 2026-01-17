@@ -1,12 +1,8 @@
-mod asset_processing;
-mod block;
-mod items;
 mod ui;
-mod world;
 mod render;
 mod agents;
+mod network;
 mod sounds;
-mod generation;
 mod logging;
 
 // Re-export Block and BlockFamily from shared crate

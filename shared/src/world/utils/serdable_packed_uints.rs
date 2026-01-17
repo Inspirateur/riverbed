@@ -5,6 +5,10 @@ use serde::{Deserialize, Serialize};
 pub struct SerdablePackedUints(pub PackedUints);
 
 impl SerdablePackedUints {
+    pub fn new(bits_per_value: usize) -> Self {
+        Self(PackedUints::new(bits_per_value))
+    }
+
     pub fn get(&self, index: usize) -> usize {
         self.0.get(index)
     }

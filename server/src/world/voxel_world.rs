@@ -5,8 +5,6 @@ use parking_lot::RwLock;
 use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNKP_S1, MAX_HEIGHT, Y_CHUNKS, chunk::{ChunkTrait}, pos::{BlockPos, BlockPos2d, ChunkPos, ChunkedPos, ColPos, ColedPos, chunked, pos2d::chunks_in_col}, realm::Realm}};
 use std::sync::Arc;
 
-use crate::world::chunk::ServerChunk;
-
 pub struct BlockRayCastHit {
     pub pos: BlockPos,
     pub normal: Vec3,
@@ -20,7 +18,7 @@ impl PartialEq for BlockRayCastHit {
 
 #[derive(Resource, Clone)]
 pub struct VoxelWorld {
-    pub chunks: Arc<SkipMap<ChunkPos, RwLock<ServerChunk>>>,
+    pub chunks: Arc<SkipMap<ChunkPos, RwLock<Chunk>>>,
     chunk_changes: Sender<ChunkPos>,
     pub render_distance: u32,
 }
@@ -36,7 +34,7 @@ impl VoxelWorld {
 
     pub fn set_block(&self, pos: BlockPos, block: Block) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
-        self.chunks.get_or_insert_with(chunk_pos, || RwLock::new(ServerChunk::new()))
+        self.chunks.get_or_insert_with(chunk_pos, || RwLock::new(Chunk::new()))
             .value()
             .write()
             .set(chunked_pos, block);
@@ -69,7 +67,7 @@ impl VoxelWorld {
                 realm: col_pos.realm,
             };
             let h = height.min(dy);
-            self.chunks.get_or_insert_with(chunk_pos, || RwLock::new(ServerChunk::new()))
+            self.chunks.get_or_insert_with(chunk_pos, || RwLock::new(Chunk::new()))
                 .value()
                 .write()
                 .set_yrange((x, dy, z), h, block);
@@ -81,7 +79,7 @@ impl VoxelWorld {
 
     pub fn set_if_empty(&self, pos: BlockPos, block: Block) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
-        if self.chunks.get_or_insert_with(chunk_pos, || RwLock::new(ServerChunk::new()))
+        if self.chunks.get_or_insert_with(chunk_pos, || RwLock::new(Chunk::new()))
             .value()
             .write()
             .set_if_empty(chunked_pos, block)
@@ -141,7 +139,7 @@ impl VoxelWorld {
         false
     }
 
-    fn sync_padding_info(&self, chunk: &Entry<ChunkPos, RwLock<ServerChunk>>, chunk_pos: ChunkPos, face: Face, send_change: bool) {
+    fn sync_padding_info(&self, chunk: &Entry<ChunkPos, RwLock<Chunk>>, chunk_pos: ChunkPos, face: Face, send_change: bool) {
         let other_pos = ChunkPos {
             x: chunk_pos.x + face.n()[0],
             y: chunk_pos.y + face.n()[1],
