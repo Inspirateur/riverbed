@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use bevy::{asset::LoadedFolder, color::palettes::css, image::TRANSPARENT_IMAGE_HANDLE, prelude::*};
 use itertools::Itertools;
-use crate::{asset_processing::from_filename, block::{Face, FaceSpecifier}, items::{Item, Stack}, render::{parse_block_tex_name, BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder}, Block};
+use shared::{asset_processing::from_filename, block::{Block, Face, FaceSpecifier}, items::{Item, Stack}};
+
+use crate::render::{BlockTexState, BlockTextureFolder, ItemTexState, ItemTextureFolder, parse_block_tex_name};
 pub const SLOT_SIZE_PERCENT: f32 = 4.;
 
 pub struct UiTexMapPlugin;
