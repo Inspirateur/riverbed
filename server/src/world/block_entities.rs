@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 use hashbrown::HashMap;
-use shared::world::block_entities::BlockEntities;
-
-use crate::world::pos::{BlockPos, ColPos};
+use shared::world::{block_entities::BlockEntities, pos::{BlockPos, ColPos}};
 
 
 impl BlockEntitiesTrait for BlockEntities {

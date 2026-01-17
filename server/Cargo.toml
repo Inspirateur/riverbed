@@ -11,6 +11,7 @@ shared = { path = "../shared" }
 
 bevy = { workspace = true }
 crossbeam = { workspace = true }
+hashbrown = { workspace = true }
 itertools = { workspace = true }
 packed-uints = { workspace = true }
 parking_lot = { workspace = true }
