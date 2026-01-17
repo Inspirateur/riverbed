@@ -1,4 +1,4 @@
-use crate::{Block, BlockFamily};
+use super::{Block, BlockFamily};
 
 impl Block {
     pub fn friction(&self) -> f32 {

@@ -8,7 +8,10 @@ mod agents;
 mod sounds;
 mod generation;
 mod logging;
-include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
+
+// Re-export Block and BlockFamily from shared crate
+pub use shared::block::{Block, BlockFamily};
+
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
 use world::VoxelWorld;
