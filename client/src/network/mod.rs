@@ -36,7 +36,8 @@ impl Plugin for NetworkPlugin {
         // Register network messages/events
         app.add_message::<PlayerSpawnEvent>()
             .add_message::<PlayerUpdateEvent>()
-            .add_message::<ItemStackUpdateEvent>();
+            .add_message::<ItemStackUpdateEvent>()
+            .add_message::<ExitRequestEvent>();
         
         // Setup base netcode plugins (RenetClientPlugin, NetcodeClientPlugin)
         add_base_netcode(app);
@@ -73,5 +74,9 @@ impl Plugin for NetworkPlugin {
         // Fixed update systems - run at fixed timestep
         app.add_systems(FixedPreUpdate, poll_network_messages);
         app.add_systems(FixedUpdate, upload_player_inputs_system);
+
+        // Cleanup systems - handle graceful disconnection
+        app.add_systems(Update, handle_exit_request);
+        app.add_systems(Last, on_app_exit);
     }
 }

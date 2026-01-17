@@ -16,6 +16,7 @@ use shared::messages::{
     PlayerSpawnEvent, ServerToClientMessage,
 };
 use shared::world::WorldSeed;
+use shared::GameServerConfig;
 
 use super::extensions::SendGameMessageExtension;
 
@@ -39,6 +40,7 @@ impl Plugin for ServerNetworkPlugin {
         app.add_message::<PlayerInputsEvent>();
         app.add_message::<BlockInteractionEvent>();
         app.add_message::<AuthRegisterEvent>();
+        app.add_message::<PlayerExitEvent>();
 
         // Server event handling (connections/disconnections)
         app.add_systems(Update, handle_server_events);
@@ -48,6 +50,9 @@ impl Plugin for ServerNetworkPlugin {
 
         // Authentication handling (needs access to multiple resources)
         app.add_systems(Update, handle_auth_requests);
+
+        // Player exit handling
+        app.add_systems(Update, handle_player_exit);
 
         // Player input processing and state broadcasting
         app.add_systems(
@@ -85,6 +90,7 @@ fn receive_client_messages(
     mut ev_player_inputs: MessageWriter<PlayerInputsEvent>,
     mut ev_block_interaction: MessageWriter<BlockInteractionEvent>,
     mut ev_auth: MessageWriter<AuthRegisterEvent>,
+    mut ev_exit: MessageWriter<PlayerExitEvent>,
 ) {
     for client_id in server.clients_id() {
         while let Some(Ok(message)) = server.receive_game_message(client_id) {
@@ -94,6 +100,7 @@ fn receive_client_messages(
                 &mut ev_player_inputs,
                 &mut ev_block_interaction,
                 &mut ev_auth,
+                &mut ev_exit,
             );
         }
     }
@@ -106,6 +113,7 @@ fn handle_client_message(
     ev_player_inputs: &mut MessageWriter<PlayerInputsEvent>,
     ev_block_interaction: &mut MessageWriter<BlockInteractionEvent>,
     ev_auth: &mut MessageWriter<AuthRegisterEvent>,
+    ev_exit: &mut MessageWriter<PlayerExitEvent>,
 ) {
     match message {
         ClientToServerMessage::PlayerInputs(inputs) => {
@@ -133,9 +141,15 @@ fn handle_client_message(
         }
         ClientToServerMessage::Exit => {
             info!("Exit request from {}", client_id);
-            // TODO: Handle graceful disconnection
+            ev_exit.write(PlayerExitEvent { client_id });
         }
     }
+}
+
+/// Event fired when a player sends an Exit message
+#[derive(Message, Debug)]
+pub struct PlayerExitEvent {
+    pub client_id: ClientId,
 }
 
 /// Handle authentication requests from clients.
@@ -253,5 +267,45 @@ fn handle_auth_requests(
             "Broadcasted spawn for player '{}' ({}) to other clients",
             username, client_id
         );
+    }
+}
+
+/// Handle player exit requests.
+/// Disconnects the player and shuts down the server if running in solo mode.
+fn handle_player_exit(
+    mut ev_exit: MessageReader<PlayerExitEvent>,
+    mut server: ResMut<RenetServer>,
+    mut registry: ResMut<PlayerRegistry>,
+    mut chunk_tracker: ResMut<ChunkSendTracker>,
+    config: Res<GameServerConfig>,
+    mut app_exit: MessageWriter<AppExit>,
+) {
+    for event in ev_exit.read() {
+        let client_id = event.client_id;
+        
+        // Get player name for logging before removing
+        let player_name = registry
+            .get_player(client_id)
+            .map(|p| p.name.clone())
+            .unwrap_or_else(|| format!("Unknown-{}", client_id));
+
+        info!("Player '{}' ({}) is disconnecting", player_name, client_id);
+
+        // Remove player from registry
+        registry.remove_player(client_id);
+        
+        // Clear chunk tracking for this client
+        chunk_tracker.remove_client(client_id);
+
+        // Disconnect the client from the server
+        server.disconnect(client_id);
+
+        info!("Player '{}' ({}) disconnected successfully", player_name, client_id);
+
+        // If running in solo mode, shut down the server when the player exits
+        if config.is_solo {
+            info!("Solo mode: shutting down server as player disconnected");
+            app_exit.write(AppExit::Success);
+        }
     }
 }
