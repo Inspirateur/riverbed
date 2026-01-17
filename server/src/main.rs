@@ -1,6 +1,5 @@
 use clap::Parser;
 
-mod asset_processing;
 mod generation;
 
 #[derive(Parser, Debug)]

@@ -3,14 +3,14 @@ use std::iter::Rev;
 use std::ops::{Deref, Range};
 use bevy::prelude::*;
 use chrono::TimeDelta;
-use crate::{logging::{log_display::InspectorDisplayPlugin, logging::LogEvent, LogData}, world::ColPos};
+use shared::world::pos::ColPos;
+use shared::logging::{LogEvent, LogData};
 
 pub struct InspectorPlugin;
 
 impl Plugin for InspectorPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
 		app
-            .add_plugins(InspectorDisplayPlugin)
             .insert_resource(EventQueue::default())
             .insert_resource(IsLive(true))
             .insert_resource(EventHead::default())
