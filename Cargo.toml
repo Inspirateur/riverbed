@@ -7,7 +7,6 @@ edition = "2024"
 logging = []
 log_inspector = []
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [workspace]
 members = [
     "client",
@@ -16,7 +15,7 @@ members = [
     "crates/*",
 ]
 
-[dependencies]
+[workspace.dependencies]
 anyhow = "*"
 bevy = { version = "0.17" }
 binary-greedy-meshing = "*"

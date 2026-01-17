@@ -1,0 +1,17 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared = { path = "../shared" }
+
+# Define the library target
+[lib]
+name = "server"
+path = "src/lib.rs"
+
+# Define the binary target
+[[bin]]
+name = "server"
+path = "src/main.rs"
