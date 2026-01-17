@@ -2,12 +2,15 @@ use bevy::prelude::*;
 
 use crate::world::pos::pos3d::BlockPos;
 
+pub mod block_access;
 pub mod block_entities;
 pub mod chunk;
 pub mod pos;
 pub mod utils;
 pub mod realm;
 pub mod world_rng;
+
+pub use block_access::BlockAccess;
 
 pub const CHUNK_S1: usize = 62;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);

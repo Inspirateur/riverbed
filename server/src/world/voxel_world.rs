@@ -2,7 +2,7 @@ use bevy::prelude::{Resource, Vec3};
 use crossbeam::channel::Sender;
 use crossbeam_skiplist::{map::Entry, SkipMap};
 use parking_lot::RwLock;
-use shared::{block::{Block, Face}, world::{BlockRayCastHit, CHUNK_S1, CHUNKP_S1, MAX_HEIGHT, Y_CHUNKS, chunk::Chunk, pos::{chunked, pos2d::{BlockPos2d, ColPos, ColedPos, chunks_in_col}, pos3d::{BlockPos, ChunkPos, ChunkedPos}}, realm::Realm}};
+use shared::{block::{Block, Face}, world::{BlockAccess, CHUNK_S1, CHUNKP_S1, MAX_HEIGHT, Y_CHUNKS, chunk::Chunk, pos::{chunked, pos2d::{BlockPos2d, ColPos, ColedPos, chunks_in_col}, pos3d::{BlockPos, ChunkPos, ChunkedPos}}, realm::Realm}};
 use std::sync::Arc;
 
 
@@ -83,14 +83,6 @@ impl VoxelWorld {
         match self.chunks.get(&chunk_pos) {
             None => Block::Air,
             Some(chunk) => chunk.value().read().get(chunked_pos).clone(),
-        }
-    }
-
-    pub fn get_block_safe(&self, pos: BlockPos) -> Block {
-        if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 {
-            Block::Air
-        } else {
-            self.get_block(pos)
         }
     }
 
@@ -230,75 +222,14 @@ impl VoxelWorld {
             }
         }
     }
+}
 
-    pub fn raycast(
-        &self,
-        realm: Realm,
-        start: Vec3,
-        dir: Vec3,
-        dist: f32,
-    ) -> Option<BlockRayCastHit> {
-        let mut pos = BlockPos {
-            realm,
-            x: start.x.floor() as i32,
-            y: start.y.floor() as i32,
-            z: start.z.floor() as i32,
-        };
-        let mut last_pos;
-        let sx = dir.x.signum() as i32;
-        let sy = dir.y.signum() as i32;
-        let sz = dir.z.signum() as i32;
-        if sx == 0 && sy == 0 && sz == 0 {
-            return None;
-        }
-        let next_x = (pos.x + sx.max(0)) as f32;
-        let next_y = (pos.y + sy.max(0)) as f32;
-        let next_z = (pos.z + sz.max(0)) as f32;
-        let mut t_max_x = (next_x - start.x) / dir.x;
-        let mut t_max_y = (next_y - start.y) / dir.y;
-        let mut t_max_z = (next_z - start.z) / dir.z;
-        let slope_x = 1. / dir.x.abs();
-        let slope_y = 1. / dir.y.abs();
-        let slope_z = 1. / dir.z.abs();
-        loop {
-            last_pos = pos;
-            if t_max_x < t_max_y {
-                if t_max_x < t_max_z {
-                    if t_max_x >= dist {
-                        return None;
-                    };
-                    pos.x += sx;
-                    t_max_x += slope_x;
-                } else {
-                    if t_max_z >= dist {
-                        return None;
-                    };
-                    pos.z += sz;
-                    t_max_z += slope_z;
-                }
-            } else if t_max_y < t_max_z {
-                if t_max_y >= dist {
-                    return None;
-                };
-                pos.y += sy;
-                t_max_y += slope_y;
-            } else {
-                if t_max_z >= dist {
-                    return None;
-                };
-                pos.z += sz;
-                t_max_z += slope_z;
-            }
-            if self.get_block_safe(pos).is_targetable() {
-                return Some(BlockRayCastHit {
-                    pos,
-                    normal: Vec3 {
-                        x: (last_pos.x - pos.x) as f32,
-                        y: (last_pos.y - pos.y) as f32,
-                        z: (last_pos.z - pos.z) as f32,
-                    },
-                });
-            }
+impl BlockAccess for VoxelWorld {
+    fn get_block_safe(&self, pos: BlockPos) -> Block {
+        if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 {
+            Block::Air
+        } else {
+            self.get_block(pos)
         }
     }
 }
