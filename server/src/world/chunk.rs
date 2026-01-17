@@ -1,8 +1,8 @@
 use itertools::Itertools;
+use packed_uints::PackedUints;
 use serde::{Deserialize, Serialize};
-use shared::world::chunk::ChunkTrait;
-use crate::{Block, block::Face, world::{CHUNK_S1I, serdable_packed_uints::SerdablePackedUints}};
-use super::{pos::{ChunkedPos, ColedPos}, utils::Palette, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, CHUNK_S1};
+use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, chunk::ChunkTrait, pos::{ChunkedPos, ColedPos}, utils::Palette}};
+use crate::{world::{CHUNK_S1I, serdable_packed_uints::SerdablePackedUints}};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerChunk {
@@ -63,7 +63,7 @@ impl ChunkTrait for ServerChunk {
         true
     }
 
-    fn copy_side_from(&mut self, other: &Chunk, face: Face) {
+    fn copy_side_from(&mut self, other: &ServerChunk, face: Face) {
         let row_step = match face {
             Face::Left | Face::Right => 1,
             Face::Down | Face::Up => 1,
@@ -128,7 +128,9 @@ impl ServerChunk {
 
 #[cfg(test)]
 mod tests {
-    use crate::{block::Face, world::{linearize, CHUNKP_S1, CHUNKP_S2, CHUNK_S1, CHUNK_S1I}};
+    use shared::block::Face;
+
+    use crate::world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, chunk::linearize};
 
     fn plane(face: Face)  -> [usize; 3] {
         match face {

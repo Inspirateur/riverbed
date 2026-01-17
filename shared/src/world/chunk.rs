@@ -15,5 +15,5 @@ pub trait ChunkTrait {
     fn set_yrange(&mut self, pos: ChunkedPos, height: usize, block: Block);
     fn top(&self, pos: ColedPos) -> (&Block, usize);
     fn set_if_empty(&mut self, pos: ChunkedPos, block: Block) -> bool;
-    fn copy_side_from(&mut self, other: &Chunk, face: Face);
+    fn copy_side_from(&mut self, other: &Self, face: Face);
 }
