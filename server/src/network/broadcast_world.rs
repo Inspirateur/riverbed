@@ -10,7 +10,7 @@ use shared::world::realm::Realm;
 use std::collections::{HashMap, HashSet};
 
 use crate::network::dispatcher::NetworkPlayer;
-use crate::network::players::PlayerRegistry;
+use crate::network::players::{PlayerRegistry, ClientPredictedPosition};
 use crate::world::voxel_world::VoxelWorld;
 
 use super::extensions::SendGameMessageExtension;
@@ -79,7 +79,7 @@ pub fn broadcast_world_state(
     world: Res<VoxelWorld>,
     mut tracker: ResMut<ChunkSendTracker>,
     registry: Res<PlayerRegistry>,
-    player_transforms: Query<(&NetworkPlayer, &Transform, &Realm)>,
+    player_query: Query<(&NetworkPlayer, &ClientPredictedPosition, &Realm)>,
 ) {
     tick.0 += 1;
     let render_distance = world.render_distance as i32;
@@ -89,13 +89,17 @@ pub fn broadcast_world_state(
             continue;
         }
 
-        let Some((_, transform, realm)) = player_transforms
+        let Some((_, predicted_pos, realm)) = player_query
             .iter()
             .find(|(np, _, _)| np.client_id == client_id)
         else {
             continue;
         };
-        let player_position = transform.translation;
+        
+        // Use the client's predicted position for chunk streaming.
+        // This ensures we send chunks to where the client thinks it is,
+        // not where the server's authoritative simulation says it is.
+        let player_position = predicted_pos.0;
 
         let player_chunk_column = ColPos {
             x: (player_position.x / 16.0).floor() as i32,

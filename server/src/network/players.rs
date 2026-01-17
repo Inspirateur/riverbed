@@ -33,6 +33,15 @@ impl Default for ServerPhysicsState {
     }
 }
 
+/// The client's self-reported predicted position.
+/// 
+/// This is used for chunk streaming to ensure the client receives chunks
+/// for where it *thinks* it is (after client-side prediction), not just
+/// where the server's authoritative simulation says it is. This prevents
+/// gaps in terrain when the client moves faster than the server can process.
+#[derive(Component, Debug, Clone, Default)]
+pub struct ClientPredictedPosition(pub Vec3);
+
 #[derive(Debug, Clone)]
 pub struct ServerPlayer {
     pub id: PlayerId,
@@ -104,7 +113,7 @@ pub struct PlayerInputsEvent {
 pub fn handle_player_inputs_system(
     mut events: MessageReader<PlayerInputsEvent>,
     mut registry: ResMut<PlayerRegistry>,
-    mut player_query: Query<(&NetworkPlayer, &mut Transform, &mut ServerPhysicsState, &Realm)>,
+    mut player_query: Query<(&NetworkPlayer, &mut Transform, &mut ServerPhysicsState, &mut ClientPredictedPosition, &Realm)>,
     world: Res<VoxelWorld>,
 ) {
     for ev in events.read() {
@@ -118,13 +127,18 @@ pub fn handle_player_inputs_system(
             continue;
         }
 
-        let Some((_, mut transform, mut physics_state, realm)) = player_query
+        let Some((_, mut transform, mut physics_state, mut predicted_pos, realm)) = player_query
             .iter_mut()
-            .find(|(np, _, _, _)| np.client_id == ev.client_id)
+            .find(|(np, _, _, _, _)| np.client_id == ev.client_id)
         else {
             warn!("No ECS entity found for authenticated player {}", ev.client_id);
             continue;
         };
+
+        // Always update the client's predicted position for chunk streaming,
+        // even if this input is stale. This ensures we stream chunks to where
+        // the client thinks it is.
+        predicted_pos.0 = ev.input.position;
 
         // Drop stale/duplicate inputs based on last processed timestamp.
         if ev.input.time_ms <= player.last_input_processed {

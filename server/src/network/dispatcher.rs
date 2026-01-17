@@ -2,7 +2,7 @@ use crate::network::block_interactions::{handle_block_interactions, BlockInterac
 use crate::network::broadcast_world::{ChunkBroadcastPlugin, ChunkSendTracker, ServerTick};
 use crate::network::players::{
     broadcast_player_updates_system, handle_player_inputs_system, PlayerInputsEvent,
-    PlayerRegistry, ServerPhysicsState,
+    PlayerRegistry, ServerPhysicsState, ClientPredictedPosition,
 };
 use bevy::log::info;
 use bevy::prelude::*;
@@ -208,6 +208,7 @@ fn handle_auth_requests(
             Realm::Overworld,
             NetworkPlayer { client_id },
             ServerPhysicsState::default(),
+            ClientPredictedPosition(spawn_position),
         ));
         info!(
             "Spawned ECS entity for player {} at {:?}",
