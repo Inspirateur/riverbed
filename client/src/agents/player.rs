@@ -5,6 +5,8 @@ use bevy::{
 };
 use leafwing_input_manager::prelude::*;
 use shared::{block::Block, items::{InventoryTrait, Item, Stack, item_slots::ItemHolder, new_inventory}, world::{BlockRayCastHit, realm::Realm}};
+use shared::world::pos::PlayerCol;
+use shared::world::pos::pos2d::ColPos;
 use crate::{agents::{AABB, Gravity, Heading, Jumping, Velocity}, sounds::{BlockSoundCD, FootstepCD, on_item_get}, ui::CursorGrabbed};
 
 use super::{block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, FreeFly, Speed, SteppingOn, Walking};
@@ -29,6 +31,7 @@ impl Plugin for PlayerPlugin {
             .add_plugins(InputManagerPlugin::<DevCommand>::default())
             .add_systems(Startup, (spawn_player, ApplyDeferred).chain().in_set(PlayerSpawn))
             .add_systems(Update, (toggle_fly, move_player).chain().run_if(in_state(CursorGrabbed)))
+            .add_systems(Update, update_player_col)
             .add_systems(OnExit(CursorGrabbed), reset_heading)
         ;
     }
@@ -175,4 +178,30 @@ fn reset_heading(mut player_query: Query<&mut Heading, With<PlayerControlled>>) 
         return;
     };
     heading.0 = Vec3::new(0., 0., 0.);
+}
+
+/// Updates the PlayerCol component when the player moves to a different chunk column.
+/// This system ensures LOD remeshing is triggered when the player's position changes.
+fn update_player_col(
+    mut commands: Commands,
+    mut player_query: Query<(Entity, &Transform, &Realm, Option<&mut PlayerCol>), With<PlayerControlled>>,
+) {
+    let Ok((entity, transform, realm, player_col_opt)) = player_query.single_mut() else {
+        return;
+    };
+    
+    let new_col = ColPos::from((transform.translation, *realm));
+    
+    match player_col_opt {
+        Some(mut player_col) => {
+            // Update only if the column changed
+            if player_col.0 != new_col {
+                player_col.0 = new_col;
+            }
+        }
+        None => {
+            // Initial assignment
+            commands.entity(entity).insert(PlayerCol(new_col));
+        }
+    }
 }
