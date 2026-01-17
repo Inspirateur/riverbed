@@ -1,17 +1,17 @@
 use bevy::prelude::*;
 use bevy_renet::renet::RenetClient;
-use shared::messages::{ClientToServerMessage};
+use shared::messages::ClientToServerMessage;
 
 use crate::agents::key_binds::KeyBinds;
 use crate::agents::PlayerControlled;
 use crate::agents::Velocity;
+use crate::network::TargetServerState;
 use crate::render::FpsCam;
 use crate::ui::SelectedHotbarSlot;
-use crate::network::TargetServerState;
 
 use super::buffered_client::{CurrentFrameInputs, CurrentFrameInputsExt, SyncTime, SyncTimeExt};
-use shared::net::input_history::InputHistory;
 use super::SendGameMessageExtension;
+use shared::net::input_history::InputHistory;
 
 pub fn pre_input_update_system(
     mut frame_inputs: ResMut<CurrentFrameInputs>,
@@ -22,7 +22,7 @@ pub fn pre_input_update_system(
 
     let inputs_of_last_frame = frame_inputs.0.clone();
     input_history.push_frame(inputs_of_last_frame);
-    
+
     frame_inputs.reset(sync_time.now_synced() as u64, sync_time.delta());
 }
 

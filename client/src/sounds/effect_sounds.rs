@@ -1,6 +1,4 @@
-use crate::{
-    agents::{BlockPlaced, Furnace},
-};
+use crate::agents::{BlockPlaced, Furnace};
 use bevy::{
     audio::{PlaybackMode, SpatialScale},
     prelude::*,
@@ -137,4 +135,3 @@ fn furnace_sounds(
         }
     }
 }
-

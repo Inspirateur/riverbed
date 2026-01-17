@@ -1,6 +1,9 @@
 use shared::{
     block::Block,
-    world::{chunk::Chunk, utils::{Palette, SerdablePackedUints}},
+    world::{
+        chunk::Chunk,
+        utils::{Palette, SerdablePackedUints},
+    },
 };
 
 #[derive(Debug)]

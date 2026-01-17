@@ -56,13 +56,7 @@ pub trait BlockAccess {
     /// `Some(BlockRayCastHit)` if a targetable block was hit, containing the
     /// block position and the face normal. `None` if no block was hit within
     /// the distance.
-    fn raycast(
-        &self,
-        realm: Realm,
-        start: Vec3,
-        dir: Vec3,
-        dist: f32,
-    ) -> Option<BlockRayCastHit> {
+    fn raycast(&self, realm: Realm, start: Vec3, dir: Vec3, dist: f32) -> Option<BlockRayCastHit> {
         let mut pos = BlockPos {
             realm,
             x: start.x.floor() as i32,

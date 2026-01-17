@@ -51,7 +51,7 @@ pub fn handle_block_interactions(
         );
         let player_position = transform.translation;
         let distance = player_position.distance(block_center);
-        
+
         if distance > MAX_INTERACTION_DISTANCE {
             warn!(
                 "Player {} tried to interact with block at {:?} from distance {:.1} (max: {})",

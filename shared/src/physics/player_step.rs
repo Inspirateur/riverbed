@@ -1,8 +1,10 @@
-use bevy::prelude::*;
 use bevy::platform::collections::HashSet;
+use bevy::prelude::*;
 
 use crate::messages::TransmittableAction;
-use crate::physics::{actions_to_movement_input, simulate_physics_step, MovementMode, PhysicsState, PhysicsStepResult};
+use crate::physics::{
+    actions_to_movement_input, simulate_physics_step, MovementMode, PhysicsState, PhysicsStepResult,
+};
 use crate::world::block_access::BlockAccess;
 
 /// Result of applying a single input frame to a player's physics state.
@@ -51,7 +53,8 @@ pub fn apply_player_input_step<W: BlockAccess>(
         on_ground: state.on_ground,
     };
 
-    let result: PhysicsStepResult = simulate_physics_step(world, &sim_state, &movement_input, delta_seconds);
+    let result: PhysicsStepResult =
+        simulate_physics_step(world, &sim_state, &movement_input, delta_seconds);
 
     PlayerStepOutput {
         position: result.new_position,

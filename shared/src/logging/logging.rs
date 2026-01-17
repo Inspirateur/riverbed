@@ -1,11 +1,24 @@
-use std::{collections::{HashMap, HashSet}, iter::Rev, ops::{Deref, Range}};
 #[cfg(feature = "logging")]
-use std::{error::Error, fs::OpenOptions};
+use bevy::log::{
+    tracing,
+    tracing_subscriber::{
+        self,
+        filter::{FromEnvError, ParseError},
+        fmt,
+        layer::SubscriberExt,
+        EnvFilter, Layer, Registry,
+    },
+};
+use bevy::{log::LogPlugin, prelude::*};
 use chrono::{DateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
-use bevy::{log::LogPlugin, prelude::*};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::Rev,
+    ops::{Deref, Range},
+};
 #[cfg(feature = "logging")]
-use bevy::log::{tracing, tracing_subscriber::{self, filter::{FromEnvError, ParseError}, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry}};
+use std::{error::Error, fs::OpenOptions};
 
 use crate::world::pos::{pos2d::ColPos, pos3d::ChunkPos};
 
@@ -59,12 +72,9 @@ impl Plugin for RiverbedLogPlugin {
 pub enum LogData {
     ColGenerated(ColPos),
     ChunkMeshed(ChunkPos),
-    PlayerMoved {
-        id: u32, 
-        new_col: ColPos
-    },
+    PlayerMoved { id: u32, new_col: ColPos },
     ColUnloaded(ColPos),
-    Message(String)
+    Message(String),
 }
 
 impl std::fmt::Display for LogData {
@@ -76,7 +86,7 @@ impl std::fmt::Display for LogData {
 #[derive(Serialize, Deserialize, Message, Clone, Debug)]
 pub struct LogEvent {
     pub timestamp: DateTime<Utc>,
-    pub data: LogData
+    pub data: LogData,
 }
 
 impl std::fmt::Display for LogEvent {
@@ -91,14 +101,13 @@ pub struct PlayerPos(pub ColPos);
 #[derive(Default, Resource)]
 pub struct LoadState(pub HashMap<ColPos, bool>);
 
-
 #[derive(Resource)]
 pub struct IsLive(pub bool);
 
 #[derive(Default, Resource)]
 pub struct EventHead {
     previous: usize,
-    current: usize
+    current: usize,
 }
 
 impl EventHead {
@@ -134,10 +143,14 @@ pub struct EventQueue(pub Vec<LogEvent>);
 impl EventQueue {
     pub fn index_at(&self, fraction: f32) -> usize {
         let duration = TimeDelta::milliseconds(
-            ((self.0[self.0.len()-1].timestamp - self.0[0].timestamp).num_milliseconds() as f32*fraction) as i64
+            ((self.0[self.0.len() - 1].timestamp - self.0[0].timestamp).num_milliseconds() as f32
+                * fraction) as i64,
         );
-        let target_timestamp = self.0[0].timestamp+duration;
-        match self.0.binary_search_by(|v| v.timestamp.cmp(&target_timestamp)) {
+        let target_timestamp = self.0[0].timestamp + duration;
+        match self
+            .0
+            .binary_search_by(|v| v.timestamp.cmp(&target_timestamp))
+        {
             Ok(i) => i,
             Err(i) => i,
         }

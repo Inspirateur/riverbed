@@ -1,19 +1,20 @@
-use std::ffi::OsStr;
+use crate::{
+    agents::{BlockActionType, BlockLootAction, TargetBlock},
+    render::{BlockTexState, BlockTextureFolder},
+};
 use bevy::{asset::LoadedFolder, image::TRANSPARENT_IMAGE_HANDLE, prelude::*};
 use itertools::Itertools;
-use crate::{agents::{BlockActionType, BlockLootAction, TargetBlock}, render::{BlockTexState, BlockTextureFolder}};
+use std::ffi::OsStr;
 
 pub struct BlockBreakingEffectPlugin;
 
 impl Plugin for BlockBreakingEffectPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(BreakStageSprites(vec![TRANSPARENT_IMAGE_HANDLE]))
+        app.insert_resource(BreakStageSprites(vec![TRANSPARENT_IMAGE_HANDLE]))
             .add_systems(OnEnter(BlockTexState::Loaded), load_break_stage_sprites)
             .add_systems(Update, add_break_animation)
             .add_systems(Update, update_break_animation)
-            .add_systems(Update, remove_break_animation)
-            ;
+            .add_systems(Update, remove_break_animation);
     }
 }
 
@@ -46,22 +47,25 @@ fn load_break_stage_sprites(
     }
     breaking_sprites.sort_by(|(stage1, _), (stage2, _)| stage1.cmp(stage2));
     breaking_sprites.insert(0, (0, TRANSPARENT_IMAGE_HANDLE));
-    break_stages.0 = breaking_sprites.into_iter().map(|(_, handle)| handle).collect_vec();
+    break_stages.0 = breaking_sprites
+        .into_iter()
+        .map(|(_, handle)| handle)
+        .collect_vec();
 }
 
 fn add_break_animation(
-    mut commands: Commands, 
+    mut commands: Commands,
     block_action_query: Query<(Entity, &TargetBlock, &BlockLootAction), Without<BreakingEffect>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    break_stages: Res<BreakStageSprites>
+    break_stages: Res<BreakStageSprites>,
 ) {
     let texture_handle = break_stages.0[0].clone();
 
     for (player, target_opt, breaking) in block_action_query.iter() {
         if !matches!(breaking.action_type, BlockActionType::Breaking) {
             continue;
-        } 
+        }
         let Some(target) = &target_opt.0 else {
             continue;
         };
@@ -72,15 +76,18 @@ fn add_break_animation(
             unlit: true,
             ..default()
         });
-        let translation = <_ as Into<Vec3>>::into(target.pos) 
-            + target.normal.max(Vec3::ZERO) 
-            + target.normal*0.001 
-            + (Vec3::ONE-target.normal.abs())*0.5;
-        let effect = commands.spawn((
-            Mesh3d(quad_handle.clone()),
-            MeshMaterial3d(material_handle.clone()),
-            Transform::from_translation(translation).looking_at(translation-target.normal, Vec3::Y)
-        )).id();
+        let translation = <_ as Into<Vec3>>::into(target.pos)
+            + target.normal.max(Vec3::ZERO)
+            + target.normal * 0.001
+            + (Vec3::ONE - target.normal.abs()) * 0.5;
+        let effect = commands
+            .spawn((
+                Mesh3d(quad_handle.clone()),
+                MeshMaterial3d(material_handle.clone()),
+                Transform::from_translation(translation)
+                    .looking_at(translation - target.normal, Vec3::Y),
+            ))
+            .id();
         commands.entity(player).insert(BreakingEffect(effect));
     }
 }
@@ -92,9 +99,11 @@ fn update_break_animation(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for (action, break_effect) in block_action_query.iter() {
-        let stage = (
-            (break_stages.0.len() as f32*(1.-action.time_left.max(0.)/action.break_entry.hardness.unwrap_or(f32::INFINITY))) as usize
-        ).min(break_stages.0.len());
+        let stage = ((break_stages.0.len() as f32
+            * (1.
+                - action.time_left.max(0.) / action.break_entry.hardness.unwrap_or(f32::INFINITY)))
+            as usize)
+            .min(break_stages.0.len());
         let Ok(mat_handle) = mat_query.get(break_effect.0) else {
             continue;
         };
@@ -105,9 +114,14 @@ fn update_break_animation(
     }
 }
 
-fn remove_break_animation(mut commands: Commands, block_action_query: Query<(Entity, &BreakingEffect, Option<&BlockLootAction>)>) {
+fn remove_break_animation(
+    mut commands: Commands,
+    block_action_query: Query<(Entity, &BreakingEffect, Option<&BlockLootAction>)>,
+) {
     for (player, breaking_effect, opt_block_loot) in block_action_query.iter() {
-        if opt_block_loot.is_some_and(|block_loot| matches!(block_loot.action_type, BlockActionType::Breaking)) {
+        if opt_block_loot
+            .is_some_and(|block_loot| matches!(block_loot.action_type, BlockActionType::Breaking))
+        {
             continue;
         }
         commands.entity(breaking_effect.0).despawn();

@@ -65,7 +65,7 @@ fn spawn_other_players(
 }
 
 /// System to update other players' positions from server updates.
-/// 
+///
 /// Note: Local player updates are handled by the reconciliation system
 /// in the network module, not here.
 fn update_other_players(

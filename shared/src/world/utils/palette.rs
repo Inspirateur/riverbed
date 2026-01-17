@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Palette<E: Hash + Eq> {
     leftmap: HashMap<E, usize>,
-    rightmap: Vec<E>
+    rightmap: Vec<E>,
 }
 
 impl<E: Hash + Eq> Palette<E> {
@@ -16,18 +16,24 @@ impl<E: Hash + Eq> Palette<E> {
 
 impl<E: Hash + Eq + PartialEq + Clone> Palette<E> {
     pub fn new() -> Self {
-        Self { leftmap: HashMap::new(), rightmap: Vec::new() }
+        Self {
+            leftmap: HashMap::new(),
+            rightmap: Vec::new(),
+        }
     }
 
     pub fn index(&mut self, elem: E) -> usize {
         *self.leftmap.entry(elem.clone()).or_insert_with(|| {
             self.rightmap.push(elem);
-            self.rightmap.len()-1
+            self.rightmap.len() - 1
         })
     }
 
     pub fn map_to(&self, other: &Palette<E>) -> Vec<Option<usize>> {
-        self.rightmap.iter().map(|e| other.leftmap.get(e).cloned()).collect()
+        self.rightmap
+            .iter()
+            .map(|e| other.leftmap.get(e).cloned())
+            .collect()
     }
 }
 

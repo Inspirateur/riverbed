@@ -55,4 +55,3 @@ fn on_item_slot_click(
         ));
     }
 }
-

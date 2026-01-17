@@ -1,5 +1,5 @@
-use bincode::ErrorKind;
 use bevy_renet::renet::{ClientId, RenetServer};
+use bincode::ErrorKind;
 use shared::{
     get_customized_client_to_server_channels,
     messages::{ClientToServerMessage, ServerToClientMessage},
@@ -56,8 +56,12 @@ impl SendGameMessageExtension for RenetServer {
         excluded_channel_id: u8,
     ) -> Option<Result<ClientToServerMessage, Box<ErrorKind>>> {
         let channels = get_customized_client_to_server_channels();
-        for channel in channels.iter().filter(|c| c.channel_id != excluded_channel_id) {
-            if let Some(res) = codec::server_receive_by_channel(self, client_id, channel.channel_id) {
+        for channel in channels
+            .iter()
+            .filter(|c| c.channel_id != excluded_channel_id)
+        {
+            if let Some(res) = codec::server_receive_by_channel(self, client_id, channel.channel_id)
+            {
                 return Some(res);
             }
         }

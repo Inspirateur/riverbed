@@ -65,7 +65,7 @@ fn main() {
                 is_solo: false,
                 broadcast_render_distance: args.render_distance,
             },
-            add_log_plugin: true,  // Standalone server needs its own logging
+            add_log_plugin: true,    // Standalone server needs its own logging
             add_log_broadcast: true, // Broadcast log events to clients
         },
     );

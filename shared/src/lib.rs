@@ -5,17 +5,17 @@ pub mod logging;
 pub mod messages;
 pub mod net;
 pub mod physics;
-pub mod world;
 pub mod utils;
+pub mod world;
 
 use std::time::Duration;
 
+use crate::utils::format_bytes;
 use bevy::log::debug;
-use bincode::Options;
-use block::{Block, BlockFamily};
 use bevy::prelude::*;
 use bevy_renet::renet::{ChannelConfig, ConnectionConfig, SendType};
-use crate::utils::format_bytes;
+use bincode::Options;
+use block::{Block, BlockFamily};
 
 use crate::messages::{ClientToServerMessage, ServerToClientMessage};
 
@@ -33,7 +33,7 @@ pub const FLY_VERTICAL_SPEED: f32 = 100.0;
 pub const DEFAULT_SPAWN_POSITION: Vec3 = Vec3::new(280., 500., -150.);
 
 // Re-export physics constants for convenience
-pub use physics::{PLAYER_GRAVITY, PLAYER_JUMP_FORCE, PLAYER_AABB, ACC_MULT};
+pub use physics::{ACC_MULT, PLAYER_AABB, PLAYER_GRAVITY, PLAYER_JUMP_FORCE};
 
 // Error message constants
 pub const UNIX_EPOCH_TIME_ERROR: &str = "System time is before UNIX_EPOCH";

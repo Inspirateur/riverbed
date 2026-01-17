@@ -6,7 +6,9 @@ use std::time::{Duration, SystemTime};
 use bevy::app::ScheduleRunnerPlugin;
 use bevy::log::info;
 use bevy::prelude::*;
-use bevy_renet::netcode::{NetcodeServerPlugin, NetcodeServerTransport, ServerAuthentication, ServerConfig};
+use bevy_renet::netcode::{
+    NetcodeServerPlugin, NetcodeServerTransport, ServerAuthentication, ServerConfig,
+};
 use bevy_renet::renet::RenetServer;
 use bevy_renet::RenetServerPlugin;
 use crossbeam::channel;
@@ -83,7 +85,7 @@ pub struct ServerInitConfig {
 }
 
 /// Adds all common server plugins and resources to the app.
-/// 
+///
 /// This is the shared initialization logic used by both standalone and embedded modes.
 /// The caller is responsible for:
 /// 1. Binding the UDP socket

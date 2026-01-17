@@ -1,18 +1,19 @@
+use super::{
+    ui_tex_map::{UiSlotKind, UiTextureMap},
+    ScrollGrabbed, UIAction, UISlot,
+};
+use crate::agents::{PlayerControlled, PlayerSpawn, HOTBAR_SLOTS};
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
-use crate::agents::{PlayerControlled, PlayerSpawn, HOTBAR_SLOTS};
-use super::{ui_tex_map::{UiSlotKind, UiTextureMap}, ScrollGrabbed, UIAction, UISlot};
 const SLOT_SIZE_PERCENT: f32 = 4.5;
 
 pub struct HotbarPlugin;
 
 impl Plugin for HotbarPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(SelectedHotbarSlot(0))
+        app.insert_resource(SelectedHotbarSlot(0))
             .add_systems(Startup, setup_hotbar_display.after(PlayerSpawn))
-            .add_systems(Update, scroll_hotbar.run_if(in_state(ScrollGrabbed)))
-            ;
+            .add_systems(Update, scroll_hotbar.run_if(in_state(ScrollGrabbed)));
     }
 }
 
@@ -23,34 +24,39 @@ struct HotBarSlot;
 pub struct SelectedHotbarSlot(pub usize);
 
 fn setup_hotbar_display(
-    mut commands: Commands, player_query: Query<Entity, With<PlayerControlled>>
+    mut commands: Commands,
+    player_query: Query<Entity, With<PlayerControlled>>,
 ) {
     let Ok(player_entt) = player_query.single() else {
         return;
     };
     for i in 0..HOTBAR_SLOTS {
-        let right_border = if i < HOTBAR_SLOTS - 1 { Val::Px(0.) } else { Val::Px(4.) };
-        let left_offset = Val::Percent(50.+(i as f32-HOTBAR_SLOTS as f32/2.)*SLOT_SIZE_PERCENT);
-        commands.spawn(Node { 
-            position_type: PositionType::Absolute,
-            left: left_offset,
-            bottom: Val::Percent(SLOT_SIZE_PERCENT),
-            width: Val::Percent(SLOT_SIZE_PERCENT),
-            aspect_ratio: Some(1.),
-            border: UiRect::new(Val::Px(4.), right_border, Val::Px(4.), Val::Px(4.)),
-            ..Default::default()
-        })
+        let right_border = if i < HOTBAR_SLOTS - 1 {
+            Val::Px(0.)
+        } else {
+            Val::Px(4.)
+        };
+        let left_offset =
+            Val::Percent(50. + (i as f32 - HOTBAR_SLOTS as f32 / 2.) * SLOT_SIZE_PERCENT);
+        commands
+            .spawn(Node {
+                position_type: PositionType::Absolute,
+                left: left_offset,
+                bottom: Val::Percent(SLOT_SIZE_PERCENT),
+                width: Val::Percent(SLOT_SIZE_PERCENT),
+                aspect_ratio: Some(1.),
+                border: UiRect::new(Val::Px(4.), right_border, Val::Px(4.), Val::Px(4.)),
+                ..Default::default()
+            })
             .insert(Interaction::default())
             .insert(UISlot(player_entt, i))
             .insert(HotBarSlot)
-            .with_children(|node|
-                UiTextureMap::make_empty_item_slot(node, UiSlotKind::Default)
-            );
+            .with_children(|node| UiTextureMap::make_empty_item_slot(node, UiSlotKind::Default));
     }
 }
 
 fn scroll_hotbar(
-    mut selected_slot: ResMut<SelectedHotbarSlot>, 
+    mut selected_slot: ResMut<SelectedHotbarSlot>,
     action_query: Query<&ActionState<UIAction>>,
     node_query: Query<(&UISlot, &Children), With<HotBarSlot>>,
     mut img_query: Query<&mut ImageNode>,

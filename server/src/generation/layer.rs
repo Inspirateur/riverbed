@@ -1,14 +1,11 @@
 use shared::{block::Block, world::CHUNK_S1};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LayerTag {
     Mantle,
-    Soil, 
+    Soil,
     Deposit,
-    Fixed {
-        height: usize
-    }
+    Fixed { height: usize },
 }
 
 pub enum Height {
@@ -19,7 +16,7 @@ pub enum Height {
 pub struct Layer {
     pub block: Block,
     pub height: Height,
-    pub tag: LayerTag
+    pub tag: LayerTag,
 }
 
 impl Layer {

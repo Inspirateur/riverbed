@@ -14,7 +14,7 @@ use crate::block::Block;
 use crate::world::block_access::BlockAccess;
 use crate::world::pos::pos3d::BlockPos;
 use crate::world::realm::Realm;
-use crate::{FLY_VERTICAL_SPEED, WALK_SPEED, FLY_SPEED};
+use crate::{FLY_SPEED, FLY_VERTICAL_SPEED, WALK_SPEED};
 
 /// Player physics constants
 pub const PLAYER_GRAVITY: f32 = 50.0;
@@ -179,9 +179,11 @@ pub fn simulate_physics_step<W: BlockAccess>(
     let mut velocity = state.velocity;
 
     // Calculate world-space movement direction from input
-    let forward_horizontal = Vec3::new(input.camera_forward.x, 0.0, input.camera_forward.z).normalize_or_zero();
-    let right_horizontal = Vec3::new(input.camera_right.x, 0.0, input.camera_right.z).normalize_or_zero();
-    
+    let forward_horizontal =
+        Vec3::new(input.camera_forward.x, 0.0, input.camera_forward.z).normalize_or_zero();
+    let right_horizontal =
+        Vec3::new(input.camera_right.x, 0.0, input.camera_right.z).normalize_or_zero();
+
     // Transform local movement direction to world space
     let world_move_dir = if input.move_direction.length_squared() > 0.0 {
         let local_dir = input.move_direction.normalize();
@@ -189,7 +191,7 @@ pub fn simulate_physics_step<W: BlockAccess>(
     } else {
         Vec3::ZERO
     };
-    
+
     // Calculate heading (desired velocity)
     let speed = state.movement_mode.speed();
     let heading = world_move_dir * speed;
@@ -200,10 +202,10 @@ pub fn simulate_physics_step<W: BlockAccess>(
             velocity.x = heading.x;
             velocity.z = heading.z;
             velocity.y = (input.jump as i32 - input.crouch as i32) as f32 * FLY_VERTICAL_SPEED;
-            
+
             // In flying mode, skip collision detection entirely
             position += velocity * delta_seconds;
-            
+
             return PhysicsStepResult {
                 new_position: position,
                 new_velocity: velocity,
@@ -213,30 +215,30 @@ pub fn simulate_physics_step<W: BlockAccess>(
         MovementMode::Walking => {
             // Apply gravity
             velocity.y -= PLAYER_GRAVITY * delta_seconds;
-            
+
             // Check if on ground for jumping
             let on_ground = check_on_ground(world, position, state.realm, aabb);
-            
+
             // Handle jumping
             if input.jump && on_ground {
                 velocity.y = PLAYER_JUMP_FORCE;
             }
-            
+
             // Get stepped block for friction/slowing
             let stepped_block = get_stepped_block(world, position, state.realm, aabb);
             let friction = stepped_block.friction();
             let slowing = stepped_block.slowing();
-            
+
             // Apply slowing to heading
             let slowed_heading = Vec3::new(heading.x * slowing, f32::NAN, heading.z * slowing);
-            
+
             // Make velocity inch towards heading (X and Z only)
             let diff = Vec3::new(
                 slowed_heading.x - velocity.x,
                 0.0,
                 slowed_heading.z - velocity.z,
             );
-            
+
             let diff_len = diff.length();
             if diff_len > 0.0 {
                 let c = (delta_seconds * friction * ACC_MULT / diff_len.max(1.0)).min(1.0);
@@ -244,7 +246,7 @@ pub fn simulate_physics_step<W: BlockAccess>(
                 velocity.x += acc.x;
                 velocity.z += acc.z;
             }
-            
+
             // Apply velocity with collision detection
             let (new_position, new_velocity, on_ground) = apply_velocity_with_collision(
                 world,
@@ -254,7 +256,7 @@ pub fn simulate_physics_step<W: BlockAccess>(
                 aabb,
                 delta_seconds,
             );
-            
+
             return PhysicsStepResult {
                 new_position,
                 new_velocity,
@@ -289,7 +291,8 @@ fn apply_velocity_with_collision<W: BlockAccess>(
             y: position.y,
             z: position.z,
         };
-        if blocks_perp_x(pos_x, realm, aabb).any(|pos| !world.get_block_safe(pos).is_traversable()) {
+        if blocks_perp_x(pos_x, realm, aabb).any(|pos| !world.get_block_safe(pos).is_traversable())
+        {
             if applied_velocity.x > 0. {
                 position.x = pos_x.x - aabb.x - 0.001;
             } else {
@@ -317,7 +320,8 @@ fn apply_velocity_with_collision<W: BlockAccess>(
             y: y as f32,
             z: position.z,
         };
-        if blocks_perp_y(pos_y, realm, aabb).any(|pos| !world.get_block_safe(pos).is_traversable()) {
+        if blocks_perp_y(pos_y, realm, aabb).any(|pos| !world.get_block_safe(pos).is_traversable())
+        {
             if applied_velocity.y > 0. {
                 position.y = pos_y.y - aabb.y - 0.001;
             } else {
@@ -346,7 +350,8 @@ fn apply_velocity_with_collision<W: BlockAccess>(
             y: position.y,
             z: z as f32,
         };
-        if blocks_perp_z(pos_z, realm, aabb).any(|pos| !world.get_block_safe(pos).is_traversable()) {
+        if blocks_perp_z(pos_z, realm, aabb).any(|pos| !world.get_block_safe(pos).is_traversable())
+        {
             if applied_velocity.z > 0. {
                 position.z = pos_z.z - aabb.z - 0.001;
             } else {
@@ -370,14 +375,14 @@ pub fn actions_to_movement_input(
     camera_transform: &Transform,
 ) -> MovementInput {
     use crate::messages::TransmittableAction;
-    
+
     let forward = camera_transform.forward().as_vec3();
     let right = camera_transform.right().as_vec3();
-    
+
     let mut move_direction = Vec3::ZERO;
     let mut jump = false;
     let mut crouch = false;
-    
+
     for action in inputs {
         match action {
             TransmittableAction::MoveForward => move_direction.z += 1.0,
@@ -389,7 +394,7 @@ pub fn actions_to_movement_input(
             _ => {}
         }
     }
-    
+
     MovementInput {
         move_direction,
         jump,

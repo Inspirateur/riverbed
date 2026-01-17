@@ -70,7 +70,7 @@ pub fn init(socket: UdpSocket, config: GameServerConfig) {
         transport,
         init::ServerInitConfig {
             game_config: config,
-            add_log_plugin: false, // Client already has logging configured
+            add_log_plugin: false,    // Client already has logging configured
             add_log_broadcast: false, // Not needed for embedded server
         },
     );

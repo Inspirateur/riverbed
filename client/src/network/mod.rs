@@ -25,7 +25,7 @@ impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
         // Add reconciliation plugin for server-authoritative sync
         app.add_plugins(ReconciliationPlugin);
-        
+
         // Initialize resources
         app.init_resource::<CurrentPlayerProfile>()
             .init_resource::<CurrentFrameInputs>()
@@ -34,14 +34,14 @@ impl Plugin for NetworkPlugin {
             .init_resource::<SelectedWorld>()
             .init_resource::<ServerTickAtConnect>()
             .init_resource::<WorldSeed>();
-        
+
         // Register network messages/events
         app.add_message::<ServerPlayerSpawn>()
             .add_message::<ServerPlayerUpdate>()
             .add_message::<ServerItemStackUpdate>()
             .add_message::<ExitRequestEvent>()
             .add_message::<LogEvent>();
-        
+
         // Setup base netcode plugins (RenetClientPlugin, NetcodeClientPlugin)
         add_base_netcode(app);
 
@@ -62,16 +62,14 @@ impl Plugin for NetworkPlugin {
 
         // Input capture systems - run every frame
         // pre_input_update prepares a new frame, then we capture inputs
-        app.add_systems(
-            PreUpdate,
-            pre_input_update_system,
-        );
+        app.add_systems(PreUpdate, pre_input_update_system);
         app.add_systems(
             Update,
             (
                 capture_player_inputs_system.run_if(in_state(CursorGrabbed)),
                 update_frame_inputs_system,
-            ).chain(),
+            )
+                .chain(),
         );
 
         // Fixed update systems - run at fixed timestep

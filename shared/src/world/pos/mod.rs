@@ -1,6 +1,6 @@
-pub mod pos3d;
-pub mod pos2d;
 pub mod load_area;
+pub mod pos2d;
+pub mod pos3d;
 use bevy::math::{I64Vec3, Vec3};
 use bevy::prelude::Component;
 
@@ -19,12 +19,11 @@ pub fn unchunked(cx: i32, dx: usize) -> i32 {
     cx * CHUNK_S1I + dx as i32
 }
 
-
 pub fn chunk_pos(pos: Vec3) -> I64Vec3 {
     I64Vec3::new(
-        (pos.x/CHUNK_S1F).floor() as i64 , 
-        (pos.y/CHUNK_S1F).floor() as i64, 
-        (pos.z/CHUNK_S1F).floor() as i64
+        (pos.x / CHUNK_S1F).floor() as i64,
+        (pos.y / CHUNK_S1F).floor() as i64,
+        (pos.z / CHUNK_S1F).floor() as i64,
     )
 }
 
@@ -33,9 +32,8 @@ pub fn linearize(x: usize, y: usize, z: usize) -> usize {
 }
 
 pub fn pad_linearize(x: usize, y: usize, z: usize) -> usize {
-    z + 1 + (x+1) * CHUNKP_S1 + (y+1) * CHUNKP_S2
+    z + 1 + (x + 1) * CHUNKP_S1 + (y + 1) * CHUNKP_S2
 }
-
 
 #[derive(Component, Default)]
 pub struct PlayerCol(pub ColPos);

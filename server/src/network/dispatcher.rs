@@ -1,8 +1,8 @@
 use crate::network::block_interactions::{handle_block_interactions, BlockInteractionEvent};
 use crate::network::broadcast_world::{ChunkBroadcastPlugin, ChunkSendTracker, ServerTick};
 use crate::network::players::{
-    broadcast_player_updates_system, handle_player_inputs_system, PlayerInputsEvent,
-    PlayerRegistry, ServerPhysicsState, ClientPredictedPosition,
+    broadcast_player_updates_system, handle_player_inputs_system, ClientPredictedPosition,
+    PlayerInputsEvent, PlayerRegistry, ServerPhysicsState,
 };
 use bevy::log::info;
 use bevy::prelude::*;
@@ -11,12 +11,12 @@ use shared::messages::{
     AuthRegisterRequest, AuthRegisterResponse, ClientToServerMessage, PlayerSave,
     ServerPlayerSpawn, ServerToClientMessage,
 };
-use shared::CTS_AUTH_CHANNEL;
 use shared::net::clock;
 use shared::physics::MovementMode;
 use shared::world::realm::Realm;
 use shared::world::WorldSeed;
 use shared::GameServerConfig;
+use shared::CTS_AUTH_CHANNEL;
 
 use super::extensions::SendGameMessageExtension;
 
@@ -92,7 +92,9 @@ fn receive_client_messages(
 ) {
     for client_id in server.clients_id() {
         // Auth channel
-        while let Some(Ok(message)) = server.receive_game_message_by_channel(client_id, CTS_AUTH_CHANNEL) {
+        while let Some(Ok(message)) =
+            server.receive_game_message_by_channel(client_id, CTS_AUTH_CHANNEL)
+        {
             handle_client_message(
                 client_id,
                 message,
@@ -104,7 +106,9 @@ fn receive_client_messages(
         }
 
         // All other channels
-        while let Some(Ok(message)) = server.receive_game_message_except_channel(client_id, CTS_AUTH_CHANNEL) {
+        while let Some(Ok(message)) =
+            server.receive_game_message_except_channel(client_id, CTS_AUTH_CHANNEL)
+        {
             handle_client_message(
                 client_id,
                 message,
@@ -202,7 +206,7 @@ fn handle_auth_requests(
         }
 
         let spawn_position = DEFAULT_SPAWN_POSITION;
-        
+
         commands.spawn((
             Transform::from_translation(spawn_position),
             Realm::Overworld,
@@ -218,7 +222,7 @@ fn handle_auth_requests(
         chunk_tracker.remove_client(client_id);
 
         let mut all_player_spawns: Vec<ServerPlayerSpawn> = Vec::new();
-        
+
         for player in registry.players.values().filter(|p| p.is_authenticated) {
             let (position, orientation, is_flying) = if player.id == client_id {
                 (spawn_position, Quat::IDENTITY, false)
@@ -302,7 +306,7 @@ fn handle_player_exit(
 ) {
     for event in ev_exit.read() {
         let client_id = event.client_id;
-        
+
         let player_name = registry
             .get_player(client_id)
             .map(|player| player.name.clone())
@@ -314,7 +318,10 @@ fn handle_player_exit(
         chunk_tracker.remove_client(client_id);
         server.disconnect(client_id);
 
-        info!("Player '{}' ({}) disconnected successfully", player_name, client_id);
+        info!(
+            "Player '{}' ({}) disconnected successfully",
+            player_name, client_id
+        );
 
         if config.is_solo {
             info!("Solo mode: shutting down server as player disconnected");

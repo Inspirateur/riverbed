@@ -1,6 +1,6 @@
+use bevy::prelude::Resource;
 use bevy::prelude::{KeyCode, MouseButton};
 use serde::{Deserialize, Serialize};
-use bevy::prelude::Resource;
 use shared::messages::TransmittableAction;
 
 #[derive(Serialize, Deserialize, Resource)]

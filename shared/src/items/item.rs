@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use serde::{Deserialize, Serialize};
 use crate::Block;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ToolKind {
@@ -9,7 +9,7 @@ pub enum ToolKind {
     #[serde(untagged)]
     Item(Item),
     #[serde(untagged)]
-    ToolFamily(ToolFamily)
+    ToolFamily(ToolFamily),
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
@@ -55,7 +55,7 @@ impl Item {
             Item::IronPickaxe => Some((ToolFamily::Pickaxe, Efficiency(2.))),
             Item::IronAxe => Some((ToolFamily::Axe, Efficiency(2.))),
             Item::IronShovel => Some((ToolFamily::Shovel, Efficiency(2.))),
-            _ => None
+            _ => None,
         }
     }
 }

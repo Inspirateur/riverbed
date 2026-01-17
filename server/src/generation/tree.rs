@@ -1,12 +1,10 @@
-use std::ops::Range;
-use serde::Deserialize;
-use shared::world::{BlockAccess, pos::pos3d::BlockPos};
-use strum_macros::EnumString;
 use crate::{generation::growables::*, world::voxel_world::VoxelWorld};
+use serde::Deserialize;
+use shared::world::{pos::pos3d::BlockPos, BlockAccess};
+use std::ops::Range;
+use strum_macros::EnumString;
 
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Deserialize)]
-#[derive(EnumString)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Deserialize, EnumString)]
 pub enum Tree {
     Oak,
     Spruce,
@@ -19,12 +17,14 @@ pub enum Tree {
     Baobab,
     Cactus,
     Acacia,
-    Bamboo
+    Bamboo,
 }
 
 impl Tree {
     pub fn grow(&self, world: &VoxelWorld, pos: BlockPos, seed: i32, dist: f32) {
-        if !world.get_block_safe(pos).is_fertile_soil() { return; }
+        if !world.get_block_safe(pos).is_fertile_soil() {
+            return;
+        }
         match self {
             Tree::Spruce => grow_spruce(world, pos, seed, dist),
             Tree::Birch => grow_birch(world, pos, seed, dist),

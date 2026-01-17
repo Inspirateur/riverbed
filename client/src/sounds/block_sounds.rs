@@ -102,7 +102,7 @@ fn breaking(
 }
 
 /// Plays breaking sounds when blocks are destroyed.
-/// 
+///
 /// Listens for `BlockChanged` events and plays the appropriate breaking sound
 /// when a non-air block is replaced with air.
 fn on_block_changed(
@@ -115,11 +115,11 @@ fn on_block_changed(
         if event.old_block == Block::Air || event.new_block != Block::Air {
             continue;
         }
-        
+
         let Some(sound) = block_sounds.sound_for(event.old_block, BlockSound::Breaking) else {
             continue;
         };
-        
+
         commands
             .spawn((
                 Transform::from_translation(event.pos.into()),
@@ -137,4 +137,3 @@ fn on_block_changed(
             ));
     }
 }
-

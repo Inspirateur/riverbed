@@ -9,7 +9,7 @@ pub struct BlockEntities(HashMap<ColPos, HashMap<(usize, i32, usize), Entity>>);
 impl BlockEntities {
     pub fn unload_col(&mut self, col_pos: &ColPos) -> Vec<Entity> {
         let Some(entities) = self.0.remove(col_pos) else {
-            return Vec::new()
+            return Vec::new();
         };
         entities.into_values().into_iter().collect()
     }

@@ -1,41 +1,56 @@
-use std::fs;
-use std::iter::zip;
-use std::time::{Duration, Instant};
-use shared::items::item_slots::ItemHolder;
-use shared::items::{BlockLootTable, DropQuantity, FiringTable, InventoryTrait, Item, LootEntry, Stack};
-use shared::world::BlockAccess;
-use shared::world::block_entities::BlockEntities;
-use shared::world::pos::pos3d::BlockPos;
-use shared::world::realm::Realm;
-use shared::world::world_rng::WorldRng;
+use crate::agents::{Action, PlayerControlled, TargetBlock};
 use crate::render::FpsCam;
 use crate::sounds::ItemGet;
 use crate::ui::{CursorGrabbed, GameUiState, SelectedHotbarSlot};
 use crate::world::{ClientWorldMap, SetBlockRequest};
 use crate::Block;
-use crate::agents::{TargetBlock, Action, PlayerControlled};
-use leafwing_input_manager::prelude::*;
 use bevy::prelude::*;
+use leafwing_input_manager::prelude::*;
 use rand::Rng;
-
+use shared::items::item_slots::ItemHolder;
+use shared::items::{
+    BlockLootTable, DropQuantity, FiringTable, InventoryTrait, Item, LootEntry, Stack,
+};
+use shared::world::block_entities::BlockEntities;
+use shared::world::pos::pos3d::BlockPos;
+use shared::world::realm::Realm;
+use shared::world::world_rng::WorldRng;
+use shared::world::BlockAccess;
+use std::fs;
+use std::iter::zip;
+use std::time::{Duration, Instant};
 
 pub struct BlockHitPlacePlugin;
 
 impl Plugin for BlockHitPlacePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(BlockBreakTable(
-                json5::from_str::<BlockLootTable>(&fs::read_to_string("assets/data/block_breaking.json5").unwrap()).unwrap()
-            ))
-            .insert_resource(BlockHarvestTable(
-                json5::from_str::<BlockLootTable>(&fs::read_to_string("assets/data/block_harvesting.json5").unwrap()).unwrap()
-            ))
-            .insert_resource(json5::from_str::<FiringTable>(&fs::read_to_string("assets/data/firing.json5").unwrap()).unwrap())
-			.add_systems(Update, (break_action, target_block, target_block_changed).chain().run_if(in_state(GameUiState::None)))
-			.add_systems(Update, block_outline.run_if(in_state(CursorGrabbed)))
-            .add_systems(Update, place_block.run_if(in_state(GameUiState::None)))
-            .add_systems(Update, renew_block)
-			;
+        app.insert_resource(BlockBreakTable(
+            json5::from_str::<BlockLootTable>(
+                &fs::read_to_string("assets/data/block_breaking.json5").unwrap(),
+            )
+            .unwrap(),
+        ))
+        .insert_resource(BlockHarvestTable(
+            json5::from_str::<BlockLootTable>(
+                &fs::read_to_string("assets/data/block_harvesting.json5").unwrap(),
+            )
+            .unwrap(),
+        ))
+        .insert_resource(
+            json5::from_str::<FiringTable>(
+                &fs::read_to_string("assets/data/firing.json5").unwrap(),
+            )
+            .unwrap(),
+        )
+        .add_systems(
+            Update,
+            (break_action, target_block, target_block_changed)
+                .chain()
+                .run_if(in_state(GameUiState::None)),
+        )
+        .add_systems(Update, block_outline.run_if(in_state(CursorGrabbed)))
+        .add_systems(Update, place_block.run_if(in_state(GameUiState::None)))
+        .add_systems(Update, renew_block);
     }
 }
 
@@ -47,7 +62,7 @@ struct BlockHarvestTable(BlockLootTable);
 
 pub enum BlockActionType {
     Breaking,
-    Harvesting
+    Harvesting,
 }
 
 #[derive(Component)]
@@ -65,13 +80,13 @@ const EDGES_ANCHORS: [Vec3; 4] = [
     Vec3::ZERO,
     Vec3::new(1., 1., 0.),
     Vec3::new(1., 0., 1.),
-    Vec3::new(0., 1., 1.), 
+    Vec3::new(0., 1., 1.),
 ];
 const EDGES_LINES: [Vec3; 4] = [
     Vec3::ONE,
     Vec3::new(-1., -1., 1.),
     Vec3::new(-1., 1., -1.),
-    Vec3::new(1., -1., -1.), 
+    Vec3::new(1., -1., -1.),
 ];
 
 #[derive(Component)]
@@ -84,23 +99,31 @@ pub struct Renewable {
 }
 
 fn target_block(
-    mut player: Query<(&mut TargetBlock, &Realm), With<PlayerControlled>>, 
+    mut player: Query<(&mut TargetBlock, &Realm), With<PlayerControlled>>,
     player_cam: Query<&GlobalTransform, With<FpsCam>>,
-    world: Res<ClientWorldMap>
+    world: Res<ClientWorldMap>,
 ) {
     let (mut target_block, realm) = player.single_mut().unwrap();
     let transform = player_cam.single().unwrap();
     target_block.0 = world.raycast(
-        *realm, 
-        transform.translation(), 
-        *transform.forward(), 
-        TARGET_DIST
+        *realm,
+        transform.translation(),
+        *transform.forward(),
+        TARGET_DIST,
     );
 }
 
-fn target_block_changed(mut commands: Commands, target_query: Query<(Entity, &BlockLootAction, &TargetBlock), (With<BlockLootAction>, Changed<TargetBlock>)>) {
+fn target_block_changed(
+    mut commands: Commands,
+    target_query: Query<
+        (Entity, &BlockLootAction, &TargetBlock),
+        (With<BlockLootAction>, Changed<TargetBlock>),
+    >,
+) {
     for (player, break_action, target_block_opt) in target_query.iter() {
-        if target_block_opt.0.is_none() || break_action.block_pos != target_block_opt.0.as_ref().unwrap().pos {
+        if target_block_opt.0.is_none()
+            || break_action.block_pos != target_block_opt.0.as_ref().unwrap().pos
+        {
             commands.entity(player).remove::<BlockLootAction>();
         }
     }
@@ -112,9 +135,9 @@ fn block_outline(mut gizmos: Gizmos, target_block_query: Query<&TargetBlock>) {
             let pos: Vec3 = target_block.pos.into();
             for (anchor, lines) in zip(EDGES_ANCHORS, EDGES_LINES) {
                 let anchor_pos = pos + anchor;
-                gizmos.line(anchor_pos, anchor_pos+lines*Vec3::X, Color::BLACK);
-                gizmos.line(anchor_pos, anchor_pos+lines*Vec3::Y, Color::BLACK);
-                gizmos.line(anchor_pos, anchor_pos+lines*Vec3::Z, Color::BLACK);
+                gizmos.line(anchor_pos, anchor_pos + lines * Vec3::X, Color::BLACK);
+                gizmos.line(anchor_pos, anchor_pos + lines * Vec3::Y, Color::BLACK);
+                gizmos.line(anchor_pos, anchor_pos + lines * Vec3::Z, Color::BLACK);
             }
         }
     }
@@ -124,7 +147,13 @@ fn break_action(
     mut commands: Commands,
     world: Res<ClientWorldMap>,
     mut set_block_events: MessageWriter<SetBlockRequest>,
-    mut block_action_query: Query<(Entity, &TargetBlock, &mut ItemHolder, &ActionState<Action>, Option<&mut BlockLootAction>)>,
+    mut block_action_query: Query<(
+        Entity,
+        &TargetBlock,
+        &mut ItemHolder,
+        &ActionState<Action>,
+        Option<&mut BlockLootAction>,
+    )>,
     selected_slot: Res<SelectedHotbarSlot>,
     block_break_table: Res<BlockBreakTable>,
     block_harvest_table: Res<BlockHarvestTable>,
@@ -133,7 +162,8 @@ fn break_action(
     mut world_rng: ResMut<WorldRng>,
     block_entt_query: Query<&BlockAttached>,
 ) {
-    for (player, target_block_opt, mut hotbar, action, opt_looting) in block_action_query.iter_mut() {
+    for (player, target_block_opt, mut hotbar, action, opt_looting) in block_action_query.iter_mut()
+    {
         let Some(mut looting) = opt_looting else {
             // No current looting action, we add one
             let action_type = if action.pressed(&Action::Hit) {
@@ -153,7 +183,7 @@ fn break_action(
             let tool_used = hotbar.get(selected_slot.0).item();
             let break_entry = match action_type {
                 BlockActionType::Breaking => block_break_table.0.get(tool_used, &block),
-                BlockActionType::Harvesting => block_harvest_table.0.get(tool_used, &block)
+                BlockActionType::Harvesting => block_harvest_table.0.get(tool_used, &block),
             };
             let Some(hardness) = break_entry.hardness else {
                 continue;
@@ -162,8 +192,8 @@ fn break_action(
                 block_pos: target_block.pos,
                 block,
                 action_type,
-                time_left: hardness, 
-                break_entry
+                time_left: hardness,
+                break_entry,
             });
             continue;
         };
@@ -203,16 +233,26 @@ fn break_action(
                     block: depleted,
                 });
                 if let Some(renewal_minutes) = depleted.renewal_minutes() {
-                    let renew_entt = commands.spawn((
-                        Renewable { renew_after: Instant::now().checked_add(Duration::from_secs(renewal_minutes as u64)).unwrap() }, 
-                        BlockAttached(target_block.pos)
-                    )).id();
-                    col_entities.add(&target_block.pos, renew_entt);    
+                    let renew_entt = commands
+                        .spawn((
+                            Renewable {
+                                renew_after: Instant::now()
+                                    .checked_add(Duration::from_secs(renewal_minutes as u64))
+                                    .unwrap(),
+                            },
+                            BlockAttached(target_block.pos),
+                        ))
+                        .id();
+                    col_entities.add(&target_block.pos, renew_entt);
                 }
             }
         }
         if let Some(drop) = looting.break_entry.drops {
-            let drop_quantity = looting.break_entry.quantity.as_ref().unwrap_or(&DropQuantity::Fixed(1));
+            let drop_quantity = looting
+                .break_entry
+                .quantity
+                .as_ref()
+                .unwrap_or(&DropQuantity::Fixed(1));
             let quantity = match drop_quantity {
                 DropQuantity::Fixed(q) => *q,
                 DropQuantity::Range { min, max } => {
@@ -238,8 +278,8 @@ fn place_block(
     mut commands: Commands,
     world: Res<ClientWorldMap>,
     mut set_block_events: MessageWriter<SetBlockRequest>,
-    mut block_action_query: Query<(&TargetBlock, &mut ItemHolder, &ActionState<Action>)>, 
-    selected_slot: Res<SelectedHotbarSlot>
+    mut block_action_query: Query<(&TargetBlock, &mut ItemHolder, &ActionState<Action>)>,
+    selected_slot: Res<SelectedHotbarSlot>,
 ) {
     for (target_block_opt, mut hotbar, action) in block_action_query.iter_mut() {
         if !action.just_pressed(&Action::Modify) {
@@ -248,7 +288,7 @@ fn place_block(
         let Some(target_block) = &target_block_opt.0 else {
             continue;
         };
-        let pos = target_block.pos+target_block.normal;
+        let pos = target_block.pos + target_block.normal;
         if world.get_block(pos).is_targetable() {
             continue;
         }
@@ -262,7 +302,9 @@ fn place_block(
         // Check bounds before placing
         if pos.y < 0 || pos.y >= shared::world::MAX_HEIGHT as i32 {
             // Out of bounds, return the block to inventory
-            hotbar.get_mut(selected_slot.0).try_add(Stack::Some(Item::Block(block), 1));
+            hotbar
+                .get_mut(selected_slot.0)
+                .try_add(Stack::Some(Item::Block(block), 1));
         } else {
             set_block_events.write(SetBlockRequest { pos, block });
             commands.trigger(BlockPlaced(pos));

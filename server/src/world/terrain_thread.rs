@@ -1,13 +1,25 @@
-use std::collections::{HashMap, HashSet};
+use crate::{
+    generation::TerrainGenerator,
+    logging::{LogEventSender, LogEventSenderExt},
+    network::players::ClientPredictedPosition,
+    world::{voxel_world::VoxelWorld, ColUnloadEvent},
+};
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use shared::{logging::logging::LogData, world::{pos::{PlayerCol, pos2d::ColPos}, realm::Realm, world_rng::WorldRng}};
-use crate::{generation::TerrainGenerator, logging::{LogEventSender, LogEventSenderExt}, network::players::ClientPredictedPosition, world::{ColUnloadEvent, voxel_world::VoxelWorld}};
+use shared::{
+    logging::logging::LogData,
+    world::{
+        pos::{pos2d::ColPos, PlayerCol},
+        realm::Realm,
+        world_rng::WorldRng,
+    },
+};
+use std::collections::{HashMap, HashSet};
 
 pub fn setup_load_thread(
-    mut commands: Commands, 
-    world: Res<VoxelWorld>, 
+    mut commands: Commands,
+    world: Res<VoxelWorld>,
     world_rng: Res<WorldRng>,
     log_sender: Res<LogEventSender>,
 ) {
@@ -21,8 +33,8 @@ pub fn setup_load_thread(
     let seed_value = world_rng.seed;
     let log_sender = log_sender.clone();
 
-    thread_pool.spawn(
-        async move {
+    thread_pool
+        .spawn(async move {
             let terrain_gen = TerrainGenerator::new(seed_value as u32);
             // local copy of players positions
             let mut players_pos = HashMap::new();
@@ -35,7 +47,9 @@ pub fn setup_load_thread(
                 loop {
                     // If to_load is empty, we block on player position updates to not waste resources
                     let player_pos_update = if to_load.len() == 0 {
-                        player_pos_recv.recv().expect("PlayerColumnUpdate channel is closed")
+                        player_pos_recv
+                            .recv()
+                            .expect("PlayerColumnUpdate channel is closed")
                     } else {
                         match player_pos_recv.try_recv() {
                             Ok(update) => update,
@@ -43,7 +57,9 @@ pub fn setup_load_thread(
                         }
                     };
                     // Compute the difference in player area
-                    let player_area_diff = player_pos_update.new_col.player_area_diff(player_pos_update.old_col_opt, render_distance as f32);
+                    let player_area_diff = player_pos_update
+                        .new_col
+                        .player_area_diff(player_pos_update.old_col_opt, render_distance as f32);
                     players_pos.insert(player_pos_update.id, player_pos_update.new_col);
                     // Handle columns that are no longer in the player's area
                     for col in player_area_diff.exclusive_in_other {
@@ -61,7 +77,9 @@ pub fn setup_load_thread(
                             log_sender.log(LogData::ColUnloaded(col));
                             if unload_sender.send(col).is_err() {
                                 // This means the game is shutting down, so we break the loop
-                                warn!("ColUnloadsReciever channel is closed, stopping terrain thread");
+                                warn!(
+                                    "ColUnloadsReciever channel is closed, stopping terrain thread"
+                                );
                                 break 'outer;
                             }
                         }
@@ -69,7 +87,7 @@ pub fn setup_load_thread(
                     // Handle columns that are new in the player's area
                     for col in player_area_diff.exclusive_in_self {
                         let players = player_cols.entry(col).or_default();
-                        if players.is_empty(){
+                        if players.is_empty() {
                             to_load.push(col);
                         }
                         players.insert(player_pos_update.id);
@@ -79,22 +97,26 @@ pub fn setup_load_thread(
                 let (closest_idx, _closest_col) = to_load
                     .iter()
                     .enumerate()
-                    .min_by_key(|(_i, col)| 
-                        players_pos.values()
-                            .map(|player_col| (col.x - player_col.x).abs() + (col.z - player_col.z).abs())
+                    .min_by_key(|(_i, col)| {
+                        players_pos
+                            .values()
+                            .map(|player_col| {
+                                (col.x - player_col.x).abs() + (col.z - player_col.z).abs()
+                            })
                             .min()
-                    ).unwrap();
+                    })
+                    .unwrap();
                 let col = to_load.remove(closest_idx);
                 terrain_gen.generate(&load_world, col);
                 log_sender.log(LogData::ColGenerated(col));
                 load_world.mark_change_col(col);
             }
-        }
-    ).detach();
+        })
+        .detach();
 }
 
 pub fn assign_player_col(
-    mut commands: Commands, 
+    mut commands: Commands,
     sender: Res<PlayerColumnUpdateSender>,
     log_sender: Res<LogEventSender>,
     player_query: Query<(Entity, &ClientPredictedPosition, &Realm), Without<PlayerCol>>,
@@ -108,7 +130,10 @@ pub fn assign_player_col(
             old_col_opt: None,
             new_col: col,
         };
-        log_sender.log(LogData::PlayerMoved { id: player.index(), new_col: col});
+        log_sender.log(LogData::PlayerMoved {
+            id: player.index(),
+            new_col: col,
+        });
         if sender.0.send(update).is_err() {
             panic!("PlayerColumnUpdateSender channel is closed");
         }
@@ -130,7 +155,10 @@ pub fn send_player_pos_update(
                 old_col_opt: Some(player_col.0),
                 new_col,
             };
-            log_sender.log(LogData::PlayerMoved { id: player.index(), new_col });
+            log_sender.log(LogData::PlayerMoved {
+                id: player.index(),
+                new_col,
+            });
             if sender.0.send(update).is_err() {
                 panic!("PlayerColumnUpdateSender channel is closed");
             }

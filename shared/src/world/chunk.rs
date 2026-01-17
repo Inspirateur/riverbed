@@ -1,8 +1,16 @@
+use super::utils::Palette;
+use crate::{
+    block::Face,
+    world::{
+        pos::{linearize, pad_linearize, pos2d::ColedPos, pos3d::ChunkedPos},
+        utils::SerdablePackedUints,
+        CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, CHUNK_S1, CHUNK_S1I,
+    },
+    Block,
+};
 use itertools::Itertools;
 use packed_uints::PackedUints;
 use serde::{Deserialize, Serialize};
-use crate::{Block, block::Face, world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, pos::{linearize, pad_linearize, pos2d::ColedPos, pos3d::ChunkedPos}, utils::SerdablePackedUints}};
-use super::{utils::Palette};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chunk {
@@ -29,10 +37,10 @@ impl Chunk {
         let value = self.palette.index(block);
         // Note: we do end+1 because set_range(_step) is not inclusive
         self.data.set_range_step(
-            pad_linearize(x, top - height, z), 
-            pad_linearize(x, top, z)+1, 
+            pad_linearize(x, top - height, z),
+            pad_linearize(x, top, z) + 1,
             CHUNKP_S2,
-            value
+            value,
         );
     }
 
@@ -69,13 +77,13 @@ impl Chunk {
         let [nx, ny, nz] = face.n();
         let mut self_i = linearize(
             ((nx * CHUNK_S1I).max(1) + nx) as usize,
-            ((ny * CHUNK_S1I).max(1) + ny) as usize, 
+            ((ny * CHUNK_S1I).max(1) + ny) as usize,
             ((nz * CHUNK_S1I).max(1) + nz) as usize,
         );
         let [nx, ny, nz] = face.opposite().n();
-        let mut other_i= linearize(
+        let mut other_i = linearize(
             (nx * CHUNK_S1I).max(1) as usize,
-            (ny * CHUNK_S1I).max(1) as usize, 
+            (ny * CHUNK_S1I).max(1) as usize,
             (nz * CHUNK_S1I).max(1) as usize,
         );
         let translation = other.palette.map_to(&self.palette);
@@ -101,19 +109,22 @@ impl From<&[Block]> for Chunk {
     fn from(values: &[Block]) -> Self {
         let mut palette = Palette::new();
         palette.index(Block::Air);
-        let values = values.iter().map(|v| palette.index(v.clone())).collect_vec();
+        let values = values
+            .iter()
+            .map(|v| palette.index(v.clone()))
+            .collect_vec();
         let data = SerdablePackedUints(PackedUints::from(values.as_slice()));
-        Chunk {data, palette}
+        Chunk { data, palette }
     }
 }
 
 impl Chunk {
     pub fn new() -> Self {
         let mut palette = Palette::new();
-        palette.index(Block::Air); 
+        palette.index(Block::Air);
         Chunk {
             data: SerdablePackedUints(PackedUints::new(CHUNKP_S3)),
-            palette: palette, 
+            palette: palette,
         }
     }
 }
@@ -121,29 +132,32 @@ impl Chunk {
 #[cfg(test)]
 mod tests {
 
-    use crate::{block::Face, world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, chunk::linearize}};
+    use crate::{
+        block::Face,
+        world::{chunk::linearize, CHUNKP_S1, CHUNKP_S2, CHUNK_S1, CHUNK_S1I},
+    };
 
-    fn plane(face: Face)  -> [usize; 3] {
+    fn plane(face: Face) -> [usize; 3] {
         match face {
             Face::Left => [0, 1, 1],
             Face::Down => [1, 0, 1],
-            Face::Back => [1, 1, 0], 
+            Face::Back => [1, 1, 0],
             Face::Right => [0, 1, 1],
             Face::Up => [1, 0, 1],
             Face::Front => [1, 1, 0],
         }
     }
 
-    fn chunk_face_indices_safe(face: Face) -> Vec<usize>{
+    fn chunk_face_indices_safe(face: Face) -> Vec<usize> {
         let [nx, ny, nz] = face.n();
         let x = ((nx * CHUNK_S1I).max(1) + nx) as usize;
         let y = ((ny * CHUNK_S1I).max(1) + ny) as usize;
         let z = ((nz * CHUNK_S1I).max(1) + nz) as usize;
         let [tx, ty, tz] = plane(face);
         let mut res = vec![];
-        for dy in 0..(CHUNK_S1*ty).max(1) {
-            for dx in 0..(CHUNK_S1*tx).max(1) {
-                for dz in 0..(CHUNK_S1*tz).max(1) {
+        for dy in 0..(CHUNK_S1 * ty).max(1) {
+            for dx in 0..(CHUNK_S1 * tx).max(1) {
+                for dz in 0..(CHUNK_S1 * tz).max(1) {
                     let idx = super::linearize(x + dx, y + dy, z + dz);
                     res.push(idx);
                 }
@@ -166,7 +180,7 @@ mod tests {
         let [nx, ny, nz] = face.n();
         let mut self_i = linearize(
             ((nx * CHUNK_S1I).max(1) + nx) as usize,
-            ((ny * CHUNK_S1I).max(1) + ny) as usize, 
+            ((ny * CHUNK_S1I).max(1) + ny) as usize,
             ((nz * CHUNK_S1I).max(1) + nz) as usize,
         );
         let mut res = vec![];

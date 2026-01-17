@@ -6,8 +6,6 @@ pub struct EffectsPlugin;
 
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app
-            .add_plugins(BlockBreakingEffectPlugin)
-            ;
+        app.add_plugins(BlockBreakingEffectPlugin);
     }
 }

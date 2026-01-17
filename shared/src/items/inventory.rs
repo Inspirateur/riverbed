@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use super::{craft_table::Recipe, item::Item, CraftEntry};
 
@@ -7,9 +7,8 @@ use super::{craft_table::Recipe, item::Item, CraftEntry};
 pub enum Stack {
     Some(Item, u32),
     #[default]
-    None
+    None,
 }
-
 
 impl Stack {
     pub fn can_add(&self, other: Stack) -> bool {
@@ -21,7 +20,7 @@ impl Stack {
         };
         item == &other_item
     }
-    
+
     /// Tries to add other to self, and output what couldn't be added (either None or other in the case of uncapped stacks)
     pub fn try_add(&mut self, other: Stack) -> Option<Stack> {
         let Stack::Some(other_item, other_stack) = other else {
@@ -52,25 +51,25 @@ impl Stack {
                     *other = remainder;
                     true
                 }
-            },
+            }
             None => {
                 *other = Stack::None;
                 true
-            },
+            }
         }
     }
 
     pub fn item(&self) -> Option<&Item> {
         match self {
             Stack::None => None,
-            Stack::Some(item, _) => Some(item)
+            Stack::Some(item, _) => Some(item),
         }
     }
 
     pub fn quantity(&self) -> u32 {
         match self {
             Stack::Some(_, n) => *n,
-            Stack::None => 0
+            Stack::None => 0,
         }
     }
 
@@ -89,7 +88,7 @@ impl Stack {
         }
         res
     }
-    
+
     /// Intentionnaly private so we don't clone Stacks
     fn clone(&self) -> Stack {
         match self {
@@ -107,19 +106,23 @@ impl Stack {
 
 pub struct InventoryRecipes {
     pub craftable_recipes: Vec<(Recipe, HashMap<usize, u32>)>,
-    pub uncraftable_entries: Vec<CraftEntry>
+    pub uncraftable_entries: Vec<CraftEntry>,
 }
 
 pub trait InventoryTrait {
     fn try_add(&mut self, stack: Stack) -> Option<Stack>;
 
-    fn try_select_item(&self, target_item: &Item, target_quantity: u32, selection: &mut HashMap<usize, u32>) -> bool;
+    fn try_select_item(
+        &self,
+        target_item: &Item,
+        target_quantity: u32,
+        selection: &mut HashMap<usize, u32>,
+    ) -> bool;
 
     fn is_recipe_craftable(&self, recipe: &Recipe) -> Option<HashMap<usize, u32>>;
 
-    fn filter_recipes(&self, recipes: &Vec<CraftEntry>) -> InventoryRecipes;    
+    fn filter_recipes(&self, recipes: &Vec<CraftEntry>) -> InventoryRecipes;
 }
-
 
 impl InventoryTrait for [Stack] {
     fn try_add(&mut self, mut stack: Stack) -> Option<Stack> {
@@ -137,7 +140,12 @@ impl InventoryTrait for [Stack] {
         Some(stack)
     }
 
-    fn try_select_item(&self, target_item: &Item, mut target_quantity: u32, selection: &mut HashMap<usize, u32>) -> bool {
+    fn try_select_item(
+        &self,
+        target_item: &Item,
+        mut target_quantity: u32,
+        selection: &mut HashMap<usize, u32>,
+    ) -> bool {
         for (i, stack) in self.iter().enumerate() {
             let &Stack::Some(item, mut qty) = stack else {
                 continue;
@@ -182,18 +190,20 @@ impl InventoryTrait for [Stack] {
                     if !got_any {
                         uncraftable_recipes.push(craft_entry.clone());
                     }
-                },
+                }
                 CraftEntry::Recipe(recipe) => {
                     if let Some(selection) = self.is_recipe_craftable(recipe) {
                         craftable_recipes.push((recipe.clone(), selection));
                     } else {
                         uncraftable_recipes.push(craft_entry.clone());
                     }
-                },
+                }
             }
-            
         }
-        InventoryRecipes { craftable_recipes, uncraftable_entries: uncraftable_recipes }
+        InventoryRecipes {
+            craftable_recipes,
+            uncraftable_entries: uncraftable_recipes,
+        }
     }
 }
 
@@ -205,8 +215,11 @@ pub fn new_inventory<const N: usize>() -> Box<[Stack]> {
 mod tests {
     use itertools::Itertools;
 
-    use crate::{items::{craft_table::Recipe, new_inventory, parse_recipes, Item}, Block};
     use super::{InventoryTrait, Stack};
+    use crate::{
+        items::{craft_table::Recipe, new_inventory, parse_recipes, Item},
+        Block,
+    };
 
     #[test]
     fn test_recipe_filter() {
@@ -227,16 +240,21 @@ mod tests {
         let available_recipes = vec![
             Recipe {
                 ingredients: vec![(Item::Rock, 3), (Item::Stick, 1)],
-                out: (Item::StoneAxe, 1)
-            }, 
+                out: (Item::StoneAxe, 1),
+            },
             Recipe {
                 ingredients: vec![(Item::Block(Block::BirchLog), 5)],
-                out: (Item::Block(Block::Campfire), 1)
-            }
+                out: (Item::Block(Block::Campfire), 1),
+            },
         ];
         assert_eq!(
-            available_recipes, 
-            inventory.filter_recipes(&recipes).craftable_recipes.into_iter().map(|(recipe, _)| recipe).collect_vec()
+            available_recipes,
+            inventory
+                .filter_recipes(&recipes)
+                .craftable_recipes
+                .into_iter()
+                .map(|(recipe, _)| recipe)
+                .collect_vec()
         );
     }
 }

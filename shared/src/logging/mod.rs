@@ -1,6 +1,6 @@
-pub mod logging;
-mod log_replay;
 mod log_inspector;
+mod log_replay;
+pub mod logging;
 
 // Re-export LogReplayPlugin for log inspector mode (reads from log file)
 #[cfg(feature = "logging")]

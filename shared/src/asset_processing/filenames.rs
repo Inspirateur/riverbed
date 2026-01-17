@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use itertools::Itertools;
+use std::str::FromStr;
 
 fn capitalize(s: &str) -> String {
     let mut c = s.chars();

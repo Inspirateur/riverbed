@@ -2,8 +2,7 @@ use bevy::prelude::*;
 use bevy_renet::renet::RenetClient;
 use shared::logging::logging::LogEvent;
 use shared::messages::{
-    ServerItemStackUpdate, ServerPlayerSpawn, ServerPlayerUpdate,
-    ServerToClientMessage,
+    ServerItemStackUpdate, ServerPlayerSpawn, ServerPlayerUpdate, ServerToClientMessage,
 };
 use shared::STC_AUTH_CHANNEL;
 
@@ -26,27 +25,21 @@ pub fn update_world_from_network(
         match message {
             ServerToClientMessage::WorldUpdate(world_update) => {
                 let chunk_count = world_update.new_map.len();
-                
+
                 if chunk_count > 0 {
                     if let (Some(world_map), Some(mesh_sender)) = (&world_map, &mesh_order_sender) {
                         for (chunk_position, chunk) in world_update.new_map {
                             let client_chunk = ClientChunk::from(chunk);
                             world_map.insert_chunk(chunk_position, client_chunk);
-                            
+
                             if mesh_sender.0.send(chunk_position).is_err() {
                                 warn!("Failed to send mesh order for chunk {:?}", chunk_position);
                             }
                         }
-                        
-                        debug!(
-                            "Received and processed {} chunks from server",
-                            chunk_count
-                        );
+
+                        debug!("Received and processed {} chunks from server", chunk_count);
                     } else {
-                        debug!(
-                            "Received {} chunks but world map not ready",
-                            chunk_count
-                        );
+                        debug!("Received {} chunks but world map not ready", chunk_count);
                     }
                 }
 

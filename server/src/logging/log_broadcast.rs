@@ -1,10 +1,10 @@
 use bevy::log::trace;
 use bevy::prelude::*;
 use bevy_renet::renet::RenetServer;
+use chrono::Utc;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use shared::logging::logging::{LogData, LogEvent};
 use shared::messages::ServerToClientMessage;
-use chrono::Utc;
 
 use crate::network::extensions::SendGameMessageExtension;
 
@@ -36,7 +36,7 @@ impl LogEventSenderExt for LogEventSender {
     fn log(&self, data: LogData) {
         // Also write to tracing (which goes to file when logging feature is enabled)
         trace!("{}", data);
-        
+
         let event = LogEvent {
             timestamp: Utc::now(),
             data,
@@ -47,16 +47,13 @@ impl LogEventSenderExt for LogEventSender {
 }
 
 /// System that broadcasts accumulated log events to all connected clients
-fn broadcast_log_events(
-    receiver: Res<LogEventReceiver>,
-    mut server: ResMut<RenetServer>,
-) {
+fn broadcast_log_events(receiver: Res<LogEventReceiver>, mut server: ResMut<RenetServer>) {
     // Collect all pending events
     let mut events = Vec::new();
     while let Ok(event) = receiver.0.try_recv() {
         events.push(event);
     }
-    
+
     // Only broadcast if there are events to send
     if !events.is_empty() {
         server.broadcast_game_message(ServerToClientMessage::LogEvents(events));

@@ -4,7 +4,9 @@ use bincode::ErrorKind;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::messages::{ClientToServerMessage, ServerToClientMessage};
-use crate::{game_message_to_payload, payload_to_game_message, utils::format_bytes, ChannelResolvableExt};
+use crate::{
+    game_message_to_payload, payload_to_game_message, utils::format_bytes, ChannelResolvableExt,
+};
 
 const LARGE_MESSAGE_BYTES: u64 = 10 * 1024;
 
@@ -87,15 +89,16 @@ pub fn client_receive_except_channel(
     channels: &[ChannelConfig],
     excluded_channel: u8,
 ) -> Option<Result<ServerToClientMessage, Box<ErrorKind>>> {
-    receive_from_channels(channels, Some(excluded_channel), |ch| client.receive_message(ch), true)
+    receive_from_channels(
+        channels,
+        Some(excluded_channel),
+        |ch| client.receive_message(ch),
+        true,
+    )
 }
 
 /// Send a server-to-client message to a specific client, logging large payloads.
-pub fn server_send(
-    server: &mut RenetServer,
-    client_id: ClientId,
-    message: ServerToClientMessage,
-) {
+pub fn server_send(server: &mut RenetServer, client_id: ClientId, message: ServerToClientMessage) {
     let (channel, payload) = encode_message(message);
     log_if_large(&payload);
     server.send_message(client_id, channel, payload);
@@ -123,7 +126,12 @@ pub fn server_receive_any(
     client_id: ClientId,
     channels: &[ChannelConfig],
 ) -> Option<Result<ClientToServerMessage, Box<ErrorKind>>> {
-    receive_from_channels(channels, None, |ch| server.receive_message(client_id, ch), true)
+    receive_from_channels(
+        channels,
+        None,
+        |ch| server.receive_message(client_id, ch),
+        true,
+    )
 }
 
 fn log_if_large(payload: &[u8]) {

@@ -1,8 +1,8 @@
-use bevy::prelude::*;
 use bevy::platform::collections::HashSet;
+use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::items::{Stack, item_slots::inventory_serde};
+use crate::items::{item_slots::inventory_serde, Stack};
 use crate::physics::MovementMode;
 
 use super::PlayerId;

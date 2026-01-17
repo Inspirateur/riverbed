@@ -1,10 +1,16 @@
-mod terrain_thread;
 mod block_entities;
+mod terrain_thread;
 pub mod voxel_world;
 
+use crate::world::{
+    block_entities::unload_block_entities,
+    terrain_thread::{assign_player_col, on_unload_col, send_player_pos_update, setup_load_thread},
+};
 use bevy::prelude::*;
-use shared::world::{block_entities::BlockEntities, pos::{pos2d::ColPos, pos3d::ChunkPos}};
-use crate::world::{block_entities::unload_block_entities, terrain_thread::{assign_player_col, on_unload_col, send_player_pos_update, setup_load_thread}};
+use shared::world::{
+    block_entities::BlockEntities,
+    pos::{pos2d::ColPos, pos3d::ChunkPos},
+};
 
 #[derive(Message)]
 pub struct ColUnloadEvent(pub ColPos);
@@ -20,14 +26,15 @@ pub struct TerrainLoadPlugin;
 
 impl Plugin for TerrainLoadPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-		app
-			.add_message::<ColUnloadEvent>()
-			.insert_resource(BlockEntities::default())
-			.add_systems(Startup, setup_load_thread)
-			// Run position tracking in PostUpdate to ensure all Transform updates have been applied
-			.add_systems(PostUpdate, (assign_player_col, send_player_pos_update).in_set(PlayerPositionTracking))
-			.add_systems(Update, on_unload_col)
-			.add_systems(Update, unload_block_entities)
-		;
-	}
+        app.add_message::<ColUnloadEvent>()
+            .insert_resource(BlockEntities::default())
+            .add_systems(Startup, setup_load_thread)
+            // Run position tracking in PostUpdate to ensure all Transform updates have been applied
+            .add_systems(
+                PostUpdate,
+                (assign_player_col, send_player_pos_update).in_set(PlayerPositionTracking),
+            )
+            .add_systems(Update, on_unload_col)
+            .add_systems(Update, unload_block_entities);
+    }
 }

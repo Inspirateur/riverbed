@@ -5,14 +5,14 @@ impl Block {
         match self {
             Block::Air => 0.05,
             Block::Ice => 0.05,
-            _ => 1.
+            _ => 1.,
         }
     }
 
     pub fn slowing(&self) -> f32 {
         match self {
             Block::Mud => 0.8,
-            _ => 1.
+            _ => 1.,
         }
     }
 
@@ -26,17 +26,17 @@ impl Block {
     pub fn is_targetable(&self) -> bool {
         match self {
             Block::Air | Block::SeaBlock => false,
-            _ => true
+            _ => true,
         }
     }
-    
+
     pub fn is_opaque(&self) -> bool {
         if self.is_foliage() {
             return false;
         }
         match self {
             Block::Air | Block::SeaBlock | Block::Ice | Block::Glass | Block::Campfire => false,
-            _ => true
+            _ => true,
         }
     }
 
@@ -46,9 +46,8 @@ impl Block {
 
     pub fn is_fertile_soil(&self) -> bool {
         match self {
-            Block::GrassBlock | Block::Podzol | Block::Snow
-                => true,
-            _ => false
+            Block::GrassBlock | Block::Podzol | Block::Snow => true,
+            _ => false,
         }
     }
 }

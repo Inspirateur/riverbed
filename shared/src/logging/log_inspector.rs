@@ -1,16 +1,17 @@
+use crate::logging::logging::{
+    EventHead, EventQueue, IsLive, LiveLoadState, LoadState, MeshCount, PlayerPos,
+};
+use crate::logging::logging::{LogData, LogEvent};
 use bevy::prelude::*;
-use crate::logging::logging::{EventHead, EventQueue, IsLive, LiveLoadState, LoadState, MeshCount, PlayerPos};
-use crate::logging::logging::{LogEvent, LogData};
 
 /// Plugin that processes incoming LogEvent messages and maintains inspector state.
-/// This can be used by both client (receiving events from server) and for 
+/// This can be used by both client (receiving events from server) and for
 /// offline log replay analysis.
 pub struct LogInspectorPlugin;
 
 impl Plugin for LogInspectorPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app
-            .insert_resource(EventQueue::default())
+        app.insert_resource(EventQueue::default())
             .insert_resource(IsLive(true))
             .insert_resource(EventHead::default())
             .insert_resource(PlayerPos::default())
@@ -18,17 +19,16 @@ impl Plugin for LogInspectorPlugin {
             .insert_resource(LoadState::default())
             .insert_resource(MeshCount::default())
             .add_systems(Update, on_log_event)
-            .add_systems(Update, on_head_change)
-            ;
+            .add_systems(Update, on_head_change);
     }
 }
 
 fn on_log_event(
-    mut events: MessageReader<LogEvent>, 
+    mut events: MessageReader<LogEvent>,
     mut event_queue: ResMut<EventQueue>,
-    mut event_head: ResMut<EventHead>, 
+    mut event_head: ResMut<EventHead>,
     mut live_load_state: ResMut<LiveLoadState>,
-    is_live: Res<IsLive>
+    is_live: Res<IsLive>,
 ) {
     let mut received_event = false;
     for event in events.read() {
@@ -44,10 +44,12 @@ fn on_log_event(
                 continue;
             }
         }
-        if event_queue.0.len() > 0 && event.timestamp < event_queue.0[event_queue.0.len()-1].timestamp {
+        if event_queue.0.len() > 0
+            && event.timestamp < event_queue.0[event_queue.0.len() - 1].timestamp
+        {
             // This event is out of order (probably because of multithreaded tracing), insert it where it should go
-            let mut i = event_queue.0.len()-1;
-            while i > 0 && event.timestamp < event_queue.0[i-1].timestamp {
+            let mut i = event_queue.0.len() - 1;
+            while i > 0 && event.timestamp < event_queue.0[i - 1].timestamp {
                 i -= 1;
             }
             if i > 0 {
@@ -61,7 +63,7 @@ fn on_log_event(
     if !is_live.0 || event_queue.0.len() == 0 || !received_event {
         return;
     }
-    event_head.set(event_queue.0.len()-1);
+    event_head.set(event_queue.0.len() - 1);
 }
 
 fn on_head_change(
@@ -90,9 +92,9 @@ fn on_head_change(
                     if let Some(state) = load_state.0.get_mut(&col) {
                         *state = false;
                     }
-                },
+                }
                 LogData::ChunkMeshed(chunk) => *mesh_count.0.entry(chunk.into()).or_insert(0) += 1,
-                _ => ()
+                _ => (),
             }
         }
     } else {
@@ -103,18 +105,18 @@ fn on_head_change(
                     if let Some(state) = load_state.0.get_mut(&col) {
                         *state = false;
                     }
-                },
+                }
                 LogData::ColUnloaded(col) => {
                     if let Some(state) = load_state.0.get_mut(&col) {
                         *state = true;
                     }
-                },
+                }
                 LogData::ChunkMeshed(chunk) => {
                     if let Some(count) = mesh_count.0.get_mut(&chunk.into()) {
                         *count = count.saturating_sub(1);
                     }
-                },
-                _ => ()
+                }
+                _ => (),
             }
         }
     }

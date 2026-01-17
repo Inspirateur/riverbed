@@ -10,10 +10,10 @@ use shared::physics::{player_step::apply_player_input_step, MovementMode, Physic
 use shared::world::{pos::pos3d::BlockPos, realm::Realm, BlockAccess};
 use shared::{FLY_SPEED, WALK_SPEED};
 
+use crate::network::buffered_client::CurrentFrameInputs;
 use crate::render::FpsCam;
 use crate::world::ClientWorldMap;
 use crate::Block;
-use crate::network::buffered_client::CurrentFrameInputs;
 
 use super::PlayerControlled;
 
@@ -21,8 +21,7 @@ pub struct MovementPlugin;
 
 impl Plugin for MovementPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(PreUpdate, update_stepped_block)
+        app.add_systems(PreUpdate, update_stepped_block)
             .add_systems(Update, apply_shared_physics);
     }
 }
@@ -128,11 +127,18 @@ fn apply_shared_physics(
     frame_inputs: Res<CurrentFrameInputs>,
     camera_query: Query<&Transform, With<FpsCam>>,
     mut player_query: Query<
-        (Entity, &mut Transform, &mut Velocity, &Realm, Option<&FreeFly>),
+        (
+            Entity,
+            &mut Transform,
+            &mut Velocity,
+            &Realm,
+            Option<&FreeFly>,
+        ),
         (With<PlayerControlled>, Without<FpsCam>),
     >,
 ) {
-    let Ok((entity, mut transform, mut velocity, realm, free_fly_opt)) = player_query.single_mut() else {
+    let Ok((entity, mut transform, mut velocity, realm, free_fly_opt)) = player_query.single_mut()
+    else {
         return;
     };
 

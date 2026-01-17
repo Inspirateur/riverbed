@@ -1,11 +1,10 @@
-use noise::{NoiseFn, Fbm, MultiFractal, RidgedMulti, Simplex};
+use noise::{Fbm, MultiFractal, NoiseFn, RidgedMulti, Simplex};
 
 /// 2D FBM with 5 octaves in [0;1]
 pub fn fbm(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) -> Vec<f32> {
-    let noise: Fbm<Simplex> = Fbm::new(seed)
-        .set_octaves(5);
+    let noise: Fbm<Simplex> = Fbm::new(seed).set_octaves(5);
     let freq = freq as f64;
-    
+
     let mut res = Vec::with_capacity(width * height);
     for j in 0..height {
         for i in 0..width {
@@ -21,13 +20,19 @@ pub fn fbm(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) ->
 
 /// 2D FBM with 5 octaves in [min;max]
 pub fn fbm_scaled(
-    x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32, min: f32, max: f32
+    x: f32,
+    width: usize,
+    z: f32,
+    height: usize,
+    seed: u32,
+    freq: f32,
+    min: f32,
+    max: f32,
 ) -> Vec<f32> {
-    let noise: Fbm<Simplex> = Fbm::new(seed)
-        .set_octaves(5);
+    let noise: Fbm<Simplex> = Fbm::new(seed).set_octaves(5);
     let freq = freq as f64;
     let delta = max - min;
-    
+
     let mut res = Vec::with_capacity(width * height);
     for j in 0..height {
         for i in 0..width {
@@ -45,7 +50,7 @@ pub fn fbm_scaled(
 pub fn ridge(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) -> Vec<f32> {
     let noise: RidgedMulti<Simplex> = RidgedMulti::new(seed);
     let freq = freq as f64;
-    
+
     let mut res = Vec::with_capacity(width * height);
     for j in 0..height {
         for i in 0..width {
@@ -61,12 +66,19 @@ pub fn ridge(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) 
 
 /// 2D Ridge noise in [min;max]
 pub fn ridge_scaled(
-    x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32, min: f32, max: f32
+    x: f32,
+    width: usize,
+    z: f32,
+    height: usize,
+    seed: u32,
+    freq: f32,
+    min: f32,
+    max: f32,
 ) -> Vec<f32> {
     let noise: RidgedMulti<Simplex> = RidgedMulti::new(seed);
     let freq = freq as f64;
     let delta = max - min;
-    
+
     let mut res = Vec::with_capacity(width * height);
     for j in 0..height {
         for i in 0..width {
@@ -81,7 +93,9 @@ pub fn ridge_scaled(
 }
 
 pub fn quantize(sample: &mut Vec<f32>, step: f32) {
-    sample.iter_mut().for_each(|v| *v = (*v/step).round()*step);   
+    sample
+        .iter_mut()
+        .for_each(|v| *v = (*v / step).round() * step);
 }
 
 pub fn mul(a: &mut Vec<f32>, b: &Vec<f32>) {
@@ -115,23 +129,23 @@ mod tests {
         let smax = sample.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
         println!("min: {}, max: {}", smin, smax);
         assert!(smin >= min);
-        assert!(smin < min+error);
+        assert!(smin < min + error);
         assert!(smax <= max);
-        assert!(smax > max-error);
+        assert!(smax > max - error);
     }
 
     #[test]
     fn fbm_len() {
         let len = 1024;
         let res = fbm(0.0, len, 0.0, len, 42, 0.01);
-        assert_eq!(res.len(), len*len);
+        assert_eq!(res.len(), len * len);
     }
 
     #[test]
     fn ridge_len() {
         let len = 1024;
         let res = ridge(0.0, len, 0.0, len, 42, 0.01);
-        assert_eq!(res.len(), len*len);
+        assert_eq!(res.len(), len * len);
     }
 
     #[test]

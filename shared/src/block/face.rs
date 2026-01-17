@@ -1,17 +1,37 @@
 use bevy::ecs::component::Component;
 use strum_macros::EnumIter;
 const UP_SPECIFIER: [FaceSpecifier; 2] = [FaceSpecifier::Specific(Face::Up), FaceSpecifier::All];
-const DOWN_SPECIFIER: [FaceSpecifier; 3] = [FaceSpecifier::Specific(Face::Down), FaceSpecifier::Specific(Face::Up), FaceSpecifier::All];
-const LEFT_SPECIFIER: [FaceSpecifier; 3] = [FaceSpecifier::Specific(Face::Left), FaceSpecifier::Side, FaceSpecifier::All];
-const RIGHT_SPECIFIER: [FaceSpecifier; 3] = [FaceSpecifier::Specific(Face::Right), FaceSpecifier::Side, FaceSpecifier::All];
-const FRONT_SPECIFIER: [FaceSpecifier; 3] = [FaceSpecifier::Specific(Face::Front), FaceSpecifier::Side, FaceSpecifier::All];
-const BACK_SPECIFIER: [FaceSpecifier; 3] = [FaceSpecifier::Specific(Face::Back), FaceSpecifier::Side, FaceSpecifier::All];
+const DOWN_SPECIFIER: [FaceSpecifier; 3] = [
+    FaceSpecifier::Specific(Face::Down),
+    FaceSpecifier::Specific(Face::Up),
+    FaceSpecifier::All,
+];
+const LEFT_SPECIFIER: [FaceSpecifier; 3] = [
+    FaceSpecifier::Specific(Face::Left),
+    FaceSpecifier::Side,
+    FaceSpecifier::All,
+];
+const RIGHT_SPECIFIER: [FaceSpecifier; 3] = [
+    FaceSpecifier::Specific(Face::Right),
+    FaceSpecifier::Side,
+    FaceSpecifier::All,
+];
+const FRONT_SPECIFIER: [FaceSpecifier; 3] = [
+    FaceSpecifier::Specific(Face::Front),
+    FaceSpecifier::Side,
+    FaceSpecifier::All,
+];
+const BACK_SPECIFIER: [FaceSpecifier; 3] = [
+    FaceSpecifier::Specific(Face::Back),
+    FaceSpecifier::Side,
+    FaceSpecifier::All,
+];
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum FaceSpecifier {
     Specific(Face),
     Side,
-    All
+    All,
 }
 
 #[derive(Component, EnumIter, PartialEq, Eq, Hash, Debug, Clone, Copy)]
@@ -29,7 +49,7 @@ impl Face {
         match self {
             Self::Left => [-1, 0, 0],
             Self::Down => [0, -1, 0],
-            Self::Back => [0, 0, -1], 
+            Self::Back => [0, 0, -1],
             Self::Right => [1, 0, 0],
             Self::Up => [0, 1, 0],
             Self::Front => [0, 0, 1],
@@ -40,7 +60,7 @@ impl Face {
         match self {
             Self::Left => [-1, 0, 0],
             Self::Down => [0, -1, 0],
-            Self::Back => [0, 0, -1], 
+            Self::Back => [0, 0, -1],
             Self::Right => [0, 0, 0],
             Self::Up => [0, 0, 0],
             Self::Front => [-1, 0, 0],
@@ -51,10 +71,10 @@ impl Face {
         match self {
             Self::Left => &LEFT_SPECIFIER,
             Self::Down => &DOWN_SPECIFIER,
-            Self::Back => &BACK_SPECIFIER, 
+            Self::Back => &BACK_SPECIFIER,
             Self::Right => &RIGHT_SPECIFIER,
             Self::Up => &UP_SPECIFIER,
-            Self::Front => &FRONT_SPECIFIER, 
+            Self::Front => &FRONT_SPECIFIER,
         }
     }
 
@@ -62,10 +82,10 @@ impl Face {
         match self {
             Self::Left => Self::Right,
             Self::Down => Self::Up,
-            Self::Back => Self::Front, 
+            Self::Back => Self::Front,
             Self::Right => Self::Left,
             Self::Up => Self::Down,
-            Self::Front => Self::Back, 
+            Self::Front => Self::Back,
         }
     }
 }
@@ -106,44 +126,44 @@ fn vertex_info(xyz: u32, u: u32, v: u32) -> u32 {
 
 impl Face {
     pub fn vertices_packed(&self, xyz: u32, w: u32, h: u32, lod: u32) -> [u32; 4] {
-        let xyz = xyz*lod;
-        let w_ = w*lod;
-        let h_ = h*lod;
+        let xyz = xyz * lod;
+        let w_ = w * lod;
+        let h_ = h * lod;
         match self {
             Face::Left => [
                 vertex_info(xyz, h, w),
-                vertex_info(xyz+packed_xyz(0, 0, h_), 0, w),
-                vertex_info(xyz+packed_xyz(0, w_, 0), h, 0),
-                vertex_info(xyz+packed_xyz(0, w_, h_), 0, 0),
+                vertex_info(xyz + packed_xyz(0, 0, h_), 0, w),
+                vertex_info(xyz + packed_xyz(0, w_, 0), h, 0),
+                vertex_info(xyz + packed_xyz(0, w_, h_), 0, 0),
             ],
             Face::Down => [
-                vertex_info(xyz-packed_xyz(w_, 0, 0)+packed_xyz(0, 0, h_), w, h),
-                vertex_info(xyz-packed_xyz(w_, 0, 0), w, 0),
-                vertex_info(xyz+packed_xyz(0, 0, h_), 0, h),
+                vertex_info(xyz - packed_xyz(w_, 0, 0) + packed_xyz(0, 0, h_), w, h),
+                vertex_info(xyz - packed_xyz(w_, 0, 0), w, 0),
+                vertex_info(xyz + packed_xyz(0, 0, h_), 0, h),
                 vertex_info(xyz, 0, 0),
             ],
             Face::Back => [
                 vertex_info(xyz, w, h),
-                vertex_info(xyz+packed_xyz(0, h_, 0), w, 0),
-                vertex_info(xyz+packed_xyz(w_, 0, 0), 0, h),
-                vertex_info(xyz+packed_xyz(w_, h_, 0), 0, 0),
+                vertex_info(xyz + packed_xyz(0, h_, 0), w, 0),
+                vertex_info(xyz + packed_xyz(w_, 0, 0), 0, h),
+                vertex_info(xyz + packed_xyz(w_, h_, 0), 0, 0),
             ],
             Face::Right => [
                 vertex_info(xyz, 0, 0),
-                vertex_info(xyz+packed_xyz(0, 0, h_), h, 0),
-                vertex_info(xyz-packed_xyz(0, w_, 0), 0, w),
-                vertex_info(xyz+packed_xyz(0, 0, h_)-packed_xyz(0, w_, 0), h, w),
+                vertex_info(xyz + packed_xyz(0, 0, h_), h, 0),
+                vertex_info(xyz - packed_xyz(0, w_, 0), 0, w),
+                vertex_info(xyz + packed_xyz(0, 0, h_) - packed_xyz(0, w_, 0), h, w),
             ],
             Face::Up => [
-                vertex_info(xyz+packed_xyz(w_, 0, h_), w, h),
-                vertex_info(xyz+packed_xyz(w_, 0, 0), w, 0),
-                vertex_info(xyz+packed_xyz(0, 0, h_), 0, h),
+                vertex_info(xyz + packed_xyz(w_, 0, h_), w, h),
+                vertex_info(xyz + packed_xyz(w_, 0, 0), w, 0),
+                vertex_info(xyz + packed_xyz(0, 0, h_), 0, h),
                 vertex_info(xyz, 0, 0),
             ],
             Face::Front => [
-                vertex_info(xyz-packed_xyz(w_, 0, 0)+packed_xyz(0, h_, 0), 0, 0),
-                vertex_info(xyz-packed_xyz(w_, 0, 0), 0, h),
-                vertex_info(xyz+packed_xyz(0, h_, 0), w, 0),
+                vertex_info(xyz - packed_xyz(w_, 0, 0) + packed_xyz(0, h_, 0), 0, 0),
+                vertex_info(xyz - packed_xyz(w_, 0, 0), 0, h),
+                vertex_info(xyz + packed_xyz(0, h_, 0), w, 0),
                 vertex_info(xyz, w, h),
             ],
         }

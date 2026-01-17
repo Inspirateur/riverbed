@@ -1,8 +1,10 @@
 //! Client-side world map that stores chunks and provides block access.
-//! 
+//!
 //! This module provides a read-only view of the world for client systems,
 //! with block modifications queued as events for network transmission.
 
+use crate::agents::PlayerControlled;
+use crate::network::models::client_chunk::ClientChunk;
 use bevy::prelude::*;
 use crossbeam::channel::Sender;
 use crossbeam_skiplist::SkipMap;
@@ -10,20 +12,18 @@ use parking_lot::RwLock;
 use shared::{
     block::Block,
     world::{
-        BlockAccess, MAX_HEIGHT, Y_CHUNKS,
         pos::{
             pos2d::ColPos,
             pos3d::{BlockPos, ChunkPos},
             PlayerCol,
         },
+        BlockAccess, MAX_HEIGHT, Y_CHUNKS,
     },
 };
 use std::sync::Arc;
-use crate::network::models::client_chunk::ClientChunk;
-use crate::agents::PlayerControlled;
 
 /// Client-side render distance configuration.
-/// 
+///
 /// This controls how far chunks are rendered on the client side.
 /// The server may send chunks for a larger area, but the client will only
 /// render and keep in memory chunks within this distance.
@@ -40,7 +40,7 @@ impl Default for RenderDistance {
 }
 
 /// Client-side world map resource.
-/// 
+///
 /// Provides read-only block access for physics, raycasting, and rendering.
 /// Block modifications are queued as events rather than applied directly.
 #[derive(Resource, Clone)]
@@ -148,8 +148,7 @@ pub struct ClientWorldPlugin;
 
 impl Plugin for ClientWorldPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<RenderDistance>()
+        app.init_resource::<RenderDistance>()
             .add_message::<SetBlockRequest>()
             .add_message::<BlockChanged>()
             .add_message::<ColUnloadEvent>()
@@ -159,7 +158,7 @@ impl Plugin for ClientWorldPlugin {
 }
 
 /// Unloads columns that are outside the client's render distance.
-/// 
+///
 /// This system prevents memory from growing unbounded as the player travels.
 /// The server may send chunks for a larger area than the client renders,
 /// allowing clients to adjust render distance for their hardware performance.
@@ -172,19 +171,19 @@ fn unload_distant_columns(
     let Some(world_map) = world_map else {
         return;
     };
-    
+
     let Ok(player_col) = player_query.single() else {
         return;
     };
-    
+
     let player_pos = player_col.0;
     let distance = render_distance.distance;
-    
+
     for col in world_map.loaded_columns() {
         // Check if column is outside render distance (using square distance for efficiency)
         let dx = (col.x - player_pos.x).abs();
         let dz = (col.z - player_pos.z).abs();
-        
+
         // Also check realm - unload columns from different realms
         if col.realm != player_pos.realm || dx > distance || dz > distance {
             world_map.unload_col(col);
@@ -194,7 +193,7 @@ fn unload_distant_columns(
 }
 
 /// Process block requests: apply locally and send to server.
-/// 
+///
 /// This uses client-side prediction - we apply the change immediately locally
 /// for responsiveness, and also send it to the server. If the server rejects it,
 /// the next WorldUpdate will correct our local state.
@@ -207,28 +206,28 @@ fn process_block_requests(
     let Some(world_map) = world_map else {
         return;
     };
-    
+
     for request in requests.read() {
         let old_block = world_map.get_block(request.pos);
-        
+
         // Apply the change locally immediately (client-side prediction)
         let (chunk_pos, chunked_pos) = <(ChunkPos, _)>::from(request.pos);
         if let Some(chunk) = world_map.chunks.get(&chunk_pos) {
             chunk.value().write().set(chunked_pos, request.block);
             world_map.mark_chunk_changed(chunk_pos);
-            
+
             block_changed.write(BlockChanged {
                 pos: request.pos,
                 old_block,
                 new_block: request.block,
             });
         }
-        
+
         // Send to server for authoritative processing
         if let Some(ref mut client) = client {
             use crate::network::SendGameMessageExtension;
             use shared::messages::{ClientBlockInteraction, ClientToServerMessage};
-            
+
             client.send_game_message(ClientToServerMessage::BlockInteraction(
                 ClientBlockInteraction {
                     position: request.pos,

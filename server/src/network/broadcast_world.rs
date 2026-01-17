@@ -10,7 +10,7 @@ use shared::world::realm::Realm;
 use std::collections::{HashMap, HashSet};
 
 use crate::network::dispatcher::NetworkPlayer;
-use crate::network::players::{PlayerRegistry, ClientPredictedPosition};
+use crate::network::players::{ClientPredictedPosition, PlayerRegistry};
 use crate::world::voxel_world::VoxelWorld;
 
 use super::extensions::SendGameMessageExtension;
@@ -67,7 +67,7 @@ pub fn process_chunk_changes(
     let Some(chunk_changes) = chunk_changes else {
         return;
     };
-    
+
     while let Ok(chunk_position) = chunk_changes.0.try_recv() {
         tracker.invalidate_chunk(&chunk_position);
     }
@@ -95,7 +95,7 @@ pub fn broadcast_world_state(
         else {
             continue;
         };
-        
+
         // Use the client's predicted position for chunk streaming.
         // This ensures we send chunks to where the client thinks it is,
         // not where the server's authoritative simulation says it is.
@@ -172,6 +172,9 @@ impl Plugin for ChunkBroadcastPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ChunkSendTracker>()
             .init_resource::<ServerTick>()
-            .add_systems(Update, (process_chunk_changes, broadcast_world_state).chain());
+            .add_systems(
+                Update,
+                (process_chunk_changes, broadcast_world_state).chain(),
+            );
     }
 }

@@ -4,19 +4,18 @@ use bevy_renet::netcode::{
 };
 use bevy_renet::{renet::RenetClient, RenetClientPlugin};
 use rand::Rng;
-use shared::{
-    get_shared_renet_config, GameServerConfig, STC_AUTH_CHANNEL,
-    SOCKET_BIND_ERROR, TARGET_SERVER_ADDR_ERROR, NETCODE_CLIENT_TRANSPORT_ERROR, 
-    UNIX_EPOCH_TIME_ERROR, RENDER_DISTANCE,
-};
 use shared::logging::logging::LogEvent;
 use shared::net::clock;
+use shared::{
+    get_shared_renet_config, GameServerConfig, NETCODE_CLIENT_TRANSPORT_ERROR, RENDER_DISTANCE,
+    SOCKET_BIND_ERROR, STC_AUTH_CHANNEL, TARGET_SERVER_ADDR_ERROR, UNIX_EPOCH_TIME_ERROR,
+};
 
 use crate::network::world::update_world_from_network;
 use crate::render::MeshOrderSender;
 use crate::world::ClientWorldMap;
 use shared::messages::{
-    AuthRegisterRequest, ServerItemStackUpdate, PlayerId, ServerPlayerSpawn, ServerPlayerUpdate,
+    AuthRegisterRequest, PlayerId, ServerItemStackUpdate, ServerPlayerSpawn, ServerPlayerUpdate,
     ServerToClientMessage,
 };
 use std::collections::hash_map::DefaultHasher;
@@ -26,8 +25,8 @@ use std::thread;
 use std::time::Duration;
 use std::{net::UdpSocket, time::SystemTime};
 
-use super::SendGameMessageExtension;
 use super::buffered_client::{SyncTime, SyncTimeExt};
+use super::SendGameMessageExtension;
 
 #[derive(Resource, Debug, Default)]
 pub struct PlayerNameSupplied {

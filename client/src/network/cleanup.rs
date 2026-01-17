@@ -15,11 +15,7 @@ pub fn handle_exit_request(
     mut app_exit: MessageWriter<AppExit>,
 ) {
     for _ in ev_exit.read() {
-        terminate_server_connection(
-            &mut client,
-            &mut target,
-            &mut input_history,
-        );
+        terminate_server_connection(&mut client, &mut target, &mut input_history);
         app_exit.write(AppExit::Success);
     }
 }
@@ -32,11 +28,7 @@ pub fn on_app_exit(
 ) {
     for _ in ev_app_exit.read() {
         if target.session_token.is_some() {
-            terminate_server_connection(
-                &mut client,
-                &mut target,
-                &mut input_history,
-            );
+            terminate_server_connection(&mut client, &mut target, &mut input_history);
         }
     }
 }
@@ -47,7 +39,7 @@ fn terminate_server_connection(
     input_history: &mut ResMut<InputHistory>,
 ) {
     info!("Terminating server connection");
-    
+
     if !client.is_disconnected() {
         client.send_game_message(ClientToServerMessage::Exit);
     }

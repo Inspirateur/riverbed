@@ -1,9 +1,7 @@
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer};
-use shared::messages::{PlayerId, ClientPlayerInput, ServerPlayerUpdate, ServerToClientMessage};
-use shared::physics::{
-    player_step::apply_player_input_step, MovementMode, PhysicsState,
-};
+use shared::messages::{ClientPlayerInput, PlayerId, ServerPlayerUpdate, ServerToClientMessage};
+use shared::physics::{player_step::apply_player_input_step, MovementMode, PhysicsState};
 use shared::world::realm::Realm;
 use std::collections::HashMap;
 
@@ -34,7 +32,7 @@ impl Default for ServerPhysicsState {
 }
 
 /// The client's self-reported predicted position.
-/// 
+///
 /// This is used for chunk streaming to ensure the client receives chunks
 /// for where it *thinks* it is (after client-side prediction), not just
 /// where the server's authoritative simulation says it is. This prevents
@@ -106,14 +104,20 @@ pub struct PlayerInputsEvent {
 }
 
 /// Server-authoritative player input handling system.
-/// 
+///
 /// This system receives player inputs from clients and simulates physics
 /// authoritatively on the server. The server is the single source of truth
 /// for player positions.
 pub fn handle_player_inputs_system(
     mut events: MessageReader<PlayerInputsEvent>,
     mut registry: ResMut<PlayerRegistry>,
-    mut player_query: Query<(&NetworkPlayer, &mut Transform, &mut ServerPhysicsState, &mut ClientPredictedPosition, &Realm)>,
+    mut player_query: Query<(
+        &NetworkPlayer,
+        &mut Transform,
+        &mut ServerPhysicsState,
+        &mut ClientPredictedPosition,
+        &Realm,
+    )>,
     world: Res<VoxelWorld>,
 ) {
     for ev in events.read() {
@@ -123,7 +127,10 @@ pub fn handle_player_inputs_system(
         };
 
         if !player.is_authenticated {
-            debug!("Ignoring input from unauthenticated player {}", ev.client_id);
+            debug!(
+                "Ignoring input from unauthenticated player {}",
+                ev.client_id
+            );
             continue;
         }
 
@@ -131,7 +138,10 @@ pub fn handle_player_inputs_system(
             .iter_mut()
             .find(|(np, _, _, _, _)| np.client_id == ev.client_id)
         else {
-            warn!("No ECS entity found for authenticated player {}", ev.client_id);
+            warn!(
+                "No ECS entity found for authenticated player {}",
+                ev.client_id
+            );
             continue;
         };
 
@@ -154,14 +164,20 @@ pub fn handle_player_inputs_system(
             on_ground: physics_state.on_ground,
         };
 
-        let step = apply_player_input_step(&*world, &state, &ev.input.inputs, &ev.input.camera, delta_seconds);
+        let step = apply_player_input_step(
+            &*world,
+            &state,
+            &ev.input.inputs,
+            &ev.input.camera,
+            delta_seconds,
+        );
 
         transform.translation = step.position;
         transform.rotation = ev.input.camera.rotation;
         physics_state.velocity = step.velocity;
         physics_state.on_ground = step.on_ground;
         physics_state.movement_mode = step.movement_mode;
-        
+
         player.last_input_processed = ev.input.time_ms;
     }
 }
@@ -178,7 +194,12 @@ pub fn broadcast_player_updates_system(
             .iter()
             .find(|(np, _, _)| np.client_id == player.id)
             .map(|(_, t, ps)| (t.translation, t.rotation, ps.velocity, ps.movement_mode))
-            .unwrap_or((DEFAULT_SPAWN_POSITION, Quat::IDENTITY, Vec3::ZERO, MovementMode::Walking));
+            .unwrap_or((
+                DEFAULT_SPAWN_POSITION,
+                Quat::IDENTITY,
+                Vec3::ZERO,
+                MovementMode::Walking,
+            ));
 
         let update = ServerPlayerUpdate {
             id: player.id,

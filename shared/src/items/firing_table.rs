@@ -1,10 +1,9 @@
-use std::collections::HashMap;
+use crate::{items::item_slots::ItemHolder, BlockFamily};
 use bevy::prelude::{Component, Resource};
 use serde::Deserialize;
-use crate::{BlockFamily, items::item_slots::ItemHolder};
+use std::collections::HashMap;
 
 use super::{Item, Stack};
-
 
 #[derive(Component)]
 #[component(storage = "SparseSet")]
@@ -26,7 +25,12 @@ pub struct FiringTable(HashMap<Item, FiringValue>);
 
 impl FiringTable {
     pub fn get(&self, furnace_content: &ItemHolder, furnace_temp: u32) -> Option<LitFurnace> {
-        let ItemHolder::Furnace { fuel, material, output } = furnace_content else {
+        let ItemHolder::Furnace {
+            fuel,
+            material,
+            output,
+        } = furnace_content
+        else {
             return None;
         };
         let Stack::Some(material_item, _) = material else {
@@ -45,10 +49,11 @@ impl FiringTable {
                         0.
                     }
                 }
-                _ => 0.
+                _ => 0.,
             },
             Stack::None => 0.,
-        }*1000./furnace_temp as f32;
+        } * 1000.
+            / furnace_temp as f32;
         // Fuel is not suitable
         if fuel_time == 0. {
             return None;
@@ -63,7 +68,8 @@ impl FiringTable {
             return None;
         }
         Some(LitFurnace {
-            firing_sec: firing_value.smelt_time as f32*firing_value.min_temp as f32/furnace_temp as f32,
+            firing_sec: firing_value.smelt_time as f32 * firing_value.min_temp as f32
+                / furnace_temp as f32,
             fuel_sec: fuel_time,
             output: firing_value.output,
         })

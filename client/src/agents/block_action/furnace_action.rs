@@ -1,11 +1,17 @@
 use crate::{
-    agents::{Action, PlayerControlled, TargetBlock}, 
+    agents::{Action, PlayerControlled, TargetBlock},
     ui::{GameUiState, OpenFurnace},
     world::{ClientWorldMap, SetBlockRequest},
 };
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
-use shared::{items::{FiringTable, LitFurnace, Stack, item_slots::{ItemHolder, furnace_slots}}, world::{block_entities::BlockEntities, pos::pos3d::BlockPos}};
+use shared::{
+    items::{
+        item_slots::{furnace_slots, ItemHolder},
+        FiringTable, LitFurnace, Stack,
+    },
+    world::{block_entities::BlockEntities, pos::pos3d::BlockPos},
+};
 use std::fs;
 
 pub struct FurnaceActionPlugin;
@@ -148,4 +154,3 @@ fn tick_furnaces(mut item_holders: Query<(&mut ItemHolder, &mut LitFurnace)>, ti
         }
     }
 }
-

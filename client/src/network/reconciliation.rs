@@ -14,15 +14,13 @@
 
 use bevy::prelude::*;
 use shared::messages::ServerPlayerUpdate;
-use shared::physics::{
-    player_step::apply_player_input_step, MovementMode, PhysicsState,
-};
+use shared::physics::{player_step::apply_player_input_step, MovementMode, PhysicsState};
 use shared::world::realm::Realm;
 
-use crate::agents::{PlayerControlled, Velocity, FreeFly, Walking, Speed};
+use crate::agents::{FreeFly, PlayerControlled, Speed, Velocity, Walking};
 use crate::network::CurrentPlayerProfile;
-use shared::net::input_history::InputHistory;
 use crate::world::ClientWorldMap;
+use shared::net::input_history::InputHistory;
 
 /// Threshold for position correction. If the difference between predicted and actual
 /// client position is less than this, we don't correct (to avoid jitter).
@@ -49,7 +47,7 @@ impl Plugin for ReconciliationPlugin {
 }
 
 /// System that reconciles the local player's state with server updates.
-/// 
+///
 /// This is the core of client-side prediction reconciliation:
 /// 1. When we receive a server update for our player, compare with prediction
 /// 2. If there's a significant mismatch, correct our position
@@ -83,7 +81,8 @@ pub fn reconcile_player_state(
             );
         }
 
-        let Ok((mut transform, mut velocity, realm, free_fly_opt)) = player_query.single_mut() else {
+        let Ok((mut transform, mut velocity, realm, free_fly_opt)) = player_query.single_mut()
+        else {
             warn!("No local player entity found for reconciliation");
             continue;
         };
@@ -122,7 +121,7 @@ pub fn reconcile_player_state(
         // Update ECS movement mode components based on predicted state (after replay)
         let predicted_is_flying = predicted_state.movement_mode == MovementMode::Flying;
         let client_is_flying = free_fly_opt.is_some();
-        
+
         if predicted_is_flying != client_is_flying {
             if predicted_is_flying {
                 commands.entity(entity).remove::<Walking>().insert(FreeFly);
@@ -161,7 +160,9 @@ pub fn reconcile_player_state(
                 "Position error: {:.3}m (predicted vs actual), applying smooth correction",
                 position_error,
             );
-            transform.translation = transform.translation.lerp(predicted_state.position, CORRECTION_LERP_FACTOR);
+            transform.translation = transform
+                .translation
+                .lerp(predicted_state.position, CORRECTION_LERP_FACTOR);
             velocity.0 = predicted_state.velocity;
         }
     }

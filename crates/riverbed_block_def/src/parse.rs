@@ -1,7 +1,16 @@
-use std::{collections::{BTreeMap, BTreeSet}, str::FromStr};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    str::FromStr,
+};
 
 use nom::{
-    bytes::complete::tag, character::complete::{alpha1, line_ending, multispace0, multispace1, space0, space1}, combinator::{eof, fail, opt}, error::{Error, ParseError}, multi::{many1, separated_list0, separated_list1}, sequence::delimited, IResult, Input, Parser
+    IResult, Input, Parser,
+    bytes::complete::tag,
+    character::complete::{alpha1, line_ending, multispace0, multispace1, space0, space1},
+    combinator::{eof, fail, opt},
+    error::{Error, ParseError},
+    multi::{many1, separated_list0, separated_list1},
+    sequence::delimited,
 };
 use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
@@ -9,7 +18,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum BlockFrag {
     SetName(String),
-    Ident(String)
+    Ident(String),
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -17,7 +26,7 @@ pub(crate) enum BlockFrag {
 pub enum BlockFlag {
     Renewable(u32),
     Transparent,
-    Furnace(u32)
+    Furnace(u32),
 }
 
 impl FromStr for BlockFlag {
@@ -56,15 +65,21 @@ pub fn parse_file(input: &str) -> IResult<&str, IR> {
     let mut decl = Vec::new();
     for either in res {
         match either {
-            Either::Left(block_set) => { sets.insert(block_set.name, block_set.variants); }
-            Either::Right(add_block) => { decl.push(add_block); }
+            Either::Left(block_set) => {
+                sets.insert(block_set.name, block_set.variants);
+            }
+            Either::Right(add_block) => {
+                decl.push(add_block);
+            }
         }
     }
     Ok((input, IR { sets, decl }))
 }
 
 fn statement_end(input: &str) -> IResult<&str, ()> {
-    line_ending(input).map(|(input, _)| (input, ())).or_else(|_: nom::Err<Error<&str>>| eof(input).map(|(input, _)| (input, ())))
+    line_ending(input)
+        .map(|(input, _)| (input, ()))
+        .or_else(|_: nom::Err<Error<&str>>| eof(input).map(|(input, _)| (input, ())))
 }
 
 fn parse_statement(input: &str) -> IResult<&str, Either<BlockSet, AddBlock>> {
@@ -86,14 +101,26 @@ fn parse_set(input: &str) -> IResult<&str, BlockSet> {
     let (input, variants) = separated_list1(ws(tag(",")), parse_ident).parse(input)?;
     let (input, _) = multispace0(input)?;
     let (input, _) = tag("}")(input)?;
-    Ok((input, BlockSet { name: name.to_string(), variants: BTreeSet::from_iter(variants.into_iter().map(String::from)) }))
+    Ok((
+        input,
+        BlockSet {
+            name: name.to_string(),
+            variants: BTreeSet::from_iter(variants.into_iter().map(String::from)),
+        },
+    ))
 }
 
 fn parse_decl(input: &str) -> IResult<&str, AddBlock> {
-    let (input, (_, _, block_pattern, flags_opt)) = ((tag("block"), space1, many1(parse_block_frag), opt((space1, parse_block_flags)))).parse(input)?;
+    let (input, (_, _, block_pattern, flags_opt)) = ((
+        tag("block"),
+        space1,
+        many1(parse_block_frag),
+        opt((space1, parse_block_flags)),
+    ))
+        .parse(input)?;
     let flags = match flags_opt {
         None => BTreeSet::new(),
-        Some((_, flags)) => flags
+        Some((_, flags)) => flags,
     };
     Ok((input, AddBlock((block_pattern, flags))))
 }
@@ -130,17 +157,13 @@ fn parse_block_flag(input: &str) -> IResult<&str, BlockFlag> {
     }
 }
 
-/// A combinator that takes a parser `inner` and produces a parser that also consumes both leading and 
+/// A combinator that takes a parser `inner` and produces a parser that also consumes both leading and
 /// trailing whitespace, returning the output of `inner`.
 fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(inner: F) -> impl Parser<&'a str, Output = O, Error = E>
-  where
-  F: Fn(&'a str) -> IResult<&'a str, O, E>,
+where
+    F: Fn(&'a str) -> IResult<&'a str, O, E>,
 {
-  delimited(
-    multispace0,
-    inner,
-    multispace0
-  )
+    delimited(multispace0, inner, multispace0)
 }
 
 #[cfg(test)]
@@ -186,6 +209,12 @@ mod tests {
     fn test_parse_flag() {
         let blockdef = r#"block IronOre renewable(10)"#;
         let (_, ir) = parse_decl(blockdef).unwrap();
-        assert_eq!(ir, AddBlock((vec![BlockFrag::Ident("IronOre".to_string())], BTreeSet::from([BlockFlag::Renewable(10)]))));
+        assert_eq!(
+            ir,
+            AddBlock((
+                vec![BlockFrag::Ident("IronOre".to_string())],
+                BTreeSet::from([BlockFlag::Renewable(10)])
+            ))
+        );
     }
 }
