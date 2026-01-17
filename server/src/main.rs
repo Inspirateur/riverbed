@@ -8,9 +8,6 @@ struct Args {
 
     #[arg(short, long, default_value = "default")]
     world: String,
-
-    #[arg(short, long)]
-    game_folder_path: Option<String>,
 }
 
 fn main() {

@@ -11,6 +11,11 @@ impl ClientChunk {
         Self(Chunk { data, palette })
     }
 
+    /// Create a ClientChunk from a shared Chunk (used when receiving from network)
+    pub fn from_chunk(chunk: Chunk) -> Self {
+        Self(chunk)
+    }
+
     pub fn get(&self, pos: (usize, usize, usize)) -> &Block {
         self.0.get(pos)
     }
@@ -45,6 +50,12 @@ impl ClientChunk {
 
     pub fn palette(&self) -> &Palette<Block> {
         &self.0.palette
+    }
+}
+
+impl From<Chunk> for ClientChunk {
+    fn from(chunk: Chunk) -> Self {
+        Self::from_chunk(chunk)
     }
 }
 

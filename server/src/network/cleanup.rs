@@ -1,25 +1,10 @@
-use bevy::ecs::message::MessageWriter;
-use shared::{messages::PlayerId};
+//! Player cleanup functions
+//! 
+//! TODO: Implement cleanup when ServerWorldMap/Player types are added
 
-pub fn cleanup_all_players_from_world(world_map: &mut ServerWorldMap) {
-    for p in world_map.players.values_mut() {
-        p.last_input_processed = 0;
-    }
-    for (_, chunk) in world_map.chunks.map.iter_mut() {
-        chunk.sent_to_clients.clear();
-    }
-}
+use bevy::log::info;
 
-pub fn cleanup_player_from_world(
-    world_map: &mut ServerWorldMap,
-    player_id: &PlayerId,
-    save_event_writer: &mut MessageWriter<SaveRequestEvent>,
-) {
-    if world_map.players.remove(player_id).is_some() {
-        save_event_writer.write(SaveRequestEvent::Player(*player_id));
-    }
-
-    for (_, chunk) in world_map.chunks.map.iter_mut() {
-        chunk.sent_to_clients.retain(|id| id != player_id);
-    }
+/// Cleanup a player from the world when they disconnect
+pub fn cleanup_player_from_world(player_id: u64) {
+    info!("TODO: Cleanup player {} from world", player_id);
 }

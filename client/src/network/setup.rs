@@ -12,6 +12,8 @@ use shared::{
 
 use crate::network::world::update_world_from_network;
 use crate::network::CachedChatConversation;
+use crate::render::MeshOrderSender;
+use crate::world::ClientWorldMap;
 use shared::messages::{
     AuthRegisterRequest, ItemStackUpdateEvent, PlayerId, PlayerSpawnEvent, PlayerUpdateEvent,
     ServerToClientMessage,
@@ -142,16 +144,16 @@ pub fn launch_local_server_system(
 
 pub fn poll_network_messages(
     mut client: ResMut<RenetClient>,
-    // mut chat_state: ResMut<CachedChatConversation>,
-    // client_time: ResMut<ClientTime>,
-    // mut world: ResMut<ClientWorldMap>,
-    // mut ev_render: MessageWriter<WorldRenderRequestUpdateEvent>,
+    world_map: Option<Res<ClientWorldMap>>,
+    mesh_order_sender: Option<Res<MeshOrderSender>>,
     mut ev_player_spawn: MessageWriter<PlayerSpawnEvent>,
     mut ev_item_stacks_update: MessageWriter<ItemStackUpdateEvent>,
     mut ev_player_update: MessageWriter<PlayerUpdateEvent>,
 ) {
     update_world_from_network(
         &mut client,
+        world_map,
+        mesh_order_sender,
         &mut ev_player_spawn,
         &mut ev_item_stacks_update,
         &mut ev_player_update,
