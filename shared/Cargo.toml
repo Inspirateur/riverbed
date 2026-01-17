@@ -8,6 +8,8 @@ logging = []
 
 [dependencies]
 bevy = { workspace = true }
+bevy_renet = { workspace = true }
+bincode = { workspace = true }
 cfg-if = { workspace = true }
 hashbrown = { workspace = true }
 itertools = { workspace = true }
@@ -21,6 +23,7 @@ strum_macros = { workspace = true }
 
 chrono = { version = "*", features = ["serde", "rkyv"] }
 lazy_static = "*"
+lz4 = "1.28.1"
 regex = "*"
 
 [build-dependencies]

@@ -1,7 +1,9 @@
-use bevy::prelude::*;
-use shared::world::{chunk::Chunk, pos::ChunkPos, utils::SerdablePackedUints};
+use std::{collections::HashMap, sync::Arc};
 
-#[derive(Debug, Serialize, Deserialize)]
+use bevy::prelude::*;
+use shared::{block::{Block, Face}, world::{chunk::Chunk, pos::ChunkPos, utils::{Palette, SerdablePackedUints}}};
+
+#[derive(Debug)]
 pub struct ClientChunk(Chunk);
 
 impl ClientChunk {

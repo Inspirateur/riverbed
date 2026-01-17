@@ -1,5 +1,5 @@
 use bevy::{platform::collections::HashSet, prelude::*};
-use shared::{messages::PlayerFrameInput, players::ViewMode};
+use shared::{messages::PlayerFrameInput};
 
 #[derive(Debug, Default, Resource)]
 pub struct PlayerTickInputsBuffer {

@@ -4,6 +4,7 @@ use bevy::math::{IVec3, Vec3};
 use bevy::ecs::message::Message;
 use serde::{Deserialize, Serialize};
 
+use crate::items::Stack;
 use crate::world::chunk::Chunk;
 use crate::world::pos::ChunkPos;
 
@@ -21,7 +22,7 @@ pub struct WorldUpdate {
 pub struct ItemStackUpdateEvent {
     pub id: u128,
     /// `None` if the stack has been deleted, `Some` if it has been updated in any way (position, number of items...)
-    pub data: Option<(ItemStack, Vec3)>,
+    pub data: Option<(Stack, Vec3)>,
 }
 
 pub struct ChunkUpdate {

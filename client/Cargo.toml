@@ -11,6 +11,7 @@ shared = { path = "../shared" }
 
 bevy = { workspace = true }
 bevy_renet = { workspace = true }
+bincode = { workspace = true }
 crossbeam = { workspace = true }
 cfg-if = { workspace = true }
 hashbrown = { workspace = true }
