@@ -1,10 +1,21 @@
-use bevy::{prelude::*, time::{Time, Timer}};
-use itertools::{iproduct, Itertools};
+//! Client-side movement using shared physics.
+//!
+//! This module provides client-side movement prediction using the same physics
+//! code as the server. This ensures deterministic behavior and minimal drift
+//! during reconciliation.
+
+use bevy::{prelude::*, time::Timer};
+use itertools::iproduct;
+use shared::physics::{player_step::apply_player_input_step, MovementMode, PhysicsState};
 use shared::world::{pos::pos3d::BlockPos, realm::Realm, BlockAccess};
-use shared::FLY_VERTICAL_SPEED;
-use crate::Block;
+use shared::{FLY_SPEED, WALK_SPEED};
+
+use crate::render::FpsCam;
 use crate::world::ClientWorldMap;
-const ACC_MULT: f32 = 150.;
+use crate::Block;
+use crate::network::buffered_client::CurrentFrameInputs;
+
+use super::PlayerControlled;
 
 pub struct MovementPlugin;
 
@@ -12,26 +23,27 @@ impl Plugin for MovementPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(PreUpdate, update_stepped_block)
-            .add_systems(Update, process_jumps)
-            .add_systems(Update, process_freefly)
-            .add_systems(Update, apply_acc_free_fly)
-            .add_systems(Update, (apply_acc, apply_gravity, apply_velocity).chain())
-            ;
+            .add_systems(Update, apply_shared_physics);
     }
 }
 
+/// Block the entity is standing on (used for footstep sounds and friction info)
 #[derive(Component)]
 pub struct SteppingOn(pub Block);
 
+/// Marker component for walking movement mode
 #[derive(Component)]
 pub struct Walking;
 
+/// Marker component for flying movement mode
 #[derive(Component)]
 pub struct FreeFly;
 
+/// Movement speed component
 #[derive(Component)]
 pub struct Speed(pub f32);
 
+/// Jump state component
 #[derive(Component)]
 pub struct Jumping {
     pub force: f32,
@@ -39,51 +51,52 @@ pub struct Jumping {
     pub intent: bool,
 }
 
+/// Crouch state component
 #[derive(Component)]
 pub struct Crouching(pub bool);
 
+/// Axis-aligned bounding box for collision detection
 #[derive(Component)]
 pub struct AABB(pub Vec3);
 
-// both describe the speed and the direction the entity wants to go towards
+/// Desired movement direction and speed (set by input system)
 #[derive(Component)]
 pub struct Heading(pub Vec3);
 
-// the actual speed vector of the entity, most of the time it is similar to Heading but not always!
+/// Current velocity vector
 #[derive(Component)]
 pub struct Velocity(pub Vec3);
 
-// the gravity that the entity will be subject to
+/// Gravity strength for the entity
 #[derive(Component)]
 pub struct Gravity(pub f32);
 
+// Helper functions for stepped block detection (used for footstep sounds)
 fn extent(v: f32, size: f32) -> Vec<i32> {
-    if size > 0. {
-        ((v.floor() as i32)..=((size+v).floor() as i32)).collect_vec()
+    let start = v.floor() as i32;
+    let end = (size + v).floor() as i32;
+    if size > 0.0 {
+        (start..=end).collect()
     } else {
-        (((size+v).floor() as i32)..=(v.floor() as i32)).rev().collect_vec()
+        (end..=start).rev().collect()
     }
 }
 
 fn blocks_perp_y(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
-    iproduct!(extent(pos.x, aabb.0.x) , extent(pos.z, aabb.0.z)).map(move |(x, z)| BlockPos {
-        x, y: pos.y.floor() as i32, z, realm: realm
+    iproduct!(extent(pos.x, aabb.0.x), extent(pos.z, aabb.0.z)).map(move |(x, z)| BlockPos {
+        x,
+        y: pos.y.floor() as i32,
+        z,
+        realm,
     })
 }
 
-fn blocks_perp_z(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
-    iproduct!(extent(pos.x, aabb.0.x) , extent(pos.y, aabb.0.y)).map(move |(x, y)| BlockPos {
-        x, y, z: pos.z.floor() as i32, realm: realm
-    })
-}
-
-fn blocks_perp_x(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
-    iproduct!(extent(pos.y, aabb.0.y) , extent(pos.z, aabb.0.z)).map(move |(y, z)| BlockPos {
-        x: pos.x.floor() as i32, y, z, realm: realm
-    })
-}
-
-fn update_stepped_block(blocks: Res<ClientWorldMap>, mut query: Query<(&Transform, &Realm, &AABB, &mut SteppingOn)>) {
+/// Updates the SteppingOn component to track what block the player is standing on.
+/// This is used for footstep sounds and other effects.
+fn update_stepped_block(
+    blocks: Res<ClientWorldMap>,
+    mut query: Query<(&Transform, &Realm, &AABB, &mut SteppingOn)>,
+) {
     for (transform, realm, aabb, mut stepping_on) in query.iter_mut() {
         let below = transform.translation + Vec3::new(0., -0.01, 0.);
         let mut closest_block = Block::Air;
@@ -93,7 +106,7 @@ fn update_stepped_block(blocks: Res<ClientWorldMap>, mut query: Query<(&Transfor
             if block.is_traversable() {
                 continue;
             }
-            let dist = (below.x-block_pos.x as f32).abs()-(below.y-block_pos.y as f32).abs();
+            let dist = (below.x - block_pos.x as f32).abs() - (below.y - block_pos.y as f32).abs();
             if dist < min_dist {
                 min_dist = dist;
                 closest_block = block;
@@ -103,152 +116,74 @@ fn update_stepped_block(blocks: Res<ClientWorldMap>, mut query: Query<(&Transfor
     }
 }
 
-fn process_jumps(
-    time: Res<Time>, 
-    mut query: Query<(&mut Jumping, &mut Velocity, &SteppingOn), 
-    With<Walking>>
-) {
-    for (mut jumping, mut velocity, stepping_on) in query.iter_mut() {
-        jumping.cd.tick(time.delta());
-        if jumping.intent && jumping.cd.is_finished() && !stepping_on.0.is_traversable() {
-            velocity.0.y += jumping.force;
-            jumping.cd.reset();
-        }
-    }
-}
-
-fn process_freefly(mut query: Query<(&mut Velocity, &Jumping, &Crouching), With<FreeFly>>) {
-    for (mut velocity, jumping, crouching) in query.iter_mut() {
-        velocity.0.y = (jumping.intent as i32 - crouching.0 as i32) as f32 * FLY_VERTICAL_SPEED;
-    }
-}
-
-fn apply_gravity(blocks: Res<ClientWorldMap>, time: Res<Time>, mut query: Query<(&Transform, &Realm, &mut Velocity, &Gravity), With<Walking>>) {
-    for (transform, realm, mut velocity, gravity) in query.iter_mut() {
-        if !blocks.is_col_loaded(transform.translation, *realm) {
-            continue;
-        }
-        velocity.0 += Vec3::new(0., -gravity.0*time.delta_secs(), 0.);
-    }
-}
-
-fn apply_acc(
-    blocks: Res<ClientWorldMap>,
+/// Applies the shared physics simulation to the local player.
+///
+/// This system uses the same `apply_player_input_step` function that the server uses,
+/// ensuring that client-side prediction produces identical results to the server's
+/// authoritative simulation (given the same inputs and world state).
+fn apply_shared_physics(
+    mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(&Heading, &mut Velocity, &Transform, &Realm, &SteppingOn), With<Walking>>
+    world: Res<ClientWorldMap>,
+    frame_inputs: Res<CurrentFrameInputs>,
+    camera_query: Query<&Transform, With<FpsCam>>,
+    mut player_query: Query<
+        (Entity, &mut Transform, &mut Velocity, &Realm, Option<&FreeFly>),
+        (With<PlayerControlled>, Without<FpsCam>),
+    >,
 ) {
-    for (heading, mut velocity, transform, realm, stepping_on) in query.iter_mut() {
-        if !blocks.is_col_loaded(transform.translation, *realm) {
-            continue;
-        }
-        // get the block the entity is standing on if the entity has an AABB
-        let friction: f32 = stepping_on.0.friction();
-        let slowing: f32 = stepping_on.0.slowing();
-        // applying slowing
-        let heading = heading.0*slowing;
-        // make velocity inch towards heading
-        let mut diff = heading-velocity.0;
-        if diff.y.is_nan() {
-            diff.y = 0.;
-        }
-        let diff_len = diff.length();
-        if diff_len == 0. {
-            continue;
-        }
-        let c = (time.delta_secs()*friction*ACC_MULT/diff_len.max(1.)).min(1.);
-        let acc: Vec3 = c*diff;
-        velocity.0 += acc;
-    }
-}
+    let Ok((entity, mut transform, mut velocity, realm, free_fly_opt)) = player_query.single_mut() else {
+        return;
+    };
 
-fn apply_acc_free_fly(mut query: Query<(&Heading, &mut Velocity), With<FreeFly>>) {
-    for (heading, mut velocity) in query.iter_mut() {
-        velocity.0.x = heading.0.x;
-        velocity.0.z = heading.0.z;
+    // Skip if no delta time (first frame)
+    if frame_inputs.0.delta_ms == 0 {
+        return;
     }
-}
 
-fn apply_velocity(
-    blocks: Res<ClientWorldMap>, 
-    time: Res<Time>, 
-    mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB, Option<&FreeFly>)>
-) {
-    for (mut velocity, mut transform, realm, aabb, free_fly) in query.iter_mut() {
-        let col_loaded = blocks.is_col_loaded(transform.translation, *realm);
-        
-        // In FreeFly mode, skip collision detection entirely and just apply velocity
-        if free_fly.is_some() {
-            let applied_velocity = velocity.0 * time.delta_secs();
-            transform.translation += applied_velocity;
-            continue;
-        }
-        
-        // For walking mode, require the column to be loaded
-        if !col_loaded {
-            continue;
-        }
-        let applied_velocity = velocity.0*time.delta_secs();
-        // split the motion on all 3 axis, check for collisions, adjust the final speed vector if there's any
-        // x
-        let xpos = if applied_velocity.x > 0. { aabb.0.x + transform.translation.x } else { transform.translation.x }; 
-        let mut stopped = false;
-        for x in extent(xpos, applied_velocity.x).into_iter().skip(1) {
-            let pos_x = Vec3 { x: x as f32, y: transform.translation.y, z: transform.translation.z };
-            if blocks_perp_x(pos_x, *realm, aabb).any(|pos| !blocks.get_block(pos).is_traversable()) 
-            {
-                // there's a collision in this direction, stop at the block limit
-                if applied_velocity.x > 0. { 
-                    transform.translation.x = pos_x.x - aabb.0.x - 0.001;
-                } else { 
-                    transform.translation.x = pos_x.x + 1.001;
-                }
-                velocity.0.x = 0.;
-                stopped = true;
-                break;
-            }  
-        }
-        if !stopped {
-            transform.translation.x += applied_velocity.x;
-        }
-        // y
-        let ypos: f32 = if applied_velocity.y > 0. { aabb.0.y + transform.translation.y } else { transform.translation.y }; 
-        let mut stopped = false;
-        for y in extent(ypos, applied_velocity.y).into_iter().skip(1) {
-            let pos_y = Vec3 {x: transform.translation.x, y: y as f32, z: transform.translation.z };
-            if blocks_perp_y(pos_y, *realm, aabb).any(|pos| !blocks.get_block(pos).is_traversable()) {
-                // there's a collision in this direction, stop at the block limit
-                if applied_velocity.y > 0. {
-                    transform.translation.y = pos_y.y - aabb.0.y - 0.001;
-                } else {
-                    transform.translation.y = pos_y.y + 1.001;
-                }
-                velocity.0.y = 0.;
-                stopped = true;
-                break;
-            }
-        }
-        if !stopped {
-            transform.translation.y += applied_velocity.y;
-        }
-        // z
-        let zpos: f32 = if applied_velocity.z > 0. { aabb.0.z + transform.translation.z } else { transform.translation.z }; 
-        let mut stopped = false;
-        for z in extent(zpos, applied_velocity.z).into_iter().skip(1) {
-            let pos_z = Vec3 {x: transform.translation.x, y: transform.translation.y, z: z as f32 };
-            if blocks_perp_z(pos_z, *realm, aabb).any(|pos| !blocks.get_block(pos).is_traversable()) {
-                // there's a collision in this direction, stop at the block limit
-                if applied_velocity.z > 0. { 
-                    transform.translation.z = pos_z.z - aabb.0.z - 0.001;
-                } else { 
-                    transform.translation.z = pos_z.z + 1.001;
-                }
-                velocity.0.z = 0.;
-                stopped = true;
-                break;
-            }
-        }
-        if !stopped {
-            transform.translation.z += applied_velocity.z;
+    // Get camera transform for movement orientation
+    let camera_transform = camera_query.single().copied().unwrap_or_default();
+
+    // Build current physics state
+    let current_mode = if free_fly_opt.is_some() {
+        MovementMode::Flying
+    } else {
+        MovementMode::Walking
+    };
+
+    let state = PhysicsState {
+        position: transform.translation,
+        velocity: velocity.0,
+        movement_mode: current_mode,
+        realm: *realm,
+        on_ground: false, // Will be computed by physics
+    };
+
+    // Apply shared physics step
+    let delta_seconds = time.delta_secs();
+    let step = apply_player_input_step(
+        &*world,
+        &state,
+        &frame_inputs.0.inputs,
+        &camera_transform,
+        delta_seconds,
+    );
+
+    // Update transform and velocity from physics result
+    transform.translation = step.position;
+    velocity.0 = step.velocity;
+
+    // Sync movement mode ECS components if changed
+    let new_is_flying = step.movement_mode == MovementMode::Flying;
+    let was_flying = free_fly_opt.is_some();
+
+    if new_is_flying != was_flying {
+        if new_is_flying {
+            commands.entity(entity).remove::<Walking>().insert(FreeFly);
+            commands.entity(entity).insert(Speed(FLY_SPEED));
+        } else {
+            commands.entity(entity).remove::<FreeFly>().insert(Walking);
+            commands.entity(entity).insert(Speed(WALK_SPEED));
         }
     }
 }
