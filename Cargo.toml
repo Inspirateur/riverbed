@@ -30,8 +30,6 @@ regex = "*"
 riverbed_noise = { path = "crates/riverbed_noise", version = "*" }
 ron = "*"
 serde = "*"
-strum = "*"
-strum_macros = "*"
 
 [profile.dev]
 opt-level = 1

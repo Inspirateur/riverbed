@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-
+bevy = { workspace = true }
+strum = "*"
+strum_macros = "*"
 
 [build-dependencies]
 riverbed_block_def = { path = "../crates/riverbed_block_def", version = "*" }
