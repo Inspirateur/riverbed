@@ -1,6 +1,8 @@
 use bevy::{asset::{LoadedFolder, RenderAssetUsages}, mesh::MeshVertexBufferLayoutRef, pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline}, prelude::*, reflect::TypePath, render::{render_resource::{AsBindGroup, Extent3d, TextureDimension, TextureFormat}, storage::ShaderStorageBuffer}, shader::ShaderRef};
 use hashbrown::HashMap;
-use crate::{Block, block::{Face, FaceSpecifier}, render::parse_block_tex_name};
+use shared::block::{Block, Face, FaceSpecifier};
+use crate::render::parse_block_tex_name;
+
 use super::{mesh_logic::ATTRIBUTE_VOXEL_DATA, BlockTexState, BlockTextureFolder};
 
 pub struct TextureArrayPlugin;

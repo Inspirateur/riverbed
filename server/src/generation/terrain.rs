@@ -1,5 +1,5 @@
 use riverbed_noise::*;
-use shared::{block::Block, world::{CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT, pos::{BlockPos, BlockPos2d, ColPos, unchunked}}};
+use shared::{block::Block, world::{CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT, pos::{pos2d::{BlockPos2d, ColPos}, pos3d::BlockPos, unchunked}}};
 use crate::{generation::{biome_params::{BiomeParameters, BiomePoints}, biomes::Biome, coverage::CoverageTrait, layer::LayerTag, plant_params::PlantRanges}, world::voxel_world::VoxelWorld};
 const BIOME_SHARPENING: f32 = 50.;
 

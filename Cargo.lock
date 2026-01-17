@@ -4826,6 +4826,7 @@ dependencies = [
  "anyhow",
  "bevy",
  "bevy_renet",
+ "bincode",
  "chrono",
  "clap",
  "crossbeam",

@@ -1,8 +1,8 @@
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
+use shared::world::realm::Realm;
 use crate::agents::Velocity;
-use crate::world::{Realm, VoxelWorld};
 use crate::Block;
 use crate::{agents::{PlayerControlled, PlayerSpawn, AABB}, ui::CursorGrabbed};
 use leafwing_input_manager::prelude::*;

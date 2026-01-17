@@ -1,5 +1,5 @@
 use crate::{generation::{biome_params::BiomeParameters, layer::*}};
-use shared::{block::Block, world::{CHUNK_S1, CHUNK_S2, WATER_H, pos::{ColPos, unchunked}}};
+use shared::{block::Block, world::{CHUNK_S1, CHUNK_S2, WATER_H, pos::{pos2d::ColPos, unchunked}}};
 use strum_macros::EnumString;
 use riverbed_noise::*;
 const MOUNTAIN_H: f32 = 120.;

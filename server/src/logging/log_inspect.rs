@@ -3,8 +3,9 @@ use std::iter::Rev;
 use std::ops::{Deref, Range};
 use bevy::prelude::*;
 use chrono::TimeDelta;
-use shared::world::pos::ColPos;
-use shared::logging::{LogEvent, LogData};
+use shared::logging::logging::{LoadState, PlayerPos};
+use shared::logging::logging::{LogEvent, LogData};
+use shared::world::pos::pos2d::ColPos;
 
 pub struct InspectorPlugin;
 
@@ -156,12 +157,6 @@ impl EventQueue {
         }
     }
 }
-
-#[derive(Default, Resource)]
-pub struct PlayerPos(pub ColPos);
-
-#[derive(Default, Resource)]
-pub struct LoadState(pub HashMap<ColPos, bool>);
 
 #[derive(Default, Resource)]
 pub struct MeshCount(pub HashMap<ColPos, u32>);

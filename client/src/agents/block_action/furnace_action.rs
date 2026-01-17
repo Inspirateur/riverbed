@@ -1,11 +1,9 @@
 use crate::{
-    agents::{Action, PlayerControlled, TargetBlock},
-    items::{FiringTable, LitFurnace, Stack},
-    ui::{furnace_slots, GameUiState, ItemHolder, OpenFurnace},
-    world::{BlockEntities, BlockPos, VoxelWorld},
+    agents::{Action, PlayerControlled, TargetBlock}, ui::{GameUiState, OpenFurnace},
 };
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
+use shared::{items::{FiringTable, LitFurnace, Stack, item_slots::{ItemHolder, furnace_slots}}, world::{block_entities::BlockEntities, pos::pos3d::BlockPos}};
 use std::fs;
 
 pub struct FurnaceActionPlugin;

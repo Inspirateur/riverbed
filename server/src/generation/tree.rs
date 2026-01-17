@@ -1,6 +1,6 @@
 use std::ops::Range;
 use serde::Deserialize;
-use shared::world::pos::BlockPos;
+use shared::world::pos::pos3d::BlockPos;
 use strum_macros::EnumString;
 use crate::{generation::growables::*, world::voxel_world::VoxelWorld};
 

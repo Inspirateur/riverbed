@@ -11,6 +11,7 @@ shared = { path = "../shared" }
 
 bevy = { workspace = true }
 bevy_renet = { workspace = true }
+bincode = { workspace = true }
 clap = { workspace = true }
 crossbeam = { workspace = true }
 itertools = { workspace = true }

@@ -1,3 +1,7 @@
+use bevy::math::Vec3;
+
+use crate::world::pos::pos3d::BlockPos;
+
 pub mod block_entities;
 pub mod chunk;
 pub mod pos;
@@ -16,3 +20,14 @@ pub const MAX_HEIGHT: usize = 496;
 pub const MAX_GEN_HEIGHT: usize = 400;
 pub const WATER_H: i32 = 61;
 pub const Y_CHUNKS: usize = MAX_HEIGHT/CHUNK_S1;
+
+pub struct BlockRayCastHit {
+    pub pos: BlockPos,
+    pub normal: Vec3,
+}
+
+impl PartialEq for BlockRayCastHit {
+    fn eq(&self, other: &Self) -> bool {
+        self.pos == other.pos
+    }
+}

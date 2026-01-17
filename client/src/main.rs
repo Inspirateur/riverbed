@@ -11,18 +11,16 @@ pub use shared::block::{Block, BlockFamily};
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
 use shared::world::world_rng::WorldRng;
-use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
 use ui::UIPlugin;
 use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, PlayerPlugin};
-use world::TerrainLoadPlugin;
 #[cfg(feature = "log_inspector")]
 use crate::logging::InspectorPlugin;
 #[cfg(feature = "log_inspector")]
 use crate::logging::LogReplayPlugin;
-use crate::{logging::RiverbedLogPlugin, render::{MeshOrderReceiver, MeshOrderSender}};
+use crate::{render::{MeshOrderReceiver, MeshOrderSender}};
 const SEED: u64 = 42;
 pub const RENDER_DISTANCE: i32 = 32;
 

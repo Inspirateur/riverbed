@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bevy::prelude::*;
-use shared::{block::{Block, Face}, world::{chunk::Chunk, pos::ChunkPos, utils::{Palette, SerdablePackedUints}}};
+use shared::{block::{Block, Face}, world::{chunk::Chunk, pos::pos3d::ChunkPos, utils::{Palette, SerdablePackedUints}}};
 
 #[derive(Debug)]
 pub struct ClientChunk(Chunk);

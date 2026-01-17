@@ -1,6 +1,7 @@
 use bevy::prelude::*;
-use shared::items::item_slots::ItemHolder;
-use crate::{items::{InventoryTrait, Item, Stack}, render::ItemTexState};
+use shared::items::{Stack, item_slots::ItemHolder};
+use crate::render::ItemTexState;
+
 use super::{ui_tex_map::{UiSlotKind, UiTextureMap, SLOT_SIZE_PERCENT}, Inventory};
 
 pub struct ItemSlotPlugin;

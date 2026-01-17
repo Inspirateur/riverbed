@@ -4,8 +4,7 @@ use std::path::Path;
 use std::str::FromStr;
 use bevy::prelude::*;
 use chrono::DateTime;
-use crate::logging::logging::{LOG_PATH, LogEvent};
-use crate::logging::LogData;
+use crate::logging::logging::{LOG_PATH, LogData, LogEvent};
 
 pub struct LogReplayPlugin;
 

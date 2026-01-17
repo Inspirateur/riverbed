@@ -4,7 +4,7 @@ use bevy::{
     prelude::*,
 };
 use leafwing_input_manager::prelude::*;
-use shared::{block::Block, items::{Item, Stack, item_slots::ItemHolder, new_inventory}, world::realm::Realm};
+use shared::{block::Block, items::{InventoryTrait, Item, Stack, item_slots::ItemHolder, new_inventory}, world::{BlockRayCastHit, realm::Realm}};
 use crate::{agents::{AABB, Gravity, Heading, Jumping, Velocity}, sounds::{BlockSoundCD, FootstepCD, on_item_get}, ui::CursorGrabbed};
 
 use super::{block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, FreeFly, Speed, SteppingOn, Walking};

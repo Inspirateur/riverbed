@@ -1,6 +1,7 @@
 use std::{collections::HashMap};
 use bevy::{asset::LoadedFolder, prelude::*};
-use crate::{Block, items::BlockKind};
+use shared::items::BlockKind;
+use crate::{Block};
 // TODO: find a way to make this less verbose ?
 pub struct BlockSoundLoadPlugin;
 

@@ -1,23 +1,13 @@
-use crate::init::{LobbyPlayer, ServerLobby, ServerTime};
-use crate::mob::behavior::mob_behavior_system;
 use crate::network::broadcast_chat::*;
 use crate::network::cleanup::cleanup_player_from_world;
-use crate::world;
-use crate::world::broadcast_world::{broadcast_world_state, process_chunk_changes, ChunkSendTracker};
-use crate::world::load_from_file::load_player_data;
-use crate::world::save::SaveRequestEvent;
-use crate::world::simulation::{handle_player_inputs_system, PlayerInputsEvent};
-use crate::world::BlockInteractionEvent;
 use bevy::prelude::*;
-use bevy_log::{debug, info};
+use bevy::log::{debug, info};
 use bevy_renet::renet::{RenetServer, ServerEvent};
+use shared::GameServerConfig;
 use shared::messages::{
     AuthRegisterResponse, ChatConversation, ClientToServerMessage, FullChatMessage, PlayerSave,
     PlayerSpawnEvent, ServerToClientMessage,
 };
-use shared::players::Player;
-use shared::world::ServerWorldMap;
-use shared::{GameFolderPaths, GameServerConfig, TICKS_PER_SECOND};
 
 use super::extensions::SendGameMessageExtension;
 
@@ -34,21 +24,17 @@ pub fn register_systems(app: &mut App) {
     // Chaining the two so that saves are always done on the same frame as the request
     app.add_systems(
         Update,
-        (server_update_system, world::save::save_world_system).chain(),
+        (server_update_system, save_world_system).chain(),
     );
 
     // Process chunk changes before broadcasting to ensure invalidations are applied
     app.add_systems(Update, (process_chunk_changes, broadcast_world_state).chain());
 
-    app.add_systems(Update, world::handle_block_interactions);
-
-    app.add_systems(Update, crate::mob::manage_mob_spawning_system);
+    app.add_systems(Update, handle_block_interactions);
 
     app.add_systems(Update, handle_player_inputs_system);
 
     app.add_systems(PostUpdate, update_server_time);
-
-    app.add_systems(FixedUpdate, mob_behavior_system);
 }
 
 fn server_update_system(
@@ -68,7 +54,7 @@ fn server_update_system(
     mut world_map: ResMut<ServerWorldMap>,
     time: Res<ServerTime>,
     game_folder_paths: Res<GameFolderPaths>,
-    world_seed: Res<shared::world::WorldSeed>,
+    world_seed: Res<WorldSeed>,
 ) {
     for event in server_events.read() {
         debug!("event received");

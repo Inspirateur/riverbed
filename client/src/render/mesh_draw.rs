@@ -7,6 +7,7 @@ use shared::block::Face;
 use shared::world::CHUNK_S1;
 use shared::world::pos::PlayerCol;
 use shared::world::pos::pos2d::chunks_in_col;
+use shared::world::pos::pos3d::ChunkPos;
 use strum::IntoEnumIterator;
 use crate::agents::PlayerControlled;
 use crate::render::mesh_thread::{setup_mesh_thread, update_shared_load_area, MeshReciever, SharedPlayerCol};

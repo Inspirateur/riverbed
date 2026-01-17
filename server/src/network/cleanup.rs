@@ -1,7 +1,5 @@
-use bevy_ecs::message::MessageWriter;
-use shared::{messages::PlayerId, world::ServerWorldMap};
-
-use crate::world::save::SaveRequestEvent;
+use bevy::ecs::message::MessageWriter;
+use shared::{messages::PlayerId};
 
 pub fn cleanup_all_players_from_world(world_map: &mut ServerWorldMap) {
     for p in world_map.players.values_mut() {

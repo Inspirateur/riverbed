@@ -1,8 +1,8 @@
 use std::ops::DerefMut;
-use crate::logging::log_inspect::{PlayerPos, LoadState, MeshCount, EventQueue, EventHead, IsLive};
 use leafwing_input_manager::prelude::*;
 use bevy::prelude::*;
 use bevy::color::palettes::css;
+use shared::logging::logging::{LoadState, PlayerPos};
 
 pub struct InspectorDisplayPlugin;
 

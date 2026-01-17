@@ -4,7 +4,7 @@ pub mod items;
 pub mod logging;
 pub mod messages;
 pub mod world;
-mod utils;
+pub mod utils;
 
 use std::time::Duration;
 

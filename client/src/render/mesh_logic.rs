@@ -4,10 +4,9 @@ use bevy::{
     asset::RenderAssetUsages, log::info_span, mesh::{Indices, MeshVertexAttribute}, prelude::Mesh, render::render_resource::{PrimitiveTopology, VertexFormat}
 };
 use binary_greedy_meshing as bgm;
-use serde::{Deserialize, Serialize};
-use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNKP_S3, WATER_H, pos::{ChunkPos, linearize, pad_linearize}, serdable_packed_uints::SerdablePackedUints, utils::Palette}};
+use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNKP_S3, WATER_H, pos::{linearize, pad_linearize, pos3d::ChunkPos}}};
 
-use crate::network::client_chunk::ClientChunk;
+use crate::network::models::client_chunk::ClientChunk;
 
 use super::texture_array::TextureMapTrait;
 

@@ -1,4 +1,4 @@
-use shared::{block::Block, world::pos::BlockPos};
+use shared::{block::Block, world::pos::pos3d::BlockPos};
 
 use crate::world::voxel_world::VoxelWorld;
 

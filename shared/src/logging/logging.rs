@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 #[cfg(feature = "logging")]
 use std::{error::Error, fs::OpenOptions};
 use chrono::{DateTime, Utc};
@@ -83,3 +84,9 @@ impl std::fmt::Display for LogEvent {
         write!(f, "{}", ron::to_string(self).unwrap())
     }
 }
+
+#[derive(Default, Resource)]
+pub struct PlayerPos(pub ColPos);
+
+#[derive(Default, Resource)]
+pub struct LoadState(pub HashMap<ColPos, bool>);

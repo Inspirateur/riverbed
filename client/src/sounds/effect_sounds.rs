@@ -1,12 +1,12 @@
 use crate::{
     agents::{BlockPlaced, Furnace},
-    items::LitFurnace,
 };
 use bevy::{
     audio::{PlaybackMode, SpatialScale},
     prelude::*,
 };
 use rand::Rng;
+use shared::items::LitFurnace;
 const RAND_AMPLITUDE: f32 = 0.3;
 
 pub struct EffectSoundPlugin;

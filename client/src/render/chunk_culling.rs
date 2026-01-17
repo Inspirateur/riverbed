@@ -2,8 +2,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use bevy::{
     camera::{primitives::{Aabb, Frustum, Sphere}, visibility::{NoFrustumCulling, Visibility}, Camera}, ecs::{query::{Changed, With}, system::Query}, math::{I64Vec3, Vec3A}, transform::components::{GlobalTransform, Transform}
 };
-use crate::world::chunk_pos;
-use crate::block::Face;
+use shared::{block::Face, world::pos::chunk_pos};
 
 pub fn chunk_culling(
     view_query: Query<(&Frustum, &Camera, &GlobalTransform), Changed<Frustum>>,

@@ -3,13 +3,14 @@ use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use parking_lot::RwLock;
 use shared::block::Face;
-use shared::world::pos::{ChunkPos, ColPos};
+use shared::logging::logging::LogData;
+use shared::world::pos::PlayerCol;
+use shared::world::pos::pos2d::ColPos;
+use shared::world::pos::pos3d::ChunkPos;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
 use crate::agents::PlayerControlled;
-use crate::render::PlayerCol;
-use shared::logging::LogData;
 use crate::render::mesh_draw::{choose_lod_level, LOD};
 use crate::render::texture_array::TextureMap;
 

@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use shared::items::item_slots::ItemHolder;
 use shared::items::{BlockLootTable, DropQuantity, FiringTable, InventoryTrait, Item, LootEntry, Stack};
 use shared::world::block_entities::BlockEntities;
-use shared::world::pos::BlockPos;
+use shared::world::pos::pos3d::BlockPos;
 use shared::world::realm::Realm;
 use shared::world::world_rng::WorldRng;
 use crate::render::FpsCam;
