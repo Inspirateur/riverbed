@@ -18,6 +18,7 @@ use bevy::prelude::*;
 use shared::messages::{ItemStackUpdateEvent, PlayerSpawnEvent, PlayerUpdateEvent};
 
 use crate::network::buffered_client::{CurrentFrameInputs, PlayerTickInputsBuffer, SyncTime};
+use crate::ui::CursorGrabbed;
 
 pub struct NetworkPlugin;
 impl Plugin for NetworkPlugin {
@@ -53,6 +54,20 @@ impl Plugin for NetworkPlugin {
                 establish_authenticated_connection_to_server,
                 network_failure_handler,
             ),
+        );
+
+        // Input capture systems - run every frame
+        // pre_input_update prepares a new frame, then we capture inputs
+        app.add_systems(
+            PreUpdate,
+            pre_input_update_system,
+        );
+        app.add_systems(
+            Update,
+            (
+                capture_player_inputs_system.run_if(in_state(CursorGrabbed)),
+                update_frame_inputs_system,
+            ).chain(),
         );
 
         // Fixed update systems - run at fixed timestep

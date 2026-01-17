@@ -1,7 +1,7 @@
 mod player;
 mod movement;
 mod block_action;
-mod key_binds;
+pub mod key_binds;
 mod other_players;
 
 pub use player::*;

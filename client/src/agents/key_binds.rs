@@ -33,7 +33,7 @@ impl Default for KeyBinds {
 }
 
 impl KeyBinds {
-    fn keycode_to_action(&self, keycode: KeyCode) -> Option<TransmittableAction> {
+    pub fn keycode_to_action(&self, keycode: KeyCode) -> Option<TransmittableAction> {
         match keycode {
             k if k == self.forward => Some(TransmittableAction::MoveForward),
             k if k == self.backward => Some(TransmittableAction::MoveBackward),
@@ -46,7 +46,7 @@ impl KeyBinds {
         }
     }
 
-    fn mousebutton_to_action(&self, button: MouseButton) -> Option<TransmittableAction> {
+    pub fn mousebutton_to_action(&self, button: MouseButton) -> Option<TransmittableAction> {
         match button {
             b if b == self.hit => Some(TransmittableAction::Hit),
             b if b == self.modify => Some(TransmittableAction::Modify),
