@@ -16,11 +16,11 @@ packed-uints = { workspace = true }
 rand_chacha = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+strum = { workspace = true }
+strum_macros = { workspace = true }
 
 chrono = { version = "*", features = ["serde", "rkyv"] }
 lazy_static = "*"
-strum = "*"
-strum_macros = "*"
 regex = "*"
 
 [build-dependencies]

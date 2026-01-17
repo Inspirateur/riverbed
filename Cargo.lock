@@ -4536,6 +4536,8 @@ dependencies = [
  "ron 0.11.0",
  "serde",
  "shared",
+ "strum",
+ "strum_macros",
 ]
 
 [[package]]

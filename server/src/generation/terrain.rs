@@ -1,5 +1,6 @@
 use riverbed_noise::*;
-use crate::{generation::{biome_params::{BiomeParameters, BiomePoints}, biomes::Biome, coverage::CoverageTrait, layer::LayerTag, plant_params::PlantRanges}, world::{unchunked, BlockPos, BlockPos2d, ColPos, VoxelWorld, CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT}, Block};
+use shared::{block::Block, world::pos::{BlockPos, BlockPos2d, ColPos, unchunked}};
+use crate::{generation::{biome_params::{BiomeParameters, BiomePoints}, biomes::Biome, coverage::CoverageTrait, layer::LayerTag, plant_params::PlantRanges}, world::{CHUNK_S1, CHUNK_S1I, MAX_GEN_HEIGHT, voxel_world::VoxelWorld}};
 const BIOME_SHARPENING: f32 = 50.;
 
 pub struct TerrainGenerator {

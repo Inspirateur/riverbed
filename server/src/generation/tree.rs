@@ -1,8 +1,8 @@
 use std::ops::Range;
 use serde::Deserialize;
+use shared::world::pos::BlockPos;
 use strum_macros::EnumString;
-use crate::generation::growables::*;
-use crate::world::{BlockPos, VoxelWorld};
+use crate::{generation::growables::*, world::voxel_world::VoxelWorld};
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Deserialize)]

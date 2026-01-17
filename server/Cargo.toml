@@ -16,6 +16,8 @@ packed-uints = { workspace = true }
 parking_lot = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+strum = { workspace = true }
+strum_macros = { workspace = true }
 
 anyhow = "*"
 chrono = { version = "*", features = ["serde", "rkyv"] }

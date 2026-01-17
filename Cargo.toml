@@ -19,6 +19,8 @@ parking_lot = "*"
 rand_chacha = "*"
 ron = "*"
 serde = "*"
+strum = "*"
+strum_macros = "*"
 
 [profile.dev]
 opt-level = 1

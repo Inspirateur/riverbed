@@ -2,7 +2,7 @@ mod chunk;
 mod terrain_thread;
 mod serdable_packed_uints;
 mod block_entities;
-mod voxel_world;
+pub mod voxel_world;
 
 use bevy::prelude::*;
 use shared::world::{block_entities::BlockEntities, pos::{ChunkPos, ColPos}};

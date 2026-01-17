@@ -1,5 +1,7 @@
-use crate::world::{BlockPos, VoxelWorld};
-use crate::Block;
+use shared::{block::Block, world::pos::BlockPos};
+
+use crate::world::voxel_world::VoxelWorld;
+
 use super::utils::leaf_disk;
 
 pub fn grow_acacia(world: &VoxelWorld, pos: BlockPos, _seed: i32, dist: f32) {
