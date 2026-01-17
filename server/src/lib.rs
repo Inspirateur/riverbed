@@ -12,7 +12,7 @@ use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 
 use bevy::app::ScheduleRunnerPlugin;
-use bevy::log::{error, info, LogPlugin};
+use bevy::log::{error, info};
 use bevy::prelude::*;
 use bevy_renet::netcode::{NetcodeServerPlugin, NetcodeServerTransport, ServerAuthentication, ServerConfig};
 use bevy_renet::renet::RenetServer;
@@ -136,7 +136,8 @@ pub fn init(socket: UdpSocket, config: GameServerConfig) {
             1.0 / TICKS_PER_SECOND as f64,
         ))),
     );
-    app.add_plugins(LogPlugin::default());
+    // Note: We don't add LogPlugin here because when running embedded in the client,
+    // the client already has logging configured. Adding it here would cause a conflict.
 
     // Networking plugins
     app.add_plugins(RenetServerPlugin);

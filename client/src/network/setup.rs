@@ -278,12 +278,8 @@ pub fn establish_authenticated_connection_to_server(
     mut client_time: ResMut<ClientTime>,
     mut world_seed: ResMut<WorldSeed>,
 ) {
+    // Already authenticated, nothing to do
     if target.session_token.is_some() {
-        let Some(username) = target.username.as_ref() else {
-            error!("{USERNAME_MISSING_AUTHENTICATED_ERROR}");
-            return;
-        };
-        info!("Successfully acquired a session token as {}", username);
         return;
     }
 
@@ -305,11 +301,13 @@ pub fn establish_authenticated_connection_to_server(
     while let Some(Ok(message)) = client.receive_game_message_by_channel(STC_AUTH_CHANNEL) {
         match message {
             ServerToClientMessage::AuthRegisterResponse(message) => {
+                let username = message.username.clone();
                 target.username = Some(message.username);
                 target.session_token = Some(message.session_token);
                 target.state = TargetServerState::ConnectionEstablished;
                 client_time.0 = message.tick;
                 world_seed.0 = message.world_seed;
+                info!("Successfully authenticated as {}", username);
                 info!("Received world seed: {}", message.world_seed);
                 // TODO: handle clock sync using the timestamp_ms field
                 // it will become very important if the lantency is high

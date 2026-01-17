@@ -9,9 +9,10 @@ mod world;
 // Re-export Block and BlockFamily from shared crate
 pub use shared::block::{Block, BlockFamily};
 
-use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
+use bevy::{asset::AssetPlugin, image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
 use shared::logging::logging::RiverbedLogPlugin;
+use shared::world::block_entities::BlockEntities;
 use shared::world::world_rng::WorldRng;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
@@ -48,13 +49,19 @@ fn client() {
         .insert_resource(ClientWorldMap::new(mesh_order_sender.clone()))
         .insert_resource(MeshOrderReceiver(mesh_order_receiver))
         .insert_resource(MeshOrderSender(mesh_order_sender))
+        .init_resource::<BlockEntities>()
         .add_plugins(ClientWorldPlugin)
         .add_plugins(
             DefaultPlugins
+            .set(AssetPlugin {
+                // Assets folder is at repo root, not in client folder
+                file_path: "../assets".to_string(),
+                ..default()
+            })
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Riverbed".into(),
-                    present_mode: PresentMode::Mailbox,
+                    present_mode: PresentMode::AutoVsync,
                     ..default()
                 }),
                 ..default()

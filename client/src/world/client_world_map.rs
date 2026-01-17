@@ -134,6 +134,7 @@ impl Plugin for ClientWorldPlugin {
         app
             .add_event::<SetBlockRequest>()
             .add_event::<BlockChanged>()
+            .add_message::<ColUnloadEvent>()
             .add_systems(Update, process_block_requests);
     }
 }
