@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use packed_uints::PackedUints;
 use serde::{Deserialize, Serialize};
-use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, chunk::ChunkTrait, pos::{ChunkedPos, ColedPos}, utils::Palette}};
-use crate::{world::{CHUNK_S1I, serdable_packed_uints::SerdablePackedUints}};
+use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, chunk::ChunkTrait, pos::{ChunkedPos, ColedPos}, utils::Palette}};
+use crate::{world::{serdable_packed_uints::SerdablePackedUints}};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerChunk {
@@ -130,7 +130,9 @@ impl ServerChunk {
 mod tests {
     use shared::block::Face;
 
-    use crate::world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, chunk::linearize};
+    use shared::world::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2};
+
+    use crate::world::chunk::linearize;
 
     fn plane(face: Face)  -> [usize; 3] {
         match face {
