@@ -11,6 +11,7 @@ use shared::messages::{
     AuthRegisterRequest, AuthRegisterResponse, ClientToServerMessage, PlayerSave,
     ServerPlayerSpawn, ServerToClientMessage,
 };
+use shared::CTS_AUTH_CHANNEL;
 use shared::net::clock;
 use shared::physics::MovementMode;
 use shared::world::realm::Realm;
@@ -90,7 +91,20 @@ fn receive_client_messages(
     mut ev_exit: MessageWriter<PlayerExitEvent>,
 ) {
     for client_id in server.clients_id() {
-        while let Some(Ok(message)) = server.receive_game_message(client_id) {
+        // Auth channel
+        while let Some(Ok(message)) = server.receive_game_message_by_channel(client_id, CTS_AUTH_CHANNEL) {
+            handle_client_message(
+                client_id,
+                message,
+                &mut ev_player_inputs,
+                &mut ev_block_interaction,
+                &mut ev_auth,
+                &mut ev_exit,
+            );
+        }
+
+        // All other channels
+        while let Some(Ok(message)) = server.receive_game_message_except_channel(client_id, CTS_AUTH_CHANNEL) {
             handle_client_message(
                 client_id,
                 message,

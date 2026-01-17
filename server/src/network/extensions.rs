@@ -18,6 +18,11 @@ pub trait SendGameMessageExtension {
         client_id: ClientId,
         channel: u8,
     ) -> Option<Result<ClientToServerMessage, Box<ErrorKind>>>;
+    fn receive_game_message_except_channel(
+        &mut self,
+        client_id: ClientId,
+        excluded_channel_id: u8,
+    ) -> Option<Result<ClientToServerMessage, Box<ErrorKind>>>;
 }
 
 impl SendGameMessageExtension for RenetServer {
@@ -43,5 +48,19 @@ impl SendGameMessageExtension for RenetServer {
     ) -> Option<Result<ClientToServerMessage, Box<ErrorKind>>> {
         let channels = get_customized_client_to_server_channels();
         codec::server_receive_any(self, client_id, &channels)
+    }
+
+    fn receive_game_message_except_channel(
+        &mut self,
+        client_id: ClientId,
+        excluded_channel_id: u8,
+    ) -> Option<Result<ClientToServerMessage, Box<ErrorKind>>> {
+        let channels = get_customized_client_to_server_channels();
+        for channel in channels.iter().filter(|c| c.channel_id != excluded_channel_id) {
+            if let Some(res) = codec::server_receive_by_channel(self, client_id, channel.channel_id) {
+                return Some(res);
+            }
+        }
+        None
     }
 }

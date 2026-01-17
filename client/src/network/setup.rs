@@ -291,7 +291,7 @@ pub fn establish_authenticated_connection_to_server(
                 let username = response.username.clone();
                 target.username = Some(response.username);
                 target.session_token = Some(response.session_token);
-                target.state = TargetServerState::ConnectionEstablished;
+                target.state = TargetServerState::FullyReady;
                 server_tick.0 = response.tick;
                 world_seed.0 = response.world_seed;
 

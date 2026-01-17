@@ -1,12 +1,13 @@
 use bevy::prelude::*;
 use bevy_renet::renet::RenetClient;
-use shared::messages::{ClientToServerMessage, ClientPlayerInput};
+use shared::messages::{ClientToServerMessage};
 
 use crate::agents::key_binds::KeyBinds;
 use crate::agents::PlayerControlled;
 use crate::agents::Velocity;
 use crate::render::FpsCam;
 use crate::ui::SelectedHotbarSlot;
+use crate::network::TargetServerState;
 
 use super::buffered_client::{CurrentFrameInputs, CurrentFrameInputsExt, SyncTime, SyncTimeExt};
 use shared::net::input_history::InputHistory;
@@ -22,7 +23,7 @@ pub fn pre_input_update_system(
     let inputs_of_last_frame = frame_inputs.0.clone();
     input_history.push_frame(inputs_of_last_frame);
     
-    frame_inputs.reset(sync_time.clock.curr_ms, sync_time.delta());
+    frame_inputs.reset(sync_time.now_synced() as u64, sync_time.delta());
 }
 
 pub fn capture_player_inputs_system(
@@ -79,9 +80,14 @@ pub fn update_frame_inputs_system(
 pub fn upload_player_inputs_system(
     mut client: ResMut<RenetClient>,
     mut input_history: ResMut<InputHistory>,
+    target: Res<crate::network::TargetServer>,
 ) {
     if client.is_disconnected() {
         input_history.clear_all();
+        return;
+    }
+
+    if target.state != TargetServerState::FullyReady {
         return;
     }
 
