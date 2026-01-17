@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap};
 use bevy::{asset::LoadedFolder, prelude::*};
 use crate::{Block, items::BlockKind};
 // TODO: find a way to make this less verbose ?
