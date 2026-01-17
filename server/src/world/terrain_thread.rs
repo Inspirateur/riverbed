@@ -13,6 +13,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
     commands.insert_resource(ColUnloadsReciever(unload_recv));
     let thread_pool = AsyncComputeTaskPool::get();
     let load_world = world.clone();
+    let render_distance = world.render_distance;
     let seed_value = world_rng.seed;
 
     thread_pool.spawn(
@@ -37,7 +38,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                         }
                     };
                     // Compute the difference in player area
-                    let player_area_diff = player_pos_update.new_col.player_area_diff(player_pos_update.old_col_opt, world.render_distance as f32);
+                    let player_area_diff = player_pos_update.new_col.player_area_diff(player_pos_update.old_col_opt, render_distance as f32);
                     players_pos.insert(player_pos_update.id, player_pos_update.new_col);
                     // Handle columns that are no longer in the player's area
                     for col in player_area_diff.exclusive_in_other {
