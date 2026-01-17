@@ -104,13 +104,13 @@ impl ChunkTrait for ServerChunk {
     }
 }
 
-impl From<&[Block]> for Chunk {
+impl From<&[Block]> for ServerChunk {
     fn from(values: &[Block]) -> Self {
         let mut palette = Palette::new();
         palette.index(Block::Air);
         let values = values.iter().map(|v| palette.index(v.clone())).collect_vec();
-        let data = PackedUints::from(values.as_slice());
-        Chunk {data, palette}
+        let data = SerdablePackedUints(PackedUints::from(values.as_slice()));
+        ServerChunk {data, palette}
     }
 }
 
@@ -118,8 +118,8 @@ impl ServerChunk {
     pub fn new() -> Self {
         let mut palette = Palette::new();
         palette.index(Block::Air); 
-        Chunk {
-            data: PackedUints::new(CHUNKP_S3),
+        ServerChunk {
+            data: SerdablePackedUints(PackedUints::new(CHUNKP_S3)),
             palette: palette, 
         }
     }
