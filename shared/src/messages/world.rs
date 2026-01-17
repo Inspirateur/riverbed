@@ -4,9 +4,10 @@ use bevy::math::{IVec3, Vec3};
 use bevy::ecs::message::Message;
 use serde::{Deserialize, Serialize};
 
+use crate::block::Block;
 use crate::items::Stack;
 use crate::world::chunk::Chunk;
-use crate::world::pos::pos3d::ChunkPos;
+use crate::world::pos::pos3d::{BlockPos, ChunkPos};
 
 /// WorldUpdate is a message sent from the server to the client to update the client's world state.
 /// Only chunks which have been updated since the last message are sent.
@@ -28,4 +29,14 @@ pub struct ItemStackUpdateEvent {
 pub struct ChunkUpdate {
     pub position: IVec3,
     pub chunk: Chunk,
+}
+
+/// Message sent from client to server when the player interacts with a block.
+/// Used for breaking, placing, or modifying blocks.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct BlockInteraction {
+    /// The position of the block being interacted with
+    pub pos: BlockPos,
+    /// The new block to place (Block::Air for breaking)
+    pub new_block: Block,
 }

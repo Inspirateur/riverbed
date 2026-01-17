@@ -18,6 +18,7 @@ pub enum ClientToServerMessage {
     Exit,
     PlayerInputs(Vec<PlayerFrameInput>),
     SaveWorldRequest,
+    BlockInteraction(BlockInteraction),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

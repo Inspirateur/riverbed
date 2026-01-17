@@ -209,13 +209,16 @@ impl Plugin for ClientWorldPlugin {
     }
 }
 
-/// Temporary system that immediately applies block requests locally.
-/// In the full networked version, this would send the request to the server
-/// and wait for confirmation.
+/// Process block requests: apply locally and send to server.
+/// 
+/// This uses client-side prediction - we apply the change immediately locally
+/// for responsiveness, and also send it to the server. If the server rejects it,
+/// the next WorldUpdate will correct our local state.
 fn process_block_requests(
     world_map: Option<Res<ClientWorldMap>>,
     mut requests: MessageReader<SetBlockRequest>,
     mut block_changed: MessageWriter<BlockChanged>,
+    mut client: Option<ResMut<bevy_renet::renet::RenetClient>>,
 ) {
     let Some(world_map) = world_map else {
         return;
@@ -224,13 +227,7 @@ fn process_block_requests(
     for request in requests.read() {
         let old_block = world_map.get_block(request.pos);
         
-        // For now, apply the change locally immediately
-        // In networked mode, this would:
-        // 1. Send the request to the server
-        // 2. Server validates and applies
-        // 3. Server broadcasts the change back
-        // 4. Client applies confirmed change
-        
+        // Apply the change locally immediately (client-side prediction)
         let (chunk_pos, chunked_pos) = <(ChunkPos, _)>::from(request.pos);
         if let Some(chunk) = world_map.chunks.get(&chunk_pos) {
             chunk.value().write().set(chunked_pos, request.block);
@@ -241,6 +238,19 @@ fn process_block_requests(
                 old_block,
                 new_block: request.block,
             });
+        }
+        
+        // Send to server for authoritative processing
+        if let Some(ref mut client) = client {
+            use crate::network::SendGameMessageExtension;
+            use shared::messages::{BlockInteraction, ClientToServerMessage};
+            
+            client.send_game_message(ClientToServerMessage::BlockInteraction(
+                BlockInteraction {
+                    pos: request.pos,
+                    new_block: request.block,
+                },
+            ));
         }
     }
 }
