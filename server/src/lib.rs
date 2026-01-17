@@ -19,12 +19,14 @@ use bevy_renet::renet::RenetServer;
 use bevy_renet::RenetServerPlugin;
 use crossbeam::channel;
 use shared::world::pos::pos3d::ChunkPos;
+use shared::world::world_rng::WorldRng;
 use shared::world::WorldSeed;
 use shared::{get_shared_renet_config, GameServerConfig, PROTOCOL_ID, TICKS_PER_SECOND};
 
 use crate::network::broadcast_world::ChunkChangesReceiver;
 use crate::network::dispatcher::ServerNetworkPlugin;
 use crate::world::voxel_world::VoxelWorld;
+use crate::world::TerrainLoadPlugin;
 
 /// Acquires a UDP socket bound to an ephemeral port on the given IP address.
 /// Used by the client to create a socket for the local server.
@@ -148,13 +150,18 @@ pub fn init(socket: UdpSocket, config: GameServerConfig) {
     app.insert_resource(transport);
 
     // Insert game resources
+    let seed: u64 = 42; // TODO: Load from world save or generate randomly
     app.insert_resource(config);
     app.insert_resource(voxel_world);
     app.insert_resource(ChunkChangesReceiver(chunk_changes_rx));
-    app.insert_resource(WorldSeed(42)); // TODO: Load from world save or generate randomly
+    app.insert_resource(WorldSeed(seed as u32));
+    app.insert_resource(WorldRng::new(seed));
 
     // Add server network plugin (handles connections, auth, chunk broadcasting)
     app.add_plugins(ServerNetworkPlugin);
+
+    // Add terrain loading plugin (handles terrain generation based on player positions)
+    app.add_plugins(TerrainLoadPlugin);
 
     info!("Server initialized, entering main loop");
 

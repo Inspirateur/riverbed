@@ -12,9 +12,10 @@ use bevy::log::info;
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer, ServerEvent};
 use shared::messages::{
-    AuthRegisterRequest, AuthRegisterResponse, ClientToServerMessage, PlayerSave,
+    AuthRegisterRequest, AuthRegisterResponse, ClientToServerMessage, PlayerId, PlayerSave,
     PlayerSpawnEvent, ServerToClientMessage,
 };
+use shared::world::realm::Realm;
 use shared::world::WorldSeed;
 use shared::GameServerConfig;
 
@@ -25,6 +26,12 @@ use super::extensions::SendGameMessageExtension;
 pub struct AuthRegisterEvent {
     pub client_id: ClientId,
     pub request: AuthRegisterRequest,
+}
+
+/// Component that links a player entity to its network client ID
+#[derive(Component)]
+pub struct NetworkPlayer {
+    pub client_id: ClientId,
 }
 
 /// Plugin that sets up the core server network functionality
@@ -67,8 +74,10 @@ impl Plugin for ServerNetworkPlugin {
 
 /// Handle basic server events (connections/disconnections)
 fn handle_server_events(
+    mut commands: Commands,
     mut server_events: MessageReader<ServerEvent>,
     mut registry: ResMut<PlayerRegistry>,
+    player_entities: Query<(Entity, &NetworkPlayer)>,
 ) {
     for event in server_events.read() {
         match event {
@@ -79,6 +88,15 @@ fn handle_server_events(
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 info!("Player {} disconnected: {}", client_id, reason);
                 registry.remove_player(*client_id);
+                
+                // Despawn the player's ECS entity
+                for (entity, network_player) in player_entities.iter() {
+                    if network_player.client_id == *client_id {
+                        commands.entity(entity).despawn();
+                        info!("Despawned ECS entity for player {}", client_id);
+                        break;
+                    }
+                }
             }
         }
     }
@@ -155,6 +173,7 @@ pub struct PlayerExitEvent {
 /// Handle authentication requests from clients.
 /// Sends back AuthRegisterResponse with session info and broadcasts player spawn to all clients.
 fn handle_auth_requests(
+    mut commands: Commands,
     mut ev_auth: MessageReader<AuthRegisterEvent>,
     mut server: ResMut<RenetServer>,
     mut registry: ResMut<PlayerRegistry>,
@@ -197,6 +216,23 @@ fn handle_auth_requests(
                 player.is_authenticated = true;
             }
         }
+
+        // Spawn an ECS entity for this player with Transform and Realm
+        // This is needed for the terrain thread to track player positions
+        let player_pos = registry
+            .get_player(client_id)
+            .map(|p| p.position)
+            .unwrap_or(Vec3::new(280., 500., -150.));
+        
+        commands.spawn((
+            Transform::from_translation(player_pos),
+            Realm::Overworld,
+            NetworkPlayer { client_id },
+        ));
+        info!(
+            "Spawned ECS entity for player {} at {:?}",
+            client_id, player_pos
+        );
 
         // Reset chunk tracking for this client (they may be reconnecting)
         chunk_tracker.remove_client(client_id);
