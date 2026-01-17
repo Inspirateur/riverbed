@@ -21,10 +21,8 @@ use render::{Render, TextureLoadPlugin};
 use agents::{MovementPlugin, OtherPlayersPlugin, PlayerPlugin};
 use network::NetworkPlugin;
 use world::{ClientWorldMap, ClientWorldPlugin};
-#[cfg(feature = "log_inspector")]
-use crate::logging::InspectorPlugin;
-#[cfg(feature = "log_inspector")]
-use crate::logging::LogReplayPlugin;
+#[cfg(feature = "logging")]
+use crate::logging::InspectorDisplayPlugin;
 use crate::{render::{MeshOrderReceiver, MeshOrderSender}};
 const SEED: u64 = 42;
 pub const RENDER_DISTANCE: i32 = 32;
@@ -34,7 +32,7 @@ fn main() {
     // but this require making a riverbed lib to share structs and I don't want to bother for now
     // see https://doc.rust-lang.org/cargo/reference/features.html#mutually-exclusive-features
     cfg_if::cfg_if! {
-        if #[cfg(feature = "log_inspector")] {
+        if #[cfg(feature = "logging")] {
             inspect_log();
         } else {
             client();
@@ -95,13 +93,13 @@ fn client() {
     app.run();
 }
 
-#[cfg(feature = "log_inspector")]
+#[cfg(feature = "logging")]
 fn inspect_log() {
     let mut app = App::new();
 
     app
         .add_plugins(LogReplayPlugin)
-        .add_plugins(InspectorPlugin)
+        .add_plugins(InspectorDisplayPlugin)
         .run()
         ;
 }
