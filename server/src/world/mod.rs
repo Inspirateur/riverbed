@@ -3,6 +3,7 @@ mod load_area;
 mod terrain_thread;
 mod serdable_packed_uints;
 mod block_entities;
+mod voxel_world;
 
 use crate::world::{block_entities::unload_block_entities, terrain_thread::{assign_player_col, on_unload_col, send_player_pos_update, setup_load_thread}};
 
