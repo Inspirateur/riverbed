@@ -3,6 +3,7 @@ use std::iter::zip;
 use std::time::{Duration, Instant};
 use shared::items::item_slots::ItemHolder;
 use shared::items::{BlockLootTable, DropQuantity, FiringTable, InventoryTrait, Item, LootEntry, Stack};
+use shared::world::BlockAccess;
 use shared::world::block_entities::BlockEntities;
 use shared::world::pos::pos3d::BlockPos;
 use shared::world::realm::Realm;

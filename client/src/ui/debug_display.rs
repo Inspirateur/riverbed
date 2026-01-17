@@ -3,6 +3,7 @@ use std::time::Duration;
 use bevy::color::palettes::css;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
+use shared::world::BlockAccess;
 use crate::Block;
 use crate::agents::{PlayerControlled, TargetBlock};
 use crate::world::ClientWorldMap;
