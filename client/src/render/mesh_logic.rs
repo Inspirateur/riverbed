@@ -7,6 +7,8 @@ use binary_greedy_meshing as bgm;
 use serde::{Deserialize, Serialize};
 use shared::{block::{Block, Face}, world::{CHUNK_S1, CHUNKP_S3, WATER_H, pos::{ChunkPos, linearize, pad_linearize}, serdable_packed_uints::SerdablePackedUints, utils::Palette}};
 
+use crate::network::data::ClientChunk;
+
 use super::texture_array::TextureMapTrait;
 
 const MASK_XYZ: u64 = 0b111111_111111_111111;
@@ -30,15 +32,9 @@ fn color(r: f32, g: f32, b: f32) -> u32 {
     ((r*63.) as u32) << 11 | ((g*63.) as u32) << 5 | (b*31.) as u32
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ClientChunk {
-    pub data: SerdablePackedUints,
-    pub palette: Palette<Block>,
-}
-
 impl ClientChunk {
     pub fn voxel_data_lod(&self, lod: usize) -> Vec<u16> {
-        let voxels = self.data.unpack_u16();
+        let voxels = self.data().unpack_u16();
         if lod == 1 {
             return voxels;
         }
@@ -66,7 +62,7 @@ impl ClientChunk {
         let mut mesher: bgm::Mesher<CHUNK_S1> = bgm::Mesher::new();
         mesh_data_span.exit();
         let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
-        let transparents = BTreeSet::from_iter(self.palette.iter().enumerate().filter_map(
+        let transparents = BTreeSet::from_iter(self.palette().iter().enumerate().filter_map(
             |(i, block)| if i != 0 && !block.is_opaque() {
                 Some(i as u16)
             } else {
@@ -86,8 +82,8 @@ impl ClientChunk {
                 let h = quad.height();
                 let xyz = MASK_XYZ & quad.0;
                 let [x, y, z] = quad.xyz();
-                let block = self.palette[voxel_i];
-                let neighbor_block = self.palette[voxels[linearize(
+                let block = self.palette()[voxel_i];
+                let neighbor_block = self.palette()[voxels[linearize(
                     (offset[0] + x as i32 + 1) as usize,
                     (offset[1] + y as i32 + 1) as usize,
                     (offset[2] + z as i32 + 1) as usize,
