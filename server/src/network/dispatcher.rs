@@ -5,7 +5,7 @@
 
 use crate::network::broadcast_world::ChunkBroadcastPlugin;
 use bevy::prelude::*;
-use bevy::log::{debug, info};
+use bevy::log::info;
 use bevy_renet::renet::{RenetServer, ServerEvent};
 
 /// Plugin that sets up the core server network functionality
@@ -20,7 +20,7 @@ impl Plugin for ServerNetworkPlugin {
 
 /// Handle basic server events (connections/disconnections)
 fn handle_server_events(
-    mut server_events: EventReader<ServerEvent>,
+    mut server_events: MessageReader<ServerEvent>,
     _server: ResMut<RenetServer>,
 ) {
     for event in server_events.read() {

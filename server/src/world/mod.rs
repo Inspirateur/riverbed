@@ -17,7 +17,7 @@ pub struct TerrainLoadPlugin;
 impl Plugin for TerrainLoadPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
 		app
-			.add_event::<ColUnloadEvent>()
+			.add_message::<ColUnloadEvent>()
 			.insert_resource(BlockEntities::default())
 			.add_systems(Startup, setup_load_thread)
 			.add_systems(Update, send_player_pos_update)
