@@ -28,6 +28,12 @@ pub const WALK_SPEED: f32 = 7.0;
 pub const FLY_SPEED: f32 = 500.0;
 pub const FLY_VERTICAL_SPEED: f32 = 100.0;
 
+// Player spawn position (shared between client and server)
+pub const DEFAULT_SPAWN_POSITION: Vec3 = Vec3::new(280., 500., -150.);
+
+// Re-export physics constants for convenience
+pub use physics::{PLAYER_GRAVITY, PLAYER_JUMP_FORCE, PLAYER_AABB, ACC_MULT};
+
 // Error message constants
 pub const UNIX_EPOCH_TIME_ERROR: &str = "System time is before UNIX_EPOCH";
 pub const SOCKET_LOCAL_ADDR_ERROR: &str = "Failed to retrieve local address for UDP socket";

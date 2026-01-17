@@ -6,9 +6,9 @@
 use bevy::prelude::Vec3;
 
 use crate::block::Block;
-use crate::world::pos::pos3d::BlockPos;
+use crate::world::pos::pos3d::{BlockPos, ChunkPos};
 use crate::world::realm::Realm;
-use crate::world::BlockRayCastHit;
+use crate::world::{BlockRayCastHit, Y_CHUNKS};
 
 /// Trait for types that provide block access in a voxel world.
 ///
@@ -17,6 +17,28 @@ use crate::world::BlockRayCastHit;
 pub trait BlockAccess {
     /// Get a block at the given position, returning Air for out-of-bounds or unloaded chunks.
     fn get_block_safe(&self, pos: BlockPos) -> Block;
+
+    /// Check if a chunk at the given position exists/is loaded.
+    /// Used by physics to skip simulation when chunks aren't loaded.
+    fn is_chunk_loaded(&self, chunk_pos: ChunkPos) -> bool;
+
+    /// Check if a column (vertical stack of chunks) is loaded at the player position.
+    /// Returns true if any chunk in the column is loaded.
+    fn is_col_loaded(&self, player_pos: Vec3, realm: Realm) -> bool {
+        let (chunk_pos, _): (ChunkPos, _) = <BlockPos>::from((player_pos, realm)).into();
+        for y in (0..Y_CHUNKS as i32).rev() {
+            let chunk = ChunkPos {
+                x: chunk_pos.x,
+                y,
+                z: chunk_pos.z,
+                realm: chunk_pos.realm,
+            };
+            if self.is_chunk_loaded(chunk) {
+                return true;
+            }
+        }
+        false
+    }
 
     /// Perform a raycast against the world, finding the first targetable block.
     ///

@@ -7,11 +7,10 @@ use leafwing_input_manager::prelude::*;
 use shared::{block::Block, items::{InventoryTrait, Item, Stack, item_slots::ItemHolder, new_inventory}, world::{BlockRayCastHit, realm::Realm}};
 use shared::world::pos::PlayerCol;
 use shared::world::pos::pos2d::ColPos;
-use shared::{WALK_SPEED, FLY_SPEED};
+use shared::{WALK_SPEED, FLY_SPEED, DEFAULT_SPAWN_POSITION, PLAYER_GRAVITY, PLAYER_JUMP_FORCE, PLAYER_AABB};
 use crate::{agents::{AABB, Gravity, Heading, Jumping, Velocity}, sounds::{BlockSoundCD, FootstepCD, on_item_get}, ui::CursorGrabbed};
 
 use super::{block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, FreeFly, Speed, SteppingOn, Walking};
-const SPAWN: Vec3 = Vec3 { x: 280., y: 500., z: -150.};
 pub const HOTBAR_SLOTS: usize = 8;
 
 pub struct PlayerPlugin;
@@ -83,14 +82,14 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
     inventory.try_add(Stack::Some(Item::IronOre, 50));
     commands
         .spawn((
-            Transform {translation: SPAWN, ..default()},
+            Transform {translation: DEFAULT_SPAWN_POSITION, ..default()},
             Visibility::default(),
             realm,
-            Gravity(50.),
+            Gravity(PLAYER_GRAVITY),
             Heading(Vec3::default()),
             Speed(WALK_SPEED),
-            Jumping {force: 13., cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
-            AABB(Vec3::new(0.5, 1.7, 0.5)),
+            Jumping {force: PLAYER_JUMP_FORCE, cd: Timer::new(Duration::from_millis(500), TimerMode::Once), intent: false},
+            AABB(PLAYER_AABB),
             Velocity(Vec3::default()),
             TargetBlock(None),
             ItemHolder::Inventory(inventory),

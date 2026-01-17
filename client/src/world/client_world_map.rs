@@ -15,7 +15,6 @@ use shared::{
             pos2d::ColPos,
             pos3d::{BlockPos, ChunkPos},
         },
-        realm::Realm,
     },
 };
 use std::sync::Arc;
@@ -53,23 +52,6 @@ impl ClientWorldMap {
         }
     }
 
-    /// Check if a column is loaded (has any chunks)
-    pub fn is_col_loaded(&self, player_pos: Vec3, realm: Realm) -> bool {
-        let (chunk_pos, _): (ChunkPos, _) = <BlockPos>::from((player_pos, realm)).into();
-        for y in (0..Y_CHUNKS as i32).rev() {
-            let chunk = ChunkPos {
-                x: chunk_pos.x,
-                y,
-                z: chunk_pos.z,
-                realm: chunk_pos.realm,
-            };
-            if self.chunks.contains_key(&chunk) {
-                return true;
-            }
-        }
-        false
-    }
-
     /// Insert or update a chunk (called when receiving data from server)
     pub fn insert_chunk(&self, chunk_pos: ChunkPos, chunk: ClientChunk) {
         self.chunks.insert(chunk_pos, RwLock::new(chunk));
@@ -102,6 +84,10 @@ impl BlockAccess for ClientWorldMap {
         } else {
             self.get_block(pos)
         }
+    }
+
+    fn is_chunk_loaded(&self, chunk_pos: ChunkPos) -> bool {
+        self.chunks.contains_key(&chunk_pos)
     }
 }
 

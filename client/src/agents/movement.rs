@@ -1,6 +1,6 @@
 use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
-use shared::world::{pos::pos3d::BlockPos, realm::Realm};
+use shared::world::{pos::pos3d::BlockPos, realm::Realm, BlockAccess};
 use shared::FLY_VERTICAL_SPEED;
 use crate::Block;
 use crate::world::ClientWorldMap;

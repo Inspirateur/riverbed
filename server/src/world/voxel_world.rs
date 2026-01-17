@@ -1,8 +1,8 @@
-use bevy::prelude::{Resource, Vec3};
+use bevy::prelude::Resource;
 use crossbeam::channel::Sender;
 use crossbeam_skiplist::{map::Entry, SkipMap};
 use parking_lot::RwLock;
-use shared::{block::{Block, Face}, world::{BlockAccess, CHUNK_S1, CHUNKP_S1, MAX_HEIGHT, Y_CHUNKS, chunk::Chunk, pos::{chunked, pos2d::{BlockPos2d, ColPos, ColedPos, chunks_in_col}, pos3d::{BlockPos, ChunkPos, ChunkedPos}}, realm::Realm}};
+use shared::{block::{Block, Face}, world::{BlockAccess, CHUNK_S1, CHUNKP_S1, MAX_HEIGHT, Y_CHUNKS, chunk::Chunk, pos::{chunked, pos2d::{BlockPos2d, ColPos, ColedPos, chunks_in_col}, pos3d::{BlockPos, ChunkPos, ChunkedPos}}}};
 use std::sync::Arc;
 
 
@@ -103,22 +103,6 @@ impl VoxelWorld {
             }
         }
         (Block::Air, 0)
-    }
-
-    pub fn is_col_loaded(&self, player_pos: Vec3, realm: Realm) -> bool {
-        let (chunk_pos, _): (ChunkPos, _) = <BlockPos>::from((player_pos, realm)).into();
-        for y in (0..Y_CHUNKS as i32).rev() {
-            let chunk = ChunkPos {
-                x: chunk_pos.x,
-                y,
-                z: chunk_pos.z,
-                realm: chunk_pos.realm,
-            };
-            if self.chunks.contains_key(&chunk) {
-                return true;
-            }
-        }
-        false
     }
 
     fn sync_padding_info(&self, chunk: &Entry<ChunkPos, RwLock<Chunk>>, chunk_pos: ChunkPos, face: Face, send_change: bool) {
@@ -231,6 +215,10 @@ impl BlockAccess for VoxelWorld {
         } else {
             self.get_block(pos)
         }
+    }
+
+    fn is_chunk_loaded(&self, chunk_pos: ChunkPos) -> bool {
+        self.chunks.contains_key(&chunk_pos)
     }
 }
 

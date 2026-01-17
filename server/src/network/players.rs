@@ -14,7 +14,8 @@ use crate::world::voxel_world::VoxelWorld;
 use super::dispatcher::NetworkPlayer;
 use super::extensions::SendGameMessageExtension;
 
-pub const DEFAULT_SPAWN_POSITION: Vec3 = Vec3::new(280., 500., -150.);
+// Re-export from shared for backward compatibility
+pub use shared::DEFAULT_SPAWN_POSITION;
 
 /// Server-side physics state for a player entity
 #[derive(Component, Debug, Clone)]
