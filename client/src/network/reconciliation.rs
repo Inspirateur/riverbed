@@ -24,16 +24,19 @@ use crate::network::CurrentPlayerProfile;
 use shared::net::input_history::InputHistory;
 use crate::world::ClientWorldMap;
 
-/// Threshold for position correction. If the difference between client and server
-/// position is less than this, we don't correct (to avoid jitter from floating point).
-pub const POSITION_CORRECTION_THRESHOLD: f32 = 0.01;
+/// Threshold for position correction. If the difference between predicted and actual
+/// client position is less than this, we don't correct (to avoid jitter).
+/// This should be small enough to catch real drift but large enough to ignore
+/// floating point / timing differences.
+pub const POSITION_CORRECTION_THRESHOLD: f32 = 0.05;
 
 /// Maximum allowed position error before we force a hard snap (teleport).
 /// Below this threshold, we interpolate smoothly.
 pub const HARD_SNAP_THRESHOLD: f32 = 5.0;
 
-/// Interpolation factor for smooth corrections (0.0 = no correction, 1.0 = instant snap)
-pub const CORRECTION_LERP_FACTOR: f32 = 0.3;
+/// Interpolation factor for smooth corrections (0.0 = no correction, 1.0 = instant snap).
+/// Lower values = smoother but slower correction. Higher values = faster but more visible.
+pub const CORRECTION_LERP_FACTOR: f32 = 0.15;
 
 /// Plugin for client-side reconciliation
 pub struct ReconciliationPlugin;
@@ -88,32 +91,35 @@ pub fn reconcile_player_state(
             continue;
         };
 
-        // Calculate position difference
-        let position_diff = event.position - transform.translation;
-        let position_error = position_diff.length();
-
-        // Determine the final movement mode by replaying unacknowledged inputs.
-        // This is necessary because the server state may not yet reflect toggle
-        // actions that the client has sent but not been acknowledged.
-        let final_movement_mode = if input_history.unacknowledged.is_empty() {
-            // No unacked inputs, server state is authoritative
-            event.movement_mode
-        } else {
-            // Replay unacked inputs to determine predicted movement mode
-            let mut mode = event.movement_mode;
-            for input in input_history.unacknowledged.iter() {
-                if input.inputs.contains(&shared::messages::TransmittableAction::ToggleFlyMode) {
-                    mode = match mode {
-                        MovementMode::Walking => MovementMode::Flying,
-                        MovementMode::Flying => MovementMode::Walking,
-                    };
-                }
-            }
-            mode
+        // Start from server's authoritative state and replay all unacknowledged inputs
+        // to compute where the client SHOULD be if prediction was perfect.
+        let mut predicted_state = PhysicsState {
+            position: event.position,
+            velocity: event.velocity,
+            movement_mode: event.movement_mode,
+            realm: *realm,
+            on_ground: false,
         };
 
-        // Update ECS components to match the predicted movement mode (after replay)
-        let predicted_is_flying = final_movement_mode == MovementMode::Flying;
+        // Replay all unacknowledged inputs to get predicted position
+        for input in input_history.unacknowledged.iter() {
+            let delta_seconds = input.delta_ms as f32 / 1000.0;
+            let step = apply_player_input_step(
+                &*world,
+                &predicted_state,
+                &input.inputs,
+                &input.camera,
+                delta_seconds,
+            );
+
+            predicted_state.position = step.position;
+            predicted_state.velocity = step.velocity;
+            predicted_state.movement_mode = step.movement_mode;
+            predicted_state.on_ground = step.on_ground;
+        }
+
+        // Update ECS movement mode components based on predicted state (after replay)
+        let predicted_is_flying = predicted_state.movement_mode == MovementMode::Flying;
         let client_is_flying = free_fly_opt.is_some();
         
         if predicted_is_flying != client_is_flying {
@@ -127,59 +133,35 @@ pub fn reconcile_player_state(
             info!("Movement mode corrected: flying={}", predicted_is_flying);
         }
 
+        // Now compare the PREDICTED position (after replay) with the client's current position.
+        // If prediction is accurate, these should be very close, and no correction is needed.
+        // This is the key insight: we compare post-replay prediction, not raw server state.
+        let position_error = (predicted_state.position - transform.translation).length();
+
         if position_error < POSITION_CORRECTION_THRESHOLD {
-            // Position is close enough, no correction needed
-            // Just update velocity to match server (helps with prediction)
-            velocity.0 = event.velocity;
+            // Prediction is accurate - no position correction needed
+            // Just sync velocity to keep future predictions accurate
+            velocity.0 = predicted_state.velocity;
             continue;
         }
 
         if position_error > HARD_SNAP_THRESHOLD {
-            // Large error - hard snap to server position
+            // Large error - hard snap to predicted position
             warn!(
-                "Large position error ({:.2}m), hard snapping to server position",
+                "Large position error ({:.2}m), hard snapping to predicted position",
                 position_error
             );
-            transform.translation = event.position;
-            velocity.0 = event.velocity;
+            transform.translation = predicted_state.position;
+            velocity.0 = predicted_state.velocity;
         } else {
-            // Small error - apply correction and replay unacknowledged inputs
+            // Small error - smoothly correct toward predicted position
+            // Using lerp reduces visual jitter while still correcting drift
             debug!(
-                "Position error: {:.3}m, replaying {} unacked inputs",
+                "Position error: {:.3}m (predicted vs actual), applying smooth correction",
                 position_error,
-                input_history.unacknowledged.len()
             );
-
-            // Start from server's authoritative state
-            let mut corrected_state = PhysicsState {
-                position: event.position,
-                velocity: event.velocity,
-                movement_mode: event.movement_mode,
-                realm: *realm,
-                on_ground: false,
-            };
-
-            // Replay all unacknowledged inputs
-            for input in input_history.unacknowledged.iter() {
-                let delta_seconds = input.delta_ms as f32 / 1000.0;
-                let step = apply_player_input_step(
-                    &*world,
-                    &corrected_state,
-                    &input.inputs,
-                    &input.camera,
-                    delta_seconds,
-                );
-
-                corrected_state.position = step.position;
-                corrected_state.velocity = step.velocity;
-                corrected_state.movement_mode = step.movement_mode;
-                corrected_state.on_ground = step.on_ground;
-            }
-
-            // Apply the corrected state with smooth interpolation
-            // This reduces visual jitter while still correcting errors
-            transform.translation = transform.translation.lerp(corrected_state.position, CORRECTION_LERP_FACTOR);
-            velocity.0 = corrected_state.velocity;
+            transform.translation = transform.translation.lerp(predicted_state.position, CORRECTION_LERP_FACTOR);
+            velocity.0 = predicted_state.velocity;
         }
     }
 }
