@@ -22,6 +22,7 @@ impl PartialEq for BlockRayCastHit {
 pub struct VoxelWorld {
     pub chunks: Arc<SkipMap<ChunkPos, RwLock<ServerChunk>>>,
     chunk_changes: Sender<ChunkPos>,
+    pub render_distance: u32,
 }
 
 impl VoxelWorld {
@@ -29,6 +30,7 @@ impl VoxelWorld {
         VoxelWorld {
             chunks: Arc::new(SkipMap::new()),
             chunk_changes,
+            render_distance: 32,
         }
     }
 

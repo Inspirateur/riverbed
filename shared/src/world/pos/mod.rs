@@ -1,5 +1,6 @@
 pub mod pos3d;
 pub mod pos2d;
+pub mod load_area;
 use bevy::math::{I64Vec3, Vec3};
 pub use pos3d::{BlockPos, ChunkPos, ChunkedPos};
 pub use pos2d::{BlockPos2d, ColPos, ColedPos};

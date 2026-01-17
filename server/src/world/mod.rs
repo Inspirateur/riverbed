@@ -1,5 +1,4 @@
 mod chunk;
-mod load_area;
 mod terrain_thread;
 mod serdable_packed_uints;
 mod block_entities;

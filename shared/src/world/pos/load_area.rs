@@ -1,7 +1,9 @@
-use crate::{world::ColPos};
 use bevy::prelude::*;
 use itertools::iproduct;
 use std::ops::RangeInclusive;
+
+use crate::world::pos::ColPos;
+
 
 pub struct PlayerAreaDiff {
     pub exclusive_in_self: Vec<ColPos>,
