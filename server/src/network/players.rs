@@ -3,6 +3,7 @@ use bevy_renet::renet::{ClientId, RenetServer};
 use shared::messages::{
     PlayerId, ClientPlayerInput, ServerPlayerUpdate, ServerToClientMessage, TransmittableAction,
 };
+use shared::{WALK_SPEED, FLY_SPEED};
 use std::collections::HashMap;
 
 use super::dispatcher::NetworkPlayer;
@@ -74,9 +75,6 @@ pub struct PlayerInputsEvent {
     pub client_id: ClientId,
     pub input: ClientPlayerInput,
 }
-
-const WALK_SPEED: f32 = 7.0;
-const FLY_SPEED: f32 = 15.0;
 
 pub fn handle_player_inputs_system(
     mut events: MessageReader<PlayerInputsEvent>,

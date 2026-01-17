@@ -22,6 +22,11 @@ pub const PROTOCOL_ID: u64 = 0;
 pub const TICKS_PER_SECOND: u64 = 20;
 pub const RENDER_DISTANCE: i32 = 32;
 
+// Player movement constants
+pub const WALK_SPEED: f32 = 7.0;
+pub const FLY_SPEED: f32 = 500.0;
+pub const FLY_VERTICAL_SPEED: f32 = 100.0;
+
 // Error message constants
 pub const UNIX_EPOCH_TIME_ERROR: &str = "System time is before UNIX_EPOCH";
 pub const SOCKET_LOCAL_ADDR_ERROR: &str = "Failed to retrieve local address for UDP socket";

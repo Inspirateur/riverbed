@@ -1,9 +1,9 @@
 use bevy::{prelude::*, time::{Time, Timer}};
 use itertools::{iproduct, Itertools};
 use shared::world::{pos::pos3d::BlockPos, realm::Realm};
+use shared::FLY_VERTICAL_SPEED;
 use crate::Block;
 use crate::world::ClientWorldMap;
-const FREE_FLY_Y_SPEED: f32 = 100.;
 const ACC_MULT: f32 = 150.;
 
 pub struct MovementPlugin;
@@ -119,7 +119,7 @@ fn process_jumps(
 
 fn process_freefly(mut query: Query<(&mut Velocity, &Jumping, &Crouching), With<FreeFly>>) {
     for (mut velocity, jumping, crouching) in query.iter_mut() {
-        velocity.0.y = (jumping.intent as i32 - crouching.0 as i32) as f32 * FREE_FLY_Y_SPEED;
+        velocity.0.y = (jumping.intent as i32 - crouching.0 as i32) as f32 * FLY_VERTICAL_SPEED;
     }
 }
 

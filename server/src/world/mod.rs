@@ -12,6 +12,10 @@ pub struct ColUnloadEvent(pub ColPos);
 #[derive(Message)]
 pub struct ChunkChanged(pub ChunkPos);
 
+/// System set for player position tracking, used for ordering constraints
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PlayerPositionTracking;
+
 pub struct TerrainLoadPlugin;
 
 impl Plugin for TerrainLoadPlugin {
@@ -20,8 +24,8 @@ impl Plugin for TerrainLoadPlugin {
 			.add_message::<ColUnloadEvent>()
 			.insert_resource(BlockEntities::default())
 			.add_systems(Startup, setup_load_thread)
-			.add_systems(Update, send_player_pos_update)
-			.add_systems(Update, assign_player_col)
+			// Run position tracking in PostUpdate to ensure all Transform updates have been applied
+			.add_systems(PostUpdate, (assign_player_col, send_player_pos_update).in_set(PlayerPositionTracking))
 			.add_systems(Update, on_unload_col)
 			.add_systems(Update, unload_block_entities)
 		;

@@ -7,12 +7,10 @@ use leafwing_input_manager::prelude::*;
 use shared::{block::Block, items::{InventoryTrait, Item, Stack, item_slots::ItemHolder, new_inventory}, world::{BlockRayCastHit, realm::Realm}};
 use shared::world::pos::PlayerCol;
 use shared::world::pos::pos2d::ColPos;
+use shared::{WALK_SPEED, FLY_SPEED};
 use crate::{agents::{AABB, Gravity, Heading, Jumping, Velocity}, sounds::{BlockSoundCD, FootstepCD, on_item_get}, ui::CursorGrabbed};
 
 use super::{block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, FreeFly, Speed, SteppingOn, Walking};
-
-const WALK_SPEED: f32 = 7.;
-const FREE_FLY_X_SPEED: f32 = 500.;
 const SPAWN: Vec3 = Vec3 { x: 280., y: 500., z: -150.};
 pub const HOTBAR_SLOTS: usize = 8;
 
@@ -164,7 +162,7 @@ fn toggle_fly(
         if dev_command == DevCommand::ToggleFly {
             if walking_opt.is_some() {
                 commands.entity(entity).remove::<Walking>().insert(FreeFly);
-                speed.0 = FREE_FLY_X_SPEED;
+                speed.0 = FLY_SPEED;
             } else {
                 commands.entity(entity).remove::<FreeFly>().insert(Walking);
                 speed.0 = WALK_SPEED;
