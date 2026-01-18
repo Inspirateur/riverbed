@@ -49,12 +49,6 @@ impl ChunkSendTracker {
     pub fn remove_client(&mut self, client_id: ClientId) {
         self.sent_chunks.remove(&client_id);
     }
-
-    pub fn invalidate_column(&mut self, column: &ColPos) {
-        for chunk_position in chunks_in_col(column) {
-            self.invalidate_chunk(&chunk_position);
-        }
-    }
 }
 
 #[derive(Resource)]

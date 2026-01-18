@@ -9,10 +9,6 @@ use shared::{
 pub trait SendGameMessageExtension {
     fn send_game_message(&mut self, client_id: ClientId, message: ServerToClientMessage);
     fn broadcast_game_message(&mut self, message: ServerToClientMessage);
-    fn receive_game_message(
-        &mut self,
-        client_id: ClientId,
-    ) -> Option<Result<ClientToServerMessage, Box<ErrorKind>>>;
     fn receive_game_message_by_channel(
         &mut self,
         client_id: ClientId,
@@ -40,14 +36,6 @@ impl SendGameMessageExtension for RenetServer {
         channel: u8,
     ) -> Option<Result<ClientToServerMessage, Box<ErrorKind>>> {
         codec::server_receive_by_channel(self, client_id, channel)
-    }
-
-    fn receive_game_message(
-        &mut self,
-        client_id: ClientId,
-    ) -> Option<Result<ClientToServerMessage, Box<ErrorKind>>> {
-        let channels = get_customized_client_to_server_channels();
-        codec::server_receive_any(self, client_id, &channels)
     }
 
     fn receive_game_message_except_channel(
