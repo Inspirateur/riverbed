@@ -13,7 +13,7 @@
 //!    - If mismatch, snap to server state and replay unacknowledged inputs
 
 use bevy::prelude::*;
-use shared::messages::ServerPlayerUpdate;
+use shared::messages::ServerToClientPlayerUpdate;
 use shared::physics::{player_step::apply_player_input_step, MovementMode, PhysicsState};
 use shared::world::realm::Realm;
 
@@ -26,11 +26,11 @@ use shared::net::input_history::InputHistory;
 /// client position is less than this, we don't correct (to avoid jitter).
 /// This should be small enough to catch real drift but large enough to ignore
 /// floating point / timing differences.
-pub const POSITION_CORRECTION_THRESHOLD: f32 = 0.05;
+pub const POSITION_ERROR_IGNORE_THRESHOLD_METERS: f32 = 0.05;
 
 /// Maximum allowed position error before we force a hard snap (teleport).
 /// Below this threshold, we interpolate smoothly.
-pub const HARD_SNAP_THRESHOLD: f32 = 2.0;
+pub const POSITION_ERROR_HARD_SNAP_THRESHOLD_METERS: f32 = 2.0;
 
 /// Interpolation factor for smooth corrections (0.0 = no correction, 1.0 = instant snap).
 /// Lower values = smoother but slower correction. Higher values = faster but more visible.
@@ -53,7 +53,7 @@ impl Plugin for ReconciliationPlugin {
 /// 2. If there's a significant mismatch, correct our position
 /// 3. Replay any inputs that the server hasn't acknowledged yet
 pub fn reconcile_player_state(
-    mut ev_update: MessageReader<ServerPlayerUpdate>,
+    mut ev_update: MessageReader<ServerToClientPlayerUpdate>,
     mut player_query: Query<
         (&mut Transform, &mut Velocity, &Realm, Option<&FreeFly>),
         With<PlayerControlled>,
@@ -136,14 +136,14 @@ pub fn reconcile_player_state(
         // This is the key insight: we compare post-replay prediction, not raw server state.
         let position_error = (predicted_state.position - transform.translation).length();
 
-        if position_error < POSITION_CORRECTION_THRESHOLD {
+        if position_error < POSITION_ERROR_IGNORE_THRESHOLD_METERS {
             // Prediction is accurate - no position correction needed
             // Just sync velocity to keep future predictions accurate
             velocity.0 = predicted_state.velocity;
             continue;
         }
 
-        if position_error > HARD_SNAP_THRESHOLD {
+        if position_error > POSITION_ERROR_HARD_SNAP_THRESHOLD_METERS {
             // Large error - hard snap to predicted position
             warn!(
                 "Large position error ({:.2}m), hard snapping to predicted position",

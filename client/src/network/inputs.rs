@@ -74,8 +74,8 @@ pub fn update_frame_inputs_system(
     }
 
     if let Ok((player_transform, velocity)) = player.single() {
-        frame_inputs.0.position = player_transform.translation;
-        frame_inputs.0.velocity = velocity.0;
+        frame_inputs.0.predicted_position = player_transform.translation;
+        frame_inputs.0.predicted_velocity = velocity.0;
     }
 
     frame_inputs.0.hotbar_slot = selected_slot.0 as u32;

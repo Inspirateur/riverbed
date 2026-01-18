@@ -1,9 +1,9 @@
 use bevy::{platform::collections::HashSet, prelude::*};
-use shared::messages::ClientPlayerInput;
+use shared::messages::ClientToServerPlayerInput;
 use shared::net::clock::TickClock;
 
 #[derive(Resource, Default)]
-pub struct CurrentFrameInputs(pub ClientPlayerInput);
+pub struct CurrentFrameInputs(pub ClientToServerPlayerInput);
 
 pub trait CurrentFrameInputsExt {
     fn reset(&mut self, time: u64, delta: u64);
@@ -11,13 +11,13 @@ pub trait CurrentFrameInputsExt {
 
 impl CurrentFrameInputsExt for CurrentFrameInputs {
     fn reset(&mut self, new_time: u64, new_delta: u64) {
-        self.0 = ClientPlayerInput {
+        self.0 = ClientToServerPlayerInput {
             time_ms: new_time,
             delta_ms: new_delta,
             inputs: HashSet::default(),
             camera: Transform::default(),
-            position: Vec3::default(),
-            velocity: Vec3::default(),
+            predicted_position: Vec3::default(),
+            predicted_velocity: Vec3::default(),
             hotbar_slot: 0,
         };
     }

@@ -13,18 +13,18 @@ pub type PlayerId = u64;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ClientToServerMessage {
-    AuthRegisterRequest(AuthRegisterRequest),
+    AuthRequest(ClientToServerAuthRequest),
     Exit,
-    PlayerInputs(Vec<ClientPlayerInput>),
+    PlayerInputs(Vec<ClientToServerPlayerInput>),
     SaveWorldRequest,
-    BlockInteraction(ClientBlockInteraction),
+    BlockInteraction(ClientToServerBlockInteraction),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ServerToClientMessage {
-    AuthRegisterResponse(AuthRegisterResponse),
-    WorldUpdate(ServerWorldUpdate),
-    PlayerSpawn(ServerPlayerSpawn),
-    PlayerUpdate(ServerPlayerUpdate),
+    AuthResponse(ServerToClientAuthResponse),
+    WorldUpdate(ServerToClientWorldUpdate),
+    PlayerSpawn(ServerToClientPlayerSpawn),
+    PlayerUpdate(ServerToClientPlayerUpdate),
     LogEvents(Vec<LogEvent>),
 }

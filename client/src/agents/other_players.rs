@@ -9,7 +9,7 @@
 //! in client/src/network/reconciliation.rs
 
 use bevy::prelude::*;
-use shared::messages::{PlayerId, ServerPlayerSpawn, ServerPlayerUpdate};
+use shared::messages::{PlayerId, ServerToClientPlayerSpawn, ServerToClientPlayerUpdate};
 
 use crate::network::CurrentPlayerProfile;
 
@@ -32,7 +32,7 @@ impl Plugin for OtherPlayersPlugin {
 /// System to spawn entities for other players when they join
 fn spawn_other_players(
     mut commands: Commands,
-    mut ev_spawn: MessageReader<ServerPlayerSpawn>,
+    mut ev_spawn: MessageReader<ServerToClientPlayerSpawn>,
     current_player: Res<CurrentPlayerProfile>,
     existing_players: Query<&OtherPlayer>,
 ) {
@@ -69,7 +69,7 @@ fn spawn_other_players(
 /// Note: Local player updates are handled by the reconciliation system
 /// in the network module, not here.
 fn update_other_players(
-    mut ev_update: MessageReader<ServerPlayerUpdate>,
+    mut ev_update: MessageReader<ServerToClientPlayerUpdate>,
     mut other_players: Query<(&OtherPlayer, &mut Transform)>,
     current_player: Res<CurrentPlayerProfile>,
 ) {

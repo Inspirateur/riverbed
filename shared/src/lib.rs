@@ -155,7 +155,7 @@ pub trait ChannelResolvableExt {
 impl ChannelResolvableExt for ClientToServerMessage {
     fn get_channel_id(&self) -> u8 {
         match self {
-            ClientToServerMessage::AuthRegisterRequest(_) => CTS_AUTH_CHANNEL,
+            ClientToServerMessage::AuthRequest(_) => CTS_AUTH_CHANNEL,
             _ => CTS_STANDARD_CHANNEL,
         }
     }
@@ -165,7 +165,7 @@ impl ChannelResolvableExt for ServerToClientMessage {
     fn get_channel_id(&self) -> u8 {
         match self {
             ServerToClientMessage::WorldUpdate(_) => STC_CHUNK_DATA_CHANNEL,
-            ServerToClientMessage::AuthRegisterResponse(_) => STC_AUTH_CHANNEL,
+            ServerToClientMessage::AuthResponse(_) => STC_AUTH_CHANNEL,
             ServerToClientMessage::LogEvents(_) => STC_LOG_EVENTS_CHANNEL,
             _ => STC_STANDARD_CHANNEL,
         }

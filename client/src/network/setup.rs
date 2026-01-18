@@ -15,8 +15,8 @@ use crate::network::world::update_world_from_network;
 use crate::render::MeshOrderSender;
 use crate::world::ClientWorldMap;
 use shared::messages::{
-    AuthRegisterRequest, PlayerId, ServerItemStackUpdate, ServerPlayerSpawn, ServerPlayerUpdate,
-    ServerToClientMessage,
+    ClientToServerAuthRequest, PlayerId, ServerToClientItemStackUpdate, ServerToClientMessage,
+    ServerToClientPlayerSpawn, ServerToClientPlayerUpdate,
 };
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -173,9 +173,9 @@ pub fn poll_network_messages(
     mut client: ResMut<RenetClient>,
     world_map: Option<Res<ClientWorldMap>>,
     mesh_order_sender: Option<Res<MeshOrderSender>>,
-    mut ev_player_spawn: MessageWriter<ServerPlayerSpawn>,
-    mut ev_item_stacks_update: MessageWriter<ServerItemStackUpdate>,
-    mut ev_player_update: MessageWriter<ServerPlayerUpdate>,
+    mut ev_player_spawn: MessageWriter<ServerToClientPlayerSpawn>,
+    mut ev_item_stacks_update: MessageWriter<ServerToClientItemStackUpdate>,
+    mut ev_player_update: MessageWriter<ServerToClientPlayerUpdate>,
     mut ev_log_events: MessageWriter<LogEvent>,
 ) {
     update_world_from_network(
@@ -255,7 +255,7 @@ pub fn establish_authenticated_connection_to_server(
     mut client: ResMut<RenetClient>,
     mut target: ResMut<TargetServer>,
     current_profile: Res<CurrentPlayerProfile>,
-    mut ev_spawn: MessageWriter<ServerPlayerSpawn>,
+    mut ev_spawn: MessageWriter<ServerToClientPlayerSpawn>,
     mut server_tick: ResMut<ServerTickAtConnect>,
     mut world_seed: ResMut<WorldSeed>,
     mut sync_time: ResMut<SyncTime>,
@@ -271,7 +271,7 @@ pub fn establish_authenticated_connection_to_server(
 
         let username = target.username.as_ref().unwrap();
 
-        let auth_request = AuthRegisterRequest {
+        let auth_request = ClientToServerAuthRequest {
             username: username.clone(),
         };
         info!("Sending auth request: {:?}", auth_request);
@@ -281,7 +281,7 @@ pub fn establish_authenticated_connection_to_server(
 
     while let Some(Ok(message)) = client.receive_game_message_by_channel(STC_AUTH_CHANNEL) {
         match message {
-            ServerToClientMessage::AuthRegisterResponse(response) => {
+            ServerToClientMessage::AuthResponse(response) => {
                 let username = response.username.clone();
                 target.username = Some(response.username);
                 target.session_token = Some(response.session_token);

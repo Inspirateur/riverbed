@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer};
-use shared::messages::{ClientPlayerInput, PlayerId, ServerPlayerUpdate, ServerToClientMessage};
+use shared::messages::{
+    ClientToServerPlayerInput, PlayerId, ServerToClientMessage, ServerToClientPlayerUpdate,
+};
 use shared::physics::{player_step::apply_player_input_step, MovementMode, PhysicsState};
 use shared::world::realm::Realm;
 use std::collections::HashMap;
@@ -30,14 +32,8 @@ impl Default for ServerPhysicsState {
     }
 }
 
-/// The client's self-reported predicted position.
-///
-/// This is used for chunk streaming to ensure the client receives chunks
-/// for where it *thinks* it is (after client-side prediction), not just
-/// where the server's authoritative simulation says it is. This prevents
-/// gaps in terrain when the client moves faster than the server can process.
 #[derive(Component, Debug, Clone, Default)]
-pub struct ClientPredictedPosition(pub Vec3);
+pub struct ClientReportedPredictedPosition(pub Vec3);
 
 #[derive(Debug, Clone)]
 pub struct ServerPlayer {
@@ -99,7 +95,7 @@ impl PlayerRegistry {
 #[derive(Message, Debug)]
 pub struct PlayerInputsEvent {
     pub client_id: ClientId,
-    pub input: ClientPlayerInput,
+    pub input: ClientToServerPlayerInput,
 }
 
 /// Server-authoritative player input handling system.
@@ -114,7 +110,7 @@ pub fn handle_player_inputs_system(
         &NetworkPlayer,
         &mut Transform,
         &mut ServerPhysicsState,
-        &mut ClientPredictedPosition,
+        &mut ClientReportedPredictedPosition,
         &Realm,
     )>,
     world: Res<VoxelWorld>,
@@ -144,10 +140,7 @@ pub fn handle_player_inputs_system(
             continue;
         };
 
-        // Always update the client's predicted position for chunk streaming,
-        // even if this input is stale. This ensures we stream chunks to where
-        // the client thinks it is.
-        predicted_pos.0 = ev.input.position;
+        predicted_pos.0 = ev.input.predicted_position;
 
         // Drop stale/duplicate inputs based on last processed timestamp.
         if ev.input.time_ms <= player.last_input_processed {
@@ -200,7 +193,7 @@ pub fn broadcast_player_updates_system(
                 MovementMode::Walking,
             ));
 
-        let update = ServerPlayerUpdate {
+        let update = ServerToClientPlayerUpdate {
             id: player.id,
             position,
             velocity,

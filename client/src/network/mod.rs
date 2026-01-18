@@ -14,7 +14,9 @@ pub use setup::*;
 
 use bevy::prelude::*;
 use shared::logging::logging::LogEvent;
-use shared::messages::{ServerItemStackUpdate, ServerPlayerSpawn, ServerPlayerUpdate};
+use shared::messages::{
+    ServerToClientItemStackUpdate, ServerToClientPlayerSpawn, ServerToClientPlayerUpdate,
+};
 
 use crate::network::buffered_client::{CurrentFrameInputs, SyncTime};
 use crate::ui::CursorGrabbed;
@@ -36,9 +38,9 @@ impl Plugin for NetworkPlugin {
             .init_resource::<WorldSeed>();
 
         // Register network messages/events
-        app.add_message::<ServerPlayerSpawn>()
-            .add_message::<ServerPlayerUpdate>()
-            .add_message::<ServerItemStackUpdate>()
+        app.add_message::<ServerToClientPlayerSpawn>()
+            .add_message::<ServerToClientPlayerUpdate>()
+            .add_message::<ServerToClientItemStackUpdate>()
             .add_message::<ExitRequestEvent>()
             .add_message::<LogEvent>();
 

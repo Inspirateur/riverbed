@@ -1,23 +1,23 @@
 use bevy::platform::collections::HashSet;
 use bevy::prelude::Resource;
 
-use crate::messages::ClientPlayerInput;
+use crate::messages::ClientToServerPlayerInput;
 
 /// Tracks pending and unacknowledged input frames for a client.
 #[derive(Debug, Default, Clone, Resource)]
 pub struct InputHistory {
-    pending: Vec<ClientPlayerInput>,
-    pub unacknowledged: Vec<ClientPlayerInput>,
+    pending: Vec<ClientToServerPlayerInput>,
+    pub unacknowledged: Vec<ClientToServerPlayerInput>,
 }
 
 impl InputHistory {
     /// Add a frame to the pending queue.
-    pub fn push_frame(&mut self, input: ClientPlayerInput) {
+    pub fn push_frame(&mut self, input: ClientToServerPlayerInput) {
         self.pending.push(input);
     }
 
     /// Move pending frames into a vector for transmission and mark them as unacked.
-    pub fn take_pending(&mut self) -> Vec<ClientPlayerInput> {
+    pub fn take_pending(&mut self) -> Vec<ClientToServerPlayerInput> {
         let frames = std::mem::take(&mut self.pending);
         self.unacknowledged.extend(frames.clone());
         frames
@@ -39,9 +39,12 @@ impl InputHistory {
 
 /// Deduplicate and order inputs, dropping any at or before `last_processed`.
 /// Returns a new Vec sorted by time_ms with unique timestamps.
-pub fn dedup_after(inputs: &[ClientPlayerInput], last_processed: u64) -> Vec<ClientPlayerInput> {
+pub fn dedup_after(
+    inputs: &[ClientToServerPlayerInput],
+    last_processed: u64,
+) -> Vec<ClientToServerPlayerInput> {
     let mut seen = HashSet::new();
-    let mut out: Vec<ClientPlayerInput> = inputs
+    let mut out: Vec<ClientToServerPlayerInput> = inputs
         .iter()
         .filter(|i| i.time_ms > last_processed)
         .filter(|i| seen.insert(i.time_ms))

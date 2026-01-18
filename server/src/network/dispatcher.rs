@@ -1,15 +1,17 @@
 use crate::network::block_interactions::{handle_block_interactions, BlockInteractionEvent};
-use crate::network::broadcast_world::{ChunkBroadcastPlugin, ChunkSendTracker, ServerTick};
+use crate::network::broadcast_world::{
+    ChunkBroadcastPlugin, ServerTick, ServerToClientChunkDeliveryTracker,
+};
 use crate::network::players::{
-    broadcast_player_updates_system, handle_player_inputs_system, ClientPredictedPosition,
+    broadcast_player_updates_system, handle_player_inputs_system, ClientReportedPredictedPosition,
     PlayerInputsEvent, PlayerRegistry, ServerPhysicsState,
 };
 use bevy::log::info;
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer, ServerEvent};
 use shared::messages::{
-    AuthRegisterRequest, AuthRegisterResponse, ClientToServerMessage, PlayerSave,
-    ServerPlayerSpawn, ServerToClientMessage,
+    ClientToServerAuthRequest, ClientToServerMessage, PlayerSave, ServerToClientAuthResponse,
+    ServerToClientMessage, ServerToClientPlayerSpawn,
 };
 use shared::net::clock;
 use shared::physics::MovementMode;
@@ -21,9 +23,9 @@ use shared::CTS_AUTH_CHANNEL;
 use super::extensions::SendGameMessageExtension;
 
 #[derive(Message, Debug)]
-pub struct AuthRegisterEvent {
+pub struct IncomingAuthRequestEvent {
     pub client_id: ClientId,
-    pub request: AuthRegisterRequest,
+    pub request: ClientToServerAuthRequest,
 }
 
 #[derive(Component)]
@@ -40,8 +42,8 @@ impl Plugin for ServerNetworkPlugin {
         app.init_resource::<PlayerRegistry>();
         app.add_message::<PlayerInputsEvent>();
         app.add_message::<BlockInteractionEvent>();
-        app.add_message::<AuthRegisterEvent>();
-        app.add_message::<PlayerExitEvent>();
+        app.add_message::<IncomingAuthRequestEvent>();
+        app.add_message::<ClientDisconnectRequestEvent>();
 
         app.add_systems(Update, handle_server_events);
 
@@ -87,8 +89,8 @@ fn receive_client_messages(
     mut server: ResMut<RenetServer>,
     mut ev_player_inputs: MessageWriter<PlayerInputsEvent>,
     mut ev_block_interaction: MessageWriter<BlockInteractionEvent>,
-    mut ev_auth: MessageWriter<AuthRegisterEvent>,
-    mut ev_exit: MessageWriter<PlayerExitEvent>,
+    mut ev_auth: MessageWriter<IncomingAuthRequestEvent>,
+    mut ev_exit: MessageWriter<ClientDisconnectRequestEvent>,
 ) {
     for client_id in server.clients_id() {
         // Auth channel
@@ -126,8 +128,8 @@ fn handle_client_message(
     message: ClientToServerMessage,
     ev_player_inputs: &mut MessageWriter<PlayerInputsEvent>,
     ev_block_interaction: &mut MessageWriter<BlockInteractionEvent>,
-    ev_auth: &mut MessageWriter<AuthRegisterEvent>,
-    ev_exit: &mut MessageWriter<PlayerExitEvent>,
+    ev_auth: &mut MessageWriter<IncomingAuthRequestEvent>,
+    ev_exit: &mut MessageWriter<ClientDisconnectRequestEvent>,
 ) {
     match message {
         ClientToServerMessage::PlayerInputs(inputs) => {
@@ -141,31 +143,31 @@ fn handle_client_message(
                 interaction,
             });
         }
-        ClientToServerMessage::AuthRegisterRequest(request) => {
+        ClientToServerMessage::AuthRequest(request) => {
             info!("Auth request from {}: {:?}", client_id, request);
-            ev_auth.write(AuthRegisterEvent { client_id, request });
+            ev_auth.write(IncomingAuthRequestEvent { client_id, request });
         }
         ClientToServerMessage::SaveWorldRequest => {
             info!("Save request from {}", client_id);
         }
         ClientToServerMessage::Exit => {
             info!("Exit request from {}", client_id);
-            ev_exit.write(PlayerExitEvent { client_id });
+            ev_exit.write(ClientDisconnectRequestEvent { client_id });
         }
     }
 }
 
 #[derive(Message, Debug)]
-pub struct PlayerExitEvent {
+pub struct ClientDisconnectRequestEvent {
     pub client_id: ClientId,
 }
 
 fn handle_auth_requests(
     mut commands: Commands,
-    mut ev_auth: MessageReader<AuthRegisterEvent>,
+    mut ev_auth: MessageReader<IncomingAuthRequestEvent>,
     mut server: ResMut<RenetServer>,
     mut registry: ResMut<PlayerRegistry>,
-    mut chunk_tracker: ResMut<ChunkSendTracker>,
+    mut chunk_tracker: ResMut<ServerToClientChunkDeliveryTracker>,
     tick: Res<ServerTick>,
     world_seed: Res<WorldSeed>,
     existing_players: Query<(&NetworkPlayer, &Transform, Option<&ServerPhysicsState>)>,
@@ -212,7 +214,7 @@ fn handle_auth_requests(
             Realm::Overworld,
             NetworkPlayer { client_id },
             ServerPhysicsState::default(),
-            ClientPredictedPosition(spawn_position),
+            ClientReportedPredictedPosition(spawn_position),
         ));
         info!(
             "Spawned ECS entity for player {} at {:?}",
@@ -221,7 +223,7 @@ fn handle_auth_requests(
 
         chunk_tracker.remove_client(client_id);
 
-        let mut all_player_spawns: Vec<ServerPlayerSpawn> = Vec::new();
+        let mut all_player_spawns: Vec<ServerToClientPlayerSpawn> = Vec::new();
 
         for player in registry.players.values().filter(|p| p.is_authenticated) {
             let (position, orientation, is_flying) = if player.id == client_id {
@@ -239,7 +241,7 @@ fn handle_auth_requests(
                     .unwrap_or((DEFAULT_SPAWN_POSITION, Quat::IDENTITY, false))
             };
 
-            all_player_spawns.push(ServerPlayerSpawn {
+            all_player_spawns.push(ServerToClientPlayerSpawn {
                 id: player.id,
                 name: player.name.clone(),
                 data: PlayerSave {
@@ -252,7 +254,7 @@ fn handle_auth_requests(
 
         let timestamp_ms = clock::now_ms();
 
-        let auth_response = AuthRegisterResponse {
+        let auth_response = ServerToClientAuthResponse {
             username: username.clone(),
             session_token: client_id,
             tick: tick.0,
@@ -270,7 +272,7 @@ fn handle_auth_requests(
         server.send_game_message(client_id, auth_response.into());
 
         let new_player = registry.get_player(client_id).unwrap();
-        let spawn_event = ServerPlayerSpawn {
+        let spawn_event = ServerToClientPlayerSpawn {
             id: new_player.id,
             name: new_player.name.clone(),
             data: PlayerSave {
@@ -297,10 +299,10 @@ fn handle_auth_requests(
 }
 
 fn handle_player_exit(
-    mut ev_exit: MessageReader<PlayerExitEvent>,
+    mut ev_exit: MessageReader<ClientDisconnectRequestEvent>,
     mut server: ResMut<RenetServer>,
     mut registry: ResMut<PlayerRegistry>,
-    mut chunk_tracker: ResMut<ChunkSendTracker>,
+    mut chunk_tracker: ResMut<ServerToClientChunkDeliveryTracker>,
     config: Res<GameServerConfig>,
     mut app_exit: MessageWriter<AppExit>,
 ) {

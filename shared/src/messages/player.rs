@@ -28,14 +28,14 @@ pub struct PlayerSave {
 }
 
 #[derive(Message, Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct ServerPlayerSpawn {
+pub struct ServerToClientPlayerSpawn {
     pub id: PlayerId,
     pub name: String,
     pub data: PlayerSave,
 }
 
 #[derive(Message, Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct ServerPlayerUpdate {
+pub struct ServerToClientPlayerUpdate {
     pub id: PlayerId,
     pub position: Vec3,
     pub velocity: Vec3,
@@ -47,14 +47,12 @@ pub struct ServerPlayerUpdate {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct ClientPlayerInput {
+pub struct ClientToServerPlayerInput {
     pub time_ms: u64,
     pub delta_ms: u64,
     pub inputs: HashSet<TransmittableAction>,
     pub camera: Transform,
     pub hotbar_slot: u32,
-    /// Client's predicted position at time of input (for validation)
-    pub position: Vec3,
-    /// Client's current velocity (for physics simulation)
-    pub velocity: Vec3,
+    pub predicted_position: Vec3,
+    pub predicted_velocity: Vec3,
 }

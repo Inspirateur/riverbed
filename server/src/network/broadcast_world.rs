@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_renet::renet::{ClientId, RenetServer};
 use crossbeam::channel::Receiver;
-use shared::messages::{ServerToClientMessage, ServerWorldUpdate};
+use shared::messages::{ServerToClientMessage, ServerToClientWorldUpdate};
 use shared::net::clock;
 use shared::world::chunk::Chunk;
 use shared::world::pos::pos2d::{chunks_in_col, ColPos};
@@ -10,7 +10,7 @@ use shared::world::realm::Realm;
 use std::collections::{HashMap, HashSet};
 
 use crate::network::dispatcher::NetworkPlayer;
-use crate::network::players::{ClientPredictedPosition, PlayerRegistry};
+use crate::network::players::{ClientReportedPredictedPosition, PlayerRegistry};
 use crate::world::voxel_world::VoxelWorld;
 
 use super::extensions::SendGameMessageExtension;
@@ -21,33 +21,33 @@ const MAX_CHUNKS_PER_CLIENT_PER_TICK: usize = 16;
 pub struct ServerTick(pub u64);
 
 #[derive(Resource, Default)]
-pub struct ChunkSendTracker {
-    sent_chunks: HashMap<ClientId, HashSet<ChunkPos>>,
+pub struct ServerToClientChunkDeliveryTracker {
+    delivered_chunks_per_client: HashMap<ClientId, HashSet<ChunkPos>>,
 }
 
-impl ChunkSendTracker {
-    pub fn mark_sent(&mut self, client_id: ClientId, chunk_position: ChunkPos) {
-        self.sent_chunks
+impl ServerToClientChunkDeliveryTracker {
+    pub fn mark_delivered(&mut self, client_id: ClientId, chunk_position: ChunkPos) {
+        self.delivered_chunks_per_client
             .entry(client_id)
             .or_default()
             .insert(chunk_position);
     }
 
-    pub fn was_sent(&self, client_id: ClientId, chunk_position: &ChunkPos) -> bool {
-        self.sent_chunks
+    pub fn was_delivered(&self, client_id: ClientId, chunk_position: &ChunkPos) -> bool {
+        self.delivered_chunks_per_client
             .get(&client_id)
             .map(|chunks| chunks.contains(chunk_position))
             .unwrap_or(false)
     }
 
     pub fn invalidate_chunk(&mut self, chunk_position: &ChunkPos) {
-        for chunks in self.sent_chunks.values_mut() {
+        for chunks in self.delivered_chunks_per_client.values_mut() {
             chunks.remove(chunk_position);
         }
     }
 
     pub fn remove_client(&mut self, client_id: ClientId) {
-        self.sent_chunks.remove(&client_id);
+        self.delivered_chunks_per_client.remove(&client_id);
     }
 }
 
@@ -56,7 +56,7 @@ pub struct ChunkChangesReceiver(pub Receiver<ChunkPos>);
 
 pub fn process_chunk_changes(
     chunk_changes: Option<Res<ChunkChangesReceiver>>,
-    mut tracker: ResMut<ChunkSendTracker>,
+    mut tracker: ResMut<ServerToClientChunkDeliveryTracker>,
 ) {
     let Some(chunk_changes) = chunk_changes else {
         return;
@@ -71,9 +71,9 @@ pub fn broadcast_world_state(
     mut server: ResMut<RenetServer>,
     mut tick: ResMut<ServerTick>,
     world: Res<VoxelWorld>,
-    mut tracker: ResMut<ChunkSendTracker>,
+    mut tracker: ResMut<ServerToClientChunkDeliveryTracker>,
     registry: Res<PlayerRegistry>,
-    player_query: Query<(&NetworkPlayer, &ClientPredictedPosition, &Realm)>,
+    player_query: Query<(&NetworkPlayer, &ClientReportedPredictedPosition, &Realm)>,
 ) {
     tick.0 += 1;
     let render_distance = world.render_distance as i32;
@@ -112,7 +112,7 @@ pub fn broadcast_world_state(
                 };
 
                 for chunk_position in chunks_in_col(&column) {
-                    if tracker.was_sent(client_id, &chunk_position) {
+                    if tracker.was_delivered(client_id, &chunk_position) {
                         continue;
                     }
 
@@ -122,7 +122,7 @@ pub fn broadcast_world_state(
 
                     let chunk = chunk_entry.value().read().clone();
                     chunks_to_send.insert(chunk_position, chunk);
-                    tracker.mark_sent(client_id, chunk_position);
+                    tracker.mark_delivered(client_id, chunk_position);
 
                     if chunks_to_send.len() >= MAX_CHUNKS_PER_CLIENT_PER_TICK {
                         break;
@@ -143,7 +143,7 @@ pub fn broadcast_world_state(
             continue;
         }
 
-        let message = ServerWorldUpdate {
+        let message = ServerToClientWorldUpdate {
             tick: tick.0,
             time: clock::now_ms(),
             new_map: chunks_to_send,
@@ -164,7 +164,7 @@ pub struct ChunkBroadcastPlugin;
 
 impl Plugin for ChunkBroadcastPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<ChunkSendTracker>()
+        app.init_resource::<ServerToClientChunkDeliveryTracker>()
             .init_resource::<ServerTick>()
             .add_systems(
                 Update,

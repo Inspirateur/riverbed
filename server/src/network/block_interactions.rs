@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_renet::renet::ClientId;
-use shared::messages::ClientBlockInteraction;
+use shared::messages::ClientToServerBlockInteraction;
 
 use crate::network::dispatcher::NetworkPlayer;
 use crate::network::players::PlayerRegistry;
@@ -9,7 +9,7 @@ use crate::world::voxel_world::VoxelWorld;
 #[derive(Message, Debug)]
 pub struct BlockInteractionEvent {
     pub client_id: ClientId,
-    pub interaction: ClientBlockInteraction,
+    pub interaction: ClientToServerBlockInteraction,
 }
 
 const MAX_INTERACTION_DISTANCE: f32 = 10.0;
