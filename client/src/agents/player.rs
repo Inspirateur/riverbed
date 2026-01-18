@@ -1,7 +1,6 @@
 use crate::{
     agents::{Velocity, AABB}, 
     sounds::{on_item_get, BlockSoundCD, FootstepCD},
-    ui::CursorGrabbed,
 };
 use bevy::{math::Vec3, prelude::*};
 use leafwing_input_manager::prelude::*;
@@ -12,11 +11,10 @@ use shared::{
     items::{item_slots::ItemHolder, new_inventory, InventoryTrait, Item, Stack},
     world::{realm::Realm, BlockRayCastHit},
 };
-use shared::{DEFAULT_SPAWN_POSITION, PLAYER_AABB, PLAYER_GRAVITY, PLAYER_JUMP_FORCE, WALK_SPEED};
-use std::time::Duration;
+use shared::{DEFAULT_SPAWN_POSITION, PLAYER_AABB};
 
 use super::{
-    block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, FreeFly, SteppingOn,
+    block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, SteppingOn,
     Walking,
 };
 pub const HOTBAR_SLOTS: usize = 8;

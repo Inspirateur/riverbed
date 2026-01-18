@@ -96,7 +96,7 @@ impl VoxelWorld {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         match self.chunks.get(&chunk_pos) {
             None => Block::Air,
-            Some(chunk) => chunk.value().read().get(chunked_pos).clone(),
+            Some(chunk) => *chunk.value().read().get(chunked_pos),
         }
     }
 
@@ -112,7 +112,7 @@ impl VoxelWorld {
             if let Some(chunk) = self.chunks.get(&chunk_pos) {
                 let (&block, block_y) = chunk.value().read().top(pos2d);
                 if block != Block::Air {
-                    return (block.clone(), y * CHUNK_S1 as i32 + block_y as i32);
+                    return (block, y * CHUNK_S1 as i32 + block_y as i32);
                 }
             }
         }

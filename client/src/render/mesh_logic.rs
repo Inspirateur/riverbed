@@ -69,7 +69,7 @@ impl ClientChunk {
         lod: usize,
         chunk_pos: ChunkPos,
     ) -> [Option<Mesh>; 6] {
-        let cy = chunk_pos.y as usize * CHUNK_S1 as usize;
+        let cy = chunk_pos.y as usize * CHUNK_S1;
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let voxels = self.voxel_data_lod(lod);

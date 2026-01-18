@@ -126,7 +126,7 @@ fn build_tex_array(
         TextureFormat::Rgba8Unorm,
         RenderAssetUsages::default(),
     );
-    let model = texture_list.get(0).cloned().unwrap_or(&default);
+    let model = texture_list.first().cloned().unwrap_or(&default);
     let missing_tex = missing_tex(model);
     texture_list.insert(0, &missing_tex);
     let array_tex = Image::new(

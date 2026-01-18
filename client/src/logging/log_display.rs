@@ -37,7 +37,7 @@ impl Plugin for InspectorDisplayPlugin {
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
-        Camera2d::default(),
+        Camera2d,
         InputMap::default().with_axis(CameraMovement::Zoom, MouseScrollAxis::Y),
     ));
     commands.spawn(InputMap::new([
@@ -109,7 +109,7 @@ fn display_chunk_state(
     for (col, &loaded) in load_state.0.iter() {
         let col_isometry = Isometry2d::from_translation(Vec2::new(col.x as f32, col.z as f32));
         if loaded {
-            let count = *mesh_count.0.get(&col).unwrap_or(&0);
+            let count = *mesh_count.0.get(col).unwrap_or(&0);
             if count > 0 {
                 let redness = 1. - (-(count as f32) / 8.).exp();
                 let hue = 120. - redness * 120.;
@@ -139,11 +139,11 @@ fn display_info(
         Single<&mut Text, With<TextColumnMesh>>,
     )>,
 ) {
-    if event_queue.0.len() == 0 || !event_head.is_changed() {
+    if event_queue.0.is_empty() || !event_head.is_changed() {
         return;
     }
     let duration = event_queue.0[**event_head].timestamp - event_queue.0[0].timestamp;
-    let total_meshed = mesh_count.0.values().fold(0, |a, b| a + b);
+    let total_meshed = mesh_count.0.values().sum::<u32>();
     let avg_mesh_count =
         total_meshed as f32 / mesh_count.0.values().filter(|&&v| v > 0).count() as f32;
     let max_mesh_count = *mesh_count.0.values().max().unwrap_or(&0);
@@ -171,7 +171,7 @@ fn time_control(
     mut is_live: ResMut<IsLive>,
     query: Single<&ActionState<TimeControl>>,
 ) {
-    if event_queue.0.len() == 0 {
+    if event_queue.0.is_empty() {
         return;
     }
     let mut time_skipped = true;

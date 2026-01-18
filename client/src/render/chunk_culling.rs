@@ -71,13 +71,13 @@ fn intersects_aabb(frustum: &Frustum, aabb: &Aabb) -> bool {
 
 fn face_visible(from: &I64Vec3, coord: I64Vec3, face: &Face) -> bool {
     let rel_coord = coord - *from;
-    let res = match face {
+    
+    match face {
         Face::Left => rel_coord.x >= 0,
         Face::Down => rel_coord.y >= 0,
         Face::Back => rel_coord.z >= 0,
         Face::Right => rel_coord.x <= 0,
         Face::Up => rel_coord.y <= 0,
         Face::Front => rel_coord.z <= 0,
-    };
-    res
+    }
 }

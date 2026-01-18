@@ -93,7 +93,7 @@ impl Chunk {
                 let value = if let Some(val) = translation[other_value] {
                     val
                 } else {
-                    self.palette.index(other.palette[other_value].clone())
+                    self.palette.index(other.palette[other_value])
                 };
                 self.data.set(self_i, value);
                 self_i += row_step;
@@ -111,10 +111,16 @@ impl From<&[Block]> for Chunk {
         palette.index(Block::Air);
         let values = values
             .iter()
-            .map(|v| palette.index(v.clone()))
+            .map(|v| palette.index(*v))
             .collect_vec();
         let data = SerdablePackedUints(PackedUints::from(values.as_slice()));
         Chunk { data, palette }
+    }
+}
+
+impl Default for Chunk {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -124,7 +130,7 @@ impl Chunk {
         palette.index(Block::Air);
         Chunk {
             data: SerdablePackedUints(PackedUints::new(CHUNKP_S3)),
-            palette: palette,
+            palette,
         }
     }
 }

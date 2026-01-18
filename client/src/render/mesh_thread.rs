@@ -32,7 +32,7 @@ pub fn setup_mesh_thread(
     thread_pool
         .spawn(async move {
             // Busy wait until the texture map is loaded (ugly but only costly on startup)
-            while texture_map.len() == 0 {
+            while texture_map.is_empty() {
                 yield_now()
             }
             let mut mesh_cache: HashSet<ChunkPos> = HashSet::new();
@@ -40,7 +40,7 @@ pub fn setup_mesh_thread(
             'outer: loop {
                 loop {
                     // If mesh_orders is empty, we block on mesh order updates to not waste resources
-                    let chunk_pos = if mesh_orders.len() == 0 {
+                    let chunk_pos = if mesh_orders.is_empty() {
                         let Ok(pos) = mesh_order_receiver.recv() else {
                             warn!("MeshOrder channel is closed, stopping mesh thread");
                             break 'outer;
@@ -56,7 +56,7 @@ pub fn setup_mesh_thread(
                         mesh_orders.push(chunk_pos);
                     }
                 }
-                let player_col = shared_load_area.read_arc().clone();
+                let player_col = *shared_load_area.read_arc();
                 // Pop the closest mesh order
                 let (i, (chunk_pos, dist)) = mesh_orders
                     .iter()
@@ -111,5 +111,5 @@ pub fn update_shared_load_area(
     shared_load_area: Res<SharedPlayerCol>,
 ) {
     let player_col = player_query.0;
-    *shared_load_area.0.write() = player_col.clone();
+    *shared_load_area.0.write() = player_col;
 }

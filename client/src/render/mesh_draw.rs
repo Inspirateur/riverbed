@@ -43,7 +43,7 @@ pub fn choose_lod_level(chunk_dist: u32) -> usize {
     if chunk_dist < 16 {
         return 1;
     }
-    return 2;
+    2
 }
 
 fn mark_lod_remesh(

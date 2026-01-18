@@ -44,7 +44,7 @@ fn footsteps(
             continue;
         };
         commands
-            .spawn((transform.clone(), Visibility::default()))
+            .spawn((*transform, Visibility::default()))
             .insert((
                 AudioPlayer::<AudioSource>(sound.clone()),
                 PlaybackSettings {

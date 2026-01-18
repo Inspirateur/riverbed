@@ -4,12 +4,10 @@
 //! code as the server. This ensures deterministic behavior and minimal drift
 //! during reconciliation.
 
-use bevy::{prelude::*, time::Timer};
-use itertools::iproduct;
+use bevy::prelude::*;
 use shared::physics::get_stepped_block;
 use shared::physics::{player_step::apply_player_input_step, MovementMode, PhysicsState};
-use shared::world::{pos::pos3d::BlockPos, realm::Realm, BlockAccess};
-use shared::{FLY_SPEED, WALK_SPEED};
+use shared::world::realm::Realm;
 
 use crate::network::buffered_client::CurrentFrameInputs;
 use crate::render::FpsCam;

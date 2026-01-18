@@ -64,7 +64,7 @@ impl ClientWorldMap {
         let (chunk_pos, chunked_pos) = <(ChunkPos, _)>::from(pos);
         match self.chunks.get(&chunk_pos) {
             None => Block::Air,
-            Some(chunk) => chunk.value().read().get(chunked_pos).clone(),
+            Some(chunk) => *chunk.value().read().get(chunked_pos),
         }
     }
 

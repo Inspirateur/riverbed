@@ -5,8 +5,8 @@ use std::{
     fmt::Display,
 };
 
-const BLOCK_FAM: &'static str = "BlockFamily";
-const BLOCKS: &'static str = "Block";
+const BLOCK_FAM: &str = "BlockFamily";
+const BLOCKS: &str = "Block";
 
 fn tab(i: u32) -> String {
     (0..i).map(|_| "\t").collect()
@@ -101,7 +101,7 @@ impl MatchFn {
 fn generate_enum<T: Display>(name: &str, variants: &BTreeSet<T>) -> String {
     format!(
         "#[derive(Debug, Display, PartialEq, EnumIter, EnumString, Eq, Serialize, Deserialize, Clone, Copy, Hash)]\npub enum {name} {{\n\t{}\n}}\n",
-        variants.into_iter().join(",\n\t")
+        variants.iter().join(",\n\t")
     )
 }
 
@@ -109,7 +109,7 @@ fn generate_family_impl(blocks: &BTreeSet<BlockEntry>) -> String {
     MatchFn::new("families", &format!("Vec<{BLOCK_FAM}>"))
         .with_arms(
             blocks
-                .into_iter()
+                .iter()
                 .map(|block| {
                     format!(
                         "{BLOCKS}::{} => vec![{}]",
@@ -145,12 +145,12 @@ fn generate_flags(blocks: &mut BTreeSet<BlockEntry>) -> String {
                     };
                     flag_fns
                         .entry("depleted".to_string())
-                        .or_insert(MatchFn::new("depleted", &BLOCKS).with_default("*self"))
+                        .or_insert(MatchFn::new("depleted", BLOCKS).with_default("*self"))
                         .arms
                         .push(format!("{BLOCKS}::{block} => {BLOCKS}::{depleted_block}"));
                     flag_fns
                         .entry("renewed".to_string())
-                        .or_insert(MatchFn::new("renewed", &BLOCKS).with_default("*self"))
+                        .or_insert(MatchFn::new("renewed", BLOCKS).with_default("*self"))
                         .arms
                         .push(format!("{BLOCKS}::{depleted_block} => {BLOCKS}::{block}"));
                     flag_fns
@@ -170,12 +170,12 @@ fn generate_flags(blocks: &mut BTreeSet<BlockEntry>) -> String {
                     };
                     flag_fns
                         .entry("on".to_string())
-                        .or_insert(MatchFn::new("on", &BLOCKS).with_default("*self"))
+                        .or_insert(MatchFn::new("on", BLOCKS).with_default("*self"))
                         .arms
                         .push(format!("{BLOCKS}::{block} => {BLOCKS}::{lit_furnace}"));
                     flag_fns
                         .entry("off".to_string())
-                        .or_insert(MatchFn::new("off", &BLOCKS).with_default("*self"))
+                        .or_insert(MatchFn::new("off", BLOCKS).with_default("*self"))
                         .arms
                         .push(format!("{BLOCKS}::{lit_furnace} => {BLOCKS}::{block}"));
                     flag_fns

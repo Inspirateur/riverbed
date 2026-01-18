@@ -17,6 +17,12 @@ pub struct TickClock {
     pub offset_ms: i64,
 }
 
+impl Default for TickClock {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TickClock {
     pub fn new() -> Self {
         let now = now_ms();

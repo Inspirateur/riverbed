@@ -54,7 +54,7 @@ impl From<(Vec3, Realm)> for BlockPos {
             x: pos.x.floor() as i32,
             y: pos.y.floor() as i32,
             z: pos.z.floor() as i32,
-            realm: realm,
+            realm,
         }
     }
 }

@@ -81,7 +81,7 @@ impl Stack {
             return Stack::None;
         };
         let n = n.min(*amount);
-        let res = Stack::Some(item.clone(), n);
+        let res = Stack::Some(*item, n);
         *amount -= n;
         if *amount == 0 {
             *self = Stack::None;
@@ -92,7 +92,7 @@ impl Stack {
     /// Intentionnaly private so we don't clone Stacks
     fn clone(&self) -> Stack {
         match self {
-            Stack::Some(item, qty) => Stack::Some(item.clone(), *qty),
+            Stack::Some(item, qty) => Stack::Some(*item, *qty),
             Stack::None => Stack::None,
         }
     }

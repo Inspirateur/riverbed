@@ -6,7 +6,7 @@
 //! client-side prediction.
 
 use bevy::prelude::*;
-use itertools::{iproduct, Itertools};
+use itertools::iproduct;
 
 pub mod player_step;
 
@@ -206,11 +206,11 @@ pub fn simulate_physics_step<W: BlockAccess>(
             // In flying mode, skip collision detection entirely
             position += velocity * delta_seconds;
 
-            return PhysicsStepResult {
+            PhysicsStepResult {
                 new_position: position,
                 new_velocity: velocity,
                 on_ground: false,
-            };
+            }
         }
         MovementMode::Walking => {
             // Apply gravity
@@ -257,11 +257,11 @@ pub fn simulate_physics_step<W: BlockAccess>(
                 delta_seconds,
             );
 
-            return PhysicsStepResult {
+            PhysicsStepResult {
                 new_position,
                 new_velocity,
                 on_ground,
-            };
+            }
         }
     }
 }

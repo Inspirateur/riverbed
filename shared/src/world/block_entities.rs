@@ -11,7 +11,7 @@ impl BlockEntities {
         let Some(entities) = self.0.remove(col_pos) else {
             return Vec::new();
         };
-        entities.into_values().into_iter().collect()
+        entities.into_values().collect()
     }
 
     pub fn get(&self, block_pos: &BlockPos) -> Option<Entity> {

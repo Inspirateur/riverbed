@@ -46,7 +46,7 @@ pub fn setup_load_thread(
                 // Queue load orders and unload terrain based on incoming player positions and RENDER_DISTANCE
                 loop {
                     // If to_load is empty, we block on player position updates to not waste resources
-                    let player_pos_update = if to_load.len() == 0 {
+                    let player_pos_update = if to_load.is_empty() {
                         player_pos_recv
                             .recv()
                             .expect("PlayerColumnUpdate channel is closed")

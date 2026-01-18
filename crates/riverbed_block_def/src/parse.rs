@@ -33,7 +33,7 @@ impl FromStr for BlockFlag {
     type Err = SpannedError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        ron::from_str(&s)
+        ron::from_str(s)
     }
 }
 
@@ -111,12 +111,12 @@ fn parse_set(input: &str) -> IResult<&str, BlockSet> {
 }
 
 fn parse_decl(input: &str) -> IResult<&str, AddBlock> {
-    let (input, (_, _, block_pattern, flags_opt)) = ((
+    let (input, (_, _, block_pattern, flags_opt)) = (
         tag("block"),
         space1,
         many1(parse_block_frag),
         opt((space1, parse_block_flags)),
-    ))
+    )
         .parse(input)?;
     let flags = match flags_opt {
         None => BTreeSet::new(),

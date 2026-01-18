@@ -115,9 +115,9 @@ impl ItemHolder {
     pub fn try_add(&mut self, stack: Stack) -> Option<Stack> {
         match self {
             ItemHolder::Furnace {
-                fuel,
-                material,
-                output,
+                fuel: _,
+                material: _,
+                output: _,
             } => todo!(),
             ItemHolder::Inventory(items) => items.try_add(stack),
         }

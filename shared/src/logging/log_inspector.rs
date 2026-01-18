@@ -44,7 +44,7 @@ fn on_log_event(
                 continue;
             }
         }
-        if event_queue.0.len() > 0
+        if !event_queue.0.is_empty()
             && event.timestamp < event_queue.0[event_queue.0.len() - 1].timestamp
         {
             // This event is out of order (probably because of multithreaded tracing), insert it where it should go
@@ -52,15 +52,13 @@ fn on_log_event(
             while i > 0 && event.timestamp < event_queue.0[i - 1].timestamp {
                 i -= 1;
             }
-            if i > 0 {
-                i -= 1;
-            }
+            i = i.saturating_sub(1);
             event_queue.0.insert(i, event.clone());
         } else {
             event_queue.0.push(event.clone());
         }
     }
-    if !is_live.0 || event_queue.0.len() == 0 || !received_event {
+    if !is_live.0 || event_queue.0.is_empty() || !received_event {
         return;
     }
     event_head.set(event_queue.0.len() - 1);

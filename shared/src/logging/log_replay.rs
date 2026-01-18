@@ -20,8 +20,8 @@ fn feed_logs(mut log_events: MessageWriter<LogEvent>) {
         panic!("No log file :(");
     };
     for line in log_lines.map_while(Result::ok) {
-        let parts: Vec<_> = line.split(' ').filter(|part| part.len() > 0).collect();
-        if parts.len() == 0 {
+        let parts: Vec<_> = line.split(' ').filter(|part| !part.is_empty()).collect();
+        if parts.is_empty() {
             continue;
         }
         let timestamp = DateTime::from_str(parts[0]).unwrap();

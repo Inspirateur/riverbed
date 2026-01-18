@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bevy::ecs::message::Message;
-use bevy::math::{IVec3, Vec3};
+use bevy::math::Vec3;
 use serde::{Deserialize, Serialize};
 
 use crate::block::Block;

@@ -78,7 +78,7 @@ impl TerrainGenerator {
                         total += column_biome_weights[i];
                     }
                     for i in 0..column_biome_weights.len() {
-                        column_biome_weights[i] = column_biome_weights[i] / total;
+                        column_biome_weights[i] /= total;
                     }
                 } else {
                     column_biome_weights[0] = 1.

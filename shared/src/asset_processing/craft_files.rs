@@ -11,6 +11,12 @@ lazy_static! {
 #[derive(Debug)]
 pub struct RecipeExpander(HashMap<String, Vec<String>>);
 
+impl Default for RecipeExpander {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RecipeExpander {
     pub fn new() -> Self {
         Self(HashMap::new())

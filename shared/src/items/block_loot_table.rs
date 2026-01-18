@@ -11,10 +11,10 @@ enum DropKind {
     Item(Item),
 }
 
-impl Into<Item> for (DropKind, Block) {
-    fn into(self) -> Item {
-        match self.0 {
-            DropKind::Itself => Item::Block(self.1),
+impl From<(DropKind, Block)> for Item {
+    fn from(val: (DropKind, Block)) -> Self {
+        match val.0 {
+            DropKind::Itself => Item::Block(val.1),
             DropKind::Item(item) => item,
         }
     }
@@ -109,7 +109,7 @@ impl BlockLootTable {
     ) {
         if let Some(loot_entries) = self.0.get(tool_kind) {
             if let Some(loot_entry) = loot_entries.get(block_kind) {
-                partial_entry.complete_with(&loot_entry, efficiency)
+                partial_entry.complete_with(loot_entry, efficiency)
             }
         }
     }
@@ -188,7 +188,7 @@ impl BlockLootTable {
                 return (partial_entry, *block).into();
             }
         }
-        return (partial_entry, *block).into();
+        (partial_entry, *block).into()
     }
 }
 

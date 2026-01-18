@@ -44,7 +44,7 @@ impl<const D: usize> BiomePoints<D> {
     }
 
     pub fn dist_from(&self, params: &[f32; D], biome: &Biome) -> f32 {
-        dist(&self.points[self.indexes[biome]].0, &params)
+        dist(&self.points[self.indexes[biome]].0, params)
     }
 }
 

@@ -17,7 +17,7 @@ pub(crate) trait RangesUtil<const D: usize> {
 
 impl<const D: usize> RangesUtil<D> for [Range<f32>; D] {
     fn sign_dist(&self, point: &[f32; D]) -> f32 {
-        self.into_iter()
+        self.iter()
             .zip(point)
             .map(|(range, p)| range.sign_dist(*p))
             .fold(f32::INFINITY, |a, b| a.min(b))
