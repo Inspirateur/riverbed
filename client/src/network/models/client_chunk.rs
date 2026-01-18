@@ -10,8 +10,7 @@ use shared::{
 pub struct ClientChunk(Chunk);
 
 impl ClientChunk {
-    /// Create a ClientChunk from a shared Chunk (used when receiving from network)
-    pub fn from_chunk(chunk: Chunk) -> Self {
+    pub fn from_network_chunk(chunk: Chunk) -> Self {
         Self(chunk)
     }
 
@@ -34,6 +33,6 @@ impl ClientChunk {
 
 impl From<Chunk> for ClientChunk {
     fn from(chunk: Chunk) -> Self {
-        Self::from_chunk(chunk)
+        Self::from_network_chunk(chunk)
     }
 }

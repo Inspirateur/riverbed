@@ -13,7 +13,6 @@ use super::extensions::SendGameMessageExtension;
 // Re-export from shared for backward compatibility
 pub use shared::DEFAULT_SPAWN_POSITION;
 
-/// Server-side physics state for a player entity
 #[derive(Component, Debug, Clone)]
 pub struct ServerPhysicsState {
     pub velocity: Vec3,
