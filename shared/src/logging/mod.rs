@@ -1,4 +1,7 @@
+#[cfg(feature = "logging")]
 mod log_inspector;
+
+#[cfg(feature = "logging")]
 mod log_replay;
 pub mod logging;
 

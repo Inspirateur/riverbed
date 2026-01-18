@@ -1,3 +1,4 @@
+#[cfg(feature = "logging")]
 pub mod log_display;
 
 

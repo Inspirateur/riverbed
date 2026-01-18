@@ -22,6 +22,7 @@ use std::{error::Error, fs::OpenOptions};
 
 use crate::world::pos::{pos2d::ColPos, pos3d::ChunkPos};
 
+#[cfg(feature = "logging")]
 pub(crate) const LOG_PATH: &str = "output.log";
 
 pub struct RiverbedLogPlugin;
