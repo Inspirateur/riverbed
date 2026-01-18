@@ -35,15 +35,10 @@ impl Plugin for Camera3dPlugin {
     }
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Reflect, Hash)]
+#[derive(Actionlike, Clone, Debug, Copy, PartialEq, Eq, Reflect, Hash)]
+#[actionlike(DualAxis)]
 pub enum CameraMovement {
     Pan,
-}
-
-impl Actionlike for CameraMovement {
-    fn input_control_kind(&self) -> InputControlKind {
-        InputControlKind::DualAxis
-    }
 }
 
 #[derive(Component, Default, Debug, Clone, Copy)]

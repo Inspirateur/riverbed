@@ -12,13 +12,13 @@ pub struct LogReplayPlugin;
 impl Plugin for LogReplayPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<LogEvent>()
+            .add_message::<LogEvent>()
             .add_systems(Startup, feed_logs)
             ;
     }
 }
 
-fn feed_logs(mut log_events: EventWriter<LogEvent>) {
+fn feed_logs(mut log_events: MessageWriter<LogEvent>) {
     let Ok(log_lines) = read_lines(LOG_PATH) else {
         panic!("No log file :(");
     };

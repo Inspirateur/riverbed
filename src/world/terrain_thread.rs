@@ -98,11 +98,11 @@ pub fn assign_player_col(
         let col = ColPos::from((transform.translation, *realm));
         commands.entity(player).insert(PlayerCol(col));
         let update = PlayerColumnUpdate {
-            id: player.index(),
+            id: player.index_u32(),
             old_col_opt: None,
             new_col: col,
         };
-        trace!("{}", LogData::PlayerMoved { id: player.index(), new_col: col});
+        trace!("{}", LogData::PlayerMoved { id: player.index_u32(), new_col: col});
         if sender.0.send(update).is_err() {
             panic!("PlayerColumnUpdateSender channel is closed");
         }
@@ -118,11 +118,11 @@ pub fn send_player_pos_update(
         if player_col.0 != new_col {
             // send the update only if the column has changed
             let update = PlayerColumnUpdate {
-                id: player.index(),
+                id: player.index_u32(),
                 old_col_opt: Some(player_col.0),
                 new_col,
             };
-            trace!("{}", LogData::PlayerMoved { id: player.index(), new_col });
+            trace!("{}", LogData::PlayerMoved { id: player.index_u32(), new_col });
             if sender.0.send(update).is_err() {
                 panic!("PlayerColumnUpdateSender channel is closed");
             }

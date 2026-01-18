@@ -1,5 +1,5 @@
 use std::{f32::consts::PI, time::Duration};
-use bevy::{pbr::Atmosphere, prelude::*};
+use bevy::{pbr::{Atmosphere, ScatteringMedium}, prelude::*};
 use crate::render::camera::{CameraSpawn, FpsCam};
 const DAY_LENGTH_MINUTES: f32 = 0.2;
 const C: f32 = DAY_LENGTH_MINUTES*120.*PI;
@@ -9,7 +9,7 @@ pub struct SkyPlugin;
 impl Plugin for SkyPlugin {
     fn build(&self, app: &mut App) {
         app  
-            .insert_resource(AmbientLight {
+            .insert_resource(GlobalAmbientLight {
                 color: Color::WHITE,
                 brightness: 1000.0,
                 ..Default::default()
@@ -33,9 +33,9 @@ struct CycleTimer(Timer);
 #[derive(Component)]
 struct Sun;
 
-fn spawn_sun(mut commands: Commands, cam_query: Query<Entity, With<FpsCam>>) {
+fn spawn_sun(mut commands: Commands, cam_query: Query<Entity, With<FpsCam>>, mut scattering_mediums: ResMut<Assets<ScatteringMedium>>) {
     let cam = cam_query.single().unwrap();
-    commands.entity(cam).insert(Atmosphere::default());
+    commands.entity(cam).insert(Atmosphere::earthlike(scattering_mediums.add(ScatteringMedium::default())));
     commands.spawn((Sun, DirectionalLight {
         // TODO: this crashes, maybe it will be fixed by following https://github.com/bevyengine/bevy/blob/main/assets/shaders/extended_material.wgsl
         shadows_enabled: true,

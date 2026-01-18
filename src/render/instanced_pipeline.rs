@@ -120,7 +120,7 @@ fn queue_custom(
                 entity: (entity, *main_entity),
                 pipeline,
                 draw_function: draw_custom,
-                distance: rangefinder.distance_translation(&mesh_instance.translation),
+                distance: rangefinder.distance(&mesh_instance.center),
                 batch_range: 0..1,
                 extra_index: PhaseItemExtraIndex::None,
                 indexed: true,
@@ -146,6 +146,7 @@ fn prepare_voxel_buffers(
     handles: If<Res<BindGroupHandles>>,
     gpu_images: Res<RenderAssets<GpuImage>>,
     render_device: Res<RenderDevice>,
+    pipeline_cache: Res<PipelineCache>,
     render_queue: Res<RenderQueue>,
     custom_pipeline: Res<CustomPipeline>,
     shader_buffers: Res<RenderAssets<GpuShaderStorageBuffer>>,
@@ -210,7 +211,7 @@ fn prepare_voxel_buffers(
 
     let bind_group = render_device.create_bind_group(
         "voxel bind group",
-        &custom_pipeline.voxel_bind_group_layout,
+        &pipeline_cache.get_bind_group_layout(&custom_pipeline.voxel_bind_group_layout),
         &BindGroupEntries::sequential(
             (
                 &gpu_image.texture_view, 
@@ -229,7 +230,7 @@ fn prepare_voxel_buffers(
 pub struct CustomPipeline {
     shader: Handle<Shader>,
     mesh_pipeline: MeshPipeline,
-    pub voxel_bind_group_layout: BindGroupLayout,
+    pub voxel_bind_group_layout: BindGroupLayoutDescriptor,
 }
 
 fn init_custom_pipeline(
@@ -238,7 +239,7 @@ fn init_custom_pipeline(
     mesh_pipeline: Res<MeshPipeline>,
     render_device: Res<RenderDevice>,
 ) {
-    let layout = render_device.create_bind_group_layout(
+    let layout = BindGroupLayoutDescriptor::new(
         "voxel bind group layout",
         &BindGroupLayoutEntries::sequential(
             ShaderStages::VERTEX | ShaderStages::FRAGMENT,
@@ -380,7 +381,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
                     return RenderCommandResult::Skip;
                 };
 
-                pass.set_index_buffer(index_buffer_slice.buffer.slice(..), 0, *index_format);
+                pass.set_index_buffer(index_buffer_slice.buffer.slice(..), *index_format);
                 let stride = size_of::<DrawIndexedIndirectArgs>() as u32;
                 pass.multi_draw_indexed_indirect(
                     &instance_buffer.indirect_buffer, 

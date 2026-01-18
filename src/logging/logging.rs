@@ -70,7 +70,7 @@ impl std::fmt::Display for LogData {
     }
 }
 
-#[derive(Serialize, Deserialize, Message, Clone)]
+#[derive(Event, Serialize, Deserialize, Message, Clone)]
 pub struct LogEvent {
     pub timestamp: DateTime<Utc>,
     pub data: LogData
