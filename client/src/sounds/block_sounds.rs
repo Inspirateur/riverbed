@@ -43,18 +43,16 @@ fn footsteps(
         let Some(sound) = block_sounds.sound_for(stepping_on.0, BlockSound::Stepping) else {
             continue;
         };
-        commands
-            .spawn((*transform, Visibility::default()))
-            .insert((
-                AudioPlayer::<AudioSource>(sound.clone()),
-                PlaybackSettings {
-                    mode: PlaybackMode::Despawn,
-                    spatial: true,
-                    spatial_scale: Some(SpatialScale::new(0.2)),
-                    speed: 1. + ((rand::rng().random::<f32>() - 0.5) * RAND_AMPLITUDE),
-                    ..Default::default()
-                },
-            ));
+        commands.spawn((*transform, Visibility::default())).insert((
+            AudioPlayer::<AudioSource>(sound.clone()),
+            PlaybackSettings {
+                mode: PlaybackMode::Despawn,
+                spatial: true,
+                spatial_scale: Some(SpatialScale::new(0.2)),
+                speed: 1. + ((rand::rng().random::<f32>() - 0.5) * RAND_AMPLITUDE),
+                ..Default::default()
+            },
+        ));
         footstep_cd.0 = STEP_DIST;
     }
 }

@@ -109,10 +109,7 @@ impl From<&[Block]> for Chunk {
     fn from(values: &[Block]) -> Self {
         let mut palette = Palette::new();
         palette.index(Block::Air);
-        let values = values
-            .iter()
-            .map(|v| palette.index(*v))
-            .collect_vec();
+        let values = values.iter().map(|v| palette.index(*v)).collect_vec();
         let data = SerdablePackedUints(PackedUints::from(values.as_slice()));
         Chunk { data, palette }
     }
