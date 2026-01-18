@@ -1,5 +1,5 @@
 use crate::{
-    agents::{Velocity, AABB, Speed},
+    agents::{Velocity, AABB}, 
     sounds::{on_item_get, BlockSoundCD, FootstepCD},
     ui::CursorGrabbed,
 };
@@ -16,7 +16,7 @@ use shared::{DEFAULT_SPAWN_POSITION, PLAYER_AABB, PLAYER_GRAVITY, PLAYER_JUMP_FO
 use std::time::Duration;
 
 use super::{
-    block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, FreeFly, Speed, SteppingOn,
+    block_action::BlockActionPlugin, key_binds::KeyBinds, Crouching, FreeFly, SteppingOn,
     Walking,
 };
 pub const HOTBAR_SLOTS: usize = 8;
@@ -67,7 +67,6 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
             },
             Visibility::default(),
             realm,
-            Speed(WALK_SPEED),
             AABB(PLAYER_AABB),
             Velocity(Vec3::default()),
             TargetBlock(None),

@@ -17,7 +17,7 @@ use shared::messages::ServerPlayerUpdate;
 use shared::physics::{player_step::apply_player_input_step, MovementMode, PhysicsState};
 use shared::world::realm::Realm;
 
-use crate::agents::{FreeFly, PlayerControlled, Speed, Velocity, Walking};
+use crate::agents::{FreeFly, PlayerControlled, Velocity, Walking};
 use crate::network::CurrentPlayerProfile;
 use crate::world::ClientWorldMap;
 use shared::net::input_history::InputHistory;
@@ -125,10 +125,8 @@ pub fn reconcile_player_state(
         if predicted_is_flying != client_is_flying {
             if predicted_is_flying {
                 commands.entity(entity).remove::<Walking>().insert(FreeFly);
-                commands.entity(entity).insert(Speed(shared::FLY_SPEED));
             } else {
                 commands.entity(entity).remove::<FreeFly>().insert(Walking);
-                commands.entity(entity).insert(Speed(shared::WALK_SPEED));
             }
             info!("Movement mode corrected: flying={}", predicted_is_flying);
         }

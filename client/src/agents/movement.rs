@@ -31,6 +31,9 @@ impl Plugin for MovementPlugin {
 #[derive(Component)]
 pub struct SteppingOn(pub Block);
 
+#[derive(Component)]
+pub struct Crouching(pub bool);
+
 /// Marker component for walking movement mode
 #[derive(Component)]
 pub struct Walking;
@@ -38,10 +41,6 @@ pub struct Walking;
 /// Marker component for flying movement mode
 #[derive(Component)]
 pub struct FreeFly;
-
-/// Movement speed component
-#[derive(Component)]
-pub struct Speed(pub f32);
 
 /// Axis-aligned bounding box for collision detection
 #[derive(Component)]
@@ -57,11 +56,8 @@ fn update_stepped_block(
     world: Res<ClientWorldMap>,
     mut query: Query<(&Transform, &Realm, &AABB, &mut SteppingOn)>,
 ) {
-    let Some(world) = world.single() else {
-        return;
-    }
     for (transform, realm, aabb, mut stepping_on) in query.iter_mut() {
-        stepping_on.0 = get_stepped_block(world, transform.translation, *realm, aabb.0);
+        stepping_on.0 = get_stepped_block(&*world, transform.translation, *realm, aabb.0);
     }
 }
 
@@ -136,10 +132,8 @@ fn apply_shared_physics(
     if new_is_flying != was_flying {
         if new_is_flying {
             commands.entity(entity).remove::<Walking>().insert(FreeFly);
-            commands.entity(entity).insert(Speed(FLY_SPEED));
         } else {
             commands.entity(entity).remove::<FreeFly>().insert(Walking);
-            commands.entity(entity).insert(Speed(WALK_SPEED));
         }
     }
 }
