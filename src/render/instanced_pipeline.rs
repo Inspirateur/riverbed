@@ -2,7 +2,7 @@ use crate::render::quad_data::*;
 use crate::render::texture_array::BindGroupHandles;
 use bevy::pbr::{MaterialPipeline, SetMaterialBindGroup, SetMeshViewBindingArrayBindGroup};
 use bevy::render::Extract;
-use bevy::render::renderer::RenderQueue;
+use bevy::render::renderer::{RenderAdapterInfo, RenderQueue};
 use bevy::render::storage::{GpuShaderStorageBuffer, ShaderStorageBuffer};
 use bevy::render::texture::GpuImage;
 use bevy::{
@@ -237,8 +237,15 @@ fn init_custom_pipeline(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mesh_pipeline: Res<MeshPipeline>,
-    render_device: Res<RenderDevice>,
+    adapter_info: Res<RenderAdapterInfo>,
 ) {
+    println!(
+        "wgpu adapter: {:?} / {:?} / {}",
+        adapter_info.backend,
+        adapter_info.device_type,
+        adapter_info.name
+    );
+
     let layout = BindGroupLayoutDescriptor::new(
         "voxel bind group layout",
         &BindGroupLayoutEntries::sequential(
@@ -283,7 +290,8 @@ impl SpecializedMeshPipeline for CustomPipeline {
         // bind group 3: texture array, sampler, animation offsets
         descriptor.layout.push(self.voxel_bind_group_layout.clone());
         debug_assert!(descriptor.layout.len() == VOXEL_BIND_GROUP_INDEX + 1);
-
+        descriptor.primitive.cull_mode = Some(Face::Back);
+        descriptor.primitive.front_face = FrontFace::Cw;
         Ok(descriptor)
     }
 }
