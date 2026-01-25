@@ -1,9 +1,8 @@
 use crate::render::quad_data::*;
 use crate::render::texture_array::BindGroupHandles;
-use bevy::pbr::{MaterialPipeline, SetMaterialBindGroup, SetMeshViewBindingArrayBindGroup};
-use bevy::render::Extract;
-use bevy::render::renderer::{RenderAdapterInfo, RenderQueue};
-use bevy::render::storage::{GpuShaderStorageBuffer, ShaderStorageBuffer};
+use bevy::pbr::SetMeshViewBindingArrayBindGroup;
+use bevy::render::renderer::RenderAdapterInfo;
+use bevy::render::storage::GpuShaderStorageBuffer;
 use bevy::render::texture::GpuImage;
 use bevy::{
     camera::visibility::NoFrustumCulling,
@@ -102,7 +101,6 @@ fn queue_custom(
         let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
 
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr) | MeshPipelineKey::ATMOSPHERE;
-        let rangefinder = view.rangefinder3d();
         for (entity, main_entity) in &material_meshes {
             let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
             else {
@@ -120,7 +118,10 @@ fn queue_custom(
                 entity: (entity, *main_entity),
                 pipeline,
                 draw_function: draw_custom,
-                distance: rangefinder.distance(&mesh_instance.center),
+                // NOTE: This instanced voxel world is effectively a giant opaque surface,
+                // but it's queued into Transparent3d to use a custom pipeline.
+                // forcing -INF makes the world draw before other transparent items.
+                distance: -f32::INFINITY,
                 batch_range: 0..1,
                 extra_index: PhaseItemExtraIndex::None,
                 indexed: true,
@@ -147,10 +148,8 @@ fn prepare_voxel_buffers(
     gpu_images: Res<RenderAssets<GpuImage>>,
     render_device: Res<RenderDevice>,
     pipeline_cache: Res<PipelineCache>,
-    render_queue: Res<RenderQueue>,
     custom_pipeline: Res<CustomPipeline>,
     shader_buffers: Res<RenderAssets<GpuShaderStorageBuffer>>,
-    existing_bind_group: Option<Res<VoxelBindGroup>>,
 ) {
     // get the quads to send to the GPU
     let cam = cam.into_inner();
@@ -381,7 +380,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         match &gpu_mesh.buffer_info {
             RenderMeshBufferInfo::Indexed {
                 index_format,
-                count,
+                count: _,
             } => {
                 let Some(index_buffer_slice) =
                     mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id)

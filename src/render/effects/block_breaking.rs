@@ -70,6 +70,8 @@ fn add_break_animation(
             base_color_texture: Some(texture_handle.clone()),
             alpha_mode: AlphaMode::Blend,
             unlit: true,
+            cull_mode: None,
+            double_sided: true,
             ..default()
         });
         let translation = <_ as Into<Vec3>>::into(target.pos) 
