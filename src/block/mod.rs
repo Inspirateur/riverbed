@@ -1,4 +1,3 @@
-mod face;
 mod block;
+mod face;
 pub use face::*;
-pub use block::*;
