@@ -4,7 +4,7 @@ use bevy::{
     audio::{PlaybackMode, SpatialScale},
     prelude::*,
 };
-use rand::Rng;
+use rand::{Rng, RngExt};
 const RAND_AMPLITUDE: f32 = 0.3;
 // distance between steps (in blocks)
 const STEP_DIST: f32 = 2.5;

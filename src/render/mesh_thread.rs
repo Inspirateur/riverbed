@@ -53,7 +53,7 @@ pub fn setup_mesh_thread(
                         mesh_orders.push(chunk_pos);
                     }
                 }
-                let player_col = shared_load_area.read_arc().clone();
+                let player_col = shared_load_area.read().clone();
                 // Pop the closest mesh order
                 let (i, (chunk_pos, dist)) = mesh_orders
                     .iter()

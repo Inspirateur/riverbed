@@ -6,7 +6,7 @@ use bevy::{
     audio::{PlaybackMode, SpatialScale},
     prelude::*,
 };
-use rand::Rng;
+use rand::RngExt;
 const RAND_AMPLITUDE: f32 = 0.3;
 
 pub struct EffectSoundPlugin;

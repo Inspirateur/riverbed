@@ -2,7 +2,7 @@
 use std::{error::Error, fs::OpenOptions};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use bevy::{log::LogPlugin, prelude::*};
+use bevy::{ecs::entity::EntityIndex, log::LogPlugin, prelude::*};
 #[cfg(feature = "logging")]
 use bevy::log::{tracing, tracing_subscriber::{self, filter::{FromEnvError, ParseError}, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry}};
 use crate::world::{ChunkPos, ColPos};

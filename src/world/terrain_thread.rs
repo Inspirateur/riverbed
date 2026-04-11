@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use bevy::ecs::entity::EntityIndex;
 use bevy::prelude::*;
 use bevy::log::trace;
 use bevy::tasks::AsyncComputeTaskPool;
@@ -23,7 +24,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
             // local copy of players positions
             let mut players_pos = HashMap::new();
             // keeps track of which players see which columns
-            let mut player_cols: HashMap<ColPos, HashSet<u32>> = HashMap::new();
+            let mut player_cols: HashMap<ColPos, HashSet<EntityIndex>> = HashMap::new();
             // the list of all columns that must be generated
             let mut to_load: Vec<ColPos> = Vec::new();
             'outer: loop {
@@ -102,7 +103,7 @@ pub fn assign_player_col(
             old_col_opt: None,
             new_col: col,
         };
-        trace!("{}", LogData::PlayerMoved { id: player.index(), new_col: col});
+        trace!("{}", LogData::PlayerMoved { id: player.index_u32(), new_col: col});
         if sender.0.send(update).is_err() {
             panic!("PlayerColumnUpdateSender channel is closed");
         }
@@ -122,7 +123,7 @@ pub fn send_player_pos_update(
                 old_col_opt: Some(player_col.0),
                 new_col,
             };
-            trace!("{}", LogData::PlayerMoved { id: player.index(), new_col });
+            trace!("{}", LogData::PlayerMoved { id: player.index_u32(), new_col });
             if sender.0.send(update).is_err() {
                 panic!("PlayerColumnUpdateSender channel is closed");
             }
@@ -135,7 +136,7 @@ pub fn send_player_pos_update(
 pub struct PlayerColumnUpdateSender(pub Sender<PlayerColumnUpdate>);
 
 pub struct PlayerColumnUpdate {
-    id: u32,
+    id: EntityIndex,
     old_col_opt: Option<ColPos>,
     new_col: ColPos,
 }
