@@ -1,6 +1,6 @@
 use super::{
-    BlockPos, BlockPos2d, CHUNK_S1, Chunk, ChunkPos, ChunkedPos, ColPos, ColedPos, MAX_HEIGHT,
-    Realm, Y_CHUNKS, chunked, pos2d::chunks_in_col,
+    BlockPos, BlockPos2d, CHUNK_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos, ChunkedPos2d,
+    MAX_HEIGHT, Realm, Y_CHUNKS, chunked, pos2d::chunks_in_col,
 };
 use crate::{Block, block::Face, world::CHUNKP_S1};
 use bevy::prelude::{Resource, Vec3};
@@ -54,14 +54,14 @@ impl VoxelWorld {
 
     pub fn set_yrange(
         &self,
-        col_pos: ColPos,
-        (x, z): ColedPos,
+        col_pos: ChunkPos2d,
+        in_col_pos: ChunkedPos2d,
         top: i32,
         mut height: usize,
         block: Block,
     ) {
         // USED BY TERRAIN GENERATION - bypasses change detection for efficiency
-        let (mut cy, mut dy) = chunked(top);
+        let (mut cy, mut dy) = chunked::<CHUNK_S1, 1>(top);
         while height > 0 && cy >= 0 {
             let chunk_pos = ChunkPos {
                 x: col_pos.x,
@@ -74,7 +74,15 @@ impl VoxelWorld {
                 .get_or_insert_with(chunk_pos, || RwLock::new(Chunk::new()))
                 .value()
                 .write()
-                .set_yrange((x, dy, z), h, block);
+                .set_yrange(
+                    ChunkedPos {
+                        x: in_col_pos.x,
+                        y: dy,
+                        z: in_col_pos.z,
+                    },
+                    h,
+                    block,
+                );
             height -= h;
             cy -= 1;
             dy = CHUNK_S1 - 1;
@@ -176,7 +184,7 @@ impl VoxelWorld {
         }
     }
 
-    pub fn mark_change_col(&self, col_pos: ColPos) {
+    pub fn mark_change_col(&self, col_pos: ChunkPos2d) {
         // USE BY TERRAIN GEN to mass mark change on chunks for efficiency
         for chunk_pos in chunks_in_col(&col_pos) {
             let Some(chunk) = self.chunks.get(&chunk_pos) else {
@@ -200,7 +208,7 @@ impl VoxelWorld {
         }
     }
 
-    pub fn unload_col(&self, col: ColPos) {
+    pub fn unload_col(&self, col: ChunkPos2d) {
         for y in 0..Y_CHUNKS as i32 {
             let chunk_pos = ChunkPos {
                 x: col.x,
@@ -223,12 +231,12 @@ impl VoxelWorld {
     }
 
     /// Mark a block change, reflecting in neighboring chunks if needed
-    fn mark_change(&self, chunk_pos: ChunkPos, (x, y, z): ChunkedPos, block: Block) {
+    fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, block: Block) {
         self.chunk_changes
             .send(chunk_pos)
             .expect("Failed to send chunk change");
         // register change for neighboring chunks
-        let border_sign_x = VoxelWorld::border_sign(x);
+        let border_sign_x = VoxelWorld::border_sign(chunked_pos.x);
         if border_sign_x != 0 {
             let mut neighbor = chunk_pos;
             neighbor.x += border_sign_x;
@@ -237,7 +245,7 @@ impl VoxelWorld {
                 neighbor_chunk
                     .value()
                     .write()
-                    .set_unpadded((x, y, z), block);
+                    .set_unpadded(chunked_pos, block);
                 self.chunk_changes
                     .send(neighbor)
                     .expect("Failed to send chunk change");
@@ -245,7 +253,7 @@ impl VoxelWorld {
             // it's possible that other border signs are also != 0 but then we don't care because this means the block is on an edge/corner
             return;
         }
-        let border_sign_y = VoxelWorld::border_sign(y);
+        let border_sign_y = VoxelWorld::border_sign(chunked_pos.y);
         if border_sign_y != 0 {
             let mut neighbor = chunk_pos;
             neighbor.y += border_sign_y;
@@ -255,7 +263,7 @@ impl VoxelWorld {
                     neighbor_chunk
                         .value()
                         .write()
-                        .set_unpadded((x, y, z), block);
+                        .set_unpadded(chunked_pos, block);
                     self.chunk_changes
                         .send(neighbor)
                         .expect("Failed to send chunk change");
@@ -263,7 +271,7 @@ impl VoxelWorld {
             }
             return;
         }
-        let border_sign_z = VoxelWorld::border_sign(z);
+        let border_sign_z = VoxelWorld::border_sign(chunked_pos.z);
         if border_sign_z != 0 {
             let mut neighbor = chunk_pos;
             neighbor.z += border_sign_z;
@@ -272,7 +280,7 @@ impl VoxelWorld {
                 neighbor_chunk
                     .value()
                     .write()
-                    .set_unpadded((x, y, z), block);
+                    .set_unpadded(chunked_pos, block);
                 self.chunk_changes
                     .send(neighbor)
                     .expect("Failed to send chunk change");

@@ -17,6 +17,7 @@ pub use pos::*;
 pub use realm::*;
 pub use voxel_world::*;
 pub const CHUNK_S1: usize = 62;
+pub const REGION_S1: usize = CHUNK_S1 * 16;
 pub const CHUNK_S2: usize = CHUNK_S1.pow(2);
 pub const CHUNKP_S1: usize = CHUNK_S1 + 2;
 pub const CHUNKP_S2: usize = CHUNKP_S1.pow(2);
@@ -29,10 +30,10 @@ pub const WATER_H: i32 = 61;
 pub const Y_CHUNKS: usize = MAX_HEIGHT / CHUNK_S1;
 
 #[derive(Component, Default)]
-pub struct PlayerCol(pub ColPos);
+pub struct PlayerCol(pub ChunkPos2d);
 
 #[derive(Message)]
-pub struct ColUnloadEvent(pub ColPos);
+pub struct ColUnloadEvent(pub ChunkPos2d);
 
 pub struct TerrainLoadPlugin;
 

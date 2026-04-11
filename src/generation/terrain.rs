@@ -7,9 +7,7 @@ use crate::{
         layer::LayerTag,
         plant_params::PlantRanges,
     },
-    world::{
-        BlockPos, BlockPos2d, CHUNK_S1, CHUNK_S1I, ColPos, MAX_GEN_HEIGHT, VoxelWorld, unchunked,
-    },
+    world::{BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, MAX_GEN_HEIGHT, VoxelWorld},
 };
 use riverbed_noise::*;
 const BIOME_SHARPENING: f32 = 50.;
@@ -31,8 +29,8 @@ impl TerrainGenerator {
         }
     }
 
-    pub fn generate(&self, world: &VoxelWorld, col: ColPos) {
-        let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+    pub fn generate(&self, world: &VoxelWorld, col: ChunkPos2d) {
+        let (x, z) = col.to_real_pos();
         let continentalness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed, 0.0005);
         let mountainness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 1, 0.005);
         let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 2, 0.002);
@@ -140,18 +138,24 @@ impl TerrainGenerator {
                     let block = dominant_block.unwrap();
                     let layer_width = (height - last_height).max(1);
                     if block == Block::GrassBlock {
-                        world.set_yrange(col, (dx, dz), height, 1, block);
+                        world.set_yrange(col, ChunkedPos2d { x: dx, z: dz }, height, 1, block);
                         if layer_width > 1 {
                             world.set_yrange(
                                 col,
-                                (dx, dz),
+                                ChunkedPos2d { x: dx, z: dz },
                                 height - 1,
                                 (layer_width - 1) as usize,
                                 Block::Dirt,
                             );
                         }
                     } else {
-                        world.set_yrange(col, (dx, dz), height, layer_width as usize, block);
+                        world.set_yrange(
+                            col,
+                            ChunkedPos2d { x: dx, z: dz },
+                            height,
+                            layer_width as usize,
+                            block,
+                        );
                     }
                     last_height = height;
                 }
@@ -174,7 +178,14 @@ impl TerrainGenerator {
             (40, 46),
         ];
         for spot in tree_spots {
-            let rng = <BlockPos2d>::from((col, spot)).prng(self.seed as i32);
+            let rng = <BlockPos2d>::from((
+                col,
+                ChunkedPos2d {
+                    x: spot.0,
+                    z: spot.1,
+                },
+            ))
+            .prng(self.seed as i32);
             let dx = spot.0 + (rng & 0b111);
             let dz = spot.1 + ((rng >> 3) & 0b111);
             let i = dx * CHUNK_S1 + dz;
@@ -183,7 +194,16 @@ impl TerrainGenerator {
                 continue;
             }
             let h = (rng >> 6) & 0b11;
-            let (block, y) = world.top_block((col, (dx, dz)).into());
+            let (block, y) = world.top_block(
+                (
+                    col,
+                    ChunkedPos2d {
+                        x: spot.0,
+                        z: spot.1,
+                    },
+                )
+                    .into(),
+            );
             if !block.is_fertile_soil() {
                 continue;
             }
@@ -194,12 +214,7 @@ impl TerrainGenerator {
                 y as f32 / MAX_GEN_HEIGHT as f32,
             ]);
             if dist >= 0. {
-                let pos = BlockPos {
-                    x: col.x * CHUNK_S1I + dx as i32,
-                    y,
-                    z: col.z * CHUNK_S1I + dz as i32,
-                    realm: col.realm,
-                };
+                let pos = (col, (dx, y, dx)).into();
                 tree.grow(world, pos, self.seed as i32, dist + h as f32 / 10.);
             }
         }

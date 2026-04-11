@@ -3,7 +3,7 @@ use std::iter::Rev;
 use std::ops::{Deref, Range};
 use bevy::prelude::*;
 use chrono::TimeDelta;
-use crate::{logging::{log_display::InspectorDisplayPlugin, logging::LogEvent, LogData}, world::ColPos};
+use crate::{logging::{log_display::InspectorDisplayPlugin, logging::LogEvent, LogData}, world::ChunkPos2d};
 
 pub struct InspectorPlugin;
 
@@ -158,13 +158,13 @@ impl EventQueue {
 }
 
 #[derive(Default, Resource)]
-pub struct PlayerPos(pub ColPos);
+pub struct PlayerPos(pub ChunkPos2d);
 
 #[derive(Default, Resource)]
-pub struct LoadState(pub HashMap<ColPos, bool>);
+pub struct LoadState(pub HashMap<ChunkPos2d, bool>);
 
 #[derive(Default, Resource)]
-pub struct MeshCount(pub HashMap<ColPos, u32>);
+pub struct MeshCount(pub HashMap<ChunkPos2d, u32>);
 
 #[derive(Default, Resource)]
-struct LiveLoadState(pub HashSet<ColPos>);
+struct LiveLoadState(pub HashSet<ChunkPos2d>);

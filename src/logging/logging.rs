@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use bevy::{log::LogPlugin, prelude::*};
 #[cfg(feature = "logging")]
 use bevy::log::{tracing, tracing_subscriber::{self, filter::{FromEnvError, ParseError}, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry}};
-use crate::world::{ChunkPos, ColPos};
+use crate::world::{ChunkPos, ChunkPos2d};
 pub(crate) const LOG_PATH: &'static str = "output.log";
 
 pub struct RiverbedLogPlugin;
@@ -54,13 +54,13 @@ impl Plugin for RiverbedLogPlugin {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum LogData {
-    ColGenerated(ColPos),
+    ColGenerated(ChunkPos2d),
     ChunkMeshed(ChunkPos),
     PlayerMoved {
         id: u32, 
-        new_col: ColPos
+        new_col: ChunkPos2d
     },
-    ColUnloaded(ColPos),
+    ColUnloaded(ChunkPos2d),
     Message(String)
 }
 

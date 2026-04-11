@@ -1,34 +1,34 @@
-use crate::{world::ColPos, RENDER_DISTANCE};
+use crate::{world::ChunkPos2d, RENDER_DISTANCE};
 use bevy::prelude::*;
 use itertools::iproduct;
 use std::ops::RangeInclusive;
 
 pub struct PlayerAreaDiff {
-    pub exclusive_in_self: Vec<ColPos>,
-    pub exclusive_in_other: Vec<ColPos>,
+    pub exclusive_in_self: Vec<ChunkPos2d>,
+    pub exclusive_in_other: Vec<ChunkPos2d>,
 }
 
 pub fn range_around(a: i32, dist: i32) -> RangeInclusive<i32> {
     (a - dist)..=(a + dist)
 }
 
-impl ColPos {
-    fn in_rd(&self, other: &ColPos) -> bool {
+impl ChunkPos2d {
+    fn in_rd(&self, other: &ChunkPos2d) -> bool {
         (self.x - other.x).abs() <= RENDER_DISTANCE as i32 &&
         (self.z - other.z).abs() <= RENDER_DISTANCE as i32 &&
         self.realm == other.realm
     }
 
-    fn rd_area(&self) -> impl Iterator<Item = ColPos> {
+    fn rd_area(&self) -> impl Iterator<Item = ChunkPos2d> {
         iproduct!(
             range_around(self.x, RENDER_DISTANCE as i32),
             range_around(self.z, RENDER_DISTANCE as i32)
-        ).map(|(x, z)| ColPos { x, z, realm: self.realm })
+        ).map(|(x, z)| ChunkPos2d { x, z, realm: self.realm })
     }
 
     // Given RENDER_DISTANCE and another column position, returns the columns that are in self area but not in the other area,
     // and the columns that are in the other area but not in self area.
-    pub fn player_area_diff(&self, other: Option<ColPos>) -> PlayerAreaDiff {
+    pub fn player_area_diff(&self, other: Option<ChunkPos2d>) -> PlayerAreaDiff {
         let exclusive_in_self = if let Some(other_col) = other {
             self.rd_area().filter(|col| !col.in_rd(&other_col)).collect()
         } else {

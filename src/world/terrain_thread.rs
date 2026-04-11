@@ -6,13 +6,13 @@ use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use crate::generation::TerrainGenerator;
 use crate::logging::LogData;
-use crate::world::{ColPos, ColUnloadEvent, PlayerCol, Realm, VoxelWorld};
+use crate::world::{ChunkPos2d, ColUnloadEvent, PlayerCol, Realm, VoxelWorld};
 use crate::WorldRng;
 
 pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_rng: Res<WorldRng>) {
     let (player_pos_sender, player_pos_recv) = unbounded::<PlayerColumnUpdate>();
     commands.insert_resource(PlayerColumnUpdateSender(player_pos_sender));
-    let (unload_sender, unload_recv) = unbounded::<ColPos>();
+    let (unload_sender, unload_recv) = unbounded::<ChunkPos2d>();
     commands.insert_resource(ColUnloadsReciever(unload_recv));
     let thread_pool = AsyncComputeTaskPool::get();
     let load_world = world.clone();
@@ -24,9 +24,9 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
             // local copy of players positions
             let mut players_pos = HashMap::new();
             // keeps track of which players see which columns
-            let mut player_cols: HashMap<ColPos, HashSet<EntityIndex>> = HashMap::new();
+            let mut player_cols: HashMap<ChunkPos2d, HashSet<EntityIndex>> = HashMap::new();
             // the list of all columns that must be generated
-            let mut to_load: Vec<ColPos> = Vec::new();
+            let mut to_load: Vec<ChunkPos2d> = Vec::new();
             'outer: loop {
                 // Queue load orders and unload terrain based on incoming player positions and RENDER_DISTANCE
                 loop {
@@ -96,7 +96,7 @@ pub fn assign_player_col(
     player_query: Query<(Entity, &Transform, &Realm), Without<PlayerCol>>,
 ) {
     for (player, transform, realm) in player_query.iter() {
-        let col = ColPos::from((transform.translation, *realm));
+        let col = ChunkPos2d::from((transform.translation, *realm));
         commands.entity(player).insert(PlayerCol(col));
         let update = PlayerColumnUpdate {
             id: player.index(),
@@ -115,7 +115,7 @@ pub fn send_player_pos_update(
     mut player_query: Query<(Entity, &Transform, &Realm, &mut PlayerCol)>,
 ) {
     for (player, transform, realm, mut player_col) in player_query.iter_mut() {
-        let new_col = ColPos::from((transform.translation, *realm));
+        let new_col = ChunkPos2d::from((transform.translation, *realm));
         if player_col.0 != new_col {
             // send the update only if the column has changed
             let update = PlayerColumnUpdate {
@@ -137,12 +137,12 @@ pub struct PlayerColumnUpdateSender(pub Sender<PlayerColumnUpdate>);
 
 pub struct PlayerColumnUpdate {
     id: EntityIndex,
-    old_col_opt: Option<ColPos>,
-    new_col: ColPos,
+    old_col_opt: Option<ChunkPos2d>,
+    new_col: ChunkPos2d,
 }
 
 #[derive(Resource)]
-pub struct ColUnloadsReciever(pub Receiver<ColPos>);
+pub struct ColUnloadsReciever(pub Receiver<ChunkPos2d>);
 
 pub fn on_unload_col(
     unload_cols: Res<ColUnloadsReciever>,

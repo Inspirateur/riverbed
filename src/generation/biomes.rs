@@ -1,7 +1,7 @@
 use crate::{
     Block,
     generation::{biome_params::BiomeParameters, layer::*},
-    world::{CHUNK_S1, CHUNK_S2, ColPos, WATER_H, unchunked},
+    world::{CHUNK_S1, CHUNK_S2, ChunkPos2d, WATER_H, unchunked},
 };
 use riverbed_noise::*;
 use strum_macros::EnumString;
@@ -21,7 +21,7 @@ pub enum Biome {
 }
 
 impl Biome {
-    pub fn generate(&self, seed: u32, col: ColPos, params: &BiomeParameters) -> Vec<Layer> {
+    pub fn generate(&self, seed: u32, col: ChunkPos2d, params: &BiomeParameters) -> Vec<Layer> {
         match self {
             Biome::PolarOcean => Biome::generate_polar_ocean(seed, col, params),
             Biome::Ocean => Biome::generate_ocean(seed, col, params),
@@ -35,8 +35,8 @@ impl Biome {
         }
     }
 
-    fn generate_polar_ocean(seed: u32, col: ColPos, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+    fn generate_polar_ocean(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
+        let (x, z) = col.to_real_pos();
         let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed, 0.05);
         powi(&mut n, 3);
         mul_const(&mut n, -2.);
@@ -64,7 +64,7 @@ impl Biome {
         ]
     }
 
-    fn generate_ocean(_seed: u32, _col: ColPos, _params: &BiomeParameters) -> Vec<Layer> {
+    fn generate_ocean(_seed: u32, _col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         vec![
             Layer {
                 block: Block::Sand,
@@ -81,8 +81,8 @@ impl Biome {
         ]
     }
 
-    fn generate_plain(seed: u32, col: ColPos, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+    fn generate_plain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
+        let (x, z) = col.to_real_pos();
         let plain = fbm_scaled(
             x,
             CHUNK_S1,
@@ -107,8 +107,8 @@ impl Biome {
         ]
     }
 
-    fn generate_mountain(seed: u32, col: ColPos, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+    fn generate_mountain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
+        let (x, z) = col.to_real_pos();
         let mut mountain_presence = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 1, 0.005);
         powi(&mut mountain_presence, 2);
         let mut n = fbm_scaled(
@@ -140,12 +140,14 @@ impl Biome {
         ]
     }
 
-    fn generate_desert(_seed: u32, col: ColPos, _params: &BiomeParameters) -> Vec<Layer> {
+    fn generate_desert(_seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let mut sin = vec![0.0; CHUNK_S2];
         for dx in 0..CHUNK_S1 {
             for dy in 0..CHUNK_S1 {
                 let index = dx + dy * CHUNK_S1;
-                sin[index] = (unchunked(col.x, dx) as f32 / 6.).sin() * 4.0 + 8. + WATER_H as f32;
+                sin[index] = (unchunked::<CHUNK_S1, 1>(col.x, dx) as f32 / 6.).sin() * 4.0
+                    + 8.
+                    + WATER_H as f32;
             }
         }
         vec![
@@ -162,8 +164,8 @@ impl Biome {
         ]
     }
 
-    fn generate_jungle(seed: u32, col: ColPos, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+    fn generate_jungle(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
+        let (x, z) = col.to_real_pos();
         let mut n = fbm_scaled(
             x,
             CHUNK_S1,
@@ -194,8 +196,8 @@ impl Biome {
         ]
     }
 
-    fn generate_canyon(seed: u32, col: ColPos, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+    fn generate_canyon(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
+        let (x, z) = col.to_real_pos();
         let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.05);
         powi(&mut n, 4);
         mul_const(&mut n, -100.);
@@ -207,8 +209,8 @@ impl Biome {
         }]
     }
 
-    fn generate_tundra(seed: u32, col: ColPos, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = (unchunked(col.x, 0) as f32, unchunked(col.z, 0) as f32);
+    fn generate_tundra(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
+        let (x, z) = col.to_real_pos();
         let n = fbm_scaled(
             x,
             CHUNK_S1,
