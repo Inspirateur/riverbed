@@ -11,7 +11,7 @@ use crate::agents::{TargetBlock, Action, PlayerControlled};
 use crate::WorldRng;
 use leafwing_input_manager::prelude::*;
 use bevy::prelude::*;
-use rand::{Rng, RngExt};
+use rand::RngExt;
 
 
 pub struct BlockHitPlacePlugin;

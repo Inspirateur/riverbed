@@ -1,5 +1,7 @@
+#[cfg(test)]
 use itertools::Itertools;
 
+#[cfg(test)]
 pub(crate) trait Counter<E> {
     fn add(&mut self, elem: E)
     where E: PartialEq<E>;
@@ -9,6 +11,7 @@ pub(crate) trait Counter<E> {
     fn ordered(&mut self);
 }
 
+#[cfg(test)]
 impl<E> Counter<E> for Vec<(E, f32)> {
     fn add(&mut self, elem: E)
         where E: PartialEq<E> 

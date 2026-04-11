@@ -1,8 +1,3 @@
-use std::ops::Range;
-
-use itertools::Itertools;
-
-use crate::generation::coverage::counter::Counter;
 
 pub trait CoverageTrait<const D: usize, E: Clone> {
     /// Returns the closest object from the point and a matching score in ]-inf; 1]. 
@@ -11,9 +6,14 @@ pub trait CoverageTrait<const D: usize, E: Clone> {
     fn closest(&self, point: [f32; D]) -> (&E, f32);
 
     /// Estimates the proportion space for which a non negative value is returned (ie covered space)
+    #[cfg(test)]
     fn coverage(&self, step: f32) -> Vec<(&E, f32)>
         where E: PartialEq<E> 
     {
+        use std::ops::Range;
+        use itertools::Itertools;
+        use crate::generation::coverage::counter::Counter;
+
         let mut coverage = Vec::new();
         let samples = core::array::from_fn::<Range<f32>, D, _>(|_| 0f32..1f32).into_iter().map(
             |range| {
