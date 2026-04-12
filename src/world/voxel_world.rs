@@ -245,7 +245,7 @@ impl VoxelWorld {
                 neighbor_chunk
                     .value()
                     .write()
-                    .set_unpadded(chunked_pos, block);
+                    .set_unpadded(ChunkedPos { x, ..chunked_pos }, block);
                 self.chunk_changes
                     .send(neighbor)
                     .expect("Failed to send chunk change");
@@ -263,7 +263,7 @@ impl VoxelWorld {
                     neighbor_chunk
                         .value()
                         .write()
-                        .set_unpadded(chunked_pos, block);
+                        .set_unpadded(ChunkedPos { y, ..chunked_pos }, block);
                     self.chunk_changes
                         .send(neighbor)
                         .expect("Failed to send chunk change");
@@ -280,7 +280,7 @@ impl VoxelWorld {
                 neighbor_chunk
                     .value()
                     .write()
-                    .set_unpadded(chunked_pos, block);
+                    .set_unpadded(ChunkedPos { z, ..chunked_pos }, block);
                 self.chunk_changes
                     .send(neighbor)
                     .expect("Failed to send chunk change");

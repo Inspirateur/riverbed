@@ -214,7 +214,7 @@ impl TerrainGenerator {
                 y as f32 / MAX_GEN_HEIGHT as f32,
             ]);
             if dist >= 0. {
-                let pos = (col, (dx, y, dx)).into();
+                let pos = (col, (dx, y, dz)).into();
                 tree.grow(world, pos, self.seed as i32, dist + h as f32 / 10.);
             }
         }
