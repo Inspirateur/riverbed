@@ -139,7 +139,7 @@ impl<const C: usize, const U: usize> From<Pos3d<U>> for (Pos3d<C>, LocalPos3d<C>
 
 impl<const C: usize, const U: usize> From<(Pos2d<C>, (usize, i32, usize))> for Pos3d<U> {
     fn from((pos2d, (dx, y, dz)): (Pos2d<C>, (usize, i32, usize))) -> Self {
-        Pos3d {
+        Pos3d::<U> {
             x: unchunked::<C, U>(pos2d.x, dx),
             y,
             z: unchunked::<C, U>(pos2d.z, dz),
@@ -153,7 +153,7 @@ impl<const C: usize, const U: usize> From<Pos3d<U>> for (Pos2d<C>, (usize, i32, 
         let (cx, dx) = chunked::<C, U>(pos.x);
         let (cz, dz) = chunked::<C, U>(pos.z);
         (
-            Pos2d {
+            Pos2d::<C> {
                 x: cx,
                 z: cz,
                 realm: pos.realm,
