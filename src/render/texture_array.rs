@@ -185,6 +185,10 @@ impl MaterialExtension for ArrayTextureMaterial {
         "shaders/chunk.wgsl".into()
     }
 
+    fn enable_prepass() -> bool {
+        false
+    }
+
     fn specialize(
         _pipeline: &MaterialExtensionPipeline,
         descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,

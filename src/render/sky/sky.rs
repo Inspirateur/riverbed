@@ -1,27 +1,28 @@
-use std::{f32::consts::PI, time::Duration};
-use bevy::{pbr::{Atmosphere, ScatteringMedium}, prelude::*};
 use crate::render::camera::{CameraSpawn, FpsCam};
+use bevy::{
+    pbr::{Atmosphere, ScatteringMedium},
+    prelude::*,
+};
+use std::{f32::consts::PI, time::Duration};
 const DAY_LENGTH_MINUTES: f32 = 0.2;
-const C: f32 = DAY_LENGTH_MINUTES*120.*PI;
+const C: f32 = DAY_LENGTH_MINUTES * 120. * PI;
 
 pub struct SkyPlugin;
 
 impl Plugin for SkyPlugin {
     fn build(&self, app: &mut App) {
-        app   
-            .insert_resource(GlobalAmbientLight {
-                color: Color::WHITE,
-                brightness: 1000.0,
-                ..Default::default()
-            })
-            .insert_resource(CycleTimer(Timer::new(
-                 // Update our atmosphere every 500ms
-                Duration::from_millis(500),
-                TimerMode::Repeating,
-            )))
-            .add_systems(Startup, spawn_sun.after(CameraSpawn))
-            .add_systems(Update, daylight_cycle)
-            ;
+        app.insert_resource(GlobalAmbientLight {
+            color: Color::WHITE,
+            brightness: 1000.0,
+            ..Default::default()
+        })
+        .insert_resource(CycleTimer(Timer::new(
+            // Update our atmosphere every 500ms
+            Duration::from_millis(500),
+            TimerMode::Repeating,
+        )))
+        .add_systems(Startup, spawn_sun.after(CameraSpawn))
+        .add_systems(Update, daylight_cycle);
     }
 }
 
@@ -29,24 +30,26 @@ impl Plugin for SkyPlugin {
 #[derive(Resource)]
 struct CycleTimer(Timer);
 
-
 #[derive(Component)]
 struct Sun;
 
 fn spawn_sun(
-    mut commands: Commands, 
+    mut commands: Commands,
     cam_query: Query<Entity, With<FpsCam>>,
-    mut scattering_mediums: ResMut<Assets<ScatteringMedium>>
+    mut scattering_mediums: ResMut<Assets<ScatteringMedium>>,
 ) {
     let cam = cam_query.single().unwrap();
     commands.entity(cam).insert(Atmosphere::earthlike(
-        scattering_mediums.add(ScatteringMedium::default())
+        scattering_mediums.add(ScatteringMedium::default()),
     ));
-    commands.spawn((Sun, DirectionalLight {
-        // TODO: this crashes, maybe it will be fixed by following https://github.com/bevyengine/bevy/blob/main/assets/shaders/extended_material_bindless.wgsl
-        // shadows_enabled: true,
-        ..Default::default()
-    }));
+    commands.spawn((
+        Sun,
+        DirectionalLight {
+            // TODO: this crashes, maybe it will be fixed by following https://github.com/bevyengine/bevy/blob/main/assets/shaders/extended_material_bindless.wgsl
+            shadows_enabled: false,
+            ..Default::default()
+        },
+    ));
 }
 
 fn daylight_cycle(
