@@ -185,8 +185,18 @@ impl MaterialExtension for ArrayTextureMaterial {
         "shaders/chunk.wgsl".into()
     }
 
+    // Used for the depth, normal, and motion-vector prepasses as well as
+    // shadow map generation (Bevy uses the prepass shader for shadow depth).
+    fn prepass_vertex_shader() -> ShaderRef {
+        "shaders/prepass_chunk.wgsl".into()
+    }
+
+    fn prepass_fragment_shader() -> ShaderRef {
+        "shaders/prepass_chunk.wgsl".into()
+    }
+
     fn enable_prepass() -> bool {
-        false
+        true
     }
 
     fn specialize(
