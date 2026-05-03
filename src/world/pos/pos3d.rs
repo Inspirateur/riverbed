@@ -58,6 +58,19 @@ pub type ChunkedPos = LocalPos3d<CHUNK_S1>;
 pub type RegionPos = Pos3d<REGION_S1>;
 pub type RegionedPos = LocalPos3d<REGION_S1>;
 
+impl<const U: usize> Add<Pos3d<U>> for Pos3d<U> {
+    type Output = Pos3d<U>;
+
+    fn add(self, rhs: Pos3d<U>) -> Self::Output {
+        Pos3d::<U> {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+            realm: self.realm,
+        }
+    }
+}
+
 impl From<(Vec3, Realm)> for BlockPos {
     fn from((pos, realm): (Vec3, Realm)) -> Self {
         BlockPos {

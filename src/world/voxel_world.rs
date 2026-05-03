@@ -2,7 +2,11 @@ use super::{
     BlockPos, BlockPos2d, CHUNK_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos, ChunkedPos2d,
     MAX_HEIGHT, Realm, Y_CHUNKS, chunked, pos2d::chunks_in_col,
 };
-use crate::{Block, block::Face, world::CHUNKP_S1};
+use crate::{
+    Block,
+    block::Face,
+    world::{CHUNKP_S1, pos3d::Pos3d},
+};
 use bevy::prelude::{Resource, Vec3};
 use crossbeam::channel::Sender;
 use crossbeam_skiplist::{SkipMap, map::Entry};
@@ -294,6 +298,7 @@ impl VoxelWorld {
         start: Vec3,
         dir: Vec3,
         dist: f32,
+        grazing: bool,
     ) -> Option<BlockRayCastHit> {
         let mut pos = BlockPos {
             realm,
@@ -317,31 +322,56 @@ impl VoxelWorld {
         let slope_x = 1. / dir.x.abs();
         let slope_y = 1. / dir.y.abs();
         let slope_z = 1. / dir.z.abs();
+        let mut grazed_block = None;
+        let grazing_dirs = if grazing {
+            vec![
+                BlockPos {
+                    x: -sx,
+                    y: 0,
+                    z: 0,
+                    realm,
+                },
+                BlockPos {
+                    x: 0,
+                    y: -sy,
+                    z: 0,
+                    realm,
+                },
+                BlockPos {
+                    x: 0,
+                    y: 0,
+                    z: -sz,
+                    realm,
+                },
+            ]
+        } else {
+            vec![]
+        };
         loop {
             last_pos = pos;
             if t_max_x < t_max_y {
                 if t_max_x < t_max_z {
                     if t_max_x >= dist {
-                        return None;
+                        return grazed_block;
                     };
                     pos.x += sx;
                     t_max_x += slope_x;
                 } else {
                     if t_max_z >= dist {
-                        return None;
+                        return grazed_block;
                     };
                     pos.z += sz;
                     t_max_z += slope_z;
                 }
             } else if t_max_y < t_max_z {
                 if t_max_y >= dist {
-                    return None;
+                    return grazed_block;
                 };
                 pos.y += sy;
                 t_max_y += slope_y;
             } else {
                 if t_max_z >= dist {
-                    return None;
+                    return grazed_block;
                 };
                 pos.z += sz;
                 t_max_z += slope_z;
@@ -355,6 +385,17 @@ impl VoxelWorld {
                         z: (last_pos.z - pos.z) as f32,
                     },
                 });
+            }
+            if grazing && grazed_block.is_none() {
+                for &grazing_dir in &grazing_dirs {
+                    if self.get_block_safe(pos + grazing_dir).is_targetable() {
+                        grazed_block = Some(BlockRayCastHit {
+                            pos: pos,
+                            normal: Vec3::default(),
+                        });
+                        break;
+                    }
+                }
             }
         }
     }
