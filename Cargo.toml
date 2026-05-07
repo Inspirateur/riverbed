@@ -15,6 +15,7 @@ members = [
 
 [dependencies]
 anyhow = "*"
+avian3d = "0.6"
 bevy = { version = "0.18" }
 binary-greedy-meshing = "*"
 cfg-if = "*"

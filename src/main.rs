@@ -9,6 +9,7 @@ mod sounds;
 mod generation;
 mod logging;
 include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
+use avian3d::prelude::*;
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
 use world::VoxelWorld;
@@ -78,6 +79,12 @@ fn client() {
             seed: SEED,
             rng: ChaCha8Rng::seed_from_u64(SEED)
         })
+        .add_plugins(PhysicsPlugins::default())
+        .insert_resource(Gravity(Vec3::new(0., -50., 0.)));
+    if std::env::args().any(|a| a == "--debug-physics") {
+        app.add_plugins(PhysicsDebugPlugin::default());
+    }
+    app
         .add_plugins(PlayerPlugin)
         .add_plugins(TextureLoadPlugin)
         .add_plugins(UIPlugin)

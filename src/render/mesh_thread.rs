@@ -4,6 +4,7 @@ use crate::logging::LogData;
 use crate::render::mesh_draw::{LOD, choose_lod_level};
 use crate::render::texture_array::TextureMap;
 use crate::world::{ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
+use avian3d::prelude::Collider;
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{Receiver, Sender, unbounded};
@@ -22,7 +23,9 @@ pub fn setup_mesh_thread(
     let thread_pool = AsyncComputeTaskPool::get();
     let chunks = voxel_world.chunks.clone();
     let (mesh_sender, mesh_reciever) = unbounded();
+    let (collider_sender, collider_reciever) = unbounded();
     commands.insert_resource(MeshReciever(mesh_reciever));
+    commands.insert_resource(ColliderReciever(collider_reciever));
     let texture_map = texture_map.0.clone();
     let mesh_order_receiver = mesh_order_receiver.0.clone();
     let shared_load_area = shared_load_area.0.clone();
@@ -70,12 +73,27 @@ pub fn setup_mesh_thread(
                 let Some(chunk) = chunks.get(&chunk_pos) else {
                     continue;
                 };
+                let chunk_guard = chunk.value().read();
                 let face_meshes =
-                    chunk
-                        .value()
-                        .read()
-                        .create_face_meshes(&texture_map, lod, chunk_pos);
+                    chunk_guard.create_face_meshes(&texture_map, lod, chunk_pos);
+                // Colliders only at LOD=1 — distant chunks are outside
+                // physics-active range and would only inflate the trimesh.
+                let collider = if lod == 1 {
+                    chunk_guard
+                        .create_collider_data()
+                        .map(|(verts, idx)| Collider::trimesh(verts, idx))
+                } else {
+                    None
+                };
+                drop(chunk_guard);
                 trace!("{}", LogData::ChunkMeshed(chunk_pos));
+                if collider_sender
+                    .send((collider, chunk_pos, LOD(lod)))
+                    .is_err()
+                {
+                    warn!("Collider channel is closed, stopping mesh thread");
+                    break 'outer;
+                }
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();
                     if mesh_sender
@@ -93,6 +111,9 @@ pub fn setup_mesh_thread(
 
 #[derive(Resource)]
 pub struct MeshReciever(pub Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
+
+#[derive(Resource)]
+pub struct ColliderReciever(pub Receiver<(Option<Collider>, ChunkPos, LOD)>);
 
 #[derive(Resource)]
 pub struct MeshOrderSender(pub Sender<ChunkPos>);

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use avian3d::prelude::{Collider, Friction, RigidBody};
 use bevy::camera::primitives::Aabb;
 use bevy::camera::visibility::NoFrustumCulling;
 use bevy::prelude::*;
@@ -6,7 +7,7 @@ use itertools::Itertools;
 use strum::IntoEnumIterator;
 use crate::agents::PlayerControlled;
 use crate::block::Face;
-use crate::render::mesh_thread::{setup_mesh_thread, update_shared_load_area, MeshReciever, SharedPlayerCol};
+use crate::render::mesh_thread::{setup_mesh_thread, update_shared_load_area, ColliderReciever, MeshReciever, SharedPlayerCol};
 use crate::render::MeshOrderSender;
 use crate::world::pos2d::chunks_in_col;
 use crate::world::{ChunkPos, ColUnloadEvent, PlayerCol, VoxelWorld, CHUNK_S1};
@@ -22,11 +23,13 @@ impl Plugin for Draw3d {
         app
             .add_plugins(TextureArrayPlugin)
             .insert_resource(ChunkEntities::new())
+            .insert_resource(ChunkColliderEntities::new())
             .insert_resource(SharedPlayerCol::default())
             .add_systems(OnEnter(BlockTexState::Mapped),  setup_mesh_thread)
             .add_systems(Update, update_shared_load_area)
             .add_systems(Update, mark_lod_remesh)
             .add_systems(Update, pull_meshes.run_if(in_state(BlockTexState::Mapped)))
+            .add_systems(Update, pull_colliders.run_if(in_state(BlockTexState::Mapped)))
             .add_systems(Update, on_col_unload)
             .add_systems(PostUpdate, chunk_culling)
             ;
@@ -111,10 +114,55 @@ pub fn pull_meshes(
     }
 }
 
+pub fn pull_colliders(
+    mut commands: Commands,
+    collider_reciever: Res<ColliderReciever>,
+    mut chunk_collider_ents: ResMut<ChunkColliderEntities>,
+    mut collider_query: Query<&mut Collider>,
+    blocks: Res<VoxelWorld>,
+) {
+    let received: Vec<_> = collider_reciever.0.try_iter().collect();
+    // Coalesce per chunk_pos so stale geometry is discarded.
+    for (collider_opt, chunk_pos, _lod) in
+        received.into_iter().rev().unique_by(|(_, pos, _)| *pos)
+    {
+        let Some(collider) = collider_opt else {
+            if let Some(ent) = chunk_collider_ents.0.remove(&chunk_pos) {
+                commands.entity(ent).despawn();
+            }
+            continue;
+        };
+        if let Some(&ent) = chunk_collider_ents.0.get(&chunk_pos) {
+            if let Ok(mut handle) = collider_query.get_mut(ent) {
+                *handle = collider;
+            }
+        } else if blocks.chunks.contains_key(&chunk_pos) {
+            let ent = commands
+                .spawn((
+                    RigidBody::Static,
+                    collider,
+                    // Block-side friction is uniform; per-block material
+                    // friction is carried on the player and combines via Min.
+                    Friction::new(1.0),
+                    Transform::from_translation(
+                        Vec3::new(
+                            chunk_pos.x as f32,
+                            chunk_pos.y as f32,
+                            chunk_pos.z as f32,
+                        ) * CHUNK_S1 as f32,
+                    ),
+                ))
+                .id();
+            chunk_collider_ents.0.insert(chunk_pos, ent);
+        }
+    }
+}
+
 pub fn on_col_unload(
     mut commands: Commands,
     mut ev_unload: MessageReader<ColUnloadEvent>,
     mut chunk_ents: ResMut<ChunkEntities>,
+    mut chunk_collider_ents: ResMut<ChunkColliderEntities>,
     mesh_query: Query<&Mesh3d>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
@@ -128,6 +176,9 @@ pub fn on_col_unload(
                     commands.entity(ent).despawn();
                 }
             }
+            if let Some(ent) = chunk_collider_ents.0.remove(&chunk_pos) {
+                commands.entity(ent).despawn();
+            }
         }
     }
 }
@@ -138,5 +189,14 @@ pub struct ChunkEntities(pub HashMap::<(ChunkPos, Face), Entity>);
 impl ChunkEntities {
     pub fn new() -> Self {
         ChunkEntities(HashMap::new())
+    }
+}
+
+#[derive(Resource)]
+pub struct ChunkColliderEntities(pub HashMap<ChunkPos, Entity>);
+
+impl ChunkColliderEntities {
+    pub fn new() -> Self {
+        ChunkColliderEntities(HashMap::new())
     }
 }

@@ -5,14 +5,24 @@ use super::{
 use crate::world::{BlockRayCastHit, Realm};
 use crate::{
     Block,
-    agents::{AABB, Gravity, Heading, Jumping, Velocity},
+    agents::{BodyExtents, Grounded, Heading, Jumping},
     items::{InventoryTrait, Item, Stack, new_inventory},
     sounds::{BlockSoundCD, FootstepCD, on_item_get},
     ui::{CursorGrabbed, ItemHolder},
 };
+use avian3d::prelude::{
+    CoefficientCombine, Collider, Friction, LinearVelocity, LockedAxes, RigidBody, ShapeCaster,
+};
 use bevy::{math::Vec3, prelude::*};
 use leafwing_input_manager::prelude::*;
 use std::time::Duration;
+
+/// Half-extents of the player's bounding box. Width/depth equal the capsule
+/// radius; height equals half the total capsule height (cylinder + caps).
+pub const PLAYER_HALF_EXTENTS: Vec3 = Vec3::new(0.25, 0.85, 0.25);
+// Avian's `Collider::capsule(radius, length)` puts hemispheres on top of
+// `length`, so cylinder length is total height minus two radii.
+const PLAYER_CAPSULE_LENGTH: f32 = PLAYER_HALF_EXTENTS.y * 2. - PLAYER_HALF_EXTENTS.x * 2.;
 
 const WALK_SPEED: f32 = 7.;
 const FREE_FLY_X_SPEED: f32 = 500.;
@@ -104,7 +114,31 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
             },
             Visibility::default(),
             realm,
-            Gravity(50.),
+            RigidBody::Dynamic,
+            // Capsule's rounded base slides cleanly across coplanar triangle
+            // edges in the chunk trimesh; a flat-bottom cuboid catches on them.
+            Collider::capsule(PLAYER_HALF_EXTENTS.x, PLAYER_CAPSULE_LENGTH),
+            // Material friction lives on the player and is rewritten each frame
+            // from `SteppingOn`. `Min` combine ensures whichever of (player,
+            // terrain) is slipperier wins, so ice etc. dominate.
+            Friction::new(1.0).with_combine_rule(CoefficientCombine::Min),
+            LockedAxes::ROTATION_LOCKED,
+            LinearVelocity::default(),
+            ShapeCaster::new(
+                Collider::cuboid(
+                    PLAYER_HALF_EXTENTS.x * 1.9,
+                    0.05,
+                    PLAYER_HALF_EXTENTS.z * 1.9,
+                ),
+                Vec3::new(0., -PLAYER_HALF_EXTENTS.y + 0.05, 0.),
+                Quat::IDENTITY,
+                Dir3::NEG_Y,
+            )
+            .with_max_distance(0.15),
+            Grounded(false),
+            BodyExtents(PLAYER_HALF_EXTENTS),
+        ))
+        .insert((
             Heading(Vec3::default()),
             Speed(WALK_SPEED),
             Jumping {
@@ -112,8 +146,6 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
                 cd: Timer::new(Duration::from_millis(500), TimerMode::Once),
                 intent: false,
             },
-            AABB(Vec3::new(0.5, 1.7, 0.5)),
-            Velocity(Vec3::default()),
             TargetBlock(None),
             ItemHolder::Inventory(inventory),
             PlayerControlled,

@@ -1,5 +1,6 @@
 use super::block_sound_load::{BlockSound, BlockSoundLoadPlugin, BlockSounds};
-use crate::agents::{BlockActionType, BlockLootAction, SteppingOn, Velocity};
+use crate::agents::{BlockActionType, BlockLootAction, SteppingOn};
+use avian3d::prelude::LinearVelocity;
 use bevy::{
     audio::{PlaybackMode, SpatialScale},
     prelude::*,
@@ -26,7 +27,7 @@ fn footsteps(
     mut commands: Commands,
     block_sounds: Res<BlockSounds>,
     time: Res<Time>,
-    mut steppers_query: Query<(&Transform, &Velocity, &SteppingOn, &mut FootstepCD)>,
+    mut steppers_query: Query<(&Transform, &LinearVelocity, &SteppingOn, &mut FootstepCD)>,
 ) {
     for (transform, velocity, stepping_on, mut footstep_cd) in steppers_query.iter_mut() {
         let speed = velocity.0.length();

@@ -1,10 +1,11 @@
 use crate::Block;
-use crate::agents::Velocity;
+use crate::agents::PLAYER_HALF_EXTENTS;
 use crate::world::{Realm, VoxelWorld};
 use crate::{
-    agents::{AABB, PlayerControlled, PlayerSpawn},
+    agents::{PlayerControlled, PlayerSpawn},
     ui::CursorGrabbed,
 };
+use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
 use leafwing_input_manager::prelude::*;
@@ -64,14 +65,15 @@ pub struct CameraSpawn;
 fn cam_setup(
     mut commands: Commands,
     mut cursor_options: Query<&mut CursorOptions>,
-    player_query: Query<(Entity, &AABB), With<PlayerControlled>>,
+    player_query: Query<Entity, With<PlayerControlled>>,
 ) {
     let input_map = InputMap::default().with_dual_axis(CameraMovement::Pan, MouseMove::default());
-    let (player, aabb) = player_query.single().unwrap();
+    let player = player_query.single().unwrap();
+    // Eye sits 0.05 below the top of the body (transform-centered collider).
     let cam = commands
         .spawn((
             Camera3d::default(),
-            Transform::from_xyz(aabb.0.x / 2., aabb.0.y - 0.05, aabb.0.z / 2.).looking_at(
+            Transform::from_xyz(0., PLAYER_HALF_EXTENTS.y - 0.05, 0.).looking_at(
                 Vec3 {
                     x: 0.,
                     y: 0.,
@@ -102,7 +104,7 @@ fn cam_setup(
 
 fn adaptative_fov(
     cam_query: Single<(&Transform, &mut Projection)>,
-    player_query: Single<&Velocity, With<PlayerControlled>>,
+    player_query: Single<&LinearVelocity, With<PlayerControlled>>,
     time: Res<Time>,
 ) {
     let velocity = player_query.into_inner();

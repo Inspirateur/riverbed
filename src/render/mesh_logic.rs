@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 use bevy::{
     asset::RenderAssetUsages,
     log::info_span,
+    math::Vec3,
     mesh::{Indices, MeshVertexAttribute},
     prelude::Mesh,
     render::render_resource::{PrimitiveTopology, VertexFormat},
@@ -146,5 +147,51 @@ impl Chunk {
         }
         mesh_build_span.exit();
         meshes
+    }
+
+    /// Triangle-mesh collider geometry in chunk-local space, ready to feed to
+    /// `Collider::trimesh`. Returns `None` for fully-traversable chunks.
+    pub fn create_collider_data(&self) -> Option<(Vec<Vec3>, Vec<[u32; 3]>)> {
+        let voxels = self.data.unpack_u16();
+        let mut mesher: bgm::Mesher<CHUNK_S1> = bgm::Mesher::new();
+        let traversable = BTreeSet::from_iter(self.palette.iter().enumerate().filter_map(
+            |(i, block)| {
+                if i != 0 && block.is_traversable() {
+                    Some(i as u16)
+                } else {
+                    None
+                }
+            },
+        ));
+        mesher.mesh(&voxels, &traversable);
+        let mut vertices: Vec<Vec3> = Vec::new();
+        let mut indices: Vec<[u32; 3]> = Vec::new();
+        for (face_n, quads) in mesher.quads.iter().enumerate() {
+            let face: Face = face_n.into();
+            for quad in quads {
+                let voxel_i = quad.voxel_id() as usize;
+                if self.palette[voxel_i].is_traversable() {
+                    continue;
+                }
+                let [x, y, z] = quad.xyz();
+                let w = quad.width();
+                let h = quad.height();
+                let corners = face.vertices_f32(
+                    x as u32, y as u32, z as u32,
+                    w as u32, h as u32, 1,
+                );
+                let base = vertices.len() as u32;
+                vertices.extend_from_slice(&corners);
+                // Per-quad pattern is `bgm::indices`' verbatim, so collider
+                // winding is identical to the render mesh.
+                indices.push([base + 2, base, base + 1]);
+                indices.push([base + 1, base + 3, base + 2]);
+            }
+        }
+        if indices.is_empty() {
+            None
+        } else {
+            Some((vertices, indices))
+        }
     }
 }

@@ -306,6 +306,14 @@ impl VoxelWorld {
             y: start.y.floor() as i32,
             z: start.z.floor() as i32,
         };
+        // Test the starting cell before stepping — otherwise a ray that begins
+        // inside a solid block would skip it.
+        if self.get_block_safe(pos).is_targetable() {
+            return Some(BlockRayCastHit {
+                pos,
+                normal: Vec3::ZERO,
+            });
+        }
         let mut last_pos;
         let sx = dir.x.signum() as i32;
         let sy = dir.y.signum() as i32;
