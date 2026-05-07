@@ -1,6 +1,6 @@
 use crate::Block;
-use crate::agents::{PlayerControlled, TargetBlock};
-use crate::world::VoxelWorld;
+use crate::agents::{PlayerControlled, TargetBlock, TargetKind};
+use crate::world::{VoxelGrid, VoxelWorld};
 use bevy::color::palettes::css;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
@@ -104,12 +104,16 @@ fn update_block_display(
     player_query: Query<&TargetBlock, With<PlayerControlled>>,
     mut block_text_query: Query<&mut Text, With<DebugTextBlock>>,
     world: Res<VoxelWorld>,
+    grids: Query<&VoxelGrid>,
 ) {
     let target_block = player_query.single().unwrap();
-    let block = if let Some(raycast_hit) = &target_block.0 {
-        world.get_block_safe(raycast_hit.pos)
-    } else {
-        Block::Air
+    let block = match &target_block.0 {
+        Some(TargetKind::World(hit)) => world.get_block_safe(hit.pos),
+        Some(TargetKind::Grid { grid, pos, .. }) => grids
+            .get(*grid)
+            .map(|g| g.get_block(*pos))
+            .unwrap_or(Block::Air),
+        None => Block::Air,
     };
     if let Ok(mut block_text) = block_text_query.single_mut() {
         block_text.0 = format!("block: {block:?}\n");

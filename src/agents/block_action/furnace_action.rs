@@ -1,5 +1,5 @@
 use crate::{
-    agents::{Action, PlayerControlled, TargetBlock},
+    agents::{Action, PlayerControlled, TargetBlock, TargetKind},
     items::{FiringTable, LitFurnace, Stack},
     ui::{furnace_slots, GameUiState, ItemHolder, OpenFurnace},
     world::{BlockEntities, BlockPos, VoxelWorld},
@@ -48,14 +48,16 @@ fn open_furnace_menu(
         if !action.just_pressed(&Action::Modify) {
             continue;
         }
-        let Some(target_block) = &target_block_opt.0 else {
+        // Furnaces exist only in the static world; ignore grid targets.
+        let Some(TargetKind::World(hit)) = &target_block_opt.0 else {
             continue;
         };
-        let furnace = world.get_block(target_block.pos);
+        let block_pos = hit.pos;
+        let furnace = world.get_block(block_pos);
         let Some(furnace_temp) = furnace.furnace_temp() else {
             continue;
         };
-        let furnace_ent = if let Some(ent) = block_entities.get(&target_block.pos) {
+        let furnace_ent = if let Some(ent) = block_entities.get(&block_pos) {
             if furnace_query.contains(ent) {
                 ent
             } else {
@@ -64,11 +66,11 @@ fn open_furnace_menu(
                     .insert(Furnace {
                         name: furnace.to_string(),
                         temp: furnace_temp,
-                        block_pos: target_block.pos,
+                        block_pos,
                     })
                     .insert(furnace_slots())
                     .id();
-                block_entities.add(&target_block.pos, ent);
+                block_entities.add(&block_pos, ent);
                 ent
             }
         } else {
@@ -76,11 +78,11 @@ fn open_furnace_menu(
                 .spawn(Furnace {
                     name: furnace.to_string(),
                     temp: furnace_temp,
-                    block_pos: target_block.pos,
+                    block_pos,
                 })
                 .insert(furnace_slots())
                 .id();
-            block_entities.add(&target_block.pos, ent);
+            block_entities.add(&block_pos, ent);
             ent
         };
         furnace_menu.0 = Some(furnace_ent);

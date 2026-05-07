@@ -2,7 +2,7 @@ use super::{
     Crouching, FreeFly, Speed, SteppingOn, Walking, block_action::BlockActionPlugin,
     key_binds::KeyBinds,
 };
-use crate::world::{BlockRayCastHit, Realm};
+use crate::world::{BlockRayCastHit, GridBlockPos, Realm};
 use crate::{
     Block,
     agents::{BodyExtents, Grounded, Heading, Jumping},
@@ -63,8 +63,41 @@ impl Plugin for PlayerPlugin {
 #[derive(Component)]
 pub struct PlayerControlled;
 
+/// What the player's camera ray is currently aimed at. Either a block in the
+/// static `VoxelWorld` (per-realm, axis-aligned) or a block on a movable
+/// `VoxelGrid` (entity-anchored). Grid hits carry a grid-local face normal
+/// so consumers can work in the grid's local frame (parented effects,
+/// placement offsets) without re-transforming through `GlobalTransform`.
+#[derive(Debug, Clone)]
+pub enum TargetKind {
+    World(BlockRayCastHit),
+    Grid {
+        grid: Entity,
+        pos: GridBlockPos,
+        /// Face normal in grid-local space (axis-aligned, ±X/Y/Z).
+        normal_local: Vec3,
+    },
+}
+
+impl PartialEq for TargetKind {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (TargetKind::World(a), TargetKind::World(b)) => a.pos == b.pos,
+            (
+                TargetKind::Grid {
+                    grid: g1, pos: p1, ..
+                },
+                TargetKind::Grid {
+                    grid: g2, pos: p2, ..
+                },
+            ) => g1 == g2 && p1 == p2,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Component)]
-pub struct TargetBlock(pub Option<BlockRayCastHit>);
+pub struct TargetBlock(pub Option<TargetKind>);
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 pub enum Dir {

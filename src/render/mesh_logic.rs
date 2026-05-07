@@ -15,7 +15,7 @@ use crate::world::CHUNK_S1;
 use crate::{
     Block,
     block::Face,
-    world::{CHUNKP_S3, Chunk, ChunkPos, WATER_H, linearize, pad_linearize},
+    world::{CHUNKP_S3, Chunk, WATER_H, linearize, pad_linearize},
 };
 
 const MASK_XYZ: u64 = 0b111111_111111_111111;
@@ -72,13 +72,17 @@ impl Chunk {
 
     /// Doesn't work with lod > 2, because chunks are of size 62 (to get to 64 with padding) and 62 = 2*31
     /// TODO: make it work with lod > 2 if necessary (by truncating quads)
+    ///
+    /// `water_chunk_y` is the chunk's world y-coordinate used only to attenuate
+    /// underwater lighting. Pass `None` to skip water tinting (e.g. for movable
+    /// voxel grids whose world-y changes with `Transform`).
     pub fn create_face_meshes(
         &self,
         texture_map: impl TextureMapTrait,
         lod: usize,
-        chunk_pos: ChunkPos,
+        water_chunk_y: Option<i32>,
     ) -> [Option<Mesh>; 6] {
-        let cy = chunk_pos.y as usize * CHUNK_S1 as usize;
+        let water_cy = water_chunk_y.map(|y| y as usize * CHUNK_S1 as usize);
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
         let voxels = self.voxel_data_lod(lod);
@@ -121,10 +125,12 @@ impl Chunk {
                     _ => (1., 1., 1.),
                 };
                 if neighbor_block == Block::SeaBlock {
-                    let dist_to_surface = (WATER_H as usize - cy - y as usize) as f32;
-                    r *= (-dist_to_surface * 0.05).exp();
-                    g *= (-dist_to_surface * 0.045).exp();
-                    b *= (-dist_to_surface * 0.04).exp();
+                    if let Some(cy) = water_cy {
+                        let dist_to_surface = (WATER_H as usize - cy - y as usize) as f32;
+                        r *= (-dist_to_surface * 0.05).exp();
+                        g *= (-dist_to_surface * 0.045).exp();
+                        b *= (-dist_to_surface * 0.04).exp();
+                    }
                 }
                 let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32, lod as u32);
                 let quad_info = (color(r, g, b) << 15) | (layer << 3) | face_n as u32;

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use avian3d::debug_render::DebugRender;
 use avian3d::prelude::{Collider, Friction, RigidBody};
 use bevy::camera::primitives::Aabb;
 use bevy::camera::visibility::NoFrustumCulling;
@@ -144,6 +145,10 @@ pub fn pull_colliders(
                     // Block-side friction is uniform; per-block material
                     // friction is carried on the player and combines via Min.
                     Friction::new(1.0),
+                    // World chunks are too large to render usefully in the
+                    // physics debug overlay; suppress them so the player and
+                    // voxel grids remain visible.
+                    DebugRender::none(),
                     Transform::from_translation(
                         Vec3::new(
                             chunk_pos.x as f32,

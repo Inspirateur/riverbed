@@ -1,5 +1,6 @@
 use super::block_sound_load::{BlockSound, BlockSoundLoadPlugin, BlockSounds};
-use crate::agents::{BlockActionType, BlockLootAction, SteppingOn};
+use crate::agents::{BlockActionType, BlockLootAction, LootTarget, SteppingOn};
+use crate::world::VoxelGrid;
 use avian3d::prelude::LinearVelocity;
 use bevy::{
     audio::{PlaybackMode, SpatialScale},
@@ -65,6 +66,7 @@ fn breaking(
     block_sounds: Res<BlockSounds>,
     time: Res<Time>,
     mut looting_query: Query<(&BlockLootAction, &mut BlockSoundCD)>,
+    grids: Query<&GlobalTransform, With<VoxelGrid>>,
 ) {
     for (looting_action, mut sound_cd) in looting_query.iter_mut() {
         sound_cd.0 -= time.delta_secs();
@@ -80,9 +82,16 @@ fn breaking(
         ) else {
             continue;
         };
+        let world_pos = match &looting_action.target {
+            LootTarget::World(pos) => Vec3::from(*pos),
+            LootTarget::Grid { grid, pos } => {
+                let Ok(xform) = grids.get(*grid) else { continue };
+                xform.transform_point(Vec3::new(pos.x as f32, pos.y as f32, pos.z as f32))
+            }
+        };
         commands
             .spawn((
-                Transform::from_translation(looting_action.block_pos.into()),
+                Transform::from_translation(world_pos),
                 Visibility::default(),
             ))
             .insert((

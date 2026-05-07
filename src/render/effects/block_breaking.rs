@@ -1,7 +1,7 @@
 use std::ffi::OsStr;
 use bevy::{asset::LoadedFolder, image::TRANSPARENT_IMAGE_HANDLE, prelude::*};
 use itertools::Itertools;
-use crate::{agents::{BlockActionType, BlockLootAction, TargetBlock}, render::{BlockTexState, BlockTextureFolder}};
+use crate::{agents::{BlockActionType, BlockLootAction, TargetBlock, TargetKind}, render::{BlockTexState, BlockTextureFolder}};
 
 pub struct BlockBreakingEffectPlugin;
 
@@ -61,9 +61,19 @@ fn add_break_animation(
     for (player, target_opt, breaking) in block_action_query.iter() {
         if !matches!(breaking.action_type, BlockActionType::Breaking) {
             continue;
-        } 
-        let Some(target) = &target_opt.0 else {
-            continue;
+        }
+        // Compute the overlay quad in the targeted block's *local* frame
+        // (block-corner origin, axis-aligned face normal). For world targets
+        // the local frame is the world frame; for grid targets the overlay
+        // is parented to the grid root so it inherits rotation/motion.
+        let (origin_local, normal_local, parent) = match &target_opt.0 {
+            Some(TargetKind::World(hit)) => (Vec3::from(hit.pos), hit.normal, None),
+            Some(TargetKind::Grid { grid, pos, normal_local, .. }) => (
+                Vec3::new(pos.x as f32, pos.y as f32, pos.z as f32),
+                *normal_local,
+                Some(*grid),
+            ),
+            None => continue,
         };
         let quad_handle = meshes.add(Rectangle::new(1., 1.));
         let material_handle = materials.add(StandardMaterial {
@@ -72,15 +82,24 @@ fn add_break_animation(
             unlit: true,
             ..default()
         });
-        let translation = <_ as Into<Vec3>>::into(target.pos) 
-            + target.normal.max(Vec3::ZERO) 
-            + target.normal*0.001 
-            + (Vec3::ONE-target.normal.abs())*0.5;
-        let effect = commands.spawn((
+        // Place the quad just outside the targeted face, centred on the face.
+        let translation = origin_local
+            + normal_local.max(Vec3::ZERO)
+            + normal_local * 0.001
+            + (Vec3::ONE - normal_local.abs()) * 0.5;
+        // `looking_at` uses local axes when the entity is parented, which is
+        // exactly what we want — the quad stays oriented to the face even as
+        // the grid rotates.
+        let mut effect_cmds = commands.spawn((
             Mesh3d(quad_handle.clone()),
             MeshMaterial3d(material_handle.clone()),
-            Transform::from_translation(translation).looking_at(translation-target.normal, Vec3::Y)
-        )).id();
+            Transform::from_translation(translation)
+                .looking_at(translation - normal_local, Vec3::Y),
+        ));
+        if let Some(grid_entity) = parent {
+            effect_cmds.insert(ChildOf(grid_entity));
+        }
+        let effect = effect_cmds.id();
         commands.entity(player).insert(BreakingEffect(effect));
     }
 }

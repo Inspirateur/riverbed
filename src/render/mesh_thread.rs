@@ -75,7 +75,7 @@ pub fn setup_mesh_thread(
                 };
                 let chunk_guard = chunk.value().read();
                 let face_meshes =
-                    chunk_guard.create_face_meshes(&texture_map, lod, chunk_pos);
+                    chunk_guard.create_face_meshes(&texture_map, lod, Some(chunk_pos.y));
                 // Colliders only at LOD=1 — distant chunks are outside
                 // physics-active range and would only inflate the trimesh.
                 let collider = if lod == 1 {

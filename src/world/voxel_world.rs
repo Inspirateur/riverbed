@@ -13,6 +13,7 @@ use crossbeam_skiplist::{SkipMap, map::Entry};
 use parking_lot::RwLock;
 use std::sync::Arc;
 
+#[derive(Debug, Clone)]
 pub struct BlockRayCastHit {
     pub pos: BlockPos,
     pub normal: Vec3,

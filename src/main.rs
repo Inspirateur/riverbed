@@ -12,11 +12,11 @@ include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
 use avian3d::prelude::*;
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
-use world::VoxelWorld;
+use world::{GridBlockPos, VoxelWorld};
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
 use sounds::SoundPlugin;
 use ui::UIPlugin;
-use render::{Render, TextureLoadPlugin};
+use render::{BlockTexState, Render, TextureLoadPlugin, TextureMap, spawn_voxel_grid};
 use agents::{MovementPlugin, PlayerPlugin};
 use world::TerrainLoadPlugin;
 #[cfg(feature = "log_inspector")]
@@ -92,9 +92,32 @@ fn client() {
         .add_plugins(TerrainLoadPlugin)
         .add_plugins(Render)
         .add_plugins(SoundPlugin)
+        .add_systems(OnEnter(BlockTexState::Mapped), spawn_demo_grid)
         ;
 
     app.run();
+}
+
+/// Drops a small cobblestone cube just in front of the player spawn so the
+/// voxel-rigidbody pipeline (render, gravity, collisions, break/place) is
+/// exercised end-to-end on startup. Strip when no longer needed.
+fn spawn_demo_grid(mut commands: Commands, texture_map: Res<TextureMap>) {
+    // Player SPAWN is (280, 500, -150) facing +Z. The cube spawns 4m forward
+    // and 5m up; 3m³ keeps it visibly comparable to the 1.7m player capsule.
+    spawn_voxel_grid(
+        &mut commands,
+        &texture_map,
+        Transform::from_xyz(280., 505., -146.),
+        |grid| {
+            for x in 0..3 {
+                for y in 0..3 {
+                    for z in 0..3 {
+                        grid.set_block(GridBlockPos { x, y, z }, Block::Cobblestone);
+                    }
+                }
+            }
+        },
+    );
 }
 
 #[cfg(feature = "log_inspector")]

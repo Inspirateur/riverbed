@@ -1,5 +1,5 @@
 use crate::Block;
-use crate::world::{BlockPos, Realm, VoxelWorld};
+use crate::world::{BlockPos, GridBlockPos, Realm, VoxelGrid, VoxelWorld};
 use avian3d::prelude::{Friction, LinearVelocity, LockedAxes, ShapeHits};
 use bevy::{
     prelude::*,
@@ -91,13 +91,15 @@ fn update_grounded_and_material(
 }
 
 /// Locks all axes when any of three axis-line probes is inside a non-traversable
-/// voxel. Three probes (top, mid, bottom) are sufficient because their 0.80m
-/// spacing is less than block height, so any block intersecting the body's
-/// vertical span contains at least one. Tests the central axis rather than the
-/// AABB so the rounded sides of the capsule don't false-trigger freeze when they
-/// brush a corner block the capsule isn't actually touching.
+/// voxel — either in the static world or in any movable `VoxelGrid`. Three
+/// probes (top, mid, bottom) are sufficient because their 0.80m spacing is
+/// less than block height, so any block intersecting the body's vertical span
+/// contains at least one. Tests the central axis rather than the AABB so the
+/// rounded sides of the capsule don't false-trigger freeze when they brush a
+/// corner block the capsule isn't actually touching.
 fn freeze_when_voxel_intersected(
     blocks: Res<VoxelWorld>,
+    grids: Query<(&GlobalTransform, &VoxelGrid)>,
     mut query: Query<(
         &Transform,
         &Realm,
@@ -115,14 +117,27 @@ fn freeze_when_voxel_intersected(
             c - Vec3::Y * inset_h,
         ];
         let intersecting = probes.iter().any(|p| {
-            !blocks
-                .get_block(BlockPos {
-                    x: p.x.floor() as i32,
-                    y: p.y.floor() as i32,
-                    z: p.z.floor() as i32,
-                    realm: *realm,
-                })
-                .is_traversable()
+            let world_block = blocks.get_block(BlockPos {
+                x: p.x.floor() as i32,
+                y: p.y.floor() as i32,
+                z: p.z.floor() as i32,
+                realm: *realm,
+            });
+            if !world_block.is_traversable() {
+                return true;
+            }
+            for (xform, grid) in grids.iter() {
+                let local = xform.affine().inverse().transform_point3(*p);
+                let pos = GridBlockPos {
+                    x: local.x.floor() as i32,
+                    y: local.y.floor() as i32,
+                    z: local.z.floor() as i32,
+                };
+                if !grid.get_block(pos).is_traversable() {
+                    return true;
+                }
+            }
+            false
         });
         if intersecting {
             *locked = LockedAxes::ALL_LOCKED;

@@ -5,6 +5,7 @@ mod pos;
 mod realm;
 mod terrain_thread;
 mod utils;
+mod voxel_grid;
 mod voxel_world;
 use crate::world::{
     block_entities::unload_block_entities,
@@ -15,6 +16,7 @@ pub use block_entities::BlockEntities;
 pub use chunk::*;
 pub use pos::*;
 pub use realm::*;
+pub use voxel_grid::*;
 pub use voxel_world::*;
 pub const CHUNK_S1: usize = 62;
 pub const REGION_S1: usize = CHUNK_S1 * 16;
