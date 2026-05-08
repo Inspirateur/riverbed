@@ -40,6 +40,7 @@ impl Plugin for BlockHitPlacePlugin {
             )
             .unwrap(),
         )
+        .add_message::<BlockDestroyed>()
         .add_systems(
             Update,
             (break_action, target_block, target_block_changed)
@@ -281,6 +282,7 @@ fn break_action(
     mut col_entities: ResMut<BlockEntities>,
     mut world_rng: ResMut<WorldRng>,
     block_entt_query: Query<(Entity, &BlockAttached)>,
+    mut destroyed_writer: MessageWriter<BlockDestroyed>,
 ) {
     for (player, target_block_opt, mut hotbar, action, opt_looting) in block_action_query.iter_mut()
     {
@@ -352,6 +354,7 @@ fn break_action(
                         }
                     }
                 }
+                destroyed_writer.write(BlockDestroyed::World(*pos));
             }
             (BlockActionType::Breaking, LootTarget::Grid { grid, pos }) => {
                 if let Ok(g) = grids.get(*grid) {
@@ -371,6 +374,10 @@ fn break_action(
                         }
                     }
                 }
+                destroyed_writer.write(BlockDestroyed::Grid {
+                    grid: *grid,
+                    pos: *pos,
+                });
             }
             (BlockActionType::Harvesting, LootTarget::World(pos)) => {
                 let depleted = world.get_block(*pos).depleted();
@@ -435,6 +442,15 @@ fn break_action(
 
 #[derive(Event)]
 pub struct BlockPlaced(pub BlockPos);
+
+/// Fired whenever a solid block becomes Air via player action — used by the
+/// disconnected-component detector to decide when to split a piece off into
+/// its own movable grid.
+#[derive(Message)]
+pub enum BlockDestroyed {
+    World(BlockPos),
+    Grid { grid: Entity, pos: GridBlockPos },
+}
 
 fn place_block(
     mut commands: Commands,

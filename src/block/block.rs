@@ -51,4 +51,39 @@ impl Block {
             _ => false
         }
     }
+
+    /// Mass per 1m³ block. Used by `spawn_voxel_grid` to set the rigid body's
+    /// total mass and centre of mass. `0` for traversable blocks (they don't
+    /// contribute to a grid). Values are tuned for game feel — relative
+    /// ratios approximate real materials (wood < soil < stone < ore) but
+    /// magnitudes are kept modest so Avian's solver stays stable.
+    pub fn density(&self) -> f32 {
+        if matches!(self, Block::Air | Block::SeaBlock) {
+            return 0.0;
+        }
+        if self.is_foliage() {
+            return 0.1;
+        }
+        let families = self.families();
+        if families.contains(&BlockFamily::Ore) {
+            return 3.0;
+        }
+        if families.contains(&BlockFamily::Stone) {
+            return 2.0;
+        }
+        if families.contains(&BlockFamily::Crystal) {
+            return 0.8;
+        }
+        if families.contains(&BlockFamily::Wood)
+            || families.contains(&BlockFamily::Log)
+            || families.contains(&BlockFamily::Planks)
+        {
+            return 0.6;
+        }
+        if families.contains(&BlockFamily::Soil) {
+            return 1.0;
+        }
+        // Fall-through for one-off blocks (Campfire, Smelter, Kiln, …).
+        1.0
+    }
 }

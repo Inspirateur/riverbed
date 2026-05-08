@@ -14,8 +14,9 @@ use bevy::prelude::Plugin;
 pub use texture_load::*;
 pub use texture_array::TextureMap;
 pub use camera::{FpsCam, CameraSpawn};
+pub use mesh_draw::ChunkColliderEntities;
 pub use mesh_thread::{MeshOrderReceiver, MeshOrderSender};
-pub use voxel_grid_mesh_draw::spawn_voxel_grid;
+pub use voxel_grid_mesh_draw::{GridChildEntities, spawn_voxel_grid};
 
 pub struct Render;
 
