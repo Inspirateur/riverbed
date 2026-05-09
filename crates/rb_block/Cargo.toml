@@ -1,0 +1,13 @@
+[package]
+name = "rb_block"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = { version = "0.18" }
+strum = "0.28"
+strum_macros = "0.28"
+serde = { version = "*", features = ["derive"] }
+
+[build-dependencies]
+rb_block_def = { path = "../riverbed_block_def", version = "*" }

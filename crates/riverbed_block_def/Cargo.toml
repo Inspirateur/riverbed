@@ -1,5 +1,5 @@
 [package]
-name = "riverbed_block_def"
+name = "rb_block_def"
 version = "0.1.0"
 edition = "2024"
 

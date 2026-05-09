@@ -3,44 +3,20 @@ name = "riverbed"
 version = "0.1.0"
 edition = "2024"
 
-[features]
-logging = []
-log_inspector = []
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [workspace]
-members = [
-    "crates/*"
-]
+members = ["crates/*"]
 
 [dependencies]
-anyhow = "*"
 bevy = { version = "0.18" }
-binary-greedy-meshing = "*"
-cfg-if = "*"
-chrono = { version = "*", features = ["serde", "rkyv"] }
-confy = "*"
 crossbeam = "*"
-crossbeam-skiplist = "*"
-csv = "*"
-hashbrown = "*"
-itertools = "*"
-json5 = "*"
-lazy_static = "*"
-leafwing-input-manager = "0.20"
-packed-uints = "*"
-parking_lot = "*"
-rand = "*"
 rand_chacha = "*"
-regex = "*"
-riverbed_noise = { path = "crates/riverbed_noise", version = "*" }
-ron = "*"
-serde = "*"
-strum = "*"
-strum_macros = "*"
-
-[build-dependencies]
-riverbed_block_def = { path = "crates/riverbed_block_def", version = "*" }
+rb_world = { path = "crates/rb_world" }
+rb_generation = { path = "crates/rb_generation" }
+rb_logging = { path = "crates/rb_logging" }
+rb_agents = { path = "crates/rb_agents" }
+rb_sounds = { path = "crates/rb_sounds" }
+rb_render = { path = "crates/rb_render" }
+rb_ui = { path = "crates/rb_ui" }
 
 [profile.dev]
 opt-level = 1

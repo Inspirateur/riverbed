@@ -1,51 +1,33 @@
-mod asset_processing;
-mod block;
-mod items;
-mod ui;
-mod world;
-mod render;
-mod agents;
-mod sounds;
-mod generation;
-mod logging;
-include!(concat!(env!("OUT_DIR"), "/blocks.rs"));
+mod terrain_thread;
+
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
-use world::VoxelWorld;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
-use sounds::SoundPlugin;
-use ui::UIPlugin;
-use render::{Render, TextureLoadPlugin};
-use agents::{MovementPlugin, PlayerPlugin};
-use world::TerrainLoadPlugin;
-#[cfg(feature = "log_inspector")]
-use crate::logging::InspectorPlugin;
-#[cfg(feature = "log_inspector")]
-use crate::logging::LogReplayPlugin;
-use crate::{logging::RiverbedLogPlugin, render::{MeshOrderReceiver, MeshOrderSender}};
+use rb_world::{BlockEntities, ColUnloadEvent, VoxelWorld, WorldRng, unload_block_entities};
+use rb_logging::RiverbedLogPlugin;
+use rb_sounds::SoundPlugin;
+use rb_ui::UIPlugin;
+use rb_render::{Render, TextureLoadPlugin, MeshOrderReceiver, MeshOrderSender};
+use rb_agents::{MovementPlugin, PlayerPlugin};
+use terrain_thread::{setup_load_thread, send_player_pos_update, assign_player_col, on_unload_col};
+
 const SEED: u64 = 42;
-pub const RENDER_DISTANCE: i32 = 32;
 
-#[derive(Resource)]
-pub struct WorldRng {
-    pub seed: u64,
-    pub rng: ChaCha8Rng
-}
+pub struct TerrainLoadPlugin;
 
-fn main() {
-    // TODO: Ideally we would do another executable instead of putting log_inspector in main
-    // but this require making a riverbed lib to share structs and I don't want to bother for now
-    // see https://doc.rust-lang.org/cargo/reference/features.html#mutually-exclusive-features
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "log_inspector")] {
-            inspect_log();
-        } else {
-            client();
-        }
+impl Plugin for TerrainLoadPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_message::<ColUnloadEvent>()
+            .insert_resource(BlockEntities::default())
+            .add_systems(Startup, setup_load_thread)
+            .add_systems(Update, send_player_pos_update)
+            .add_systems(Update, assign_player_col)
+            .add_systems(Update, on_unload_col)
+            .add_systems(Update, unload_block_entities);
     }
 }
 
-fn client() {
+fn main() {
     let mut app = App::new();
     let (mesh_order_sender, mesh_order_receiver) = unbounded();
     app
@@ -88,15 +70,4 @@ fn client() {
         ;
 
     app.run();
-}
-
-#[cfg(feature = "log_inspector")]
-fn inspect_log() {
-    let mut app = App::new();
-
-    app
-        .add_plugins(LogReplayPlugin)
-        .add_plugins(InspectorPlugin)
-        .run()
-        ;
 }

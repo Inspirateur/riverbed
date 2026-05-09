@@ -1,0 +1,12 @@
+[package]
+name = "rb_items"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rb_block = { path = "../rb_block", version = "*" }
+rb_asset_processing = { path = "../rb_asset_processing", version = "*" }
+bevy = { version = "0.18" }
+serde = "*"
+itertools = "*"
+json5 = "*"

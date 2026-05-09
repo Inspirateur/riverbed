@@ -1,0 +1,17 @@
+[package]
+name = "rb_agents"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rb_block = { path = "../rb_block", version = "*" }
+rb_world = { path = "../rb_world", version = "*" }
+rb_items = { path = "../rb_items", version = "*" }
+rb_pos = { path = "../rb_pos", version = "*" }
+bevy = { version = "0.18" }
+leafwing-input-manager = "*"
+rand = "*"
+serde = "*"
+confy = "*"
+json5 = "*"
+itertools = "*"

@@ -1,0 +1,16 @@
+[package]
+name = "rb_ui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rb_render = { path = "../rb_render", version = "*" }
+rb_agents = { path = "../rb_agents", version = "*" }
+rb_items = { path = "../rb_items", version = "*" }
+rb_world = { path = "../rb_world", version = "*" }
+rb_asset_processing = { path = "../rb_asset_processing", version = "*" }
+rb_block = { path = "../rb_block", version = "*" }
+rb_sounds = { path = "../rb_sounds", version = "*" }
+bevy = { version = "0.18" }
+leafwing-input-manager = "*"
+itertools = "*"

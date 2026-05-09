@@ -1,0 +1,17 @@
+[package]
+name = "rb_world"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rb_pos = { path = "../rb_pos", version = "*" }
+rb_block = { path = "../rb_block", version = "*" }
+bevy = { version = "0.18" }
+crossbeam = "*"
+crossbeam-skiplist = "*"
+parking_lot = "*"
+hashbrown = "*"
+itertools = "*"
+packed-uints = "*"
+serde = "*"
+rand_chacha = "*"

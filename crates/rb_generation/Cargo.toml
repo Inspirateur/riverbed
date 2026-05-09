@@ -1,0 +1,16 @@
+[package]
+name = "rb_generation"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rb_block = { path = "../rb_block", version = "*" }
+rb_world = { path = "../rb_world", version = "*" }
+rb_noise = { path = "../riverbed_noise", version = "*" }
+bevy = { version = "0.18" }
+serde = "*"
+strum = "0.28"
+strum_macros = "0.28"
+anyhow = "*"
+itertools = "*"
+csv = "*"

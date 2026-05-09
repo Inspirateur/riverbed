@@ -1,0 +1,15 @@
+[package]
+name = "rb_logging"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rb_pos = { path = "../rb_pos", version = "*" }
+bevy = { version = "0.18" }
+serde = "*"
+chrono = { version = "*", features = ["serde"] }
+cfg-if = "*"
+ron = "*"
+
+[features]
+logging = []
