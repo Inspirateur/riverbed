@@ -1,31 +1,14 @@
-mod terrain_thread;
-
 use bevy::{image::{ImageAddressMode, ImageFilterMode, ImageSamplerDescriptor}, log::LogPlugin, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
 use rand_chacha::{rand_core::SeedableRng, ChaCha8Rng};
-use rb_world::{BlockEntities, ColUnloadEvent, VoxelWorld, WorldRng, unload_block_entities};
+use rb_world::{VoxelWorld, WorldRng};
 use rb_logging::RiverbedLogPlugin;
 use rb_sounds::SoundPlugin;
 use rb_ui::UIPlugin;
 use rb_render::{Render, TextureLoadPlugin, MeshOrderReceiver, MeshOrderSender};
-use rb_agents::{MovementPlugin, PlayerPlugin};
-use terrain_thread::{setup_load_thread, send_player_pos_update, assign_player_col, on_unload_col};
+use rb_agents::{MovementPlugin, PlayerPlugin, TerrainLoadPlugin};
 
 const SEED: u64 = 42;
-
-pub struct TerrainLoadPlugin;
-
-impl Plugin for TerrainLoadPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_message::<ColUnloadEvent>()
-            .insert_resource(BlockEntities::default())
-            .add_systems(Startup, setup_load_thread)
-            .add_systems(Update, send_player_pos_update)
-            .add_systems(Update, assign_player_col)
-            .add_systems(Update, on_unload_col)
-            .add_systems(Update, unload_block_entities);
-    }
-}
 
 fn main() {
     let mut app = App::new();

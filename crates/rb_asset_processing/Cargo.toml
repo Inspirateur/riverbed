@@ -8,3 +8,6 @@ itertools = "*"
 regex = "*"
 strum = "*"
 lazy_static = "*"
+
+[dev-dependencies]
+strum_macros = "*"

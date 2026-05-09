@@ -1,12 +1,8 @@
-use crate::{
-    CHUNK_S1, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3,
-    ChunkedPos, ChunkedPos2d,
-    utils::Palette,
-};
-use rb_block::{Block, Face};
 use crate::CHUNK_S1I;
+use crate::{CHUNK_S1, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, ChunkedPos, ChunkedPos2d, utils::Palette};
 use itertools::Itertools;
 use packed_uints::PackedUints;
+use rb_block::{Block, Face};
 
 #[derive(Debug)]
 pub struct Chunk {
@@ -138,8 +134,8 @@ impl Chunk {
 
 #[cfg(test)]
 mod tests {
-    use rb_block::Face;
     use crate::{CHUNK_S1, CHUNK_S1I, CHUNKP_S1, CHUNKP_S2, linearize};
+    use rb_block::Face;
 
     fn plane(face: Face) -> [usize; 3] {
         match face {

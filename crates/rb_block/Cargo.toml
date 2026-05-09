@@ -10,4 +10,4 @@ strum_macros = "0.28"
 serde = { version = "*", features = ["derive"] }
 
 [build-dependencies]
-rb_block_def = { path = "../riverbed_block_def", version = "*" }
+rb_block_def = { path = "../rb_block_def", version = "*" }

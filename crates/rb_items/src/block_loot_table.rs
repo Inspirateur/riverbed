@@ -1,7 +1,7 @@
-use std::{collections::HashMap, str::FromStr};
-use serde::Deserialize;
-use rb_block::{Block, BlockFamily};
 use crate::item::{Item, ToolKind};
+use rb_block::{Block, BlockFamily};
+use serde::Deserialize;
+use std::{collections::HashMap, str::FromStr};
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Clone, Copy)]
 enum DropKind {
@@ -37,7 +37,7 @@ impl FromStr for BlockKind {
 
 pub enum DropQuantity {
     Fixed(u32),
-    Range { min: u32, max: u32 }
+    Range { min: u32, max: u32 },
 }
 
 #[derive(Default, Debug, Deserialize)]
@@ -45,13 +45,13 @@ struct LootEntryPartial {
     pub hardness: Option<f32>,
     pub drops: Option<DropKind>,
     pub min: Option<u32>,
-    pub max: Option<u32>
+    pub max: Option<u32>,
 }
 
 impl LootEntryPartial {
     fn complete_with(&mut self, other: &LootEntryPartial, efficiency: f32) {
         if self.hardness.is_none() {
-            self.hardness = other.hardness.map(|h| h/efficiency);
+            self.hardness = other.hardness.map(|h| h / efficiency);
         }
         if self.drops.is_none() {
             self.drops = other.drops;
@@ -66,7 +66,10 @@ impl LootEntryPartial {
 
     fn quantity(&self) -> DropQuantity {
         if let Some(min) = self.min {
-            DropQuantity::Range { min, max: self.max.unwrap() }
+            DropQuantity::Range {
+                min,
+                max: self.max.unwrap(),
+            }
         } else {
             DropQuantity::Fixed(1)
         }
@@ -83,7 +86,11 @@ impl From<(LootEntryPartial, Block)> for LootEntry {
     fn from((entry, block): (LootEntryPartial, Block)) -> Self {
         Self {
             hardness: entry.hardness,
-            quantity: if entry.drops.is_none() { None } else { Some(entry.quantity()) },
+            quantity: if entry.drops.is_none() {
+                None
+            } else {
+                Some(entry.quantity())
+            },
             drops: entry.drops.map(|drop| (drop, block).into()),
         }
     }
@@ -93,7 +100,13 @@ impl From<(LootEntryPartial, Block)> for LootEntry {
 pub struct BlockLootTable(HashMap<ToolKind, HashMap<BlockKind, LootEntryPartial>>);
 
 impl BlockLootTable {
-    fn try_to_complete(&self, partial_entry: &mut LootEntryPartial, tool_kind: &ToolKind, block_kind: &BlockKind, efficiency: f32) {
+    fn try_to_complete(
+        &self,
+        partial_entry: &mut LootEntryPartial,
+        tool_kind: &ToolKind,
+        block_kind: &BlockKind,
+        efficiency: f32,
+    ) {
         if let Some(loot_entries) = self.0.get(tool_kind) {
             if let Some(loot_entry) = loot_entries.get(block_kind) {
                 partial_entry.complete_with(&loot_entry, efficiency)
@@ -104,28 +117,74 @@ impl BlockLootTable {
     pub fn get(&self, tool_opt: Option<&Item>, block: &Block) -> LootEntry {
         let mut partial_entry = LootEntryPartial::default();
         if let Some(tool) = tool_opt {
-            self.try_to_complete(&mut partial_entry, &ToolKind::Item(*tool), &BlockKind::Block(*block), 1.);
-            if partial_entry.is_complete() { return (partial_entry, *block).into(); }
+            // Check exact tool and exact block
+            self.try_to_complete(
+                &mut partial_entry,
+                &ToolKind::Item(*tool),
+                &BlockKind::Block(*block),
+                1.,
+            );
+            if partial_entry.is_complete() {
+                return (partial_entry, *block).into();
+            }
+            // Check exact tool and exact block family
             for block_family in block.families() {
-                self.try_to_complete(&mut partial_entry, &ToolKind::Item(*tool), &BlockKind::Family(block_family), 1.);
-                if partial_entry.is_complete() { return (partial_entry, *block).into(); }
+                self.try_to_complete(
+                    &mut partial_entry,
+                    &ToolKind::Item(*tool),
+                    &BlockKind::Family(block_family),
+                    1.,
+                );
+                if partial_entry.is_complete() {
+                    return (partial_entry, *block).into();
+                }
             }
+            // Check tool family and exact block
             if let Some((tool_family, efficiency)) = tool.tool_family() {
-                self.try_to_complete(&mut partial_entry, &ToolKind::ToolFamily(tool_family), &BlockKind::Block(*block), efficiency.0);
+                self.try_to_complete(
+                    &mut partial_entry,
+                    &ToolKind::ToolFamily(tool_family),
+                    &BlockKind::Block(*block),
+                    efficiency.0,
+                );
             }
-            if partial_entry.is_complete() { return (partial_entry, *block).into(); }
+            if partial_entry.is_complete() {
+                return (partial_entry, *block).into();
+            }
+            // Check tool family and block family
             if let Some((tool_family, efficiency)) = tool.tool_family() {
                 for block_family in block.families() {
-                    self.try_to_complete(&mut partial_entry, &ToolKind::ToolFamily(tool_family), &BlockKind::Family(block_family), efficiency.0);
-                    if partial_entry.is_complete() { return (partial_entry, *block).into(); }
+                    self.try_to_complete(
+                        &mut partial_entry,
+                        &ToolKind::ToolFamily(tool_family),
+                        &BlockKind::Family(block_family),
+                        efficiency.0,
+                    );
+                    if partial_entry.is_complete() {
+                        return (partial_entry, *block).into();
+                    }
                 }
             }
         }
-        self.try_to_complete(&mut partial_entry, &ToolKind::Default, &BlockKind::Block(*block), 1.);
-        if partial_entry.is_complete() { return (partial_entry, *block).into(); }
+        self.try_to_complete(
+            &mut partial_entry,
+            &ToolKind::Default,
+            &BlockKind::Block(*block),
+            1.,
+        );
+        if partial_entry.is_complete() {
+            return (partial_entry, *block).into();
+        }
         for block_family in block.families() {
-            self.try_to_complete(&mut partial_entry, &ToolKind::Default, &BlockKind::Family(block_family), 1.);
-            if partial_entry.is_complete() { return (partial_entry, *block).into(); }
+            self.try_to_complete(
+                &mut partial_entry,
+                &ToolKind::Default,
+                &BlockKind::Family(block_family),
+                1.,
+            );
+            if partial_entry.is_complete() {
+                return (partial_entry, *block).into();
+            }
         }
         return (partial_entry, *block).into();
     }
@@ -153,10 +212,33 @@ mod tests {
         "#;
         let block_looting: BlockLootTable = json5::from_str(config).unwrap();
         println!("{:?}", block_looting);
-        assert_eq!(block_looting.get(Some(&Item::IronPickaxe), &Block::Limestone).drops, Some(Item::Block(Block::Limestone)));
-        assert_eq!(block_looting.get(Some(&Item::IronPickaxe), &Block::Limestone).hardness, Some(1.));
-        assert_eq!(block_looting.get(Some(&Item::Stick), &Block::Limestone).drops, Some(Item::Lime));
-        assert_eq!(block_looting.get(Some(&Item::Stick), &Block::Cobblestone).drops, Some(Item::Rock));
-        assert_eq!(block_looting.get(None, &Block::Cobblestone).drops, Some(Item::Rock));
+        assert_eq!(
+            block_looting
+                .get(Some(&Item::IronPickaxe), &Block::Limestone)
+                .drops,
+            Some(Item::Block(Block::Limestone))
+        );
+        assert_eq!(
+            block_looting
+                .get(Some(&Item::IronPickaxe), &Block::Limestone)
+                .hardness,
+            Some(1.)
+        );
+        assert_eq!(
+            block_looting
+                .get(Some(&Item::Stick), &Block::Limestone)
+                .drops,
+            Some(Item::Lime)
+        );
+        assert_eq!(
+            block_looting
+                .get(Some(&Item::Stick), &Block::Cobblestone)
+                .drops,
+            Some(Item::Rock)
+        );
+        assert_eq!(
+            block_looting.get(None, &Block::Cobblestone).drops,
+            Some(Item::Rock)
+        );
     }
 }

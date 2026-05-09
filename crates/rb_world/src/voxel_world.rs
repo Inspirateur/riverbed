@@ -1,13 +1,12 @@
 use crate::{
-    BlockPos, BlockPos2d, CHUNK_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos, ChunkedPos2d,
-    MAX_HEIGHT, Realm, Y_CHUNKS, chunked, pos2d::chunks_in_col,
-    CHUNKP_S1,
+    BlockPos, BlockPos2d, CHUNK_S1, CHUNKP_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos,
+    ChunkedPos2d, MAX_HEIGHT, Realm, Y_CHUNKS, chunked, pos2d::chunks_in_col,
 };
-use rb_block::{Block, Face};
 use bevy::prelude::{Resource, Vec3};
 use crossbeam::channel::Sender;
 use crossbeam_skiplist::{SkipMap, map::Entry};
 use parking_lot::RwLock;
+use rb_block::{Block, Face};
 use std::sync::Arc;
 
 pub struct BlockRayCastHit {
@@ -61,6 +60,7 @@ impl VoxelWorld {
         mut height: usize,
         block: Block,
     ) {
+        // USED BY TERRAIN GENERATION - bypasses change detection for efficiency
         let (mut cy, mut dy) = chunked::<CHUNK_S1, 1>(top);
         while height > 0 && cy >= 0 {
             let chunk_pos = ChunkPos {
@@ -185,6 +185,7 @@ impl VoxelWorld {
     }
 
     pub fn mark_change_col(&self, col_pos: ChunkPos2d) {
+        // USE BY TERRAIN GEN to mass mark change on chunks for efficiency
         for chunk_pos in chunks_in_col(&col_pos) {
             let Some(chunk) = self.chunks.get(&chunk_pos) else {
                 continue;
@@ -194,7 +195,9 @@ impl VoxelWorld {
             self.sync_padding_info(&chunk, chunk_pos, Face::Front, true);
             self.sync_padding_info(&chunk, chunk_pos, Face::Back, true);
             self.sync_padding_info(&chunk, chunk_pos, Face::Up, false);
+            // no need to sync down because we're iterating over the column syncing up
         }
+        // send changes for all chunks in the column after every syncing is done
         for chunk_pos in chunks_in_col(&col_pos) {
             if !self.chunks.contains_key(&chunk_pos) {
                 continue;
@@ -227,6 +230,7 @@ impl VoxelWorld {
         }
     }
 
+    /// Mark a block change, reflecting in neighboring chunks if needed
     fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, block: Block) {
         self.chunk_changes
             .send(chunk_pos)
@@ -245,6 +249,7 @@ impl VoxelWorld {
                     .send(neighbor)
                     .expect("Failed to send chunk change");
             }
+            // it's possible that other border signs are also != 0 but then we don't care because this means the block is on an edge/corner
             return;
         }
         let border_sign_y = VoxelWorld::border_sign(chunked_pos.y);
@@ -315,9 +320,24 @@ impl VoxelWorld {
         let mut grazed_block = None;
         let grazing_dirs = if grazing {
             vec![
-                BlockPos { x: -sx, y: 0, z: 0, realm },
-                BlockPos { x: 0, y: -sy, z: 0, realm },
-                BlockPos { x: 0, y: 0, z: -sz, realm },
+                BlockPos {
+                    x: -sx,
+                    y: 0,
+                    z: 0,
+                    realm,
+                },
+                BlockPos {
+                    x: 0,
+                    y: -sy,
+                    z: 0,
+                    realm,
+                },
+                BlockPos {
+                    x: 0,
+                    y: 0,
+                    z: -sz,
+                    realm,
+                },
             ]
         } else {
             vec![]
@@ -326,20 +346,28 @@ impl VoxelWorld {
             last_pos = pos;
             if t_max_x < t_max_y {
                 if t_max_x < t_max_z {
-                    if t_max_x >= dist { return grazed_block; };
+                    if t_max_x >= dist {
+                        return grazed_block;
+                    };
                     pos.x += sx;
                     t_max_x += slope_x;
                 } else {
-                    if t_max_z >= dist { return grazed_block; };
+                    if t_max_z >= dist {
+                        return grazed_block;
+                    };
                     pos.z += sz;
                     t_max_z += slope_z;
                 }
             } else if t_max_y < t_max_z {
-                if t_max_y >= dist { return grazed_block; };
+                if t_max_y >= dist {
+                    return grazed_block;
+                };
                 pos.y += sy;
                 t_max_y += slope_y;
             } else {
-                if t_max_z >= dist { return grazed_block; };
+                if t_max_z >= dist {
+                    return grazed_block;
+                };
                 pos.z += sz;
                 t_max_z += slope_z;
             }
@@ -356,7 +384,10 @@ impl VoxelWorld {
             if grazing && grazed_block.is_none() {
                 for &grazing_dir in &grazing_dirs {
                     if self.get_block_safe(pos + grazing_dir).is_targetable() {
-                        grazed_block = Some(BlockRayCastHit { pos, normal: Vec3::default() });
+                        grazed_block = Some(BlockRayCastHit {
+                            pos,
+                            normal: Vec3::default(),
+                        });
                         break;
                     }
                 }

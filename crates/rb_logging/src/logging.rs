@@ -1,11 +1,19 @@
 #[cfg(feature = "logging")]
-use std::{error::Error, fs::OpenOptions};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use bevy::log::{
+    tracing,
+    tracing_subscriber::{
+        self, EnvFilter, Layer, Registry,
+        filter::{FromEnvError, ParseError},
+        fmt,
+        layer::SubscriberExt,
+    },
+};
 use bevy::{log::LogPlugin, prelude::*};
-#[cfg(feature = "logging")]
-use bevy::log::{tracing, tracing_subscriber::{self, filter::{FromEnvError, ParseError}, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry}};
+use chrono::{DateTime, Utc};
 use rb_pos::{ChunkPos, ChunkPos2d};
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "logging")]
+use std::{error::Error, fs::OpenOptions};
 pub const LOG_PATH: &'static str = "output.log";
 
 pub struct RiverbedLogPlugin;
@@ -27,6 +35,7 @@ impl Plugin for RiverbedLogPlugin {
                             .source()
                             .and_then(|source| source.downcast_ref::<ParseError>())
                             .map(|parse_err| {
+                                // we cannot use the `error!` macro here because the logger is not ready yet.
                                 eprintln!("LogPlugin failed to parse filter from env: {}", parse_err);
                             });
 
@@ -55,12 +64,9 @@ impl Plugin for RiverbedLogPlugin {
 pub enum LogData {
     ColGenerated(ChunkPos2d),
     ChunkMeshed(ChunkPos),
-    PlayerMoved {
-        id: u32, 
-        new_col: ChunkPos2d
-    },
+    PlayerMoved { id: u32, new_col: ChunkPos2d },
     ColUnloaded(ChunkPos2d),
-    Message(String)
+    Message(String),
 }
 
 impl std::fmt::Display for LogData {
@@ -72,7 +78,7 @@ impl std::fmt::Display for LogData {
 #[derive(Serialize, Deserialize, Message, Clone)]
 pub struct LogEvent {
     pub timestamp: DateTime<Utc>,
-    pub data: LogData
+    pub data: LogData,
 }
 
 impl std::fmt::Display for LogEvent {

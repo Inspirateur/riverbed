@@ -21,6 +21,8 @@ impl RecipeExpander {
         E: IntoEnumIterator + Debug,
     {
         let variants = E::iter().map(|v| format!("{v:?}")).collect();
+        // type_name is kind of smelly but it's also easy to get rid of
+        // (by accepting a parameter for the type name)
         self.0.insert(
             std::any::type_name::<E>()
                 .split("::")

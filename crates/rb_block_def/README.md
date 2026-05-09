@@ -1,4 +1,4 @@
-# riverbed_block_def
+# rb_block_def
 Turns an asset file containing custom block definitions into Rust code that define Blocks + their families + some useful functions.
 
 Other stuff that is not expected to change often is defined by hand in a separate Blocks impl.
