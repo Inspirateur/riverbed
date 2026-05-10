@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use leafwing_input_manager::prelude::*;
 
 #[derive(Component, Default, Debug, Clone, Copy)]
 pub struct FpsCam {

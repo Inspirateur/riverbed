@@ -1,19 +1,18 @@
-use bevy::prelude::*;
-use rb_agents::{BlockActionType, BlockLootAction, PlayerControlled, CameraSpawn, FpsCam, SelectedHotbarSlot};
-use rb_items::ItemHolder;
-use crate::item_slots::UISlot;
 use super::ui_tex_map::UiTextureMap;
+use bevy::prelude::*;
+use rb_agents::{
+    BlockActionType, BlockLootAction, CameraSpawn, FpsCam, PlayerControlled, SelectedHotbarSlot,
+};
+use rb_items::ItemHolder;
 
 pub struct InHandPlugin;
 
 impl Plugin for InHandPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Startup, in_hand_setup.after(CameraSpawn))
+        app.add_systems(Startup, in_hand_setup.after(CameraSpawn))
             .add_systems(Update, on_hotbar_change)
             .add_systems(Update, on_selected_slot_change)
-            .add_systems(Update, animate)
-            ;
+            .add_systems(Update, animate);
     }
 }
 
@@ -21,14 +20,14 @@ impl Plugin for InHandPlugin {
 struct InHandMaterial;
 
 fn in_hand_setup(
-    mut commands: Commands, 
+    mut commands: Commands,
     cam_query: Query<Entity, With<FpsCam>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // TODO: there seem to be a 1 frame delay in the position update of the in hand item, try to fix it
     // The player must be instanciated at this stage
-    let Ok(cam) = cam_query.single() else  {
+    let Ok(cam) = cam_query.single() else {
         println!("couldn't get the camera");
         return;
     };
@@ -42,15 +41,17 @@ fn in_hand_setup(
     });
     let quad_handle = meshes.add(Rectangle::new(0.1, 0.1));
 
-    commands.entity(cam)
-        .with_children(|c| {
-            c.spawn((
-                Mesh3d(quad_handle),
-                MeshMaterial3d(material_handle),
-                Transform::from_xyz(0.12, -0.08, -0.2).looking_at(Vec3::new(2., 0., -1.).normalize(), Vec3::new(0., 1., -0.4).normalize()),
-                InHandMaterial
-            ));
-        });
+    commands.entity(cam).with_children(|c| {
+        c.spawn((
+            Mesh3d(quad_handle),
+            MeshMaterial3d(material_handle),
+            Transform::from_xyz(0.12, -0.08, -0.2).looking_at(
+                Vec3::new(2., 0., -1.).normalize(),
+                Vec3::new(0., 1., -0.4).normalize(),
+            ),
+            InHandMaterial,
+        ));
+    });
 }
 
 fn on_hotbar_change(
@@ -98,7 +99,7 @@ fn on_selected_slot_change(
 
 fn animate(
     mut in_hand_query: Query<&mut Transform, With<InHandMaterial>>,
-    loot_action_query: Query<Option<&BlockLootAction>, With<PlayerControlled>>
+    loot_action_query: Query<Option<&BlockLootAction>, With<PlayerControlled>>,
 ) {
     let Ok(loot_action_opt) = loot_action_query.single() else {
         return;
@@ -109,18 +110,18 @@ fn animate(
     if let Some(loot_action) = loot_action_opt {
         *transform = match loot_action.action_type {
             BlockActionType::Breaking => transform.looking_at(
-                Vec3::new(2., 0., -1.).normalize(), 
-                Vec3::new(0., 1., -0.4+(loot_action.time_left*25.).sin()/4.).normalize()
+                Vec3::new(2., 0., -1.).normalize(),
+                Vec3::new(0., 1., -0.4 + (loot_action.time_left * 25.).sin() / 4.).normalize(),
             ),
             BlockActionType::Harvesting => transform.looking_at(
-                Vec3::new(2., 0., -1.).normalize(), 
-                Vec3::new(0., 1., -0.4+(loot_action.time_left*20.).sin()/6.).normalize()
+                Vec3::new(2., 0., -1.).normalize(),
+                Vec3::new(0., 1., -0.4 + (loot_action.time_left * 20.).sin() / 6.).normalize(),
             ),
         };
     } else {
         *transform = transform.looking_at(
-            Vec3::new(2., 0., -1.).normalize(), 
-            Vec3::new(0., 1., -0.4).normalize()
+            Vec3::new(2., 0., -1.).normalize(),
+            Vec3::new(0., 1., -0.4).normalize(),
         )
     }
 }

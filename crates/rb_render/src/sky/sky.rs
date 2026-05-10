@@ -1,11 +1,11 @@
-use rb_agents::{CameraSpawn, FpsCam};
 use bevy::{
     pbr::{Atmosphere, ScatteringMedium},
     prelude::*,
 };
-use std::{f32::consts::PI, time::Duration};
-const DAY_LENGTH_MINUTES: f32 = 0.2;
-const C: f32 = DAY_LENGTH_MINUTES * 120. * PI;
+use rb_agents::{CameraSpawn, FpsCam};
+use std::time::Duration;
+// const DAY_LENGTH_MINUTES: f32 = 0.2;
+// const C: f32 = DAY_LENGTH_MINUTES * 120. * PI;
 
 pub struct SkyPlugin;
 

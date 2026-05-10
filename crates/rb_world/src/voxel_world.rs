@@ -2,7 +2,10 @@ use crate::{
     BlockPos, BlockPos2d, CHUNK_S1, CHUNKP_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos,
     ChunkedPos2d, MAX_HEIGHT, Realm, Y_CHUNKS, chunked, pos2d::chunks_in_col,
 };
-use bevy::prelude::{Resource, Vec3};
+use bevy::{
+    log::warn,
+    prelude::{Resource, Vec3},
+};
 use crossbeam::channel::Sender;
 use crossbeam_skiplist::{SkipMap, map::Entry};
 use parking_lot::RwLock;
@@ -232,9 +235,10 @@ impl VoxelWorld {
 
     /// Mark a block change, reflecting in neighboring chunks if needed
     fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, block: Block) {
-        self.chunk_changes
-            .send(chunk_pos)
-            .expect("Failed to send chunk change");
+        if let Err(_) = self.chunk_changes.send(chunk_pos) {
+            warn!("Chunk change channel closed.");
+            return;
+        }
         let border_sign_x = VoxelWorld::border_sign(chunked_pos.x);
         if border_sign_x != 0 {
             let mut neighbor = chunk_pos;

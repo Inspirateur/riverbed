@@ -1,10 +1,10 @@
-use crate::{Action, PlayerControlled, TargetBlock};
-use rb_items::{FiringTable, LitFurnace, Stack, ItemHolder, furnace_slots};
-use crate::game_state::GameUiState;
 use crate::furnace_state::OpenFurnace;
-use rb_world::{BlockEntities, BlockPos, VoxelWorld};
+use crate::game_state::GameUiState;
+use crate::{Action, PlayerControlled, TargetBlock};
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
+use rb_items::{FiringTable, ItemHolder, LitFurnace, Stack, furnace_slots};
+use rb_world::{BlockEntities, BlockPos, VoxelWorld};
 use std::fs;
 
 pub struct FurnaceActionPlugin;
@@ -146,4 +146,3 @@ fn tick_furnaces(mut item_holders: Query<(&mut ItemHolder, &mut LitFurnace)>, ti
         }
     }
 }
-

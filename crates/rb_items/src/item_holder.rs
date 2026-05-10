@@ -47,7 +47,7 @@ pub fn furnace_slots() -> ItemHolder {
 }
 
 impl ItemHolder {
-    fn can_receive(&self, item: &Item, slot_id: usize) -> bool {
+    pub fn can_receive(&self, item: &Item, slot_id: usize) -> bool {
         match self {
             ItemHolder::Furnace { .. } => {
                 let slot_id = slot_id.into();
