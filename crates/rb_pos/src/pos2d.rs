@@ -1,9 +1,9 @@
-use crate::{BlockPos, CHUNK_S1I, ChunkPos, chunked, unchunked, Y_CHUNKS};
 use crate::pos3d::Pos3d;
+use crate::{BlockPos, CHUNK_S1I, ChunkPos, Y_CHUNKS, chunked, unchunked};
 use crate::{CHUNK_S1, REGION_S1, Realm};
 use bevy::prelude::Vec3;
 use serde::{Deserialize, Serialize};
-use std::ops::BitXor;
+use std::ops::{BitXor, Index, IndexMut};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash, Serialize, Deserialize)]
 pub struct Pos2d<const U: usize> {
@@ -80,6 +80,50 @@ impl<const C: usize, const U: usize> From<(Pos2d<C>, LocalPos2d<C>)> for Pos2d<U
             x: unchunked::<C, U>(chunk_pos.x, local_pos.x),
             z: unchunked::<C, U>(chunk_pos.z, local_pos.z),
             realm: chunk_pos.realm,
+        }
+    }
+}
+
+impl<const U: usize> Index<usize> for Pos2d<U> {
+    type Output = i32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.z,
+            _ => panic!("Index {index} out of bounds for Pos2d (must be 0 or 1)"),
+        }
+    }
+}
+
+impl<const U: usize> IndexMut<usize> for Pos2d<U> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.z,
+            _ => panic!("Index {index} out of bounds for Pos2d (must be 0 or 1)"),
+        }
+    }
+}
+
+impl<const U: usize> Index<usize> for LocalPos2d<U> {
+    type Output = usize;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            2 => &self.z,
+            _ => panic!("Index {index} out of bounds for LocalPos2d (must be 0 or 1)"),
+        }
+    }
+}
+
+impl<const U: usize> IndexMut<usize> for LocalPos2d<U> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.z,
+            _ => panic!("Index {index} out of bounds for LocalPos2d (must be 0 or 1)"),
         }
     }
 }

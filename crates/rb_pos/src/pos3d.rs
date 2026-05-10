@@ -1,9 +1,9 @@
-use crate::{CHUNK_S1I, chunked, unchunked};
-use crate::{CHUNK_S1, REGION_S1, Realm};
 use crate::pos2d::Pos2d;
+use crate::{CHUNK_S1, REGION_S1, Realm};
+use crate::{CHUNK_S1I, chunked, unchunked};
 use bevy::prelude::Vec3;
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, BitXor};
+use std::ops::{Add, BitXor, Index, IndexMut};
 
 #[derive(
     Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Default, Debug, Hash, Serialize, Deserialize,
@@ -58,6 +58,54 @@ pub type ChunkPos = Pos3d<CHUNK_S1>;
 pub type ChunkedPos = LocalPos3d<CHUNK_S1>;
 pub type RegionPos = Pos3d<REGION_S1>;
 pub type RegionedPos = LocalPos3d<REGION_S1>;
+
+impl<const U: usize> Index<usize> for Pos3d<U> {
+    type Output = i32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Index {index} out of bounds for Pos3d (must be 0, 1, or 2)"),
+        }
+    }
+}
+
+impl<const U: usize> IndexMut<usize> for Pos3d<U> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Index {index} out of bounds for Pos3d (must be 0, 1, or 2)"),
+        }
+    }
+}
+
+impl<const U: usize> Index<usize> for LocalPos3d<U> {
+    type Output = usize;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Index {index} out of bounds for LocalPos3d (must be 0, 1, or 2)"),
+        }
+    }
+}
+
+impl<const U: usize> IndexMut<usize> for LocalPos3d<U> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Index {index} out of bounds for LocalPos3d (must be 0, 1, or 2)"),
+        }
+    }
+}
 
 impl<const U: usize> Add<Pos3d<U>> for Pos3d<U> {
     type Output = Pos3d<U>;

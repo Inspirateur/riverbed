@@ -239,54 +239,29 @@ impl VoxelWorld {
             warn!("Chunk change channel closed.");
             return;
         }
-        let border_sign_x = VoxelWorld::border_sign(chunked_pos.x);
-        if border_sign_x != 0 {
-            let mut neighbor = chunk_pos;
-            neighbor.x += border_sign_x;
-            let x = if border_sign_x < 0 { CHUNKP_S1 - 1 } else { 0 };
-            if let Some(neighbor_chunk) = self.chunks.get(&neighbor) {
-                neighbor_chunk
-                    .value()
-                    .write()
-                    .set_unpadded(ChunkedPos { x, ..chunked_pos }, block);
-                self.chunk_changes
-                    .send(neighbor)
-                    .expect("Failed to send chunk change");
+        // iterates over x, y, z
+        for d in 0..3 {
+            let border_sign = VoxelWorld::border_sign(chunked_pos[d]);
+            if border_sign == 0 {
+                continue;
             }
-            // it's possible that other border signs are also != 0 but then we don't care because this means the block is on an edge/corner
-            return;
-        }
-        let border_sign_y = VoxelWorld::border_sign(chunked_pos.y);
-        if border_sign_y != 0 {
+            // the changed block is on the border of a chunk
             let mut neighbor = chunk_pos;
-            neighbor.y += border_sign_y;
-            if neighbor.y >= 0 && neighbor.y < Y_CHUNKS as i32 {
-                let y = if border_sign_y < 0 { CHUNKP_S1 - 1 } else { 0 };
-                if let Some(neighbor_chunk) = self.chunks.get(&neighbor) {
-                    neighbor_chunk
-                        .value()
-                        .write()
-                        .set_unpadded(ChunkedPos { y, ..chunked_pos }, block);
-                    self.chunk_changes
-                        .send(neighbor)
-                        .expect("Failed to send chunk change");
-                }
-            }
-            return;
-        }
-        let border_sign_z = VoxelWorld::border_sign(chunked_pos.z);
-        if border_sign_z != 0 {
-            let mut neighbor = chunk_pos;
-            neighbor.z += border_sign_z;
-            let z = if border_sign_z < 0 { CHUNKP_S1 - 1 } else { 0 };
-            if let Some(neighbor_chunk) = self.chunks.get(&neighbor) {
-                neighbor_chunk
-                    .value()
-                    .write()
-                    .set_unpadded(ChunkedPos { z, ..chunked_pos }, block);
-                self.chunk_changes
-                    .send(neighbor)
-                    .expect("Failed to send chunk change");
+            neighbor[d] += border_sign;
+            let c = if border_sign < 0 { CHUNKP_S1 - 1 } else { 0 };
+            let mut neighbor_chunked_pos = chunked_pos.clone();
+            neighbor_chunked_pos[d] = c;
+            let Some(neighbor_chunk) = self.chunks.get(&neighbor) else {
+                continue;
+            };
+            neighbor_chunk
+                .value()
+                .write()
+                .set_unpadded(neighbor_chunked_pos, block);
+
+            if let Err(_) = self.chunk_changes.send(neighbor) {
+                warn!("Chunk change channel closed.");
+                return;
             }
         }
     }

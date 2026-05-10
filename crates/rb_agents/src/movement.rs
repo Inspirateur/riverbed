@@ -1,10 +1,10 @@
-use rb_block::Block;
-use rb_world::{BlockPos, Realm, VoxelWorld};
 use bevy::{
     prelude::*,
     time::{Time, Timer},
 };
 use itertools::{Itertools, iproduct};
+use rb_block::Block;
+use rb_world::{BlockPos, Realm, VoxelWorld};
 const FREE_FLY_Y_SPEED: f32 = 100.;
 const ACC_MULT: f32 = 150.;
 
@@ -67,6 +67,7 @@ fn extent(v: f32, size: f32) -> Vec<i32> {
     }
 }
 
+// TODO: deduplicate these with some clever logic
 fn blocks_perp_y(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
     iproduct!(extent(pos.x, aabb.0.x), extent(pos.z, aabb.0.z)).map(move |(x, z)| BlockPos {
         x,
@@ -190,6 +191,7 @@ fn apply_velocity(
     time: Res<Time>,
     mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>,
 ) {
+    // TODO: deduplicate this using pos3d[i]
     for (mut velocity, mut transform, realm, aabb) in query.iter_mut() {
         if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
