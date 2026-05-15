@@ -67,31 +67,28 @@ fn extent(v: f32, size: f32) -> Vec<i32> {
     }
 }
 
-// TODO: deduplicate these with some clever logic
-fn blocks_perp_y(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
-    iproduct!(extent(pos.x, aabb.0.x), extent(pos.z, aabb.0.z)).map(move |(x, z)| BlockPos {
-        x,
-        y: pos.y.floor() as i32,
-        z,
-        realm: realm,
-    })
-}
-
-fn blocks_perp_z(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
-    iproduct!(extent(pos.x, aabb.0.x), extent(pos.y, aabb.0.y)).map(move |(x, y)| BlockPos {
-        x,
-        y,
-        z: pos.z.floor() as i32,
-        realm: realm,
-    })
-}
-
-fn blocks_perp_x(pos: Vec3, realm: Realm, aabb: &AABB) -> impl Iterator<Item = BlockPos> {
-    iproduct!(extent(pos.y, aabb.0.y), extent(pos.z, aabb.0.z)).map(move |(y, z)| BlockPos {
-        x: pos.x.floor() as i32,
-        y,
-        z,
-        realm: realm,
+fn blocks_perp_to_axis(
+    pos: Vec3,
+    realm: Realm,
+    aabb: &AABB,
+    normal_axis: usize,
+    plane_axis1: usize,
+    plane_axis2: usize,
+) -> impl Iterator<Item = BlockPos> {
+    let normal_pos = pos[normal_axis].floor() as i32;
+    iproduct!(
+        extent(pos[plane_axis1], aabb.0[plane_axis1]),
+        extent(pos[plane_axis2], aabb.0[plane_axis2])
+    )
+    .map(move |(pos1, pos2)| {
+        let mut pos = BlockPos {
+            realm: realm,
+            ..Default::default()
+        };
+        pos[normal_axis] = normal_pos;
+        pos[plane_axis1] = pos1;
+        pos[plane_axis2] = pos2;
+        pos
     })
 }
 
@@ -103,7 +100,7 @@ fn update_stepped_block(
         let below = transform.translation + Vec3::new(0., -0.01, 0.);
         let mut closest_block = Block::Air;
         let mut min_dist = f32::INFINITY;
-        for block_pos in blocks_perp_y(below, *realm, aabb) {
+        for block_pos in blocks_perp_to_axis(below, *realm, aabb, 1, 0, 2) {
             let block = blocks.get_block(block_pos);
             if block.is_traversable() {
                 continue;
@@ -191,99 +188,40 @@ fn apply_velocity(
     time: Res<Time>,
     mut query: Query<(&mut Velocity, &mut Transform, &Realm, &AABB)>,
 ) {
-    // TODO: deduplicate this using pos3d[i]
     for (mut velocity, mut transform, realm, aabb) in query.iter_mut() {
         if !blocks.is_col_loaded(transform.translation, *realm) {
             continue;
         }
         let applied_velocity = velocity.0 * time.delta_secs();
         // split the motion on all 3 axis, check for collisions, adjust the final speed vector if there's any
-        // x
-        let xpos = if applied_velocity.x > 0. {
-            aabb.0.x + transform.translation.x
-        } else {
-            transform.translation.x
-        };
-        let mut stopped = false;
-        for x in extent(xpos, applied_velocity.x).into_iter().skip(1) {
-            let pos_x = Vec3 {
-                x: x as f32,
-                y: transform.translation.y,
-                z: transform.translation.z,
-            };
-            if blocks_perp_x(pos_x, *realm, aabb).any(|pos| !blocks.get_block(pos).is_traversable())
-            {
-                // there's a collision in this direction, stop at the block limit
-                if applied_velocity.x > 0. {
-                    transform.translation.x = pos_x.x - aabb.0.x - 0.001;
+        for (normal, axis1, axis2) in [(0, 1, 2), (1, 0, 2), (2, 0, 1)] {
+            let pos = transform.translation[normal]
+                + if applied_velocity[normal] > 0. {
+                    aabb.0[normal]
                 } else {
-                    transform.translation.x = pos_x.x + 1.001;
+                    0.
+                };
+            let mut stopped = false;
+            for i in extent(pos, applied_velocity[normal]).into_iter().skip(1) {
+                let mut pos = transform.translation;
+                pos[normal] = i as f32;
+                if blocks_perp_to_axis(pos, *realm, aabb, normal, axis1, axis2)
+                    .any(|pos| !blocks.get_block(pos).is_traversable())
+                {
+                    // there's a collision in this direction, stop at the block limit
+                    if applied_velocity[normal] > 0. {
+                        transform.translation[normal] = pos[normal] - aabb.0[normal] - 0.001;
+                    } else {
+                        transform.translation[normal] = pos[normal] + 1.001;
+                    }
+                    velocity.0[normal] = 0.;
+                    stopped = true;
+                    break;
                 }
-                velocity.0.x = 0.;
-                stopped = true;
-                break;
             }
-        }
-        if !stopped {
-            transform.translation.x += applied_velocity.x;
-        }
-        // y
-        let ypos: f32 = if applied_velocity.y > 0. {
-            aabb.0.y + transform.translation.y
-        } else {
-            transform.translation.y
-        };
-        let mut stopped = false;
-        for y in extent(ypos, applied_velocity.y).into_iter().skip(1) {
-            let pos_y = Vec3 {
-                x: transform.translation.x,
-                y: y as f32,
-                z: transform.translation.z,
-            };
-            if blocks_perp_y(pos_y, *realm, aabb).any(|pos| !blocks.get_block(pos).is_traversable())
-            {
-                // there's a collision in this direction, stop at the block limit
-                if applied_velocity.y > 0. {
-                    transform.translation.y = pos_y.y - aabb.0.y - 0.001;
-                } else {
-                    transform.translation.y = pos_y.y + 1.001;
-                }
-                velocity.0.y = 0.;
-                stopped = true;
-                break;
+            if !stopped {
+                transform.translation[normal] += applied_velocity[normal];
             }
-        }
-        if !stopped {
-            transform.translation.y += applied_velocity.y;
-        }
-        // z
-        let zpos: f32 = if applied_velocity.z > 0. {
-            aabb.0.z + transform.translation.z
-        } else {
-            transform.translation.z
-        };
-        let mut stopped = false;
-        for z in extent(zpos, applied_velocity.z).into_iter().skip(1) {
-            let pos_z = Vec3 {
-                x: transform.translation.x,
-                y: transform.translation.y,
-                z: z as f32,
-            };
-            if blocks_perp_z(pos_z, *realm, aabb).any(|pos| !blocks.get_block(pos).is_traversable())
-            {
-                // there's a collision in this direction, stop at the block limit
-                if applied_velocity.z > 0. {
-                    transform.translation.z = pos_z.z - aabb.0.z - 0.001;
-                } else {
-                    transform.translation.z = pos_z.z + 1.001;
-                }
-                velocity.0.z = 0.;
-                stopped = true;
-                break;
-            }
-        }
-        if !stopped {
-            transform.translation.z += applied_velocity.z;
         }
     }
 }
