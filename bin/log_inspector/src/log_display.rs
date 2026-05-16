@@ -1,39 +1,35 @@
-use std::ops::DerefMut;
-use crate::log_inspect::{PlayerPos, LoadState, MeshCount, EventQueue, EventHead, IsLive};
-use leafwing_input_manager::prelude::*;
-use bevy::prelude::*;
+use crate::log_inspect::{EventHead, EventQueue, IsLive, LoadState, MeshCount, PlayerPos};
 use bevy::color::palettes::css;
+use bevy::prelude::*;
+use leafwing_input_manager::prelude::*;
+use std::ops::DerefMut;
 
 pub struct InspectorDisplayPlugin;
 
 impl Plugin for InspectorDisplayPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app
-            .add_plugins(
-                DefaultPlugins.set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Riverbed".into(),
-                        ..default()
-                    }),
-                    ..default()
-                })
-            )
-            .add_plugins(InputManagerPlugin::<CameraMovement>::default())
-            .add_plugins(InputManagerPlugin::<TimeControl>::default())
-            .add_systems(Startup, setup)
-            .add_systems(Update, update_camera)
-            .add_systems(Update, time_control)
-            .add_systems(Update, zoom_camera)
-            .add_systems(Update, display_chunk_state)
-            .add_systems(Update, display_info)
-            ;
+        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Riverbed".into(),
+                ..default()
+            }),
+            ..default()
+        }))
+        .add_plugins(InputManagerPlugin::<CameraMovement>::default())
+        .add_plugins(InputManagerPlugin::<TimeControl>::default())
+        .add_systems(Startup, setup)
+        .add_systems(Update, update_camera)
+        .add_systems(Update, time_control)
+        .add_systems(Update, zoom_camera)
+        .add_systems(Update, display_chunk_state)
+        .add_systems(Update, display_info);
     }
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Camera2d::default(),
-        InputMap::default().with_axis(CameraMovement::Zoom, MouseScrollAxis::Y)
+        InputMap::default().with_axis(CameraMovement::Zoom, MouseScrollAxis::Y),
     ));
     commands.spawn(InputMap::new([
         (TimeControl::Time0, KeyCode::Numpad0),
@@ -48,28 +44,32 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         (TimeControl::Time9, KeyCode::Numpad9),
         (TimeControl::Forward, KeyCode::ArrowRight),
         (TimeControl::Backward, KeyCode::ArrowLeft),
-        (TimeControl::GoLive, KeyCode::Enter)
+        (TimeControl::GoLive, KeyCode::Enter),
     ]));
-    commands.spawn((
-        Node {
-            flex_direction: FlexDirection::Column,
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            ..Default::default()
-        },
-        TextFont {
-            font: asset_server.load("fonts/RobotoMono-Light.ttf"),
-            font_size: 20.0,
-            ..Default::default()
-        },
-        TextColor(Color::Srgba(css::BEIGE)),
-    )).with_children(|parent| {
-        parent.spawn((Text::new("time: "), TextDuration));
-        parent.spawn((Text::new("pos: "), TextPlayerPos));
-        parent.spawn((Text::new("meshing count: "), TextMeshCount));
-        parent.spawn((Text::new("mesh throughput: "), TextMeshThroughput));
-        parent.spawn((Text::new("avg mesh per col: | max:"), TextColumnMesh));
-    });
+    commands
+        .spawn((
+            Node {
+                flex_direction: FlexDirection::Column,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                padding: UiRect::all(Val::Px(10.0)),
+                ..Default::default()
+            },
+            TextFont {
+                font: asset_server.load("fonts/RobotoMono-Light.ttf"),
+                font_size: 20.0,
+                ..Default::default()
+            },
+            TextColor(Color::Srgba(css::BEIGE)),
+        ))
+        .with_children(|parent| {
+            parent.spawn((Text::new("Time: "), TextDuration));
+            parent.spawn((Text::new("Player column: "), TextPlayerPos));
+            parent.spawn(Text::new("")); // spacing
+            parent.spawn((Text::new("Meshing count: "), TextMeshCount));
+            parent.spawn((Text::new("Throughput: "), TextMeshThroughput));
+            parent.spawn((Text::new("Per col: avg - max"), TextColumnMesh));
+        });
 }
 
 fn update_camera(player_pos: Res<PlayerPos>, mut cam_query: Query<&mut Transform, With<Camera2d>>) {
@@ -81,9 +81,7 @@ fn update_camera(player_pos: Res<PlayerPos>, mut cam_query: Query<&mut Transform
     transform.translation.y = player_pos.0.z as f32;
 }
 
-fn zoom_camera(
-    cam_query: Single<(&mut Projection, &ActionState<CameraMovement>), With<Camera2d>>,
-) {
+fn zoom_camera(cam_query: Single<(&mut Projection, &ActionState<CameraMovement>), With<Camera2d>>) {
     const CAMERA_ZOOM_RATE: f32 = 0.05;
     let (mut camera_projection, action_state) = cam_query.into_inner();
     let zoom_delta = action_state.value(&CameraMovement::Zoom);
@@ -99,15 +97,15 @@ fn display_chunk_state(
     player_pos: Res<PlayerPos>,
     load_state: Res<LoadState>,
     mesh_count: Res<MeshCount>,
-    mut gizmos: Gizmos
+    mut gizmos: Gizmos,
 ) {
     for (col, &loaded) in load_state.0.iter() {
         let col_isometry = Isometry2d::from_translation(Vec2::new(col.x as f32, col.z as f32));
         if loaded {
             let count = *mesh_count.0.get(&col).unwrap_or(&0);
             if count > 0 {
-                let redness = 1.-(-(count as f32)/8.).exp();
-                let hue = 120.-redness*120.;
+                let redness = 1. - (-(count as f32) / 8.).exp();
+                let hue = 120. - redness * 120.;
                 gizmos.rect_2d(col_isometry, Vec2::new(0.8, 0.8), Color::hsv(hue, 0.8, 0.8));
             } else {
                 gizmos.rect_2d(col_isometry, Vec2::new(0.8, 0.8), css::STEEL_BLUE);
@@ -116,7 +114,8 @@ fn display_chunk_state(
             gizmos.rect_2d(col_isometry, Vec2::new(0.8, 0.8), css::DIM_GRAY);
         }
     }
-    let player_isometry = Isometry2d::from_translation(Vec2::new(player_pos.0.x as f32, player_pos.0.z as f32));
+    let player_isometry =
+        Isometry2d::from_translation(Vec2::new(player_pos.0.x as f32, player_pos.0.z as f32));
     gizmos.circle_2d(player_isometry, 0.3, css::LIGHT_GRAY);
 }
 
@@ -136,27 +135,37 @@ fn display_info(
     if event_queue.0.len() == 0 || !event_head.is_changed() {
         return;
     }
-    let duration = event_queue.0[**event_head].timestamp - event_queue.0[0].timestamp;
+    let duration_sec =
+        (event_queue.0[**event_head].timestamp - event_queue.0[0].timestamp).as_seconds_f32();
     let total_meshed = mesh_count.0.values().fold(0, |a, b| a + b);
-    let avg_mesh_count = total_meshed as f32/mesh_count.0.values().filter(|&&v| v > 0).count() as f32;
+    let mesh_throughput = if total_meshed as f32 * duration_sec == 0. {
+        0.
+    } else {
+        total_meshed as f32 / duration_sec
+    };
+    let column_count = mesh_count.0.values().filter(|&&v| v > 0).count() as f32;
+    let avg_mesh_count = total_meshed as f32 / column_count.max(1.);
     let max_mesh_count = *mesh_count.0.values().max().unwrap_or(&0);
     let mut text_duration = text_query.p0().into_inner();
-    text_duration.0 = format!("time: {:.2} sec", duration.as_seconds_f32());
+    text_duration.0 = format!("Time: {:.2} sec", duration_sec);
     let mut text_pos = text_query.p1().into_inner();
-    text_pos.0 = format!("column pos: {} ; {}", player_pos.0.x, player_pos.0.z);
+    text_pos.0 = format!("Player column: {} ; {}", player_pos.0.x, player_pos.0.z);
     let mut text_mesh_total = text_query.p2().into_inner();
-    text_mesh_total.0 = format!("meshing count: {}", total_meshed);
+    text_mesh_total.0 = format!("Meshing count: {}", total_meshed);
     let mut text_mesh_thoughput = text_query.p3().into_inner();
-    text_mesh_thoughput.0 = format!("mesh throughput: {:.0}/s", total_meshed as f32/duration.as_seconds_f32());
+    text_mesh_thoughput.0 = format!("Throughput: {:.0}/s", mesh_throughput);
     let mut text_max_col_mesh = text_query.p4().into_inner();
-    text_max_col_mesh.0 = format!("avg mesh per col: {:.1} | max: {}", avg_mesh_count, max_mesh_count);
+    text_max_col_mesh.0 = format!(
+        "Per column: avg {:.1} - max {}",
+        avg_mesh_count, max_mesh_count
+    );
 }
 
 fn time_control(
     event_queue: Res<EventQueue>,
     mut event_head: ResMut<EventHead>,
     mut is_live: ResMut<IsLive>,
-    query: Single<&ActionState<TimeControl>>
+    query: Single<&ActionState<TimeControl>>,
 ) {
     if event_queue.0.len() == 0 {
         return;
@@ -166,23 +175,23 @@ fn time_control(
     if action_state.just_pressed(&TimeControl::Time0) {
         event_head.set(0);
     } else if action_state.just_pressed(&TimeControl::Time1) {
-        event_head.set(event_queue.index_at(1./9.));
+        event_head.set(event_queue.index_at(1. / 9.));
     } else if action_state.just_pressed(&TimeControl::Time2) {
-        event_head.set(event_queue.index_at(2./9.));
+        event_head.set(event_queue.index_at(2. / 9.));
     } else if action_state.just_pressed(&TimeControl::Time3) {
-        event_head.set(event_queue.index_at(3./9.));
+        event_head.set(event_queue.index_at(3. / 9.));
     } else if action_state.just_pressed(&TimeControl::Time4) {
-        event_head.set(event_queue.index_at(4./9.));
+        event_head.set(event_queue.index_at(4. / 9.));
     } else if action_state.just_pressed(&TimeControl::Time5) {
-        event_head.set(event_queue.index_at(5./9.));
+        event_head.set(event_queue.index_at(5. / 9.));
     } else if action_state.just_pressed(&TimeControl::Time6) {
-        event_head.set(event_queue.index_at(6./9.));
+        event_head.set(event_queue.index_at(6. / 9.));
     } else if action_state.just_pressed(&TimeControl::Time7) {
-        event_head.set(event_queue.index_at(7./9.));
+        event_head.set(event_queue.index_at(7. / 9.));
     } else if action_state.just_pressed(&TimeControl::Time8) {
-        event_head.set(event_queue.index_at(8./9.));
+        event_head.set(event_queue.index_at(8. / 9.));
     } else if action_state.just_pressed(&TimeControl::Time9) {
-        event_head.set(event_queue.0.len()-1);
+        event_head.set(event_queue.0.len() - 1);
     } else if action_state.pressed(&TimeControl::Forward) {
         let i = **event_head;
         if i + 1 < event_queue.0.len() {
@@ -224,7 +233,7 @@ enum TimeControl {
     Time9,
     Forward,
     Backward,
-    GoLive
+    GoLive,
 }
 
 #[derive(Component)]

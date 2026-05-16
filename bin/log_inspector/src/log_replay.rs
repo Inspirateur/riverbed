@@ -1,9 +1,10 @@
 use bevy::prelude::*;
 use chrono::DateTime;
-use rb_logging::{LOG_PATH, LogData, LogEvent};
+use rb_logging::{LogData, LogEvent};
+use rfd::FileDialog;
 use std::fs::File;
 use std::io::{self, BufRead};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 pub struct LogReplayPlugin;
@@ -16,7 +17,11 @@ impl Plugin for LogReplayPlugin {
 }
 
 fn feed_logs(mut log_events: MessageWriter<LogEvent>) {
-    let Ok(log_lines) = read_lines(LOG_PATH) else {
+    let file: PathBuf = FileDialog::new()
+        .add_filter("log", &["log"])
+        .pick_file()
+        .unwrap_or(PathBuf::new());
+    let Ok(log_lines) = read_lines(file) else {
         panic!("No log file :(");
     };
     for line in log_lines.map_while(Result::ok) {

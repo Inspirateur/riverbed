@@ -1,18 +1,17 @@
+use crate::log_display::InspectorDisplayPlugin;
+use bevy::prelude::*;
+use chrono::TimeDelta;
+use rb_logging::{LogData, LogEvent};
+use rb_pos::ChunkPos2d;
 use std::collections::{HashMap, HashSet};
 use std::iter::Rev;
 use std::ops::{Deref, Range};
-use bevy::prelude::*;
-use chrono::TimeDelta;
-use rb_logging::{LogEvent, LogData};
-use rb_pos::ChunkPos2d;
-use crate::log_display::InspectorDisplayPlugin;
 
 pub struct InspectorPlugin;
 
 impl Plugin for InspectorPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app
-            .add_plugins(InspectorDisplayPlugin)
+        app.add_plugins(InspectorDisplayPlugin)
             .insert_resource(EventQueue::default())
             .insert_resource(IsLive(true))
             .insert_resource(EventHead::default())
@@ -21,17 +20,16 @@ impl Plugin for InspectorPlugin {
             .insert_resource(LoadState::default())
             .insert_resource(MeshCount::default())
             .add_systems(Update, on_log_event)
-            .add_systems(Update, on_head_change)
-            ;
+            .add_systems(Update, on_head_change);
     }
 }
 
 fn on_log_event(
-    mut events: MessageReader<LogEvent>, 
+    mut events: MessageReader<LogEvent>,
     mut event_queue: ResMut<EventQueue>,
-    mut event_head: ResMut<EventHead>, 
+    mut event_head: ResMut<EventHead>,
     mut live_load_state: ResMut<LiveLoadState>,
-    is_live: Res<IsLive>
+    is_live: Res<IsLive>,
 ) {
     let mut recieved_event = false;
     for event in events.read() {
@@ -47,9 +45,11 @@ fn on_log_event(
                 continue;
             }
         }
-        if event_queue.0.len() > 0 && event.timestamp < event_queue.0[event_queue.0.len()-1].timestamp {
-            let mut i = event_queue.0.len()-1;
-            while i > 0 && event.timestamp < event_queue.0[i-1].timestamp {
+        if event_queue.0.len() > 0
+            && event.timestamp < event_queue.0[event_queue.0.len() - 1].timestamp
+        {
+            let mut i = event_queue.0.len() - 1;
+            while i > 0 && event.timestamp < event_queue.0[i - 1].timestamp {
                 i -= 1;
             }
             if i > 0 {
@@ -63,7 +63,7 @@ fn on_log_event(
     if !is_live.0 || event_queue.0.len() == 0 || !recieved_event {
         return;
     }
-    event_head.set(event_queue.0.len()-1);
+    event_head.set(event_queue.0.len() - 1);
 }
 
 fn on_head_change(
@@ -76,19 +76,17 @@ fn on_head_change(
     if !event_head.is_changed() {
         return;
     }
-    for i in (0..**event_head).rev() {
-        if let LogData::PlayerMoved { id: _, new_col } = event_queue.0[i].data {
-            player_pos.0 = new_col;
-            break;
-        }
+    if let Some(new_col) = event_queue.player_pos_at(**event_head) {
+        player_pos.0 = new_col;
     }
+
     if event_head.moved_forward() {
         for i in event_head.forward_span() {
             match event_queue.0[i].data {
                 LogData::ColGenerated(col) => *load_state.0.entry(col).or_insert(false) = true,
                 LogData::ColUnloaded(col) => *load_state.0.get_mut(&col).unwrap() = false,
                 LogData::ChunkMeshed(chunk) => *mesh_count.0.entry(chunk.into()).or_insert(0) += 1,
-                _ => ()
+                _ => (),
             }
         }
     } else {
@@ -97,7 +95,7 @@ fn on_head_change(
                 LogData::ColGenerated(col) => *load_state.0.get_mut(&col).unwrap() = false,
                 LogData::ColUnloaded(col) => *load_state.0.get_mut(&col).unwrap() = true,
                 LogData::ChunkMeshed(chunk) => *mesh_count.0.get_mut(&chunk.into()).unwrap() -= 1,
-                _ => ()
+                _ => (),
             }
         }
     }
@@ -109,7 +107,7 @@ pub struct IsLive(pub bool);
 #[derive(Default, Resource)]
 pub struct EventHead {
     previous: usize,
-    current: usize
+    current: usize,
 }
 
 impl EventHead {
@@ -145,13 +143,33 @@ pub struct EventQueue(pub Vec<LogEvent>);
 impl EventQueue {
     pub fn index_at(&self, fraction: f32) -> usize {
         let duration = TimeDelta::milliseconds(
-            ((self.0[self.0.len()-1].timestamp - self.0[0].timestamp).num_milliseconds() as f32*fraction) as i64
+            ((self.0[self.0.len() - 1].timestamp - self.0[0].timestamp).num_milliseconds() as f32
+                * fraction) as i64,
         );
-        let target_timestamp = self.0[0].timestamp+duration;
-        match self.0.binary_search_by(|v| v.timestamp.cmp(&target_timestamp)) {
+        let target_timestamp = self.0[0].timestamp + duration;
+        match self
+            .0
+            .binary_search_by(|v| v.timestamp.cmp(&target_timestamp))
+        {
             Ok(i) => i,
             Err(i) => i,
         }
+    }
+
+    pub fn player_pos_at(&self, i: usize) -> Option<ChunkPos2d> {
+        // return the first player pos looking back from i
+        for j in (0..=i).rev() {
+            if let LogData::PlayerMoved { id: _, new_col } = self.0[j].data {
+                return Some(new_col);
+            }
+        }
+        // if not found, return the first player pos looking forward from i
+        for j in i + 1..self.0.len() {
+            if let LogData::PlayerMoved { id: _, new_col } = self.0[j].data {
+                return Some(new_col);
+            }
+        }
+        None
     }
 }
 

@@ -1,19 +1,14 @@
 #[cfg(feature = "logging")]
 use bevy::log::{
     tracing,
-    tracing_subscriber::{
-        self, EnvFilter, Layer, Registry,
-        filter::{FromEnvError, ParseError},
-        fmt,
-        layer::SubscriberExt,
-    },
+    tracing_subscriber::{self, Registry, filter::filter_fn, layer::SubscriberExt},
 };
 use bevy::{log::LogPlugin, prelude::*};
 use chrono::{DateTime, Utc};
 use rb_pos::{ChunkPos, ChunkPos2d};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "logging")]
-use std::{error::Error, fs::OpenOptions};
+use std::fs::OpenOptions;
 pub const LOG_PATH: &'static str = "output.log";
 
 pub struct RiverbedLogPlugin;
@@ -28,23 +23,12 @@ impl Plugin for RiverbedLogPlugin {
                     .create(true)
                     .open(LOG_PATH)
                     .unwrap();
-                let subscriber = Registry::default();
-                let filter_layer = EnvFilter::try_from_default_env()
-                    .or_else(|from_env_error| {
-                        _ = from_env_error
-                            .source()
-                            .and_then(|source| source.downcast_ref::<ParseError>())
-                            .map(|parse_err| {
-                                // we cannot use the `error!` macro here because the logger is not ready yet.
-                                eprintln!("LogPlugin failed to parse filter from env: {}", parse_err);
-                            });
-
-                        Ok::<EnvFilter, FromEnvError>(EnvFilter::builder().parse_lossy("riverbed=trace"))
-                    })
-                    .unwrap();
-
-                let subscriber = subscriber
-                    .with(filter_layer)
+                let workspace_filter = filter_fn(|metadata| {
+                    let t = metadata.target();
+                    t.starts_with("rb_") || t.starts_with("riverbed")
+                });
+                let subscriber = Registry::default()
+                    .with(workspace_filter)
                     .with(
                         tracing_subscriber::fmt::layer().
                         with_ansi(false)

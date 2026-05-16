@@ -1,14 +1,14 @@
-use rb_agents::PlayerControlled;
-use rb_block::Face;
-use rb_logging::LogData;
 use crate::mesh_draw::{LOD, choose_lod_level};
 use crate::mesh_logic::ChunkMeshing;
 use crate::texture_array::TextureMap;
-use rb_world::{ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{Receiver, Sender, unbounded};
 use parking_lot::RwLock;
+use rb_agents::PlayerControlled;
+use rb_block::Face;
+use rb_logging::LogData;
+use rb_world::{ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
@@ -76,7 +76,6 @@ pub fn setup_mesh_thread(
                         .value()
                         .read()
                         .create_face_meshes(&texture_map, lod, chunk_pos);
-                trace!("{}", LogData::ChunkMeshed(chunk_pos));
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();
                     if mesh_sender

@@ -12,6 +12,7 @@ use bevy::prelude::*;
 use itertools::Itertools;
 use rb_agents::PlayerControlled;
 use rb_block::Face;
+use rb_logging::LogData;
 use rb_world::pos2d::chunks_in_col;
 use rb_world::{CHUNK_S1, ChunkPos, ColUnloadEvent, PlayerCol, VoxelWorld};
 use std::collections::HashMap;
@@ -98,9 +99,10 @@ pub fn pull_meshes(
             if let Ok((mut handle, mut old_lod)) = mesh_query.get_mut(*ent) {
                 handle.0 = meshes.add(mesh);
                 *old_lod = lod;
+                trace!("{}", LogData::ChunkMeshed(chunk_pos));
             } else {
                 // the entity is not instanciated yet, we put it back
-                println!("entity wasn't ready to recieve updated mesh");
+                warn!("entity wasn't ready to recieve updated mesh");
             }
         } else if blocks.chunks.contains_key(&chunk_pos) {
             let ent = commands
@@ -118,6 +120,7 @@ pub fn pull_meshes(
                 ))
                 .id();
             chunk_ents.0.insert((chunk_pos, face), ent);
+            trace!("{}", LogData::ChunkMeshed(chunk_pos));
         }
     }
 }
