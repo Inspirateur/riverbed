@@ -143,6 +143,7 @@ pub fn on_col_unload(
                 }
             }
         }
+        trace!("{}", LogData::ColUnloaded(col_ev.0));
     }
 }
 

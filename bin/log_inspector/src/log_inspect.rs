@@ -85,7 +85,10 @@ fn on_head_change(
             match event_queue.0[i].data {
                 LogData::ColGenerated(col) => *load_state.0.entry(col).or_insert(false) = true,
                 LogData::ColUnloaded(col) => *load_state.0.get_mut(&col).unwrap() = false,
-                LogData::ChunkMeshed(chunk) => *mesh_count.0.entry(chunk.into()).or_insert(0) += 1,
+                LogData::ChunkMeshed(chunk) => {
+                    *mesh_count.0.entry(chunk.into()).or_insert(0) += 1;
+                    *load_state.0.entry(chunk.into()).or_insert(false) = true;
+                }
                 _ => (),
             }
         }
@@ -94,7 +97,10 @@ fn on_head_change(
             match event_queue.0[i].data {
                 LogData::ColGenerated(col) => *load_state.0.get_mut(&col).unwrap() = false,
                 LogData::ColUnloaded(col) => *load_state.0.get_mut(&col).unwrap() = true,
-                LogData::ChunkMeshed(chunk) => *mesh_count.0.get_mut(&chunk.into()).unwrap() -= 1,
+                LogData::ChunkMeshed(chunk) => {
+                    *mesh_count.0.get_mut(&chunk.into()).unwrap() -= 1;
+                    *load_state.0.entry(chunk.into()).or_insert(false) = false;
+                }
                 _ => (),
             }
         }
@@ -121,7 +127,7 @@ impl EventHead {
     }
 
     pub fn forward_span(&self) -> Range<usize> {
-        self.previous..self.current
+        self.previous..(self.current + 1)
     }
 
     pub fn backward_span(&self) -> Rev<Range<usize>> {

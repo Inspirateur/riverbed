@@ -74,7 +74,6 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                             to_load.swap_remove(i);
                         } else {
                             load_world.unload_col(col);
-                            trace!("{}", LogData::ColUnloaded(col));
                             if unload_sender.send(col).is_err() {
                                 // This means the game is shutting down, so we break the loop
                                 warn!(

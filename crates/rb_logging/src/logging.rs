@@ -1,6 +1,6 @@
 #[cfg(feature = "logging")]
 use bevy::log::{
-    tracing,
+    Level, tracing,
     tracing_subscriber::{self, Registry, filter::filter_fn, layer::SubscriberExt},
 };
 use bevy::{log::LogPlugin, prelude::*};
@@ -25,7 +25,7 @@ impl Plugin for RiverbedLogPlugin {
                     .unwrap();
                 let workspace_filter = filter_fn(|metadata| {
                     let t = metadata.target();
-                    t.starts_with("rb_") || t.starts_with("riverbed")
+                    t.starts_with("rb_") || t.starts_with("riverbed") || *metadata.level() <= Level::WARN
                 });
                 let subscriber = Registry::default()
                     .with(workspace_filter)
