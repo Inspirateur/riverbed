@@ -1,4 +1,3 @@
-use rb_block::Block;
 use crate::{
     biome_params::{BiomeParameters, BiomePoints},
     biomes::Biome,
@@ -6,8 +5,9 @@ use crate::{
     layer::LayerTag,
     plant_params::PlantRanges,
 };
-use rb_world::{BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, MAX_GEN_HEIGHT, VoxelWorld};
+use rb_block::Block;
 use rb_noise::*;
+use rb_world::{BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, MAX_GEN_HEIGHT, VoxelWorld};
 const BIOME_SHARPENING: f32 = 50.;
 
 pub struct TerrainGenerator {
@@ -192,16 +192,7 @@ impl TerrainGenerator {
                 continue;
             }
             let h = (rng >> 6) & 0b11;
-            let (block, y) = world.top_block(
-                (
-                    col,
-                    ChunkedPos2d {
-                        x: spot.0,
-                        z: spot.1,
-                    },
-                )
-                    .into(),
-            );
+            let (block, y) = world.top_block((col, ChunkedPos2d { x: dx, z: dz }).into());
             if !block.is_fertile_soil() {
                 continue;
             }
@@ -213,6 +204,8 @@ impl TerrainGenerator {
             ]);
             if dist >= 0. {
                 let pos = (col, (dx, y, dz)).into();
+                // TODO: this can write blocks into untracked chunks that will get meshed and never unloaded
+                // Maybe we should grow the tree in a second pass after the neighboring columns are generated
                 tree.grow(world, pos, self.seed as i32, dist + h as f32 / 10.);
             }
         }

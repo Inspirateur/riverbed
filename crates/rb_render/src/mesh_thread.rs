@@ -7,7 +7,6 @@ use crossbeam::channel::{Receiver, Sender, unbounded};
 use parking_lot::RwLock;
 use rb_agents::PlayerControlled;
 use rb_block::Face;
-use rb_logging::LogData;
 use rb_world::{ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
 use std::collections::HashSet;
 use std::sync::Arc;

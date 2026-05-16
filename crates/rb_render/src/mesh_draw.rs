@@ -88,6 +88,9 @@ pub fn pull_meshes(
         .rev()
         .unique_by(|(_, pos, face, _)| (*pos, *face))
     {
+        if !blocks.chunks.contains_key(&chunk_pos) {
+            continue;
+        }
         let Some(mesh) = mesh_opt else {
             if let Some(ent) = chunk_ents.0.remove(&(chunk_pos, face)) {
                 commands.entity(ent).despawn();
@@ -104,7 +107,7 @@ pub fn pull_meshes(
                 // the entity is not instanciated yet, we put it back
                 warn!("entity wasn't ready to recieve updated mesh");
             }
-        } else if blocks.chunks.contains_key(&chunk_pos) {
+        } else {
             let ent = commands
                 .spawn((
                     Mesh3d(meshes.add(mesh)),
@@ -119,7 +122,12 @@ pub fn pull_meshes(
                     face,
                 ))
                 .id();
-            chunk_ents.0.insert((chunk_pos, face), ent);
+            if chunk_ents.0.insert((chunk_pos, face), ent).is_some() {
+                panic!(
+                    "2 entities for the same chunk and face: {:?} {:?}",
+                    chunk_pos, face
+                );
+            }
             trace!("{}", LogData::ChunkMeshed(chunk_pos));
         }
     }
