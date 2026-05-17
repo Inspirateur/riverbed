@@ -1,27 +1,39 @@
-use std::{collections::HashMap, str::FromStr};
 use bevy::{asset::LoadedFolder, prelude::*};
 use rb_block::Block;
 use rb_items::BlockKind;
-// TODO: find a way to make this less verbose ?
+use std::{collections::HashMap, str::FromStr};
 pub struct BlockSoundLoadPlugin;
 
 impl Plugin for BlockSoundLoadPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_state::<BreakSoundsState>()
+        app.init_state::<BreakSoundsState>()
             .init_state::<HarvestSoundsState>()
             .init_state::<StepSoundsState>()
             .insert_resource(BlockSounds::default())
             .add_systems(OnEnter(BreakSoundsState::Setup), load_block_breaking_sounds)
-            .add_systems(Update, check_break_sounds.run_if(in_state(BreakSoundsState::Setup)))
-            .add_systems(OnEnter(HarvestSoundsState::Setup), load_block_harvesting_sounds)
-            .add_systems(Update, check_harvest_sounds.run_if(in_state(HarvestSoundsState::Setup)))
+            .add_systems(
+                Update,
+                check_break_sounds.run_if(in_state(BreakSoundsState::Setup)),
+            )
+            .add_systems(
+                OnEnter(HarvestSoundsState::Setup),
+                load_block_harvesting_sounds,
+            )
+            .add_systems(
+                Update,
+                check_harvest_sounds.run_if(in_state(HarvestSoundsState::Setup)),
+            )
             .add_systems(OnEnter(StepSoundsState::Setup), load_block_stepping_sounds)
-            .add_systems(Update, check_step_sounds.run_if(in_state(StepSoundsState::Setup)))
+            .add_systems(
+                Update,
+                check_step_sounds.run_if(in_state(StepSoundsState::Setup)),
+            )
             .add_systems(OnEnter(BreakSoundsState::Finished), load_block_break_sounds)
-            .add_systems(OnEnter(HarvestSoundsState::Finished), load_block_harvest_sounds)
-            .add_systems(OnEnter(StepSoundsState::Finished), load_block_step_sounds)
-            ;
+            .add_systems(
+                OnEnter(HarvestSoundsState::Finished),
+                load_block_harvest_sounds,
+            )
+            .add_systems(OnEnter(StepSoundsState::Finished), load_block_step_sounds);
     }
 }
 
@@ -61,21 +73,21 @@ impl BlockSounds {
 pub enum BreakSoundsState {
     #[default]
     Setup,
-    Finished
+    Finished,
 }
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum HarvestSoundsState {
     #[default]
     Setup,
-    Finished
+    Finished,
 }
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum StepSoundsState {
     #[default]
     Setup,
-    Finished
+    Finished,
 }
 
 #[derive(Resource, Default)]
@@ -87,20 +99,26 @@ pub struct HarvestSoundFolder(pub Handle<LoadedFolder>);
 #[derive(Resource, Default)]
 pub struct StepSoundFolder(pub Handle<LoadedFolder>);
 
-
+// TODO: find a way to deduplicate these
 fn load_block_breaking_sounds(mut commands: Commands, asset_server: Res<AssetServer>) {
     // load multiple, individual sprites from a folder
-    commands.insert_resource(BreakSoundFolder(asset_server.load_folder("sounds/blocks/breaking")));
+    commands.insert_resource(BreakSoundFolder(
+        asset_server.load_folder("sounds/blocks/breaking"),
+    ));
 }
 
 fn load_block_harvesting_sounds(mut commands: Commands, asset_server: Res<AssetServer>) {
     // load multiple, individual sprites from a folder
-    commands.insert_resource(HarvestSoundFolder(asset_server.load_folder("sounds/blocks/harvesting")));
+    commands.insert_resource(HarvestSoundFolder(
+        asset_server.load_folder("sounds/blocks/harvesting"),
+    ));
 }
 
 fn load_block_stepping_sounds(mut commands: Commands, asset_server: Res<AssetServer>) {
     // load multiple, individual sprites from a folder
-    commands.insert_resource(StepSoundFolder(asset_server.load_folder("sounds/blocks/footsteps")));
+    commands.insert_resource(StepSoundFolder(
+        asset_server.load_folder("sounds/blocks/footsteps"),
+    ));
 }
 
 fn check_break_sounds(
@@ -152,7 +170,10 @@ fn load_block_break_sounds(
         let Some(filename) = handle.path().unwrap().path().file_stem().unwrap().to_str() else {
             continue;
         };
-        block_sounds.breaking.insert(BlockKind::from_str(filename).unwrap(), handle.clone().typed());
+        block_sounds.breaking.insert(
+            BlockKind::from_str(filename).unwrap(),
+            handle.clone().typed(),
+        );
     }
 }
 
@@ -166,7 +187,10 @@ fn load_block_harvest_sounds(
         let Some(filename) = handle.path().unwrap().path().file_stem().unwrap().to_str() else {
             continue;
         };
-        block_sounds.harvesting.insert(BlockKind::from_str(filename).unwrap(), handle.clone().typed());
+        block_sounds.harvesting.insert(
+            BlockKind::from_str(filename).unwrap(),
+            handle.clone().typed(),
+        );
     }
 }
 
@@ -180,6 +204,9 @@ fn load_block_step_sounds(
         let Some(filename) = handle.path().unwrap().path().file_stem().unwrap().to_str() else {
             continue;
         };
-        block_sounds.stepping.insert(BlockKind::from_str(filename).unwrap(), handle.clone().typed());
+        block_sounds.stepping.insert(
+            BlockKind::from_str(filename).unwrap(),
+            handle.clone().typed(),
+        );
     }
 }

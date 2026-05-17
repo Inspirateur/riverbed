@@ -88,7 +88,7 @@ pub fn pull_meshes(
         .rev()
         .unique_by(|(_, pos, face, _)| (*pos, *face))
     {
-        if !blocks.chunks.contains_key(&chunk_pos) {
+        if !blocks.loaded_columns.contains(&chunk_pos.into()) {
             continue;
         }
         let Some(mesh) = mesh_opt else {

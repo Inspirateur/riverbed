@@ -7,7 +7,7 @@ use bevy::{
     prelude::{Resource, Vec3},
 };
 use crossbeam::channel::Sender;
-use crossbeam_skiplist::{SkipMap, map::Entry};
+use crossbeam_skiplist::{SkipMap, SkipSet, map::Entry};
 use parking_lot::RwLock;
 use rb_block::{Block, Face};
 use std::sync::Arc;
@@ -26,6 +26,12 @@ impl PartialEq for BlockRayCastHit {
 #[derive(Resource, Clone)]
 pub struct VoxelWorld {
     pub chunks: Arc<SkipMap<ChunkPos, RwLock<Chunk>>>,
+    /// Mark columns that eventually should have data
+    /// (they may not having it yet because of async loading)
+    pub loaded_columns: Arc<SkipSet<ChunkPos2d>>,
+    /// Mark columns that eventually shouldn't have data
+    /// (they may have it because of structure generation writing to neighboring chunks)
+    pub unloaded_columns: Arc<SkipSet<ChunkPos2d>>,
     chunk_changes: Sender<ChunkPos>,
 }
 
@@ -33,6 +39,8 @@ impl VoxelWorld {
     pub fn new(chunk_changes: Sender<ChunkPos>) -> Self {
         VoxelWorld {
             chunks: Arc::new(SkipMap::new()),
+            loaded_columns: Arc::new(SkipSet::new()),
+            unloaded_columns: Arc::new(SkipSet::new()),
             chunk_changes,
         }
     }
@@ -212,6 +220,7 @@ impl VoxelWorld {
     }
 
     pub fn unload_col(&self, col: ChunkPos2d) {
+        self.unloaded_columns.remove(&col);
         for y in 0..Y_CHUNKS as i32 {
             let chunk_pos = ChunkPos {
                 x: col.x,
@@ -235,6 +244,14 @@ impl VoxelWorld {
 
     /// Mark a block change, reflecting in neighboring chunks if needed
     fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, block: Block) {
+        // If the chunk is not supposed to be loaded (can happen in structure generation acting into neighboring chunks),
+        // mark it for unloading straight away so the memory gets cleaned up
+        // and skip sending the change
+        if !self.loaded_columns.contains(&chunk_pos.into()) {
+            println!("Marking chunk {:?} for unload", chunk_pos);
+            self.unloaded_columns.insert(chunk_pos.into());
+            return;
+        }
         if let Err(_) = self.chunk_changes.send(chunk_pos) {
             warn!("Chunk change channel closed.");
             return;

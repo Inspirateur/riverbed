@@ -54,9 +54,10 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                     } else {
                         match player_pos_recv.try_recv() {
                             Ok(update) => update,
-                            Err(_) => break, // no more updates, exit the loop
+                            Err(_) => break, // player didn't move since last check, we can start loading
                         }
                     };
+                    // Player did move since last check, we modify the load/unload queues accordingly
                     // Compute the difference in player area
                     let area_diff =
                         player_area_diff(&player_pos_update.new_col, player_pos_update.old_col_opt);
@@ -70,17 +71,19 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                         if !cols.is_empty() {
                             continue;
                         }
+                        // we remove it from the list of columns that should be loaded in the world
+                        load_world.loaded_columns.remove(&col);
                         if let Some(i) = to_load.iter().position(|c| *c == col) {
+                            // the chunk was still in the load queue we remove it
                             to_load.swap_remove(i);
-                        } else {
-                            load_world.unload_col(col);
-                            if unload_sender.send(col).is_err() {
-                                // This means the game is shutting down, so we break the loop
-                                warn!(
-                                    "ColUnloadsReciever channel is closed, stopping terrain thread"
-                                );
-                                break 'outer;
-                            }
+                            // even in this case we still need to unload the column after because
+                            // it could have received blocks from neighboring columns generation
+                        }
+                        load_world.unload_col(col);
+                        if unload_sender.send(col).is_err() {
+                            // This means the game is shutting down, so we break the loop
+                            warn!("ColUnloadsReciever channel is closed, stopping terrain thread");
+                            break 'outer;
                         }
                     }
                     // Handle columns that are new in the player's area
@@ -88,8 +91,19 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                         let players = player_cols.entry(col).or_default();
                         if players.is_empty() {
                             to_load.push(col);
+                            load_world.loaded_columns.insert(col);
                         }
                         players.insert(player_pos_update.id);
+                    }
+                    // Deal with unloaded world columns that have data
+                    // (happens when a structure generate blocks in a chunk that was not supposed to be loaded)
+                    while let Some(col) = load_world.unloaded_columns.pop_back() {
+                        load_world.unload_col(*col);
+                        if unload_sender.send(*col).is_err() {
+                            // This means the game is shutting down, so we break the loop
+                            warn!("ColUnloadsReciever channel is closed, stopping terrain thread");
+                            break 'outer;
+                        }
                     }
                 }
                 // Generate the closest column to any player

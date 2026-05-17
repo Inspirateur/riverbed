@@ -45,7 +45,6 @@ fn spawn_sun(
     commands.spawn((
         Sun,
         DirectionalLight {
-            // TODO: this crashes, maybe it will be fixed by following https://github.com/bevyengine/bevy/blob/main/assets/shaders/extended_material_bindless.wgsl
             shadows_enabled: true,
             ..Default::default()
         },

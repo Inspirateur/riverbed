@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::ops::{Add, BitXor, Index, IndexMut};
 
 #[derive(
-    Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Default, Debug, Hash, Serialize, Deserialize,
+    Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize,
 )]
 pub struct Pos3d<const U: usize> {
     pub x: i32,
@@ -16,7 +16,7 @@ pub struct Pos3d<const U: usize> {
 }
 
 #[derive(
-    Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Default, Debug, Hash, Serialize, Deserialize,
+    Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize,
 )]
 pub struct LocalPos3d<const U: usize> {
     pub x: usize,

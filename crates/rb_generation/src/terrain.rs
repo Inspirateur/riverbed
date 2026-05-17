@@ -204,8 +204,6 @@ impl TerrainGenerator {
             ]);
             if dist >= 0. {
                 let pos = (col, (dx, y, dz)).into();
-                // TODO: this can write blocks into untracked chunks that will get meshed and never unloaded
-                // Maybe we should grow the tree in a second pass after the neighboring columns are generated
                 tree.grow(world, pos, self.seed as i32, dist + h as f32 / 10.);
             }
         }

@@ -5,14 +5,18 @@ use bevy::prelude::Vec3;
 use serde::{Deserialize, Serialize};
 use std::ops::{BitXor, Index, IndexMut};
 
-#[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub struct Pos2d<const U: usize> {
     pub x: i32,
     pub z: i32,
     pub realm: Realm,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub struct LocalPos2d<const U: usize> {
     pub x: usize,
     pub z: usize,
