@@ -1,0 +1,21 @@
+[package]
+name = "rb_biome_editor"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "rb_biome_editor"
+path = "src/main.rs"
+
+[dependencies]
+bevy = { version = "0.18" }
+crossbeam = "*"
+rand_chacha = "*"
+rb_asset_processing = { path = "../../crates/rb_asset_processing" }
+rb_block = { path = "../../crates/rb_block" }
+rb_block_def = { path = "../../crates/rb_block_def" }
+rb_generation = { path = "../../crates/rb_generation" }
+rb_noise = { path = "../../crates/rb_noise" }
+rb_pos = { path = "../../crates/rb_pos" }
+rb_render = { path = "../../crates/rb_render" }
+rb_world = { path = "../../crates/rb_world" }

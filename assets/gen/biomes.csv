@@ -1,4 +1,4 @@
-id, continentalness, mountainness, temperature, humidity
+id, Continentalness, Mountainness, Temperature, Humidity
 Ocean, 0.0, 0.0, 0.5, 0.5
 PolarOcean, 0.0, 0.0, 0.0, 0.5
 Plain, 1.0, 0.0, 0.3, 1.0

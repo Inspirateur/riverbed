@@ -1,8 +1,7 @@
+use std::collections::HashMap;
+
 use crate::{
-    biome_params::{BiomeParameters, BiomePoints},
-    biomes::Biome,
-    coverage::CoverageTrait,
-    layer::LayerTag,
+    biome_params::*, biomes::Biome, coverage::CoverageTrait, layer::LayerTag,
     plant_params::PlantRanges,
 };
 use rb_block::Block;
@@ -27,24 +26,16 @@ impl TerrainGenerator {
         }
     }
 
-    pub fn generate(&self, world: &VoxelWorld, col: ChunkPos2d) {
-        let (x, z) = col.to_real_pos();
-        let continentalness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed, 0.0005);
-        let mountainness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 1, 0.005);
-        let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 2, 0.002);
-        let humidity = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 3, 0.002);
-        let trees = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 4, 0.005);
-        let ph = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 5, 0.005);
-        let params = BiomeParameters {
-            continentalness: &continentalness,
-            mountainness: &mountainness,
-            temperature: &temperature,
-            humidity: &humidity,
-        };
+    pub fn generate_with_params(
+        &self,
+        world: &VoxelWorld,
+        col: ChunkPos2d,
+        params: BiomeParameters,
+    ) {
         // The biomes that will be considered for blending in this chunk
         let biomes: Vec<Biome> = self
             .biomes_points
-            .closest_biomes(params.at(CHUNK_S1 / 2, CHUNK_S1 / 2), 1.);
+            .closest_biomes(params.average(self.biomes_points.parameters), 1.);
         let all_biome_layers = biomes
             .iter()
             .map(|b| b.generate(self.seed, col, &params))
@@ -52,11 +43,12 @@ impl TerrainGenerator {
         // Blend between biomes
         let mut column_biome_weights = vec![0.0; biomes.len()];
         let mut layer_indexes = vec![0usize; biomes.len()];
+        let param_points = params.view(self.biomes_points.parameters);
         for dx in 0..CHUNK_S1 {
             for dz in 0..CHUNK_S1 {
                 // Compute normalized biome weights for this block column
                 if biomes.len() > 1 {
-                    let biome_params = params.at(dx, dz);
+                    let biome_params = param_points[dx + dz * CHUNK_S1];
                     let mut total = 0.;
                     for (i, &biome) in biomes.iter().enumerate() {
                         column_biome_weights[i] =
@@ -187,7 +179,7 @@ impl TerrainGenerator {
             let dx = spot.0 + (rng & 0b111);
             let dz = spot.1 + ((rng >> 3) & 0b111);
             let i = dx * CHUNK_S1 + dz;
-            let tree = trees[i];
+            let tree = params[BiomeParam::Trees][i];
             if tree < 0.5 {
                 continue;
             }
@@ -197,9 +189,9 @@ impl TerrainGenerator {
                 continue;
             }
             let (tree, dist) = self.plant_ranges.closest([
-                temperature[i],
-                humidity[i],
-                ph[i],
+                params[BiomeParam::Temperature][i],
+                params[BiomeParam::Humidity][i],
+                params[BiomeParam::Ph][i],
                 y as f32 / MAX_GEN_HEIGHT as f32,
             ]);
             if dist >= 0. {
@@ -207,5 +199,28 @@ impl TerrainGenerator {
                 tree.grow(world, pos, self.seed as i32, dist + h as f32 / 10.);
             }
         }
+    }
+
+    pub fn biome_params_at(&self, col: ChunkPos2d) -> BiomeParameters {
+        let (x, z) = col.to_real_pos();
+        let continentalness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed, 0.0005);
+        let mountainness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 1, 0.005);
+        let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 2, 0.002);
+        let humidity = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 3, 0.002);
+        let ph = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 5, 0.005);
+        let trees = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 4, 0.005);
+        BiomeParameters(HashMap::from([
+            (BiomeParam::Continentalness, continentalness),
+            (BiomeParam::Mountainness, mountainness),
+            (BiomeParam::Temperature, temperature),
+            (BiomeParam::Humidity, humidity),
+            (BiomeParam::Ph, ph),
+            (BiomeParam::Trees, trees),
+        ]))
+    }
+
+    pub fn generate(&self, world: &VoxelWorld, col: ChunkPos2d) {
+        let params = self.biome_params_at(col);
+        self.generate_with_params(world, col, params);
     }
 }
