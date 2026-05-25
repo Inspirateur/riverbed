@@ -1,9 +1,10 @@
-use rb_block::Block;
-use rb_agents::{PlayerControlled, TargetBlock};
-use rb_world::VoxelWorld;
 use bevy::color::palettes::css;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
+use rb_agents::TargetBlock;
+use rb_block::Block;
+use rb_camera::PlayerControlled;
+use rb_world::VoxelWorld;
 use std::time::Duration;
 
 pub struct DebugDisplayPlugin;

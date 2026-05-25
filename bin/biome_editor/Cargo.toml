@@ -12,6 +12,7 @@ bevy = { version = "0.18" }
 crossbeam = "*"
 rand_chacha = "*"
 rb_asset_processing = { path = "../../crates/rb_asset_processing" }
+rb_camera = { path = "../../crates/rb_camera" }
 rb_block = { path = "../../crates/rb_block" }
 rb_block_def = { path = "../../crates/rb_block_def" }
 rb_generation = { path = "../../crates/rb_generation" }

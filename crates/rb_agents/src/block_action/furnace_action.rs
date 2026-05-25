@@ -1,8 +1,9 @@
 use crate::furnace_state::OpenFurnace;
 use crate::game_state::GameUiState;
-use crate::{Action, PlayerControlled, TargetBlock};
+use crate::{Action, TargetBlock};
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
+use rb_camera::PlayerControlled;
 use rb_items::{FiringTable, ItemHolder, LitFurnace, Stack, furnace_slots};
 use rb_world::{BlockEntities, BlockPos, VoxelWorld};
 use std::fs;

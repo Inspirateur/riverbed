@@ -1,15 +1,16 @@
-use rb_block::Block;
-use rb_world::WorldRng;
-use crate::{Action, PlayerControlled, TargetBlock};
-use rb_items::{
-    BlockLootTable, DropQuantity, FiringTable, InventoryTrait, Item, LootEntry, Stack, ItemHolder, ItemGet,
-};
-use crate::camera_types::FpsCam;
 use crate::game_state::{CursorGrabbed, GameUiState, SelectedHotbarSlot};
-use rb_world::{BlockEntities, BlockPos, Realm, VoxelWorld};
+use crate::{Action, TargetBlock};
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use rand::RngExt;
+use rb_block::Block;
+use rb_camera::{FpsCam, PlayerControlled};
+use rb_items::{
+    BlockLootTable, DropQuantity, FiringTable, InventoryTrait, Item, ItemGet, ItemHolder,
+    LootEntry, Stack,
+};
+use rb_world::WorldRng;
+use rb_world::{BlockEntities, BlockPos, Realm, VoxelWorld};
 use std::fs;
 use std::iter::zip;
 use std::time::{Duration, Instant};

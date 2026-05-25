@@ -248,7 +248,6 @@ impl VoxelWorld {
         // mark it for unloading straight away so the memory gets cleaned up
         // and skip sending the change
         if !self.loaded_columns.contains(&chunk_pos.into()) {
-            println!("Marking chunk {:?} for unload", chunk_pos);
             self.unloaded_columns.insert(chunk_pos.into());
             return;
         }

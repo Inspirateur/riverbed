@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 rb_agents = { path = "../rb_agents", version = "*" }
+rb_physics = { path = "../rb_physics", version = "*" }
 rb_items = { path = "../rb_items", version = "*" }
 rb_block = { path = "../rb_block", version = "*" }
 bevy = { version = "0.18" }

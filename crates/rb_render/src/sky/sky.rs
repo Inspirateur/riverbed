@@ -2,7 +2,7 @@ use bevy::{
     pbr::{Atmosphere, ScatteringMedium},
     prelude::*,
 };
-use rb_agents::{CameraSpawn, FpsCam};
+use rb_camera::{CameraSpawn, FpsCam};
 use std::time::Duration;
 // const DAY_LENGTH_MINUTES: f32 = 0.2;
 // const C: f32 = DAY_LENGTH_MINUTES * 120. * PI;

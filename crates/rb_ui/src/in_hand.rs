@@ -1,15 +1,14 @@
 use super::ui_tex_map::UiTextureMap;
 use bevy::prelude::*;
-use rb_agents::{
-    BlockActionType, BlockLootAction, CameraSpawn, FpsCam, PlayerControlled, SelectedHotbarSlot,
-};
+use rb_agents::{BlockActionType, BlockLootAction, PlayerSpawn, SelectedHotbarSlot};
+use rb_camera::{FpsCam, PlayerControlled};
 use rb_items::ItemHolder;
 
 pub struct InHandPlugin;
 
 impl Plugin for InHandPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, in_hand_setup.after(CameraSpawn))
+        app.add_systems(Startup, in_hand_setup.after(PlayerSpawn))
             .add_systems(Update, on_hotbar_change)
             .add_systems(Update, on_selected_slot_change)
             .add_systems(Update, animate);

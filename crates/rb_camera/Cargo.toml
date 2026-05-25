@@ -1,0 +1,10 @@
+[package]
+name = "rb_camera"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = { version = "0.18" }
+rb_physics = { path = "../rb_physics" }
+rb_world = { path = "../rb_world" }
+rb_block = { path = "../rb_block" }

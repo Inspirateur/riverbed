@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+rb_camera = { path = "../rb_camera", version = "*" }
 rb_render = { path = "../rb_render", version = "*" }
 rb_agents = { path = "../rb_agents", version = "*" }
 rb_items = { path = "../rb_items", version = "*" }

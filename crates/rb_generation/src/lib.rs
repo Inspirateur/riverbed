@@ -1,4 +1,3 @@
-pub use terrain::TerrainGenerator;
 mod biome_params;
 mod biomes;
 mod coverage;
@@ -8,3 +7,5 @@ mod plant_params;
 mod range_utils;
 mod terrain;
 mod tree;
+pub use biomes::Biome;
+pub use terrain::TerrainGenerator;

@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+rb_camera = { path = "../rb_camera", version = "*" }
 rb_block = { path = "../rb_block", version = "*" }
 rb_world = { path = "../rb_world", version = "*" }
+rb_physics = { path = "../rb_physics", version = "*" }
 rb_items = { path = "../rb_items", version = "*" }
 rb_pos = { path = "../rb_pos", version = "*" }
 rb_generation = { path = "../rb_generation", version = "*" }

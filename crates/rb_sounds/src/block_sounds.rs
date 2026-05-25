@@ -1,10 +1,11 @@
 use super::block_sound_load::{BlockSound, BlockSoundLoadPlugin, BlockSounds};
-use rb_agents::{BlockActionType, BlockLootAction, SteppingOn, Velocity, FootstepCD, BlockSoundCD};
 use bevy::{
     audio::{PlaybackMode, SpatialScale},
     prelude::*,
 };
 use rand::RngExt;
+use rb_agents::{BlockActionType, BlockLootAction, BlockSoundCD, FootstepCD};
+use rb_physics::{SteppingOn, Velocity};
 const RAND_AMPLITUDE: f32 = 0.3;
 // distance between steps (in blocks)
 const STEP_DIST: f32 = 2.5;

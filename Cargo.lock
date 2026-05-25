@@ -4516,9 +4516,11 @@ dependencies = [
  "leafwing-input-manager",
  "rand 0.10.1",
  "rb_block",
+ "rb_camera",
  "rb_generation",
  "rb_items",
  "rb_logging",
+ "rb_physics",
  "rb_pos",
  "rb_world",
  "serde",
@@ -4545,6 +4547,7 @@ dependencies = [
  "rb_asset_processing",
  "rb_block",
  "rb_block_def",
+ "rb_camera",
  "rb_generation",
  "rb_noise",
  "rb_pos",
@@ -4571,6 +4574,16 @@ dependencies = [
  "nom 8.0.0",
  "ron 0.12.1",
  "serde",
+]
+
+[[package]]
+name = "rb_camera"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "rb_block",
+ "rb_physics",
+ "rb_world",
 ]
 
 [[package]]
@@ -4639,6 +4652,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rb_physics"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "itertools 0.13.0",
+ "rb_block",
+ "rb_world",
+]
+
+[[package]]
 name = "rb_pos"
 version = "0.1.0"
 dependencies = [
@@ -4660,7 +4683,9 @@ dependencies = [
  "rb_agents",
  "rb_asset_processing",
  "rb_block",
+ "rb_camera",
  "rb_logging",
+ "rb_physics",
  "rb_world",
  "strum",
 ]
@@ -4674,6 +4699,7 @@ dependencies = [
  "rb_agents",
  "rb_block",
  "rb_items",
+ "rb_physics",
 ]
 
 [[package]]
@@ -4686,6 +4712,7 @@ dependencies = [
  "rb_agents",
  "rb_asset_processing",
  "rb_block",
+ "rb_camera",
  "rb_items",
  "rb_render",
  "rb_sounds",
@@ -4833,8 +4860,10 @@ dependencies = [
  "crossbeam",
  "rand_chacha 0.10.0",
  "rb_agents",
+ "rb_camera",
  "rb_generation",
  "rb_logging",
+ "rb_physics",
  "rb_render",
  "rb_sounds",
  "rb_ui",

@@ -1,3 +1,6 @@
+mod auto_camera;
+mod biome_terrain_loader;
+use crate::biome_terrain_loader::BiomeTerrainLoaderPlugin;
 use bevy::{image::*, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
 use rand_chacha::{ChaCha8Rng, rand_core::SeedableRng};
@@ -36,6 +39,7 @@ fn main() {
             seed: SEED,
             rng: ChaCha8Rng::seed_from_u64(SEED),
         })
+        .add_plugins(BiomeTerrainLoaderPlugin)
         .add_plugins(TextureLoadPlugin)
         .add_plugins(Render);
 

@@ -10,7 +10,9 @@ members = ["crates/*", "bin/*"]
 bevy = { version = "0.18" }
 crossbeam = "*"
 rand_chacha = "*"
+rb_camera = { path = "crates/rb_camera" }
 rb_world = { path = "crates/rb_world" }
+rb_physics = { path = "crates/rb_physics" }
 rb_generation = { path = "crates/rb_generation" }
 rb_logging = { path = "crates/rb_logging" }
 rb_agents = { path = "crates/rb_agents" }

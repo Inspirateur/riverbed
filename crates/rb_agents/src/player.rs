@@ -1,18 +1,20 @@
-use super::{
-    Crouching, FreeFly, Speed, SteppingOn, Walking, block_action::BlockActionPlugin,
-    key_binds::KeyBinds,
-};
-use rb_world::{BlockRayCastHit, Realm};
-use rb_block::Block;
-use rb_items::{InventoryTrait, Item, Stack, new_inventory, ItemHolder};
+use super::{block_action::BlockActionPlugin, key_binds::KeyBinds};
 use crate::{
-    AABB, Gravity, Heading, Jumping, Velocity,
     game_state::CursorGrabbed,
     sound_components::{BlockSoundCD, FootstepCD},
 };
-use bevy::{math::Vec3, prelude::*};
+use bevy::{
+    math::Vec3,
+    prelude::*,
+    window::{CursorGrabMode, CursorOptions},
+};
 use leafwing_input_manager::prelude::*;
-use std::time::Duration;
+use rb_block::Block;
+use rb_camera::{CameraSpawn, FpsCam, PlayerControlled};
+use rb_items::{InventoryTrait, Item, ItemHolder, Stack, new_inventory};
+use rb_physics::*;
+use rb_world::{BlockRayCastHit, Realm};
+use std::{f32::consts::FRAC_PI_2, time::Duration};
 
 const WALK_SPEED: f32 = 7.;
 const FREE_FLY_X_SPEED: f32 = 500.;
@@ -22,6 +24,7 @@ const SPAWN: Vec3 = Vec3 {
     y: 500.,
     z: -150.,
 };
+const CAMERA_PAN_RATE: f32 = 0.001;
 pub const HOTBAR_SLOTS: usize = 8;
 
 pub struct PlayerPlugin;
@@ -33,12 +36,16 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(confy::load_path::<KeyBinds>("key_bindings.toml").unwrap())
             .add_plugins(BlockActionPlugin)
+            .add_plugins(InputManagerPlugin::<CameraMovement>::default())
             .add_plugins(InputManagerPlugin::<Dir>::default())
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_plugins(InputManagerPlugin::<DevCommand>::default())
             .add_systems(
                 Startup,
-                (spawn_player, ApplyDeferred).chain().in_set(PlayerSpawn),
+                (spawn_player, ApplyDeferred)
+                    .chain()
+                    .in_set(PlayerSpawn)
+                    .in_set(CameraSpawn),
             )
             .add_systems(
                 Update,
@@ -46,12 +53,10 @@ impl Plugin for PlayerPlugin {
                     .chain()
                     .run_if(in_state(CursorGrabbed)),
             )
+            .add_systems(Update, pan_camera.run_if(in_state(CursorGrabbed)))
             .add_systems(OnExit(CursorGrabbed), reset_heading);
     }
 }
-
-#[derive(Component)]
-pub struct PlayerControlled;
 
 #[derive(Component)]
 pub struct TargetBlock(pub Option<BlockRayCastHit>);
@@ -90,7 +95,46 @@ pub enum DevCommand {
     ToggleFly,
 }
 
-pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Reflect, Hash)]
+pub enum CameraMovement {
+    Pan,
+}
+
+impl Actionlike for CameraMovement {
+    fn input_control_kind(&self) -> InputControlKind {
+        InputControlKind::DualAxis
+    }
+}
+
+pub fn spawn_player(
+    mut commands: Commands,
+    key_binds: Res<KeyBinds>,
+    mut cursor_options: Query<&mut CursorOptions>,
+) {
+    let input_map = InputMap::default().with_dual_axis(CameraMovement::Pan, MouseMove::default());
+    let aabb = AABB(Vec3::new(0.5, 1.7, 0.5));
+    let cam = commands
+        .spawn((
+            Camera3d::default(),
+            Transform::from_xyz(aabb.0.x / 2., aabb.0.y - 0.05, aabb.0.z / 2.).looking_at(
+                Vec3 {
+                    x: 0.,
+                    y: 0.,
+                    z: 1.,
+                },
+                Vec3::Y,
+            ),
+            Projection::Perspective(PerspectiveProjection {
+                far: 10000.,
+                fov: FRAC_PI_2 * 9. / 16.,
+                ..Default::default()
+            }),
+        ))
+        .insert(Msaa::default())
+        .insert(input_map)
+        .insert(FpsCam::default())
+        .id();
+
     let realm = Realm::Overworld;
     let mut inventory = new_inventory::<HOTBAR_SLOTS>();
     inventory.try_add(Stack::Some(Item::Block(Block::Smelter), 1));
@@ -112,7 +156,7 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
                 cd: Timer::new(Duration::from_millis(500), TimerMode::Once),
                 intent: false,
             },
-            AABB(Vec3::new(0.5, 1.7, 0.5)),
+            aabb,
             Velocity(Vec3::default()),
             TargetBlock(None),
             ItemHolder::Inventory(inventory),
@@ -136,7 +180,12 @@ pub fn spawn_player(mut commands: Commands, key_binds: Res<KeyBinds>) {
         .insert(InputMap::new([(
             DevCommand::ToggleFly,
             key_binds.toggle_fly,
-        )]));
+        )]))
+        .add_child(cam);
+
+    let mut cursor_options = cursor_options.single_mut().unwrap();
+    cursor_options.grab_mode = CursorGrabMode::Locked;
+    cursor_options.visible = false;
 }
 
 pub fn move_player(
@@ -220,4 +269,12 @@ fn reset_heading(mut player_query: Query<&mut Heading, With<PlayerControlled>>) 
         return;
     };
     heading.0 = Vec3::new(0., 0., 0.);
+}
+
+fn pan_camera(mut query: Query<(&ActionState<CameraMovement>, &mut FpsCam)>) {
+    let (action_state, mut fpscam) = query.single_mut().unwrap();
+    let camera_pan_vector = action_state.axis_pair(&CameraMovement::Pan);
+    fpscam.yaw -= CAMERA_PAN_RATE * camera_pan_vector.x;
+    fpscam.pitch -= CAMERA_PAN_RATE * camera_pan_vector.y;
+    fpscam.pitch = fpscam.pitch.clamp(-1.5, 1.5);
 }

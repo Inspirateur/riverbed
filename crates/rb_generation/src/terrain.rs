@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     biome_params::*, biomes::Biome, coverage::CoverageTrait, layer::LayerTag,
     plant_params::PlantRanges,
@@ -7,6 +5,7 @@ use crate::{
 use rb_block::Block;
 use rb_noise::*;
 use rb_world::{BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, MAX_GEN_HEIGHT, VoxelWorld};
+use std::collections::HashMap;
 const BIOME_SHARPENING: f32 = 50.;
 
 pub struct TerrainGenerator {
