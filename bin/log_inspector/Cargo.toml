@@ -1,10 +1,10 @@
 [package]
-name = "rb_log_inspector"
+name = "log_inspector"
 version = "0.1.0"
 edition = "2024"
 
 [[bin]]
-name = "rb_log_inspector"
+name = "log_inspector"
 path = "src/main.rs"
 
 [dependencies]

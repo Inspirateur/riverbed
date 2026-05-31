@@ -1,7 +1,7 @@
-use rb_block::Block;
 use crate::{biome_params::BiomeParameters, layer::*};
-use rb_world::{CHUNK_S1, CHUNK_S2, ChunkPos2d, WATER_H, unchunked};
+use rb_block::Block;
 use rb_noise::*;
+use rb_world::{CHUNK_S1, CHUNK_S2, ChunkPos2d, WATER_H, unchunked};
 use strum_macros::EnumString;
 const MOUNTAIN_H: f32 = 120.;
 
@@ -196,7 +196,7 @@ impl Biome {
 
     fn generate_canyon(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.05);
+        let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.01);
         powi(&mut n, 4);
         mul_const(&mut n, -100.);
         add_const(&mut n, 100.);

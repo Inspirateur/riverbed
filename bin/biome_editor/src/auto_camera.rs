@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use rb_camera::CameraSpawn;
+use rb_camera::{CameraSpawn, FpsCam};
 
 pub struct AutoCameraPlugin;
 
@@ -9,4 +9,10 @@ impl Plugin for AutoCameraPlugin {
     }
 }
 
-fn setup_auto_camera() {}
+fn setup_auto_camera(mut commands: Commands) {
+    commands.spawn((
+        Camera3d::default(),
+        FpsCam::default(),
+        Transform::from_xyz(500., 180., 300.).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
+}

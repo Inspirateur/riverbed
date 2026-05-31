@@ -1,5 +1,4 @@
 mod chunk_culling;
-mod effects;
 mod mesh_draw;
 mod mesh_logic;
 mod mesh_thread;
@@ -11,12 +10,11 @@ use bevy::prelude::Plugin;
 pub use mesh_thread::{MeshOrderReceiver, MeshOrderSender};
 pub use texture_load::*;
 
-pub struct Render;
+pub struct RenderPlugin;
 
-impl Plugin for Render {
+impl Plugin for RenderPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_plugins(mesh_draw::Draw3d)
-            .add_plugins(sky::SkyPlugin)
-            .add_plugins(effects::EffectsPlugin);
+            .add_plugins(sky::SkyPlugin);
     }
 }

@@ -1,10 +1,10 @@
 mod auto_camera;
 mod biome_terrain_loader;
-use crate::biome_terrain_loader::BiomeTerrainLoaderPlugin;
+use crate::{auto_camera::AutoCameraPlugin, biome_terrain_loader::BiomeTerrainLoaderPlugin};
 use bevy::{image::*, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
 use rand_chacha::{ChaCha8Rng, rand_core::SeedableRng};
-use rb_render::{MeshOrderReceiver, MeshOrderSender, Render, TextureLoadPlugin};
+use rb_render::{MeshOrderReceiver, MeshOrderSender, RenderPlugin, TextureLoadPlugin};
 use rb_world::{VoxelWorld, WorldRng};
 const SEED: u64 = 42;
 
@@ -33,15 +33,20 @@ fn main() {
                         mipmap_filter: ImageFilterMode::Nearest,
                         ..default()
                     },
+                })
+                .set(AssetPlugin {
+                    file_path: "../../assets/".into(),
+                    ..Default::default()
                 }),
         )
         .insert_resource(WorldRng {
             seed: SEED,
             rng: ChaCha8Rng::seed_from_u64(SEED),
         })
+        .add_plugins(AutoCameraPlugin)
         .add_plugins(BiomeTerrainLoaderPlugin)
         .add_plugins(TextureLoadPlugin)
-        .add_plugins(Render);
+        .add_plugins(RenderPlugin);
 
     app.run();
 }

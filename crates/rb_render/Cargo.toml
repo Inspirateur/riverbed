@@ -8,7 +8,6 @@ rb_block = { path = "../rb_block", version = "*" }
 rb_world = { path = "../rb_world", version = "*" }
 rb_physics = { path = "../rb_physics", version = "*" }
 rb_camera = { path = "../rb_camera", version = "*" }
-rb_agents = { path = "../rb_agents", version = "*" }
 rb_logging = { path = "../rb_logging", version = "*" }
 rb_asset_processing = { path = "../rb_asset_processing", version = "*" }
 bevy = { version = "0.18" }

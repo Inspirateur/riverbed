@@ -1,10 +1,10 @@
 [package]
-name = "rb_biome_editor"
+name = "biome_editor"
 version = "0.1.0"
 edition = "2024"
 
 [[bin]]
-name = "rb_biome_editor"
+name = "biome_editor"
 path = "src/main.rs"
 
 [dependencies]

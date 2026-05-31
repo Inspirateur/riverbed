@@ -17,16 +17,23 @@ fn in_rd(col: &ChunkPos2d, other: &ChunkPos2d) -> bool {
         && col.realm == other.realm
 }
 
-pub fn rd_area(col: &ChunkPos2d) -> impl Iterator<Item = ChunkPos2d> + '_ {
+pub fn chunk_area(
+    center: &ChunkPos2d,
+    chunk_distance: i32,
+) -> impl Iterator<Item = ChunkPos2d> + '_ {
     iproduct!(
-        range_around(col.x, RENDER_DISTANCE as i32),
-        range_around(col.z, RENDER_DISTANCE as i32)
+        range_around(center.x, chunk_distance),
+        range_around(center.z, chunk_distance)
     )
     .map(|(x, z)| ChunkPos2d {
         x,
         z,
-        realm: col.realm,
+        realm: center.realm,
     })
+}
+
+pub fn rd_area(col: &ChunkPos2d) -> impl Iterator<Item = ChunkPos2d> + '_ {
+    chunk_area(col, RENDER_DISTANCE as i32)
 }
 
 pub fn player_area_diff(col: &ChunkPos2d, other: Option<ChunkPos2d>) -> PlayerAreaDiff {

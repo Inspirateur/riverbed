@@ -10,7 +10,7 @@ use rb_agents::{PlayerPlugin, TerrainLoadPlugin};
 use rb_camera::Camera3dPlugin;
 use rb_logging::RiverbedLogPlugin;
 use rb_physics::MovementPlugin;
-use rb_render::{MeshOrderReceiver, MeshOrderSender, Render, TextureLoadPlugin};
+use rb_render::{MeshOrderReceiver, MeshOrderSender, RenderPlugin, TextureLoadPlugin};
 use rb_sounds::SoundPlugin;
 use rb_ui::UIPlugin;
 use rb_world::{VoxelWorld, WorldRng};
@@ -56,7 +56,7 @@ fn main() {
         .add_plugins(UIPlugin)
         .add_plugins(MovementPlugin)
         .add_plugins(TerrainLoadPlugin)
-        .add_plugins(Render)
+        .add_plugins(RenderPlugin)
         .add_plugins(SoundPlugin);
 
     app.run();
