@@ -1,5 +1,5 @@
 use simdnoise::*;
-// manual scaling required because library oversight 
+// manual scaling required because library oversight
 // https://github.com/verpeteren/rust-simd-noise/issues/23
 const S_FBM: f32 = 0.765;
 const S_RIDGE: f32 = 6.58;
@@ -12,16 +12,23 @@ pub fn fbm(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) ->
         .with_freq(freq)
         .with_octaves(5)
         .generate();
-    res.into_iter().map(|v| v*S_FBM + 0.5).collect()
+    res.into_iter().map(|v| v * S_FBM + 0.5).collect()
 }
 
 /// 2D FBM with 3 octaves in [min;max]
 pub fn fbm_scaled(
-    x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32, min: f32, max: f32
+    x: f32,
+    width: usize,
+    z: f32,
+    height: usize,
+    seed: u32,
+    freq: f32,
+    min: f32,
+    max: f32,
 ) -> Vec<f32> {
-    let delta = max-min;
-    let s = S_FBM*delta;
-    let c = 0.5*delta + min;
+    let delta = max - min;
+    let s = S_FBM * delta;
+    let c = 0.5 * delta + min;
     let (res, _, _) = NoiseBuilder::fbm_2d_offset(x, width, z, height)
         .with_seed(seed as i32)
         .with_freq(freq)
@@ -41,11 +48,18 @@ pub fn ridge(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) 
 
 /// 2D Ridge noise in [min;max]
 pub fn ridge_scaled(
-    x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32, min: f32, max: f32
+    x: f32,
+    width: usize,
+    z: f32,
+    height: usize,
+    seed: u32,
+    freq: f32,
+    min: f32,
+    max: f32,
 ) -> Vec<f32> {
     let delta = max - min;
-    let s = S_RIDGE*delta;
-    let c = S_RIDGE*delta*C_RIDGE + min;
+    let s = S_RIDGE * delta;
+    let c = S_RIDGE * delta * C_RIDGE + min;
     let (res, _, _) = NoiseBuilder::ridge_2d_offset(x, width, z, height)
         .with_seed(seed as i32)
         .with_freq(freq)
@@ -54,7 +68,9 @@ pub fn ridge_scaled(
 }
 
 pub fn quantize(sample: &mut Vec<f32>, step: f32) {
-    sample.iter_mut().for_each(|v| *v = (*v/step).round()*step);   
+    sample
+        .iter_mut()
+        .for_each(|v| *v = (*v / step).round() * step);
 }
 
 pub fn mul(a: &mut Vec<f32>, b: &Vec<f32>) {
@@ -77,6 +93,37 @@ pub fn powi(a: &mut Vec<f32>, n: i32) {
     a.iter_mut().for_each(|a| *a = a.powi(n));
 }
 
+pub fn points_lerp(a: &mut Vec<f32>, points: &[(f32, f32)]) {
+    let max = points.iter().last().unwrap();
+    let min = points.iter().next().unwrap();
+    let ranges_with_factor = points
+        .windows(2)
+        .flat_map(|w| {
+            if let [(p1, v1), (p2, v2)] = w {
+                Some((p1, p2, v1, (v2 - v1) / (p2 - p1)))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    a.iter_mut().for_each(|a| {
+        if *a < min.0 {
+            *a = min.1;
+            return;
+        }
+        if *a >= max.0 {
+            *a = max.1;
+            return;
+        }
+        for &(p1, p2, v1, c) in &ranges_with_factor {
+            if *p1 <= *a && *a < *p2 {
+                *a = v1 + (*a - *p1) * c;
+                break;
+            }
+        }
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -88,23 +135,23 @@ mod tests {
         let smax = sample.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
         println!("min: {}, max: {}", smin, smax);
         assert!(smin >= min);
-        assert!(smin < min+error);
+        assert!(smin < min + error);
         assert!(smax <= max);
-        assert!(smax > max-error);
+        assert!(smax > max - error);
     }
 
     #[test]
     fn fbm_len() {
         let len = 1024;
         let res = fbm(0.0, len, 0.0, len, 42, 0.01);
-        assert_eq!(res.len(), len*len);
+        assert_eq!(res.len(), len * len);
     }
 
     #[test]
     fn ridge_len() {
         let len = 1024;
         let res = ridge(0.0, len, 0.0, len, 42, 0.01);
-        assert_eq!(res.len(), len*len);
+        assert_eq!(res.len(), len * len);
     }
 
     #[test]

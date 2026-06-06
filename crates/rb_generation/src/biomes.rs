@@ -3,7 +3,7 @@ use rb_block::Block;
 use rb_noise::*;
 use rb_world::{CHUNK_S1, CHUNK_S2, ChunkPos2d, WATER_H, unchunked};
 use strum_macros::EnumString;
-const MOUNTAIN_H: f32 = 120.;
+const MOUNTAIN_H: f32 = 150.;
 
 #[derive(Debug, Clone, Copy, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Biome {
@@ -107,35 +107,15 @@ impl Biome {
 
     fn generate_mountain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut mountain_presence = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 1, 0.005);
-        powi(&mut mountain_presence, 2);
-        let mut n = fbm_scaled(
-            x,
-            CHUNK_S1,
-            z,
-            CHUNK_S1,
-            seed + 10,
-            0.05,
-            WATER_H as f32 + 3.,
-            WATER_H as f32 + MOUNTAIN_H,
-        );
-        mul(&mut n, &mountain_presence);
-        add_const(&mut mountain_presence, -0.7);
-        mul_const(&mut mountain_presence, 5.);
-        powi(&mut mountain_presence, 2);
-        add(&mut mountain_presence, &n);
-        vec![
-            Layer {
-                block: Block::Granite,
-                height: Height::Noise(n),
-                tag: LayerTag::Mantle,
-            },
-            Layer {
-                block: Block::GrassBlock,
-                height: Height::Noise(mountain_presence),
-                tag: LayerTag::Soil,
-            },
-        ]
+        let mut n = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.03);
+        powi(&mut n, 4);
+        mul_const(&mut n, MOUNTAIN_H);
+        add_const(&mut n, WATER_H as f32 + 5.);
+        vec![Layer {
+            block: Block::Granite,
+            height: Height::Noise(n),
+            tag: LayerTag::Mantle,
+        }]
     }
 
     fn generate_desert(_seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
@@ -196,15 +176,38 @@ impl Biome {
 
     fn generate_canyon(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.01);
-        powi(&mut n, 4);
-        mul_const(&mut n, -100.);
-        add_const(&mut n, 100.);
-        vec![Layer {
-            block: Block::CoarseDirt,
-            height: Height::Noise(n),
-            tag: LayerTag::Mantle,
-        }]
+        let mut n = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.1);
+        let mut top = n.clone();
+        points_lerp(
+            &mut n,
+            &[
+                (0., WATER_H as f32 + 5.),
+                (0.35, WATER_H as f32 + 10.),
+                (0.45, MOUNTAIN_H - 5.),
+                (1., MOUNTAIN_H),
+            ],
+        );
+        points_lerp(
+            &mut top,
+            &[
+                (0., 0.),
+                (0.4, 0.),
+                (0.45, MOUNTAIN_H - 5.),
+                (1., MOUNTAIN_H),
+            ],
+        );
+        vec![
+            Layer {
+                block: Block::CoarseDirt,
+                height: Height::Noise(n),
+                tag: LayerTag::Mantle,
+            },
+            Layer {
+                block: Block::GrassBlock,
+                height: Height::Noise(top),
+                tag: LayerTag::Soil,
+            },
+        ]
     }
 
     fn generate_tundra(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
