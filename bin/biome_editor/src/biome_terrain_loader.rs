@@ -11,7 +11,7 @@ pub struct BiomeTerrainLoaderPlugin;
 impl Plugin for BiomeTerrainLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ColUnloadEvent>()
-            .insert_resource(TargetBiome(Biome::Mountain))
+            .insert_resource(TargetBiome(Biome::Plain))
             .add_systems(Startup, setup_recievers)
             .add_systems(Update, setup_load_thread)
             .add_systems(Update, on_unload_col);

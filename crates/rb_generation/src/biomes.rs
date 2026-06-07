@@ -81,16 +81,12 @@ impl Biome {
 
     fn generate_plain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let plain = fbm_scaled(
-            x,
-            CHUNK_S1,
-            z,
-            CHUNK_S1,
-            seed,
-            0.04,
-            WATER_H as f32 + 3.,
-            WATER_H as f32 + 10.,
-        );
+        let mut plain = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.08);
+        let mut mask: Vec<f32> = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 11, 0.005);
+        points_lerp(&mut mask, &[(0., 0.), (0.4, 0.1), (0.6, 0.9), (1., 1.)]);
+        mul(&mut plain, &mask);
+        mul_const(&mut plain, 30.);
+        add_const(&mut plain, WATER_H as f32 + 15.);
         vec![
             Layer {
                 block: Block::Granite,
@@ -108,14 +104,52 @@ impl Biome {
     fn generate_mountain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
         let mut n = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.03);
-        powi(&mut n, 4);
-        mul_const(&mut n, MOUNTAIN_H);
-        add_const(&mut n, WATER_H as f32 + 5.);
-        vec![Layer {
-            block: Block::Granite,
-            height: Height::Noise(n),
-            tag: LayerTag::Mantle,
-        }]
+        let mut top = n.clone();
+        let hills = fbm_scaled(
+            x,
+            CHUNK_S1,
+            z,
+            CHUNK_S1,
+            seed + 11,
+            0.05,
+            WATER_H as f32 + 5.,
+            WATER_H as f32 + 10.,
+        );
+        points_lerp(
+            &mut n,
+            &[
+                (0., WATER_H as f32),
+                (0.6, WATER_H as f32 + 5.),
+                (0.9, MOUNTAIN_H - 5.),
+                (1., MOUNTAIN_H),
+            ],
+        );
+        points_lerp(
+            &mut top,
+            &[
+                (0., 0.),
+                (0.6, 0.),
+                (0.9, MOUNTAIN_H - 5.),
+                (1., MOUNTAIN_H),
+            ],
+        );
+        vec![
+            Layer {
+                block: Block::Granite,
+                height: Height::Noise(n),
+                tag: LayerTag::Mantle,
+            },
+            Layer {
+                block: Block::GrassBlock,
+                height: Height::Noise(hills),
+                tag: LayerTag::Soil,
+            },
+            Layer {
+                block: Block::Snow,
+                height: Height::Noise(top),
+                tag: LayerTag::Deposit,
+            },
+        ]
     }
 
     fn generate_desert(_seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
@@ -144,21 +178,26 @@ impl Biome {
 
     fn generate_jungle(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut n = fbm_scaled(
-            x,
-            CHUNK_S1,
-            z,
-            CHUNK_S1,
-            seed + 10,
-            0.1,
-            WATER_H as f32,
-            WATER_H as f32 + 60.,
-        );
+        let mut n = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.1);
+        let mask = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 11, 0.1);
+        mul(&mut n, &mask);
+        mul_const(&mut n, 60.);
+        add_const(&mut n, WATER_H as f32 + 5.);
         quantize(&mut n, 4.);
+        let mut granite = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 12, 0.1);
+        points_lerp(
+            &mut granite,
+            &[
+                (0., WATER_H as f32),
+                (0.8, WATER_H as f32),
+                (0.9, WATER_H as f32 + 20.),
+                (1., WATER_H as f32 + 25.),
+            ],
+        );
         vec![
             Layer {
                 block: Block::Granite,
-                height: Height::Constant(WATER_H as f32),
+                height: Height::Noise(granite),
                 tag: LayerTag::Mantle,
             },
             Layer {
@@ -176,7 +215,9 @@ impl Biome {
 
     fn generate_canyon(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut n = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.1);
+        let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.01);
+        mul_const(&mut n, -1.);
+        add_const(&mut n, 1.);
         let mut top = n.clone();
         points_lerp(
             &mut n,
@@ -203,9 +244,14 @@ impl Biome {
                 tag: LayerTag::Mantle,
             },
             Layer {
+                block: Block::Sand,
+                height: Height::Constant(WATER_H as f32 + 8.),
+                tag: LayerTag::Soil,
+            },
+            Layer {
                 block: Block::GrassBlock,
                 height: Height::Noise(top),
-                tag: LayerTag::Soil,
+                tag: LayerTag::Deposit,
             },
         ]
     }

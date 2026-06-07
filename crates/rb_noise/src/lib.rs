@@ -1,11 +1,11 @@
 use simdnoise::*;
 // manual scaling required because library oversight
 // https://github.com/verpeteren/rust-simd-noise/issues/23
-const S_FBM: f32 = 0.765;
-const S_RIDGE: f32 = 6.58;
-const C_RIDGE: f32 = -2.8482;
+const S_FBM: f32 = 0.76;
+const S_RIDGE: f32 = 1.43;
+const C_RIDGE: f32 = -4.32;
 
-/// 2D FBM with 3 octaves in [0;1]
+/// 2D FBM with 5 octaves in [0;1]
 pub fn fbm(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) -> Vec<f32> {
     let (res, _, _) = NoiseBuilder::fbm_2d_offset(x, width, z, height)
         .with_seed(seed as i32)
@@ -15,7 +15,7 @@ pub fn fbm(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) ->
     res.into_iter().map(|v| v * S_FBM + 0.5).collect()
 }
 
-/// 2D FBM with 3 octaves in [min;max]
+/// 2D FBM with 5 octaves in [min;max]
 pub fn fbm_scaled(
     x: f32,
     width: usize,
@@ -42,6 +42,7 @@ pub fn ridge(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) 
     let (res, _, _) = NoiseBuilder::ridge_2d_offset(x, width, z, height)
         .with_seed(seed as i32)
         .with_freq(freq)
+        .with_octaves(5)
         .generate();
     res.into_iter().map(|v| (v + C_RIDGE) * S_RIDGE).collect()
 }
@@ -63,6 +64,7 @@ pub fn ridge_scaled(
     let (res, _, _) = NoiseBuilder::ridge_2d_offset(x, width, z, height)
         .with_seed(seed as i32)
         .with_freq(freq)
+        .with_octaves(5)
         .generate();
     res.into_iter().map(|v| v * s + c).collect()
 }
@@ -127,58 +129,68 @@ pub fn points_lerp(a: &mut Vec<f32>, points: &[(f32, f32)]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    const SEEDS: [u32; 8] = [0, 1, 5, 42, 1111111111, 3541689516, 1989846551, u32::MAX];
+    const FREQ: f32 = 0.333333333333333333;
 
     fn assert_bounds(sample: Vec<f32>, min: f32, max: f32) {
         let delta = max - min;
         let error = delta * 0.05;
         let smin = sample.iter().cloned().fold(f32::INFINITY, f32::min);
         let smax = sample.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-        println!("min: {}, max: {}", smin, smax);
-        assert!(smin >= min);
-        assert!(smin < min + error);
-        assert!(smax <= max);
-        assert!(smax > max - error);
+        let bounds = format!("min: {}, max: {}", smin, smax);
+        assert!(smin >= min, "{}", bounds);
+        assert!(smin < min + error, "{}", bounds);
+        assert!(smax <= max, "{}", bounds);
+        assert!(smax > max - error, "{}", bounds);
     }
 
     #[test]
     fn fbm_len() {
         let len = 1024;
-        let res = fbm(0.0, len, 0.0, len, 42, 0.01);
+        let res = fbm(0.0, len, 0.0, len, 42, FREQ);
         assert_eq!(res.len(), len * len);
     }
 
     #[test]
     fn ridge_len() {
         let len = 1024;
-        let res = ridge(0.0, len, 0.0, len, 42, 0.01);
+        let res = ridge(0.0, len, 0.0, len, 42, FREQ);
         assert_eq!(res.len(), len * len);
     }
 
     #[test]
     fn fbm_domain() {
         let len = 4096;
-        let res = fbm(0.0, len, 0.0, len, 11111, 0.333333);
-        assert_bounds(res, 0., 1.);
+        for seed in SEEDS {
+            let res = fbm(0.0, len, 0.0, len, seed, FREQ);
+            assert_bounds(res, 0., 1.);
+        }
     }
 
     #[test]
     fn ridge_domain() {
         let len = 4096;
-        let res = ridge(0.0, len, 0.0, len, 42, 0.333333);
-        assert_bounds(res, 0., 1.);
+        for seed in SEEDS {
+            let res = ridge(0.0, len, 0.0, len, seed, FREQ);
+            assert_bounds(res, 0., 1.);
+        }
     }
 
     #[test]
     fn fbm_scaled_domain() {
         let len = 4096;
-        let res = fbm_scaled(0.0, len, 0.0, len, 42, 0.333333, 50., 100.);
-        assert_bounds(res, 50., 100.);
+        for seed in SEEDS {
+            let res = fbm_scaled(0.0, len, 0.0, len, seed, FREQ, 50., 100.);
+            assert_bounds(res, 50., 100.);
+        }
     }
 
     #[test]
     fn ridge_scaled_domain() {
         let len = 4096;
-        let res = ridge_scaled(0.0, len, 0.0, len, 42, 0.333333, 50., 100.);
-        assert_bounds(res, 50., 100.);
+        for seed in SEEDS {
+            let res = ridge_scaled(0.0, len, 0.0, len, seed, FREQ, 50., 100.);
+            assert_bounds(res, 50., 100.);
+        }
     }
 }

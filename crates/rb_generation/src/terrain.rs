@@ -6,7 +6,7 @@ use rb_block::Block;
 use rb_noise::*;
 use rb_world::{BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, MAX_GEN_HEIGHT, VoxelWorld};
 use std::collections::HashMap;
-const BIOME_SHARPENING: f32 = 50.;
+const BIOME_SHARPENING: f32 = 100.;
 
 pub struct TerrainGenerator {
     pub biomes_points: BiomePoints<4>,
@@ -179,7 +179,7 @@ impl TerrainGenerator {
             let dz = spot.1 + ((rng >> 3) & 0b111);
             let i = dx * CHUNK_S1 + dz;
             let tree = params[BiomeParam::Trees][i];
-            if tree < 0.5 {
+            if tree < 0.2 {
                 continue;
             }
             let h = (rng >> 6) & 0b11;
@@ -203,11 +203,15 @@ impl TerrainGenerator {
     pub fn biome_params_at(&self, col: ChunkPos2d) -> BiomeParameters {
         let (x, z) = col.to_real_pos();
         let continentalness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed, 0.0005);
-        let mountainness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 1, 0.005);
-        let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 2, 0.002);
-        let humidity = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 3, 0.002);
+        let mut mountainness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 1, 0.001);
+        points_lerp(
+            &mut mountainness,
+            &[(0., 0.), (0.8, 0.), (0.9, 0.9), (1., 1.)],
+        );
+        let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 3, 0.0005);
+        let humidity = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 4, 0.002);
         let ph = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 5, 0.005);
-        let trees = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 4, 0.005);
+        let trees = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 6, 0.01);
         BiomeParameters(HashMap::from([
             (BiomeParam::Continentalness, continentalness),
             (BiomeParam::Mountainness, mountainness),
