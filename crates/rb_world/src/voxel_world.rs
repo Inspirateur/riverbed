@@ -297,9 +297,10 @@ impl VoxelWorld {
             z: start.z.floor() as i32,
         };
         let mut last_pos;
-        let sx = dir.x.signum() as i32;
-        let sy = dir.y.signum() as i32;
-        let sz = dir.z.signum() as i32;
+        let dir_sign = dir.signum();
+        let sx = dir_sign.x as i32;
+        let sy = dir_sign.y as i32;
+        let sz = dir_sign.z as i32;
         if sx == 0 && sy == 0 && sz == 0 {
             return None;
         }
@@ -378,7 +379,16 @@ impl VoxelWorld {
             }
             if grazing && grazed_block.is_none() {
                 for &grazing_dir in &grazing_dirs {
-                    if self.get_block_safe(pos + grazing_dir).is_targetable() {
+                    let neighbor = pos + grazing_dir;
+                    let neighbor_dir_sign =
+                        (<BlockPos as Into<Vec3>>::into(neighbor) - start).signum();
+                    // this means that the neighbor face could be pointed at directly
+                    // by just changing the direction of the ray (keeping the same start point),
+                    // for UX purposes we don't want to consider it as grazing.
+                    if neighbor_dir_sign != dir_sign {
+                        continue;
+                    }
+                    if self.get_block_safe(neighbor).is_targetable() {
                         grazed_block = Some(BlockRayCastHit {
                             pos,
                             normal: Vec3::default(),

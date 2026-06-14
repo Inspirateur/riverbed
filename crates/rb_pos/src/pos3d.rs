@@ -3,7 +3,7 @@ use crate::{CHUNK_S1, REGION_S1, Realm};
 use crate::{CHUNK_S1I, chunked, unchunked};
 use bevy::prelude::Vec3;
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, BitXor, Index, IndexMut};
+use std::ops::{Add, BitXor, Index, IndexMut, Neg};
 
 #[derive(
     Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize,
@@ -103,6 +103,19 @@ impl<const U: usize> IndexMut<usize> for LocalPos3d<U> {
             1 => &mut self.y,
             2 => &mut self.z,
             _ => panic!("Index {index} out of bounds for LocalPos3d (must be 0, 1, or 2)"),
+        }
+    }
+}
+
+impl<const U: usize> Neg for Pos3d<U> {
+    type Output = Pos3d<U>;
+
+    fn neg(self) -> Self::Output {
+        Pos3d::<U> {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+            realm: self.realm,
         }
     }
 }

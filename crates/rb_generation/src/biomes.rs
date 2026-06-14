@@ -152,16 +152,12 @@ impl Biome {
         ]
     }
 
-    fn generate_desert(_seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let mut sin = vec![0.0; CHUNK_S2];
-        for dx in 0..CHUNK_S1 {
-            for dy in 0..CHUNK_S1 {
-                let index = dx + dy * CHUNK_S1;
-                sin[index] = (unchunked::<CHUNK_S1, 1>(col.x, dx) as f32 / 6.).sin() * 4.0
-                    + 8.
-                    + WATER_H as f32;
-            }
-        }
+    fn generate_desert(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
+        let (x, z) = col.to_real_pos();
+        let mut dunes = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.02);
+        powi(&mut dunes, 2);
+        mul_const(&mut dunes, 30.);
+        add_const(&mut dunes, WATER_H as f32 + 5.);
         vec![
             Layer {
                 block: Block::Granite,
@@ -170,7 +166,7 @@ impl Biome {
             },
             Layer {
                 block: Block::Sand,
-                height: Height::Noise(sin),
+                height: Height::Noise(dunes),
                 tag: LayerTag::Deposit,
             },
         ]
