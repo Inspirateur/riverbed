@@ -120,9 +120,10 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
                     })
                     .unwrap();
                 let col = to_load.remove(closest_idx);
-                terrain_gen.generate(&load_world, col);
+                // TODO: put the _structure somewhere to generate later, possibly in a separate thread
+                let (column, _structure) = terrain_gen.generate(col);
                 trace!("{}", LogData::ColGenerated(col));
-                load_world.mark_change_col(col);
+                load_world.add_column(col, column);
             }
         })
         .detach();

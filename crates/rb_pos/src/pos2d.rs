@@ -1,5 +1,5 @@
 use crate::pos3d::Pos3d;
-use crate::{BlockPos, CHUNK_S1I, ChunkPos, Y_CHUNKS, chunked, unchunked};
+use crate::{BlockPos, CHUNK_S1I, ChunkPos, chunked, unchunked};
 use crate::{CHUNK_S1, REGION_S1, Realm};
 use bevy::prelude::Vec3;
 use serde::{Deserialize, Serialize};
@@ -187,13 +187,4 @@ impl From<(Vec3, Realm)> for ChunkPos2d {
     fn from(value: (Vec3, Realm)) -> Self {
         ChunkPos2d::from(BlockPos::from(value))
     }
-}
-
-pub fn chunks_in_col(col_pos: &ChunkPos2d) -> [ChunkPos; Y_CHUNKS] {
-    std::array::from_fn(|y| ChunkPos {
-        x: col_pos.x,
-        y: y as i32,
-        z: col_pos.z,
-        realm: col_pos.realm,
-    })
 }

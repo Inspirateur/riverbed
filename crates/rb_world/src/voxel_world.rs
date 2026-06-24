@@ -1,6 +1,6 @@
 use crate::{
-    BlockPos, BlockPos2d, CHUNK_S1, CHUNKP_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos,
-    ChunkedPos2d, MAX_HEIGHT, Realm, Y_CHUNKS, chunked, pos2d::chunks_in_col,
+    BlockPos, CHUNK_S1, CHUNKP_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos, Column, MAX_HEIGHT,
+    Realm, Y_CHUNKS, chunk, chunks_in_col,
 };
 use bevy::{
     log::warn,
@@ -63,43 +63,6 @@ impl VoxelWorld {
         true
     }
 
-    pub fn set_yrange(
-        &self,
-        col_pos: ChunkPos2d,
-        in_col_pos: ChunkedPos2d,
-        top: i32,
-        mut height: usize,
-        block: Block,
-    ) {
-        // USED BY TERRAIN GENERATION - bypasses change detection for efficiency
-        let (mut cy, mut dy) = chunked::<CHUNK_S1, 1>(top);
-        while height > 0 && cy >= 0 {
-            let chunk_pos = ChunkPos {
-                x: col_pos.x,
-                y: cy,
-                z: col_pos.z,
-                realm: col_pos.realm,
-            };
-            let h = height.min(dy);
-            self.chunks
-                .get_or_insert_with(chunk_pos, || RwLock::new(Chunk::new()))
-                .value()
-                .write()
-                .set_yrange(
-                    ChunkedPos {
-                        x: in_col_pos.x,
-                        y: dy,
-                        z: in_col_pos.z,
-                    },
-                    h,
-                    block,
-                );
-            height -= h;
-            cy -= 1;
-            dy = CHUNK_S1 - 1;
-        }
-    }
-
     pub fn set_if_empty(&self, pos: BlockPos, block: Block) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         if self
@@ -127,25 +90,6 @@ impl VoxelWorld {
         } else {
             self.get_block(pos)
         }
-    }
-
-    pub fn top_block(&self, pos: BlockPos2d) -> (Block, i32) {
-        let (col_pos, pos2d) = pos.into();
-        for y in (0..Y_CHUNKS as i32).rev() {
-            let chunk_pos = ChunkPos {
-                x: col_pos.x,
-                y,
-                z: col_pos.z,
-                realm: col_pos.realm,
-            };
-            if let Some(chunk) = self.chunks.get(&chunk_pos) {
-                let (&block, block_y) = chunk.value().read().top(pos2d);
-                if block != Block::Air {
-                    return (block.clone(), y * CHUNK_S1 as i32 + block_y as i32);
-                }
-            }
-        }
-        (Block::Air, 0)
     }
 
     pub fn is_col_loaded(&self, player_pos: Vec3, realm: Realm) -> bool {
@@ -195,9 +139,21 @@ impl VoxelWorld {
         }
     }
 
-    pub fn mark_change_col(&self, col_pos: ChunkPos2d) {
-        // USE BY TERRAIN GEN to mass mark change on chunks for efficiency
-        for chunk_pos in chunks_in_col(&col_pos) {
+    pub fn add_column(&self, col_pos: ChunkPos2d, column: Column) {
+        // USE BY TERRAIN GEN
+        let mut cy = -1;
+        for chunk in column.0 {
+            cy += 1;
+            if chunk.is_empty() {
+                continue;
+            }
+            let chunk_pos = ChunkPos {
+                x: col_pos.x,
+                y: cy,
+                z: col_pos.z,
+                realm: col_pos.realm,
+            };
+            self.chunks.insert(chunk_pos, RwLock::new(chunk));
             let Some(chunk) = self.chunks.get(&chunk_pos) else {
                 continue;
             };

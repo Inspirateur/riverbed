@@ -13,7 +13,7 @@ use itertools::Itertools;
 use rb_block::Face;
 use rb_camera::PlayerControlled;
 use rb_logging::LogData;
-use rb_world::pos2d::chunks_in_col;
+use rb_world::chunks_in_col;
 use rb_world::{CHUNK_S1, ChunkPos, ColUnloadEvent, PlayerCol, VoxelWorld};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;

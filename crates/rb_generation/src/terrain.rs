@@ -1,10 +1,12 @@
 use crate::{
     biome_params::*, biomes::Biome, coverage::CoverageTrait, layer::LayerTag,
-    plant_params::PlantRanges,
+    plant_params::PlantRanges, tree::TreeSeed,
 };
 use rb_block::Block;
 use rb_noise::*;
-use rb_world::{BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, MAX_GEN_HEIGHT, VoxelWorld};
+use rb_world::{
+    BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, Column, MAX_GEN_HEIGHT, StructureTrait,
+};
 use std::collections::HashMap;
 const BIOME_SHARPENING: f32 = 100.;
 
@@ -27,10 +29,11 @@ impl TerrainGenerator {
 
     pub fn generate_with_params(
         &self,
-        world: &VoxelWorld,
         col: ChunkPos2d,
         params: BiomeParameters,
-    ) {
+    ) -> (Column, Vec<Box<dyn StructureTrait>>) {
+        let mut column = Column::default();
+        let mut structures: Vec<Box<dyn StructureTrait>> = Vec::new();
         // The biomes that will be considered for blending in this chunk
         let biomes: Vec<Biome> = self
             .biomes_points
@@ -127,10 +130,9 @@ impl TerrainGenerator {
                     let block = dominant_block.unwrap();
                     let layer_width = (height - last_height).max(1);
                     if block == Block::GrassBlock {
-                        world.set_yrange(col, ChunkedPos2d { x: dx, z: dz }, height, 1, block);
+                        column.set_yrange(ChunkedPos2d { x: dx, z: dz }, height, 1, block);
                         if layer_width > 1 {
-                            world.set_yrange(
-                                col,
+                            column.set_yrange(
                                 ChunkedPos2d { x: dx, z: dz },
                                 height - 1,
                                 (layer_width - 1) as usize,
@@ -138,8 +140,7 @@ impl TerrainGenerator {
                             );
                         }
                     } else {
-                        world.set_yrange(
-                            col,
+                        column.set_yrange(
                             ChunkedPos2d { x: dx, z: dz },
                             height,
                             layer_width as usize,
@@ -183,7 +184,7 @@ impl TerrainGenerator {
                 continue;
             }
             let h = (rng >> 6) & 0b11;
-            let (block, y) = world.top_block((col, ChunkedPos2d { x: dx, z: dz }).into());
+            let (block, y) = column.top_block(ChunkedPos2d { x: dx, z: dz });
             if !block.is_fertile_soil() {
                 continue;
             }
@@ -195,9 +196,14 @@ impl TerrainGenerator {
             ]);
             if dist >= 0. {
                 let pos = (col, (dx, y, dz)).into();
-                tree.grow(world, pos, self.seed as i32, dist + h as f32 / 10.);
+                structures.push(Box::new(TreeSeed {
+                    pos,
+                    species: tree.clone(),
+                    size: dist + h as f32 / 10.,
+                }));
             }
         }
+        (column, structures)
     }
 
     pub fn biome_params_at(&self, col: ChunkPos2d) -> BiomeParameters {
@@ -222,8 +228,8 @@ impl TerrainGenerator {
         ]))
     }
 
-    pub fn generate(&self, world: &VoxelWorld, col: ChunkPos2d) {
+    pub fn generate(&self, col: ChunkPos2d) -> (Column, Vec<Box<dyn StructureTrait>>) {
         let params = self.biome_params_at(col);
-        self.generate_with_params(world, col, params);
+        self.generate_with_params(col, params)
     }
 }

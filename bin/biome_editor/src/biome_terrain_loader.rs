@@ -83,8 +83,8 @@ fn setup_load_thread(
             let mut col_to_load =
                 chunk_area(&Pos2d::default(), LOAD_RADIUS as i32).collect::<Vec<_>>();
             col_to_load.sort_by_key(|pos| pos.dist(Pos2d::default()));
-            for col in col_to_load {
-                let mut col_params = terrain_gen.biome_params_at(col);
+            for col_pos in col_to_load {
+                let mut col_params = terrain_gen.biome_params_at(col_pos);
                 for (i, param) in terrain_gen.biomes_points.parameters.iter().enumerate() {
                     col_params
                         .0
@@ -93,9 +93,10 @@ fn setup_load_thread(
                         .iter_mut()
                         .for_each(|v| *v += bias_params[i]);
                 }
-                load_world.loaded_columns.insert(col);
-                terrain_gen.generate_with_params(&load_world, col.into(), col_params);
-                load_world.mark_change_col(col);
+                load_world.loaded_columns.insert(col_pos);
+                let (column, _structures) =
+                    terrain_gen.generate_with_params(col_pos.into(), col_params);
+                load_world.add_column(col_pos, column);
             }
         })
         .detach();
