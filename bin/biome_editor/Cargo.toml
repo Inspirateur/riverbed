@@ -8,7 +8,7 @@ name = "biome_editor"
 path = "src/main.rs"
 
 [dependencies]
-bevy = { version = "0.18" }
+bevy = { version = "*" }
 crossbeam = "*"
 rand_chacha = "*"
 rb_asset_processing = { path = "../../crates/rb_asset_processing" }

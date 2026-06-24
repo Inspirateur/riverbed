@@ -10,7 +10,7 @@ rb_physics = { path = "../rb_physics", version = "*" }
 rb_camera = { path = "../rb_camera", version = "*" }
 rb_logging = { path = "../rb_logging", version = "*" }
 rb_asset_processing = { path = "../rb_asset_processing", version = "*" }
-bevy = { version = "0.18" }
+bevy = { version = "*" }
 crossbeam = "*"
 parking_lot = "*"
 hashbrown = "*"

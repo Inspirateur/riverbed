@@ -56,8 +56,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..Default::default()
             },
             TextFont {
-                font: asset_server.load("fonts/RobotoMono-Light.ttf"),
-                font_size: 20.0,
+                font: asset_server.load("fonts/RobotoMono-Light.ttf").into(),
+                font_size: FontSize::Px(20.0),
                 ..Default::default()
             },
             TextColor(Color::Srgba(css::BEIGE)),

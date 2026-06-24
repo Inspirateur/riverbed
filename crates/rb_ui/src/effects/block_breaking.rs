@@ -105,7 +105,7 @@ fn update_break_animation(
         let Ok(mat_handle) = mat_query.get(break_effect.0) else {
             continue;
         };
-        let Some(mat) = materials.get_mut(mat_handle) else {
+        let Some(mut mat) = materials.get_mut(mat_handle) else {
             continue;
         };
         mat.base_color_texture = Some(break_stages.0[stage].clone());

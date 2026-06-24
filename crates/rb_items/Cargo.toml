@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 rb_block = { path = "../rb_block", version = "*" }
 rb_asset_processing = { path = "../rb_asset_processing", version = "*" }
-bevy = { version = "0.18" }
+bevy = { version = "*" }
 serde = "*"
 itertools = "*"
 json5 = "*"

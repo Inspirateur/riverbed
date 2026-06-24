@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.18" }
+bevy = { version = "*" }
 strum = "0.28"
 strum_macros = "0.28"
 serde = { version = "*", features = ["derive"] }

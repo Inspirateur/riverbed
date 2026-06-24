@@ -1,5 +1,6 @@
-use super::{BlockTexState, BlockTextureFolder, mesh_logic::ATTRIBUTE_VOXEL_DATA, parse_block_tex_name};
-use rb_block::{Block, Face, FaceSpecifier};
+use super::{
+    BlockTexState, BlockTextureFolder, mesh_logic::ATTRIBUTE_VOXEL_DATA, parse_block_tex_name,
+};
 use bevy::{
     asset::{LoadedFolder, RenderAssetUsages},
     mesh::MeshVertexBufferLayoutRef,
@@ -8,11 +9,12 @@ use bevy::{
     reflect::TypePath,
     render::{
         render_resource::{AsBindGroup, Extent3d, TextureDimension, TextureFormat},
-        storage::ShaderStorageBuffer,
+        storage::ShaderBuffer,
     },
     shader::ShaderRef,
 };
 use hashbrown::HashMap;
+use rb_block::{Block, Face, FaceSpecifier};
 
 pub struct TextureArrayPlugin;
 
@@ -81,7 +83,7 @@ fn build_tex_array(
     mut texture_map: ResMut<TextureMap>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, ArrayTextureMaterial>>>,
     mut next_state: ResMut<NextState<BlockTexState>>,
-    mut shader_buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut shader_buffers: ResMut<Assets<ShaderBuffer>>,
 ) {
     let mut texture_list: Vec<&Image> = Vec::new();
     let mut anim_offsets = vec![1];
@@ -150,7 +152,7 @@ fn build_tex_array(
         },
         extension: ArrayTextureMaterial {
             array_texture: handle,
-            anim_offsets: shader_buffers.add(ShaderStorageBuffer::from(anim_offsets)),
+            anim_offsets: shader_buffers.add(ShaderBuffer::from(anim_offsets)),
             water_layer: water_layer.unwrap() as u32,
         },
     });
@@ -167,7 +169,7 @@ pub struct ArrayTextureMaterial {
     #[sampler(101)]
     array_texture: Handle<Image>,
     #[storage(102, read_only)]
-    anim_offsets: Handle<ShaderStorageBuffer>,
+    anim_offsets: Handle<ShaderBuffer>,
     #[uniform(103)]
     water_layer: u32,
 }

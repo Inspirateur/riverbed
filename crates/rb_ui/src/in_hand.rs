@@ -66,7 +66,7 @@ fn on_hotbar_change(
     let Ok(in_hand) = in_hand_query.single() else {
         return;
     };
-    let Some(in_hand_material) = materials.get_mut(in_hand) else {
+    let Some(mut in_hand_material) = materials.get_mut(in_hand) else {
         return;
     };
     let stack = &hotbar[selected_slot.0];
@@ -89,7 +89,7 @@ fn on_selected_slot_change(
     let Ok(in_hand) = in_hand_query.single() else {
         return;
     };
-    let Some(in_hand_material) = materials.get_mut(in_hand) else {
+    let Some(mut in_hand_material) = materials.get_mut(in_hand) else {
         return;
     };
     let stack = &hotbar[selected_slot.0];

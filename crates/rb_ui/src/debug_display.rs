@@ -39,11 +39,12 @@ fn setup_debug_display(mut commands: Commands, asset_server: Res<AssetServer>) {
                 flex_direction: FlexDirection::Column,
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
+                row_gap: Val::Px(0.0),
                 ..Default::default()
             },
             TextFont {
-                font: asset_server.load("fonts/RobotoMono-Light.ttf"),
-                font_size: 20.0,
+                font: asset_server.load("fonts/RobotoMono-Light.ttf").into(),
+                font_size: FontSize::Px(20.0),
                 ..Default::default()
             },
             TextColor(Color::Srgba(css::BEIGE)),
@@ -69,7 +70,7 @@ fn update_fps_display(
     *time_since_rerender = Duration::ZERO;
     if let Ok(mut fps_text) = fps_text_query.single_mut() {
         fps_text.0 = format!(
-            "FPS: {}\n",
+            "FPS: {}",
             diagnostic
                 .get(&FrameTimeDiagnosticsPlugin::FPS)
                 .map_or(0.0, |fps| fps.smoothed().unwrap_or(0.0))
@@ -84,7 +85,7 @@ fn update_entt_display(
 ) {
     let ent_count = ent_query.iter().count();
     if let Ok(mut entities_text) = entities_text_query.single_mut() {
-        entities_text.0 = format!("E: {ent_count}\n");
+        entities_text.0 = format!("E: {ent_count}");
     }
 }
 
@@ -95,7 +96,7 @@ fn update_pos_display(
     let transform = player_query.single().unwrap();
     if let Ok(mut pos_text) = pos_text_query.single_mut() {
         pos_text.0 = format!(
-            "p: {:.1}; {:.1}; {:.1}\n",
+            "p: {:.1}; {:.1}; {:.1}",
             transform.translation.x, transform.translation.y, transform.translation.z
         );
     }
@@ -113,6 +114,6 @@ fn update_block_display(
         Block::Air
     };
     if let Ok(mut block_text) = block_text_query.single_mut() {
-        block_text.0 = format!("block: {block:?}\n");
+        block_text.0 = format!("block: {block:?}");
     }
 }

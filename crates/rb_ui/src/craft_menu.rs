@@ -100,7 +100,7 @@ fn add_recipe_node(
             node.spawn((
                 Text::new("=>"),
                 TextFont {
-                    font_size: 40.,
+                    font_size: FontSize::Px(40.),
                     ..Default::default()
                 },
                 TextColor(if is_craftable {
@@ -138,7 +138,7 @@ fn create_craft_menu(
             parent.spawn((
                 Text::new("Craft recipes"),
                 TextFont {
-                    font_size: 40.,
+                    font_size: FontSize::Px(40.),
                     ..Default::default()
                 },
                 Node {

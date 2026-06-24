@@ -10,9 +10,9 @@ path = "src/main.rs"
 [dependencies]
 rb_logging = { path = "../../crates/rb_logging" }
 rb_pos = { path = "../../crates/rb_pos" }
-bevy = { version = "0.18" }
+bevy = { version = "*" }
 chrono = { version = "0.4", features = ["serde"] }
-leafwing-input-manager = "0.20"
+leafwing-input-manager = "*"
 ron = "0.8"
 serde = "1"
 rfd = "*"

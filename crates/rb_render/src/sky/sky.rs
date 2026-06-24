@@ -1,11 +1,13 @@
 use bevy::{
-    pbr::{Atmosphere, ScatteringMedium},
+    light::{Atmosphere, atmosphere::ScatteringMedium},
+    pbr::AtmosphereSettings,
     prelude::*,
 };
 use rb_camera::{CameraSpawn, FpsCam};
 use std::time::Duration;
 // const DAY_LENGTH_MINUTES: f32 = 0.2;
 // const C: f32 = DAY_LENGTH_MINUTES * 120. * PI;
+const PLANET_RADIUS: f32 = 6_371_000.;
 
 pub struct SkyPlugin;
 
@@ -38,14 +40,15 @@ fn spawn_sun(
     cam_query: Query<Entity, With<FpsCam>>,
     mut scattering_mediums: ResMut<Assets<ScatteringMedium>>,
 ) {
-    let cam = cam_query.single().unwrap();
-    commands.entity(cam).insert(Atmosphere::earthlike(
-        scattering_mediums.add(ScatteringMedium::default()),
+    commands.spawn(Atmosphere::earth(
+        scattering_mediums.add(ScatteringMedium::earth(256, 256)),
     ));
+    let cam = cam_query.single().unwrap();
+    commands.entity(cam).insert(AtmosphereSettings::default());
     commands.spawn((
         Sun,
         DirectionalLight {
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..Default::default()
         },
     ));

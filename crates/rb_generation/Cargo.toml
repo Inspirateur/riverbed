@@ -7,7 +7,7 @@ edition = "2024"
 rb_block = { path = "../rb_block", version = "*" }
 rb_world = { path = "../rb_world", version = "*" }
 rb_noise = { path = "../rb_noise", version = "*" }
-bevy = { version = "0.18" }
+bevy = { version = "*" }
 serde = "*"
 strum = "0.28"
 strum_macros = "0.28"

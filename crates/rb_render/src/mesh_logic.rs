@@ -10,8 +10,8 @@ use bevy::{
 use binary_greedy_meshing as bgm;
 
 use super::texture_array::TextureMapTrait;
-use rb_world::CHUNK_S1;
 use rb_block::{Block, Face};
+use rb_world::CHUNK_S1;
 use rb_world::{CHUNKP_S3, Chunk, ChunkPos, WATER_H, linearize, pad_linearize};
 
 const MASK_XYZ: u64 = 0b111111_111111_111111;

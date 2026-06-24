@@ -12,7 +12,7 @@ rb_items = { path = "../rb_items", version = "*" }
 rb_pos = { path = "../rb_pos", version = "*" }
 rb_generation = { path = "../rb_generation", version = "*" }
 rb_logging = { path = "../rb_logging", version = "*" }
-bevy = { version = "0.18" }
+bevy = { version = "*" }
 crossbeam = "*"
 leafwing-input-manager = "*"
 rand = "*"

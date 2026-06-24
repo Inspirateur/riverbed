@@ -7,7 +7,7 @@ edition = "2024"
 members = ["crates/*", "bin/*"]
 
 [dependencies]
-bevy = { version = "0.18" }
+bevy = { version = "*" }
 crossbeam = "*"
 rand_chacha = "*"
 rb_camera = { path = "crates/rb_camera" }
