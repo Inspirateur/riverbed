@@ -143,11 +143,14 @@ impl ChunkMeshing for Chunk {
                     [vertices[3], quad_info],
                 ]);
             }
+            if kept_quads == 0 {
+                continue;
+            }
             let indices = bgm::indices(kept_quads);
             meshes[face_n] = Some(
                 Mesh::new(
                     PrimitiveTopology::TriangleList,
-                    RenderAssetUsages::RENDER_WORLD,
+                    RenderAssetUsages::default(),
                 )
                 .with_inserted_attribute(ATTRIBUTE_VOXEL_DATA, voxel_data)
                 .with_inserted_indices(Indices::U32(indices)),
