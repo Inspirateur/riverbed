@@ -88,11 +88,11 @@ impl ChunkMeshing for Chunk {
     ) -> [Option<Mesh>; 6] {
         let cy = chunk_pos.y as usize * CHUNK_S1 as usize;
         // Gathering binary greedy meshing input data
-        let mesh_data_span = info_span!("mesh voxel data", name = "mesh voxel data").entered();
+        let mesh_data_span = info_span!("meshing", name = "mesh voxel data").entered();
         let voxels = self.voxel_data_lod(lod);
         let mut mesher: bgm::Mesher<CHUNK_S1> = bgm::Mesher::new();
         mesh_data_span.exit();
-        let mesh_build_span = info_span!("mesh build", name = "mesh build").entered();
+        let mesh_build_span = info_span!("meshing", name = "mesh build").entered();
         let transparents =
             BTreeSet::from_iter(self.palette.iter().enumerate().filter_map(|(i, block)| {
                 if i != 0 && !block.is_opaque() {

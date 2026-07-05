@@ -7,12 +7,13 @@ const C_RIDGE: f32 = -4.32;
 
 /// 2D FBM with 5 octaves in [0;1]
 pub fn fbm(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) -> Vec<f32> {
-    let (res, _, _) = NoiseBuilder::fbm_2d_offset(x, width, z, height)
+    let (mut res, _, _) = NoiseBuilder::fbm_2d_offset(x, width, z, height)
         .with_seed(seed as i32)
         .with_freq(freq)
         .with_octaves(5)
         .generate();
-    res.into_iter().map(|v| v * S_FBM + 0.5).collect()
+    res.iter_mut().for_each(|v| *v = *v * S_FBM + 0.5);
+    res
 }
 
 /// 2D FBM with 5 octaves in [min;max]
@@ -29,22 +30,24 @@ pub fn fbm_scaled(
     let delta = max - min;
     let s = S_FBM * delta;
     let c = 0.5 * delta + min;
-    let (res, _, _) = NoiseBuilder::fbm_2d_offset(x, width, z, height)
+    let (mut res, _, _) = NoiseBuilder::fbm_2d_offset(x, width, z, height)
         .with_seed(seed as i32)
         .with_freq(freq)
         .with_octaves(5)
         .generate();
-    res.into_iter().map(|v| v * s + c).collect()
+    res.iter_mut().for_each(|v| *v = *v * s + c);
+    res
 }
 
 /// 2D Ridge noise in [0;1]
 pub fn ridge(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) -> Vec<f32> {
-    let (res, _, _) = NoiseBuilder::ridge_2d_offset(x, width, z, height)
+    let (mut res, _, _) = NoiseBuilder::ridge_2d_offset(x, width, z, height)
         .with_seed(seed as i32)
         .with_freq(freq)
         .with_octaves(5)
         .generate();
-    res.into_iter().map(|v| (v + C_RIDGE) * S_RIDGE).collect()
+    res.iter_mut().for_each(|v| *v = (*v + C_RIDGE) * S_RIDGE);
+    res
 }
 
 /// 2D Ridge noise in [min;max]
@@ -61,12 +64,13 @@ pub fn ridge_scaled(
     let delta = max - min;
     let s = S_RIDGE * delta;
     let c = S_RIDGE * delta * C_RIDGE + min;
-    let (res, _, _) = NoiseBuilder::ridge_2d_offset(x, width, z, height)
+    let (mut res, _, _) = NoiseBuilder::ridge_2d_offset(x, width, z, height)
         .with_seed(seed as i32)
         .with_freq(freq)
         .with_octaves(5)
         .generate();
-    res.into_iter().map(|v| v * s + c).collect()
+    res.iter_mut().for_each(|v| *v = *v * s + c);
+    res
 }
 
 pub fn quantize(sample: &mut Vec<f32>, step: f32) {

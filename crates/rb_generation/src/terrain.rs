@@ -2,6 +2,7 @@ use crate::{
     biome_params::*, biomes::Biome, coverage::CoverageTrait, layer::LayerTag,
     plant_params::PlantRanges, tree::TreeSeed,
 };
+use bevy::log::info_span;
 use rb_block::Block;
 use rb_noise::*;
 use rb_world::{
@@ -32,20 +33,25 @@ impl TerrainGenerator {
         col: ChunkPos2d,
         params: BiomeParameters,
     ) -> (Column, Vec<Box<dyn StructureTrait>>) {
+        let biome_gen_span = info_span!("terrain", name = "biome layer gen").entered();
         let mut column = Column::default();
         let mut structures: Vec<Box<dyn StructureTrait>> = Vec::new();
         // The biomes that will be considered for blending in this chunk
         let biomes: Vec<Biome> = self
             .biomes_points
-            .closest_biomes(params.average(self.biomes_points.parameters), 1.);
+            .closest_biomes(params.average(self.biomes_points.parameters), 0.4);
         let all_biome_layers = biomes
             .iter()
             .map(|b| b.generate(self.seed, col, &params))
             .collect::<Vec<_>>();
-        // Blend between biomes
+        biome_gen_span.exit();
+        let biome_param_span = info_span!("terrain", name = "biome param gather").entered();
         let mut column_biome_weights = vec![0.0; biomes.len()];
         let mut layer_indexes = vec![0usize; biomes.len()];
         let param_points = params.view(self.biomes_points.parameters);
+        biome_param_span.exit();
+        let blending_span = info_span!("terrain", name = "biome blending").entered();
+        // Blend between biomes
         for dx in 0..CHUNK_S1 {
             for dz in 0..CHUNK_S1 {
                 // Compute normalized biome weights for this block column
@@ -151,6 +157,8 @@ impl TerrainGenerator {
                 }
             }
         }
+        blending_span.exit();
+        let structure_gen_span = info_span!("terrain", name = "structure generation").entered();
         let tree_spots = [
             (0, 0),
             (15, 0),
@@ -203,6 +211,7 @@ impl TerrainGenerator {
                 }));
             }
         }
+        structure_gen_span.exit();
         (column, structures)
     }
 
