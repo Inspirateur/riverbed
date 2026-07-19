@@ -1,5 +1,4 @@
-use num_traits::MulAddAssign;
-use quick_noise::{Fbm, Grid, Perlin};
+use quick_noise::{Fbm, Grid, Perlin, simd::ArchSimd};
 // manual scaling required because library oversight
 // https://github.com/verpeteren/rust-simd-noise/issues/23
 const S_FBM: f32 = 0.67;
@@ -14,7 +13,7 @@ pub fn fbm(
     seed: u32,
     freq: f32,
 ) -> Vec<f32> {
-    let mut res = Grid::<2>::new(width, height)
+    Grid::<2>::new(width, height)
         .grid_position(chunk_x, chunk_z)
         .seed(seed as i64)
         .builder::<Fbm, Perlin>()
@@ -22,9 +21,9 @@ pub fn fbm(
         .octaves(5)
         .frequency(freq * S_FREQ)
         .finalize(true)
-        .build();
-    res.iter_mut().for_each(|v| v.mul_add_assign(S_FBM, 0.5));
-    res
+        .into_iter()
+        .map(|v| v.mul_add(ArchSimd::splat(S_FBM), ArchSimd::splat(0.5)))
+        .collect::<Vec<_>>()
 }
 
 /// 2D FBM with 5 octaves in [min;max]
@@ -41,7 +40,7 @@ pub fn fbm_scaled(
     let delta = max - min;
     let s = S_FBM * delta;
     let c = 0.5 * delta + min;
-    let mut res = Grid::<2>::new(width, height)
+    Grid::<2>::new(width, height)
         .grid_position(chunk_x, chunk_z)
         .seed(seed as i64)
         .builder::<Fbm, Perlin>()
@@ -49,9 +48,9 @@ pub fn fbm_scaled(
         .octaves(5)
         .frequency(freq * S_FREQ)
         .finalize(true)
-        .build();
-    res.iter_mut().for_each(|v| v.mul_add_assign(s, c));
-    res
+        .into_iter()
+        .map(|v| v.mul_add(ArchSimd::splat(s), ArchSimd::splat(c)))
+        .collect::<Vec<_>>()
 }
 
 /// 2D Ridge noise in [0;1]
@@ -63,7 +62,7 @@ pub fn ridge(
     seed: u32,
     freq: f32,
 ) -> Vec<f32> {
-    let mut res = Grid::<2>::new(width, height)
+    Grid::<2>::new(width, height)
         .grid_position(chunk_x, chunk_z)
         .seed(seed as i64)
         .builder::<Fbm, Perlin>()
@@ -71,9 +70,9 @@ pub fn ridge(
         .octaves(5)
         .frequency(freq * S_FREQ)
         .finalize(true)
-        .build();
-    res.iter_mut().for_each(|v| *v = (*v * S_RIDGE).abs());
-    res
+        .into_iter()
+        .map(|v| (v * ArchSimd::splat(S_RIDGE)).abs())
+        .collect::<Vec<_>>()
 }
 
 /// 2D Ridge noise in [min;max]
@@ -89,7 +88,7 @@ pub fn ridge_scaled(
 ) -> Vec<f32> {
     let delta = max - min;
     let s = S_RIDGE * delta;
-    let mut res = Grid::<2>::new(width, height)
+    Grid::<2>::new(width, height)
         .grid_position(chunk_x, chunk_z)
         .seed(seed as i64)
         .builder::<Fbm, Perlin>()
@@ -97,9 +96,9 @@ pub fn ridge_scaled(
         .octaves(5)
         .frequency(freq * S_FREQ)
         .finalize(true)
-        .build();
-    res.iter_mut().for_each(|v| *v = (*v * s).abs() + min);
-    res
+        .into_iter()
+        .map(|v| (v * ArchSimd::splat(s)).abs() + ArchSimd::splat(min))
+        .collect::<Vec<_>>()
 }
 
 pub fn quantize(sample: &mut Vec<f32>, step: f32) {
