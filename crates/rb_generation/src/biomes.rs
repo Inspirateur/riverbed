@@ -34,7 +34,6 @@ impl Biome {
     }
 
     fn generate_polar_ocean(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
         let mut n = ridge(col.x, CHUNK_S1, col.z, CHUNK_S1, seed, 0.05);
         powi(&mut n, 3);
         mul_const(&mut n, -2.);
@@ -80,7 +79,6 @@ impl Biome {
     }
 
     fn generate_plain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
         let mut plain = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 10, 0.08);
         let mut mask: Vec<f32> = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 11, 0.005);
         points_lerp(&mut mask, &[(0., 0.), (0.4, 0.1), (0.6, 0.9), (1., 1.)]);
@@ -152,7 +150,6 @@ impl Biome {
     }
 
     fn generate_desert(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
         let mut dunes = ridge(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 10, 0.02);
         powi(&mut dunes, 2);
         mul_const(&mut dunes, 30.);
@@ -172,7 +169,6 @@ impl Biome {
     }
 
     fn generate_jungle(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
         let mut n = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 10, 0.1);
         let mask = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 11, 0.1);
         mul(&mut n, &mask);
@@ -209,7 +205,6 @@ impl Biome {
     }
 
     fn generate_canyon(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
         let mut n = ridge(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 10, 0.01);
         mul_const(&mut n, -1.);
         add_const(&mut n, 1.);

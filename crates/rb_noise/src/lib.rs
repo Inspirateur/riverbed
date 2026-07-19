@@ -1,7 +1,7 @@
 use quick_noise::{Fbm, Grid, Perlin, simd::ArchSimd};
 // manual scaling required because library oversight
 // https://github.com/verpeteren/rust-simd-noise/issues/23
-const S_FBM: f32 = 0.67;
+const S_FBM: f32 = 0.7;
 const S_RIDGE: f32 = 1.4;
 const S_FREQ: f32 = 0.1;
 /// 2D FBM with 5 octaves in [0;1]
@@ -163,9 +163,11 @@ mod tests {
     use itertools::Itertools;
 
     use super::*;
-    const SEEDS: [u32; 8] = [0, 1, 5, 42, 1111111111, 3541689516, 1989846551, 62];
+    const SEEDS: [u32; 8] = [0, 1, 5, 42, 1111111, 3541689516, 1989846551, 62];
     const FREQ: [f32; 5] = [100.0, 10.0, 1.0, 0.1, 0.01];
 
+    /// Asserts that the noise function never returns values outside the given bounds
+    /// and that over enough samples the min and max are within 5% of the bounds.
     fn assert_bounds<F>(mut noise: F, min: f32, max: f32)
     where
         F: FnMut(u32, f32) -> Vec<f32>,
