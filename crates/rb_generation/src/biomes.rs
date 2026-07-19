@@ -1,7 +1,7 @@
 use crate::{biome_params::BiomeParameters, layer::*};
 use rb_block::Block;
 use rb_noise::*;
-use rb_world::{CHUNK_S1, CHUNK_S2, ChunkPos2d, WATER_H, unchunked};
+use rb_world::{CHUNK_S1, ChunkPos2d, WATER_H};
 use strum_macros::EnumString;
 const MOUNTAIN_H: f32 = 150.;
 
@@ -35,7 +35,7 @@ impl Biome {
 
     fn generate_polar_ocean(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed, 0.05);
+        let mut n = ridge(col.x, CHUNK_S1, col.z, CHUNK_S1, seed, 0.05);
         powi(&mut n, 3);
         mul_const(&mut n, -2.);
         add_const(&mut n, WATER_H as f32);
@@ -81,8 +81,8 @@ impl Biome {
 
     fn generate_plain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut plain = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.08);
-        let mut mask: Vec<f32> = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 11, 0.005);
+        let mut plain = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 10, 0.08);
+        let mut mask: Vec<f32> = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 11, 0.005);
         points_lerp(&mut mask, &[(0., 0.), (0.4, 0.1), (0.6, 0.9), (1., 1.)]);
         mul(&mut plain, &mask);
         mul_const(&mut plain, 30.);
@@ -102,13 +102,12 @@ impl Biome {
     }
 
     fn generate_mountain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
-        let mut n = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.03);
+        let mut n = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 10, 0.03);
         let mut top = n.clone();
         let hills = fbm_scaled(
-            x,
+            col.x,
             CHUNK_S1,
-            z,
+            col.z,
             CHUNK_S1,
             seed + 11,
             0.05,
@@ -154,7 +153,7 @@ impl Biome {
 
     fn generate_desert(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut dunes = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.02);
+        let mut dunes = ridge(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 10, 0.02);
         powi(&mut dunes, 2);
         mul_const(&mut dunes, 30.);
         add_const(&mut dunes, WATER_H as f32 + 5.);
@@ -174,13 +173,13 @@ impl Biome {
 
     fn generate_jungle(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut n = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.1);
-        let mask = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 11, 0.1);
+        let mut n = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 10, 0.1);
+        let mask = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 11, 0.1);
         mul(&mut n, &mask);
         mul_const(&mut n, 60.);
         add_const(&mut n, WATER_H as f32 + 5.);
         quantize(&mut n, 4.);
-        let mut granite = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 12, 0.1);
+        let mut granite = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 12, 0.1);
         points_lerp(
             &mut granite,
             &[
@@ -211,7 +210,7 @@ impl Biome {
 
     fn generate_canyon(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
         let (x, z) = col.to_real_pos();
-        let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.01);
+        let mut n = ridge(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 10, 0.01);
         mul_const(&mut n, -1.);
         add_const(&mut n, 1.);
         let mut top = n.clone();
@@ -253,18 +252,17 @@ impl Biome {
     }
 
     fn generate_tundra(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
         let n = fbm_scaled(
-            x,
+            col.x,
             CHUNK_S1,
-            z,
+            col.z,
             CHUNK_S1,
             seed + 10,
             0.04,
             WATER_H as f32 + 15.,
             WATER_H as f32 + 30.,
         );
-        let mut icicles = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 11, 0.1);
+        let mut icicles = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, seed + 11, 0.1);
         powi(&mut icicles, 6);
         mul_const(&mut icicles, 60.);
         add_const(&mut icicles, WATER_H as f32 + 5.);

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-simdnoise = "*"
-num-traits = "0.2"
-noise = "0.9"
-ndarray = "0.16"
-itertools = "0.13"
+num-traits = "*"
+quick-noise = "*"
+
+[dev-dependencies]
+itertools = "*"

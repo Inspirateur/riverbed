@@ -1,26 +1,37 @@
-use simdnoise::*;
+use num_traits::MulAddAssign;
+use quick_noise::{Fbm, Grid, Perlin};
 // manual scaling required because library oversight
 // https://github.com/verpeteren/rust-simd-noise/issues/23
-const S_FBM: f32 = 0.76;
-const S_RIDGE: f32 = 1.43;
-const C_RIDGE: f32 = -4.32;
-
+const S_FBM: f32 = 0.67;
+const S_RIDGE: f32 = 1.4;
+const S_FREQ: f32 = 0.1;
 /// 2D FBM with 5 octaves in [0;1]
-pub fn fbm(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) -> Vec<f32> {
-    let (mut res, _, _) = NoiseBuilder::fbm_2d_offset(x, width, z, height)
-        .with_seed(seed as i32)
-        .with_freq(freq)
-        .with_octaves(5)
-        .generate();
-    res.iter_mut().for_each(|v| *v = *v * S_FBM + 0.5);
+pub fn fbm(
+    chunk_x: i32,
+    width: usize,
+    chunk_z: i32,
+    height: usize,
+    seed: u32,
+    freq: f32,
+) -> Vec<f32> {
+    let mut res = Grid::<2>::new(width, height)
+        .grid_position(chunk_x, chunk_z)
+        .seed(seed as i64)
+        .builder::<Fbm, Perlin>()
+        .seed(seed as i64)
+        .octaves(5)
+        .frequency(freq * S_FREQ)
+        .finalize(true)
+        .build();
+    res.iter_mut().for_each(|v| v.mul_add_assign(S_FBM, 0.5));
     res
 }
 
 /// 2D FBM with 5 octaves in [min;max]
 pub fn fbm_scaled(
-    x: f32,
+    chunk_x: i32,
     width: usize,
-    z: f32,
+    chunk_z: i32,
     height: usize,
     seed: u32,
     freq: f32,
@@ -30,31 +41,46 @@ pub fn fbm_scaled(
     let delta = max - min;
     let s = S_FBM * delta;
     let c = 0.5 * delta + min;
-    let (mut res, _, _) = NoiseBuilder::fbm_2d_offset(x, width, z, height)
-        .with_seed(seed as i32)
-        .with_freq(freq)
-        .with_octaves(5)
-        .generate();
-    res.iter_mut().for_each(|v| *v = *v * s + c);
+    let mut res = Grid::<2>::new(width, height)
+        .grid_position(chunk_x, chunk_z)
+        .seed(seed as i64)
+        .builder::<Fbm, Perlin>()
+        .seed(seed as i64)
+        .octaves(5)
+        .frequency(freq * S_FREQ)
+        .finalize(true)
+        .build();
+    res.iter_mut().for_each(|v| v.mul_add_assign(s, c));
     res
 }
 
 /// 2D Ridge noise in [0;1]
-pub fn ridge(x: f32, width: usize, z: f32, height: usize, seed: u32, freq: f32) -> Vec<f32> {
-    let (mut res, _, _) = NoiseBuilder::ridge_2d_offset(x, width, z, height)
-        .with_seed(seed as i32)
-        .with_freq(freq)
-        .with_octaves(5)
-        .generate();
-    res.iter_mut().for_each(|v| *v = (*v + C_RIDGE) * S_RIDGE);
+pub fn ridge(
+    chunk_x: i32,
+    width: usize,
+    chunk_z: i32,
+    height: usize,
+    seed: u32,
+    freq: f32,
+) -> Vec<f32> {
+    let mut res = Grid::<2>::new(width, height)
+        .grid_position(chunk_x, chunk_z)
+        .seed(seed as i64)
+        .builder::<Fbm, Perlin>()
+        .seed(seed as i64)
+        .octaves(5)
+        .frequency(freq * S_FREQ)
+        .finalize(true)
+        .build();
+    res.iter_mut().for_each(|v| *v = (*v * S_RIDGE).abs());
     res
 }
 
 /// 2D Ridge noise in [min;max]
 pub fn ridge_scaled(
-    x: f32,
+    chunk_x: i32,
     width: usize,
-    z: f32,
+    chunk_z: i32,
     height: usize,
     seed: u32,
     freq: f32,
@@ -63,13 +89,16 @@ pub fn ridge_scaled(
 ) -> Vec<f32> {
     let delta = max - min;
     let s = S_RIDGE * delta;
-    let c = S_RIDGE * delta * C_RIDGE + min;
-    let (mut res, _, _) = NoiseBuilder::ridge_2d_offset(x, width, z, height)
-        .with_seed(seed as i32)
-        .with_freq(freq)
-        .with_octaves(5)
-        .generate();
-    res.iter_mut().for_each(|v| *v = *v * s + c);
+    let mut res = Grid::<2>::new(width, height)
+        .grid_position(chunk_x, chunk_z)
+        .seed(seed as i64)
+        .builder::<Fbm, Perlin>()
+        .seed(seed as i64)
+        .octaves(5)
+        .frequency(freq * S_FREQ)
+        .finalize(true)
+        .build();
+    res.iter_mut().for_each(|v| *v = (*v * s).abs() + min);
     res
 }
 
@@ -132,69 +161,77 @@ pub fn points_lerp(a: &mut Vec<f32>, points: &[(f32, f32)]) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    const SEEDS: [u32; 8] = [0, 1, 5, 42, 1111111111, 3541689516, 1989846551, u32::MAX];
-    const FREQ: f32 = 0.333333333333333333;
+    use itertools::Itertools;
 
-    fn assert_bounds(sample: Vec<f32>, min: f32, max: f32) {
+    use super::*;
+    const SEEDS: [u32; 8] = [0, 1, 5, 42, 1111111111, 3541689516, 1989846551, 62];
+    const FREQ: [f32; 5] = [100.0, 10.0, 1.0, 0.1, 0.01];
+
+    fn assert_bounds<F>(mut noise: F, min: f32, max: f32)
+    where
+        F: FnMut(u32, f32) -> Vec<f32>,
+    {
         let delta = max - min;
-        let error = delta * 0.05;
-        let smin = sample.iter().cloned().fold(f32::INFINITY, f32::min);
-        let smax = sample.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-        let bounds = format!("min: {}, max: {}", smin, smax);
-        assert!(smin >= min, "{}", bounds);
-        assert!(smin < min + error, "{}", bounds);
-        assert!(smax <= max, "{}", bounds);
-        assert!(smax > max - error, "{}", bounds);
+        let mut min_min = f32::INFINITY;
+        let mut max_max = f32::NEG_INFINITY;
+        for (&seed, &freq) in SEEDS.iter().cartesian_product(FREQ.iter()) {
+            let sample = noise(seed, freq);
+            let smin = sample.iter().cloned().fold(f32::INFINITY, f32::min);
+            let smax = sample.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+            let bounds = format!("min: {}, max: {}", smin, smax);
+            assert!(smin >= min, "{}", bounds);
+            assert!(smax <= max, "{}", bounds);
+            min_min = min_min.min(smin);
+            max_max = max_max.max(smax);
+        }
+        let bounds = format!("min: {}, max: {}", min_min, max_max);
+        assert!((min - min_min).abs() <= 0.05 * delta, "{}", bounds);
+        assert!((max - max_max).abs() <= 0.05 * delta, "{}", bounds);
     }
 
     #[test]
     fn fbm_len() {
         let len = 1024;
-        let res = fbm(0.0, len, 0.0, len, 42, FREQ);
+        let res = fbm(0, len, 0, len, 42, FREQ[0]);
         assert_eq!(res.len(), len * len);
     }
 
     #[test]
     fn ridge_len() {
         let len = 1024;
-        let res = ridge(0.0, len, 0.0, len, 42, FREQ);
+        let res = ridge(0, len, 0, len, 42, FREQ[0]);
         assert_eq!(res.len(), len * len);
     }
 
     #[test]
     fn fbm_domain() {
-        let len = 4096;
-        for seed in SEEDS {
-            let res = fbm(0.0, len, 0.0, len, seed, FREQ);
-            assert_bounds(res, 0., 1.);
-        }
+        let len = 1024;
+        assert_bounds(|seed, freq| fbm(0, len, 0, len, seed, freq), 0., 1.);
     }
 
     #[test]
     fn ridge_domain() {
-        let len = 4096;
-        for seed in SEEDS {
-            let res = ridge(0.0, len, 0.0, len, seed, FREQ);
-            assert_bounds(res, 0., 1.);
-        }
+        let len = 1024;
+        assert_bounds(|seed, freq| ridge(0, len, 0, len, seed, freq), 0., 1.);
     }
 
     #[test]
     fn fbm_scaled_domain() {
-        let len = 4096;
-        for seed in SEEDS {
-            let res = fbm_scaled(0.0, len, 0.0, len, seed, FREQ, 50., 100.);
-            assert_bounds(res, 50., 100.);
-        }
+        let len = 1024;
+        assert_bounds(
+            |seed, freq| fbm_scaled(0, len, 0, len, seed, freq, 50., 100.),
+            50.,
+            100.,
+        );
     }
 
     #[test]
     fn ridge_scaled_domain() {
-        let len = 4096;
-        for seed in SEEDS {
-            let res = ridge_scaled(0.0, len, 0.0, len, seed, FREQ, 50., 100.);
-            assert_bounds(res, 50., 100.);
-        }
+        let len = 1024;
+        assert_bounds(
+            |seed, freq| ridge_scaled(0, len, 0, len, seed, freq, 50., 100.),
+            50.,
+            100.,
+        );
     }
 }

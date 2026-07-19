@@ -39,7 +39,7 @@ impl TerrainGenerator {
         // The biomes that will be considered for blending in this chunk
         let biomes: Vec<Biome> = self
             .biomes_points
-            .closest_biomes(params.average(self.biomes_points.parameters), 0.4);
+            .closest_biomes(params.average(self.biomes_points.parameters), 1.);
         let all_biome_layers = biomes
             .iter()
             .map(|b| b.generate(self.seed, col, &params))
@@ -216,17 +216,16 @@ impl TerrainGenerator {
     }
 
     pub fn biome_params_at(&self, col: ChunkPos2d) -> BiomeParameters {
-        let (x, z) = col.to_real_pos();
-        let continentalness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed, 0.0005);
-        let mut mountainness = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 1, 0.001);
+        let continentalness = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed, 0.0005);
+        let mut mountainness = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 1, 0.001);
         points_lerp(
             &mut mountainness,
             &[(0., 0.), (0.8, 0.), (0.9, 0.9), (1., 1.)],
         );
-        let temperature = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 3, 0.0005);
-        let humidity = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 4, 0.002);
-        let ph = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 5, 0.005);
-        let trees = fbm(x, CHUNK_S1, z, CHUNK_S1, self.seed + 6, 0.01);
+        let temperature = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 3, 0.0005);
+        let humidity = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 4, 0.002);
+        let ph = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 5, 0.005);
+        let trees = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 6, 0.01);
         BiomeParameters(HashMap::from([
             (BiomeParam::Continentalness, continentalness),
             (BiomeParam::Mountainness, mountainness),
