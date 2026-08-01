@@ -5,6 +5,7 @@ use bevy::{
     window::PresentMode,
 };
 use crossbeam::channel::unbounded;
+use mimalloc::MiMalloc;
 use rand_chacha::{ChaCha8Rng, rand_core::SeedableRng};
 use rb_agents::{PlayerPlugin, TerrainLoadPlugin};
 use rb_camera::Camera3dPlugin;
@@ -14,6 +15,8 @@ use rb_render::{MeshOrderReceiver, MeshOrderSender, RenderPlugin, TextureLoadPlu
 use rb_sounds::SoundPlugin;
 use rb_ui::UIPlugin;
 use rb_world::{VoxelWorld, WorldRng};
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 const SEED: u64 = 42;
 

@@ -36,7 +36,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
 
     thread_pool
         .spawn(async move {
-            let terrain_gen = TerrainGenerator::new(seed_value as u32);
+            let mut terrain_gen = TerrainGenerator::new(seed_value as u32);
             // local copy of players positions
             let mut players_pos = HashMap::new();
             // keeps track of which players see which columns

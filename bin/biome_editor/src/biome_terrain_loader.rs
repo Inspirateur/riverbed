@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{Receiver, Sender, unbounded};
+use quick_noise::Grid;
 use rb_generation::{Biome, TerrainGenerator};
-use rb_pos::{ChunkPos2d, Pos2d};
+use rb_pos::{CHUNK_S1, ChunkPos2d, Pos2d};
 use rb_world::{ColUnloadEvent, VoxelWorld, WorldRng, chunk_area};
 const LOAD_RADIUS: u32 = 6;
 
@@ -64,9 +65,11 @@ fn setup_load_thread(
                 }
             }
             // load new terrain
-            let terrain_gen = TerrainGenerator::new(seed_value as u32);
+            let mut terrain_gen = TerrainGenerator::new(seed_value as u32);
+            let generator =
+                Grid::<2>::new(CHUNK_S1 as usize, CHUNK_S1 as usize).grid_position(0, 0);
             let avg_params = terrain_gen
-                .biome_params_at(Pos2d::default())
+                .biome_params_at(generator)
                 .average(terrain_gen.biomes_points.parameters);
             let ideal_biome_params = terrain_gen
                 .biomes_points
@@ -84,7 +87,8 @@ fn setup_load_thread(
                 chunk_area(&Pos2d::default(), LOAD_RADIUS as i32).collect::<Vec<_>>();
             col_to_load.sort_by_key(|pos| pos.dist(Pos2d::default()));
             for col_pos in col_to_load {
-                let mut col_params = terrain_gen.biome_params_at(col_pos);
+                let generator = generator.grid_position(col_pos.x, col_pos.z);
+                let mut col_params = terrain_gen.biome_params_at(generator);
                 for (i, param) in terrain_gen.biomes_points.parameters.iter().enumerate() {
                     col_params
                         .0
@@ -95,7 +99,7 @@ fn setup_load_thread(
                 }
                 load_world.loaded_columns.insert(col_pos);
                 let (column, _structures) =
-                    terrain_gen.generate_with_params(col_pos.into(), col_params);
+                    terrain_gen.generate_with_params(generator, col_pos.into(), col_params);
                 load_world.add_column(col_pos, column);
             }
         })

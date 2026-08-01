@@ -76,6 +76,9 @@ fn on_head_change(
     if !event_head.is_changed() {
         return;
     }
+    if event_head.is_added() {
+        return;
+    }
     if let Some(new_col) = event_queue.player_pos_at(**event_head) {
         player_pos.0 = new_col;
     }
@@ -164,13 +167,13 @@ impl EventQueue {
 
     pub fn player_pos_at(&self, i: usize) -> Option<ChunkPos2d> {
         // return the first player pos looking back from i
-        for j in (0..=i).rev() {
+        for j in (0..i).rev() {
             if let LogData::PlayerMoved { id: _, new_col } = self.0[j].data {
                 return Some(new_col);
             }
         }
         // if not found, return the first player pos looking forward from i
-        for j in i + 1..self.0.len() {
+        for j in i..self.0.len() {
             if let LogData::PlayerMoved { id: _, new_col } = self.0[j].data {
                 return Some(new_col);
             }

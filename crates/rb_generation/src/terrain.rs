@@ -1,20 +1,35 @@
 use crate::{
-    biome_params::*, biomes::Biome, coverage::CoverageTrait, layer::LayerTag,
-    plant_params::PlantRanges, tree::TreeSeed,
+    biome_params::*,
+    biomes::Biome,
+    coverage::CoverageTrait,
+    layer::{Layer, LayerTag},
+    noise_samples::NoiseSamples,
+    plant_params::PlantRanges,
+    tree::TreeSeed,
 };
-use bevy::log::info_span;
+use bevy::{ecs::system::IntoResult, log::info_span};
+use quick_noise::{
+    Fbm, Grid, Perlin, Ridged,
+    api::batch::interface::DimTuple,
+    simd::{SimdSliceIterExt, StaticSimd},
+};
 use rb_block::Block;
-use rb_noise::*;
 use rb_world::{
     BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, Column, MAX_GEN_HEIGHT, StructureTrait,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Div};
 const BIOME_SHARPENING: f32 = 100.;
+const BIOME_EXCLUSION_THRESHOLD: f32 = 0.1;
+pub(crate) const FREQ: f32 = 0.1;
 
 pub struct TerrainGenerator {
     pub biomes_points: BiomePoints<4>,
     pub plant_ranges: PlantRanges<4>,
     pub seed: u32,
+    generator: Grid<2>,
+    column_biome_weights: Box<[f32]>,
+    layer_indexes: Box<[usize]>,
+    noise_samples: NoiseSamples,
 }
 
 impl TerrainGenerator {
@@ -23,18 +38,84 @@ impl TerrainGenerator {
         let plant_ranges = PlantRanges::from_csv("assets/gen/plants.csv");
         TerrainGenerator {
             seed,
+            column_biome_weights: vec![0.0; biomes_points.points.len()].into_boxed_slice(),
+            layer_indexes: vec![0usize; biomes_points.points.len()].into_boxed_slice(),
             biomes_points,
             plant_ranges,
+            generator: Grid::<2>::new(CHUNK_S1, CHUNK_S1).seed(seed as i64),
+            noise_samples: NoiseSamples::new(),
         }
     }
 
+    fn clear(&mut self) {
+        self.column_biome_weights.fill(0.);
+        self.layer_indexes.fill(0);
+        self.noise_samples.clear();
+    }
+
+    /// Return normalized per 2d block biome weights given the biome parameters and a threshold for considering a biome relevant.
+    /// The biome scores are computed from their distance to the biome parameters, then sharpened and normalized.
+    /// Biomes with scores that are all under BIOME_EXCLUSION_THRESHOLD (before normalization) will be excluded from the result.
+    /// Will panic instead of returning 0 biomes.
+    fn biome_scores(&self, params: BiomeParameters) -> Vec<(Biome, [f32; CHUNK_S1 * CHUNK_S1])> {
+        let simd_threshold = StaticSimd::splat(BIOME_EXCLUSION_THRESHOLD);
+        let simd_one = StaticSimd::splat(1.);
+        let mut res = Vec::new();
+        for (point, biome) in &self.biomes_points.points {
+            let mut biome_weights = [0.0; CHUNK_S1 * CHUNK_S1];
+            for (param, value) in self.biomes_points.parameters.iter().zip(point) {
+                let simd_value = StaticSimd::splat(*value);
+                biome_weights
+                    .simd_iter_mut()
+                    .zip(params[*param].simd_iter())
+                    .for_each(|(mut weight, param_value)| {
+                        *weight += (param_value - simd_value) * (param_value - simd_value);
+                    });
+            }
+            biome_weights
+                .simd_iter_mut()
+                // To sharpen them we take the inverse of the square distance (by omitting .sqrt)
+                .for_each(|mut weight| *weight = simd_one.div(*weight));
+
+            let mut max = StaticSimd::splat(0.);
+            biome_weights
+                .simd_iter()
+                .for_each(|weight| max = max.max(weight));
+
+            if max.simd_gt(simd_threshold).all_false() {
+                continue;
+            }
+            // Normalize the weights
+            // We use SIMD to sum the weights, then divide each weight by the sum
+            let sum = biome_weights
+                .simd_iter()
+                .fold(StaticSimd::splat(0.), |acc, weight| acc + weight)
+                .to_array()
+                .into_iter()
+                .sum::<f32>();
+            let simd_sum = StaticSimd::splat(sum);
+            biome_weights
+                .simd_iter_mut()
+                .for_each(|mut weight| *weight = *weight / simd_sum);
+            res.push((biome.clone(), biome_weights));
+        }
+        assert!(
+            !res.is_empty(),
+            "Returning 0 biomes check your biome parameters and the BIOME_EXCLUSION_THRESHOLD constant"
+        );
+        res
+    }
+
     pub fn generate_with_params(
-        &self,
+        &mut self,
+        generator: Grid<2>,
         col: ChunkPos2d,
         params: BiomeParameters,
     ) -> (Column, Vec<Box<dyn StructureTrait>>) {
-        let biome_gen_span = info_span!("terrain", name = "biome layer gen").entered();
+        let column_gen_span = info_span!("terrain", name = "column generation").entered();
+        self.clear();
         let mut column = Column::default();
+        let biome_gen_span = info_span!("terrain", name = "biome layer gen").entered();
         let mut structures: Vec<Box<dyn StructureTrait>> = Vec::new();
         // The biomes that will be considered for blending in this chunk
         let biomes: Vec<Biome> = self
@@ -42,12 +123,10 @@ impl TerrainGenerator {
             .closest_biomes(params.average(self.biomes_points.parameters), 1.);
         let all_biome_layers = biomes
             .iter()
-            .map(|b| b.generate(self.seed, col, &params))
+            .map(|b| b.generate(generator, &mut self.noise_samples))
             .collect::<Vec<_>>();
         biome_gen_span.exit();
         let biome_param_span = info_span!("terrain", name = "biome param gather").entered();
-        let mut column_biome_weights = vec![0.0; biomes.len()];
-        let mut layer_indexes = vec![0usize; biomes.len()];
         let param_points = params.view(self.biomes_points.parameters);
         biome_param_span.exit();
         let blending_span = info_span!("terrain", name = "biome blending").entered();
@@ -59,24 +138,24 @@ impl TerrainGenerator {
                     let biome_params = param_points[dx + dz * CHUNK_S1];
                     let mut total = 0.;
                     for (i, &biome) in biomes.iter().enumerate() {
-                        column_biome_weights[i] =
+                        self.column_biome_weights[i] =
                             (-self.biomes_points.dist_from(&biome_params, &biome)
                                 * BIOME_SHARPENING)
                                 .exp();
-                        total += column_biome_weights[i];
+                        total += self.column_biome_weights[i];
                     }
-                    for i in 0..column_biome_weights.len() {
-                        column_biome_weights[i] = column_biome_weights[i] / total;
+                    for i in 0..self.column_biome_weights.len() {
+                        self.column_biome_weights[i] = self.column_biome_weights[i] / total;
                     }
                 } else {
-                    column_biome_weights[0] = 1.
+                    self.column_biome_weights[0] = 1.
                 }
                 // Blend biome layers
-                layer_indexes.fill(0);
+                self.layer_indexes.fill(0);
                 let mut last_height = 0;
                 while let Some(&min_layer_tag) = all_biome_layers
                     .iter()
-                    .zip(&layer_indexes)
+                    .zip(&self.layer_indexes)
                     .filter_map(|(layer, &i)| {
                         if i >= layer.len() {
                             None
@@ -91,22 +170,23 @@ impl TerrainGenerator {
                     let mut h_other = 0.;
                     let mut dominant_block = None;
                     let mut max_weight = 0.;
-                    for ((layer_idx, layers), &weight) in layer_indexes
+                    for ((layer_idx, layers), &weight) in self
+                        .layer_indexes
                         .iter_mut()
                         .zip(&all_biome_layers)
-                        .zip(&column_biome_weights)
+                        .zip(&self.column_biome_weights)
                     {
                         if *layer_idx >= layers.len() || layers[*layer_idx].tag != min_layer_tag {
                             // This layer is above the min tag, we interpolate with the top of the preceeding layer
                             let target_height = if *layer_idx > 0 {
-                                layers[*layer_idx - 1].height(dx, dz)
+                                layers[*layer_idx - 1].height(&self.noise_samples, dx, dz)
                             } else {
                                 0.
                             };
                             h_other += target_height * weight;
                             continue;
                         }
-                        h_min += layers[*layer_idx].height(dx, dz) * weight;
+                        h_min += layers[*layer_idx].height(&self.noise_samples, dx, dz) * weight;
                         n_min += weight;
                         if weight > max_weight {
                             max_weight = weight;
@@ -212,20 +292,47 @@ impl TerrainGenerator {
             }
         }
         structure_gen_span.exit();
+        column_gen_span.exit();
         (column, structures)
     }
 
-    pub fn biome_params_at(&self, col: ChunkPos2d) -> BiomeParameters {
-        let continentalness = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed, 0.0005);
-        let mut mountainness = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 1, 0.001);
-        points_lerp(
-            &mut mountainness,
-            &[(0., 0.), (0.8, 0.), (0.9, 0.9), (1., 1.)],
-        );
-        let temperature = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 3, 0.0005);
-        let humidity = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 4, 0.002);
-        let ph = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 5, 0.005);
-        let trees = fbm(col.x, CHUNK_S1, col.z, CHUNK_S1, self.seed + 6, 0.01);
+    pub fn biome_params_at(&self, generator: Grid<2>) -> BiomeParameters {
+        let continentalness = generator
+            .builder::<Fbm, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.0005)
+            .into_iter()
+            .collect();
+        let mountainness = generator
+            .builder::<Ridged, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.001)
+            .into_iter()
+            .collect();
+        let temperature = generator
+            .builder::<Fbm, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.0005)
+            .into_iter()
+            .collect();
+        let humidity = generator
+            .builder::<Fbm, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.002)
+            .into_iter()
+            .collect();
+        let ph = generator
+            .builder::<Fbm, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.005)
+            .into_iter()
+            .collect();
+        let trees = generator
+            .builder::<Fbm, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.01)
+            .into_iter()
+            .collect();
         BiomeParameters(HashMap::from([
             (BiomeParam::Continentalness, continentalness),
             (BiomeParam::Mountainness, mountainness),
@@ -236,8 +343,9 @@ impl TerrainGenerator {
         ]))
     }
 
-    pub fn generate(&self, col: ChunkPos2d) -> (Column, Vec<Box<dyn StructureTrait>>) {
-        let params = self.biome_params_at(col);
-        self.generate_with_params(col, params)
+    pub fn generate(&mut self, col: ChunkPos2d) -> (Column, Vec<Box<dyn StructureTrait>>) {
+        let generator = self.generator.grid_position(col.x, col.z);
+        let params = self.biome_params_at(generator);
+        self.generate_with_params(generator, col, params)
     }
 }

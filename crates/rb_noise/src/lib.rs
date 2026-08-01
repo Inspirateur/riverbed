@@ -17,12 +17,13 @@ pub fn fbm(
         .grid_position(chunk_x, chunk_z)
         .seed(seed as i64)
         .builder::<Fbm, Perlin>()
+        .normalization(true)
         .seed(seed as i64)
-        .octaves(5)
+        .octaves(3)
         .frequency(freq * S_FREQ)
         .finalize(true)
         .into_iter()
-        .map(|v| v.mul_add(ArchSimd::splat(S_FBM), ArchSimd::splat(0.5)))
+        //.map(|v| v.mul_add(ArchSimd::splat(0.5), ArchSimd::splat(0.5)))
         .collect::<Vec<_>>()
 }
 
@@ -158,11 +159,24 @@ pub fn points_lerp(a: &mut Vec<f32>, points: &[(f32, f32)]) {
     });
 }
 
+/// Branchless, per-register version of [`points_lerp`], meant to be fused directly into a
+/// SIMD noise pipeline (e.g. `.map(|v| points_lerp_simd(v, points))` right after
+/// `.into_iter()`), instead of running as a second scalar pass over the resulting `Vec<f32>`.
+///
+/// The scalar version branches per-element to find which segment a value falls into. SIMD
+/// lanes can't branch independently, so instead every segment computes its candidate result
+/// for *all* lanes, and `Mask::select` picks the one candidate that actually applies to each
+/// lane. Since segments never overlap, at most one `select` "wins" per lane, and the
+/// comparisons/arithmetic themselves are branch-free.
+///
+/// `points` must be sorted by their first component (ascending), same as `points_lerp`.
+
 #[cfg(test)]
 mod tests {
-    use itertools::Itertools;
+    use itertools::iproduct;
 
     use super::*;
+    const TEST_LEN: usize = 1024;
     const SEEDS: [u32; 8] = [0, 1, 5, 42, 1111111, 3541689516, 1989846551, 62];
     const FREQ: [f32; 5] = [100.0, 10.0, 1.0, 0.1, 0.01];
 
@@ -170,13 +184,13 @@ mod tests {
     /// and that over enough samples the min and max are within 5% of the bounds.
     fn assert_bounds<F>(mut noise: F, min: f32, max: f32)
     where
-        F: FnMut(u32, f32) -> Vec<f32>,
+        F: FnMut(u32, f32, usize, i32, i32) -> Vec<f32>,
     {
         let delta = max - min;
         let mut min_min = f32::INFINITY;
         let mut max_max = f32::NEG_INFINITY;
-        for (&seed, &freq) in SEEDS.iter().cartesian_product(FREQ.iter()) {
-            let sample = noise(seed, freq);
+        for (seed, freq, x, z) in iproduct!(SEEDS, FREQ, -2..=2, -2..=2) {
+            let sample = noise(seed, freq, TEST_LEN, x, z);
             let smin = sample.iter().cloned().fold(f32::INFINITY, f32::min);
             let smax = sample.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
             let bounds = format!("min: {}, max: {}", smin, smax);
@@ -192,35 +206,38 @@ mod tests {
 
     #[test]
     fn fbm_len() {
-        let len = 1024;
-        let res = fbm(0, len, 0, len, 42, FREQ[0]);
-        assert_eq!(res.len(), len * len);
+        let res = fbm(0, TEST_LEN, 0, TEST_LEN, 42, FREQ[0]);
+        assert_eq!(res.len(), TEST_LEN * TEST_LEN);
     }
 
     #[test]
     fn ridge_len() {
-        let len = 1024;
-        let res = ridge(0, len, 0, len, 42, FREQ[0]);
-        assert_eq!(res.len(), len * len);
+        let res = ridge(0, TEST_LEN, 0, TEST_LEN, 42, FREQ[0]);
+        assert_eq!(res.len(), TEST_LEN * TEST_LEN);
     }
 
     #[test]
     fn fbm_domain() {
-        let len = 1024;
-        assert_bounds(|seed, freq| fbm(0, len, 0, len, seed, freq), 0., 1.);
+        assert_bounds(
+            |seed, freq, len, x, z| fbm(x, len, z, len, seed, freq),
+            0.,
+            1.,
+        );
     }
 
     #[test]
     fn ridge_domain() {
-        let len = 1024;
-        assert_bounds(|seed, freq| ridge(0, len, 0, len, seed, freq), 0., 1.);
+        assert_bounds(
+            |seed, freq, len, x, z| ridge(x, len, z, len, seed, freq),
+            0.,
+            1.,
+        );
     }
 
     #[test]
     fn fbm_scaled_domain() {
-        let len = 1024;
         assert_bounds(
-            |seed, freq| fbm_scaled(0, len, 0, len, seed, freq, 50., 100.),
+            |seed, freq, len, x, z| fbm_scaled(x, len, z, len, seed, freq, 50., 100.),
             50.,
             100.,
         );
@@ -228,9 +245,8 @@ mod tests {
 
     #[test]
     fn ridge_scaled_domain() {
-        let len = 1024;
         assert_bounds(
-            |seed, freq| ridge_scaled(0, len, 0, len, seed, freq, 50., 100.),
+            |seed, freq, len, x, z| ridge_scaled(x, len, z, len, seed, freq, 50., 100.),
             50.,
             100.,
         );
