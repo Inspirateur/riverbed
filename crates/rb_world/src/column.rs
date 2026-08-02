@@ -7,21 +7,15 @@ use crate::{Chunk, Y_CHUNKS};
 pub struct Column(pub [Chunk; Y_CHUNKS]);
 
 impl Column {
-    pub fn set_yrange(
-        &mut self,
-        in_col_pos: ChunkedPos2d,
-        top: i32,
-        mut height: usize,
-        block: Block,
-    ) {
+    pub fn set_yrange(&mut self, dx: usize, dz: usize, top: i32, mut height: usize, block: Block) {
         let (mut cy, mut dy) = chunked::<{ CHUNK_S1 }, 1>(top);
         while height > 0 && cy >= 0 {
             let h = height.min(dy);
             self.0[cy as usize].set_yrange(
                 ChunkedPos {
-                    x: in_col_pos.x,
+                    x: dx,
                     y: dy,
-                    z: in_col_pos.z,
+                    z: dz,
                 },
                 h,
                 block,
