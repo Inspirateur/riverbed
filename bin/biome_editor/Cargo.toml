@@ -17,7 +17,6 @@ rb_camera = { path = "../../crates/rb_camera" }
 rb_block = { path = "../../crates/rb_block" }
 rb_block_def = { path = "../../crates/rb_block_def" }
 rb_generation = { path = "../../crates/rb_generation" }
-rb_noise = { path = "../../crates/rb_noise" }
 rb_pos = { path = "../../crates/rb_pos" }
 rb_render = { path = "../../crates/rb_render" }
 rb_world = { path = "../../crates/rb_world" }

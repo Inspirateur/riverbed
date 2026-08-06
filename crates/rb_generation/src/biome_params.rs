@@ -2,6 +2,7 @@ use crate::{biomes::Biome, coverage::CoverageTrait};
 use std::{
     collections::{BTreeMap, HashMap},
     ops::Index,
+    path::{Path, PathBuf},
     str::FromStr,
 };
 use strum_macros::EnumString;
@@ -23,7 +24,10 @@ pub struct BiomePoints<const D: usize> {
 }
 
 impl<const D: usize> BiomePoints<D> {
-    pub fn from_csv(path: &str) -> Self {
+    pub fn from_csv<P>(path: P) -> Self
+    where
+        P: AsRef<Path>,
+    {
         let mut points = Vec::new();
         let mut reader = csv::Reader::from_path(path).unwrap();
         let header = reader.headers().unwrap();

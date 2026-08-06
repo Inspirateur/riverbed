@@ -9,7 +9,10 @@ use rb_world::{
     BlockEntities, ChunkPos2d, ColUnloadEvent, PlayerCol, Realm, VoxelWorld, WorldRng,
     player_area_diff, unload_block_entities,
 };
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
+};
 
 pub struct TerrainLoadPlugin;
 
@@ -36,7 +39,7 @@ pub fn setup_load_thread(mut commands: Commands, world: Res<VoxelWorld>, world_r
 
     thread_pool
         .spawn(async move {
-            let mut terrain_gen = TerrainGenerator::new(seed_value as u32);
+            let mut terrain_gen = TerrainGenerator::new(seed_value as u32, Path::new("assets"));
             // local copy of players positions
             let mut players_pos = HashMap::new();
             // keeps track of which players see which columns

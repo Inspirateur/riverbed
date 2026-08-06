@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{Receiver, Sender, unbounded};
@@ -65,7 +67,7 @@ fn setup_load_thread(
                 }
             }
             // load new terrain
-            let mut terrain_gen = TerrainGenerator::new(seed_value as u32);
+            let mut terrain_gen = TerrainGenerator::new(seed_value as u32, Path::new("assets"));
             let generator =
                 Grid::<2>::new(CHUNK_S1 as usize, CHUNK_S1 as usize).grid_position(0, 0);
             let avg_params = terrain_gen

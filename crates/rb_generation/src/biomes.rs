@@ -129,8 +129,8 @@ impl Biome {
             .fill(n);
         n.simd_iter_mut().for_each(|mut v| {
             *v = v.mul_add(
-                StaticSimd::splat(30.),
-                StaticSimd::splat(WATER_H as f32 + 15.),
+                StaticSimd::splat(15.),
+                StaticSimd::splat(WATER_H as f32 + 5.),
             )
         });
         vec![Layer {

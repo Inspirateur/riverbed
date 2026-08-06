@@ -17,10 +17,10 @@ use rb_block::Block;
 use rb_world::{
     BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, Column, MAX_GEN_HEIGHT, StructureTrait,
 };
-use std::{collections::HashMap, ops::Div};
+use std::{collections::HashMap, ops::Div, path::Path};
 const BIOME_SHARPENING: f32 = 100.;
 const BIOME_EXCLUSION_THRESHOLD: f32 = 0.1;
-pub(crate) const FREQ: f32 = 0.1;
+pub(crate) const FREQ: f32 = 0.01;
 
 pub struct TerrainGenerator {
     pub biomes_points: BiomePoints<4>,
@@ -33,9 +33,9 @@ pub struct TerrainGenerator {
 }
 
 impl TerrainGenerator {
-    pub fn new(seed: u32) -> Self {
-        let biomes_points = BiomePoints::from_csv("assets/gen/biomes.csv");
-        let plant_ranges = PlantRanges::from_csv("assets/gen/plants.csv");
+    pub fn new(seed: u32, asset_path: &Path) -> Self {
+        let biomes_points = BiomePoints::from_csv(asset_path.join("gen").join("biomes.csv"));
+        let plant_ranges = PlantRanges::from_csv(asset_path.join("gen").join("plants.csv"));
         TerrainGenerator {
             seed,
             column_biome_weights: vec![0.0; biomes_points.points.len()].into_boxed_slice(),
@@ -51,59 +51,6 @@ impl TerrainGenerator {
         self.column_biome_weights.fill(0.);
         self.layer_indexes.fill(0);
         self.noise_samples.clear();
-    }
-
-    /// Return normalized per 2d block biome weights given the biome parameters and a threshold for considering a biome relevant.
-    /// The biome scores are computed from their distance to the biome parameters, then sharpened and normalized.
-    /// Biomes with scores that are all under BIOME_EXCLUSION_THRESHOLD (before normalization) will be excluded from the result.
-    /// Will panic instead of returning 0 biomes.
-    fn biome_scores(&self, params: BiomeParameters) -> Vec<(Biome, [f32; CHUNK_S1 * CHUNK_S1])> {
-        let simd_threshold = StaticSimd::splat(BIOME_EXCLUSION_THRESHOLD);
-        let simd_one = StaticSimd::splat(1.);
-        let mut res = Vec::new();
-        for (point, biome) in &self.biomes_points.points {
-            let mut biome_weights = [0.0; CHUNK_S1 * CHUNK_S1];
-            for (param, value) in self.biomes_points.parameters.iter().zip(point) {
-                let simd_value = StaticSimd::splat(*value);
-                biome_weights
-                    .simd_iter_mut()
-                    .zip(params[*param].simd_iter())
-                    .for_each(|(mut weight, param_value)| {
-                        *weight += (param_value - simd_value) * (param_value - simd_value);
-                    });
-            }
-            biome_weights
-                .simd_iter_mut()
-                // To sharpen them we take the inverse of the square distance (by omitting .sqrt)
-                .for_each(|mut weight| *weight = simd_one.div(*weight));
-
-            let mut max = StaticSimd::splat(0.);
-            biome_weights
-                .simd_iter()
-                .for_each(|weight| max = max.max(weight));
-
-            if max.simd_gt(simd_threshold).all_false() {
-                continue;
-            }
-            // Normalize the weights
-            // We use SIMD to sum the weights, then divide each weight by the sum
-            let sum = biome_weights
-                .simd_iter()
-                .fold(StaticSimd::splat(0.), |acc, weight| acc + weight)
-                .to_array()
-                .into_iter()
-                .sum::<f32>();
-            let simd_sum = StaticSimd::splat(sum);
-            biome_weights
-                .simd_iter_mut()
-                .for_each(|mut weight| *weight = *weight / simd_sum);
-            res.push((biome.clone(), biome_weights));
-        }
-        assert!(
-            !res.is_empty(),
-            "Returning 0 biomes check your biome parameters and the BIOME_EXCLUSION_THRESHOLD constant"
-        );
-        res
     }
 
     pub fn generate_with_params(
@@ -297,41 +244,48 @@ impl TerrainGenerator {
     }
 
     pub fn biome_params_at(&self, generator: Grid<2>) -> BiomeParameters {
+        let simd_half = StaticSimd::splat(0.5);
         let continentalness = generator
             .builder::<Fbm, Perlin>()
             .octaves(3)
             .frequency(FREQ * 0.0005)
             .into_iter()
+            .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
         let mountainness = generator
             .builder::<Ridged, Perlin>()
             .octaves(3)
-            .frequency(FREQ * 0.001)
+            .frequency(FREQ * 0.01)
             .into_iter()
+            .map(|v| v * simd_half * v * simd_half)
             .collect();
         let temperature = generator
             .builder::<Fbm, Perlin>()
             .octaves(3)
             .frequency(FREQ * 0.0005)
             .into_iter()
+            .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
         let humidity = generator
             .builder::<Fbm, Perlin>()
             .octaves(3)
             .frequency(FREQ * 0.002)
             .into_iter()
+            .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
         let ph = generator
             .builder::<Fbm, Perlin>()
             .octaves(3)
             .frequency(FREQ * 0.005)
             .into_iter()
+            .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
         let trees = generator
             .builder::<Fbm, Perlin>()
             .octaves(3)
             .frequency(FREQ * 0.01)
             .into_iter()
+            .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
         BiomeParameters(HashMap::from([
             (BiomeParam::Continentalness, continentalness),
@@ -347,5 +301,44 @@ impl TerrainGenerator {
         let generator = self.generator.grid_position(col.x, col.z);
         let params = self.biome_params_at(generator);
         self.generate_with_params(generator, col, params)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::TerrainGenerator;
+    use quick_noise::Grid;
+    use std::path::Path;
+    const SIZE: usize = 8192;
+
+    /// Checks that one a wide enough area the biome parameters are within [0, 1] and their mean is reasonable.
+    #[test]
+    fn check_noise_bound() {
+        let test_generator = Grid::<2>::new(SIZE, SIZE);
+        let terrain = TerrainGenerator::new(0, Path::new("../../assets"));
+        let biome_params = terrain.biome_params_at(test_generator);
+        for (param, values) in biome_params.0 {
+            let min = values.iter().cloned().fold(f32::INFINITY, f32::min);
+            let max = values.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+            // f64 because f32 can accumulate errors over a large number of samples
+            let sum = values.iter().map(|&v| v as f64).sum::<f64>();
+            let mean = sum / values.len() as f64;
+            assert!(
+                min >= 0. && max <= 1.,
+                "Biome param {:?} out of bounds: [{}, {}] - mean: {}",
+                param,
+                min,
+                max,
+                mean
+            );
+            assert!(
+                mean >= 0.35 && mean <= 0.65,
+                "Biome param {:?} mean out of bounds: [{}, {}] - mean: {}",
+                param,
+                min,
+                max,
+                mean
+            );
+        }
     }
 }
