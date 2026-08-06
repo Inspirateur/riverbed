@@ -58,9 +58,18 @@ impl Biome {
                 tag: LayerTag::Soil,
             },
             Layer {
+                block: Block::SeaBlock,
+                height: Height::Constant(WATER_H as f32),
+                tag: LayerTag::Fixed {
+                    height: WATER_H as usize,
+                },
+            },
+            Layer {
                 block: Block::Ice,
-                height: Height::OffsetNoise(i, (WATER_H as f32) - 1.),
-                tag: LayerTag::Floating,
+                height: Height::Noise(i),
+                tag: LayerTag::Fixed {
+                    height: (WATER_H as usize) - 1,
+                },
             },
         ]
     }
@@ -75,7 +84,9 @@ impl Biome {
             Layer {
                 block: Block::SeaBlock,
                 height: Height::Constant(WATER_H as f32),
-                tag: LayerTag::Liquid,
+                tag: LayerTag::Fixed {
+                    height: WATER_H as usize,
+                },
             },
         ]
     }
