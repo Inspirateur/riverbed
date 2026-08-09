@@ -122,6 +122,7 @@ fn display_chunk_state(
 fn display_info(
     player_pos: Res<PlayerPos>,
     mesh_count: Res<MeshCount>,
+    load_state: Res<LoadState>,
     event_queue: Res<EventQueue>,
     event_head: Res<EventHead>,
     mut text_query: ParamSet<(
@@ -135,13 +136,20 @@ fn display_info(
     if event_queue.0.len() == 0 || !event_head.is_changed() {
         return;
     }
-    let duration_sec =
-        (event_queue.0[**event_head].timestamp - event_queue.0[0].timestamp).as_seconds_f32();
+    let duration_sec = (event_queue.0[event_head.last_applied().unwrap_or(0)].timestamp
+        - event_queue.0[0].timestamp)
+        .as_seconds_f32();
     let total_meshed = mesh_count.0.values().fold(0, |a, b| a + b);
+    let total_loaded = load_state.0.keys().count();
     let mesh_throughput = if total_meshed as f32 * duration_sec == 0. {
         0.
     } else {
         total_meshed as f32 / duration_sec
+    };
+    let load_throughput = if total_loaded as f32 * duration_sec == 0. {
+        0.
+    } else {
+        total_loaded as f32 / duration_sec
     };
     let column_count = mesh_count.0.values().filter(|&&v| v > 0).count() as f32;
     let avg_mesh_count = total_meshed as f32 / column_count.max(1.);
@@ -153,7 +161,10 @@ fn display_info(
     let mut text_mesh_total = text_query.p2().into_inner();
     text_mesh_total.0 = format!("Meshing count: {}", total_meshed);
     let mut text_mesh_thoughput = text_query.p3().into_inner();
-    text_mesh_thoughput.0 = format!("Throughput: {:.0}/s", mesh_throughput);
+    text_mesh_thoughput.0 = format!(
+        "Throughput: gen {:.0}/s | mesh {:.0}/s",
+        load_throughput, mesh_throughput
+    );
     let mut text_max_col_mesh = text_query.p4().into_inner();
     text_max_col_mesh.0 = format!(
         "Per column: avg {:.1} - max {}",
@@ -193,12 +204,12 @@ fn time_control(
     } else if action_state.just_pressed(&TimeControl::Time9) {
         event_head.set(event_queue.0.len() - 1);
     } else if action_state.pressed(&TimeControl::Forward) {
-        let i = **event_head;
+        let i = event_head.get();
         if i + 1 < event_queue.0.len() {
             event_head.set(i + 1);
         }
     } else if action_state.pressed(&TimeControl::Backward) {
-        let i = **event_head;
+        let i = event_head.get();
         if i > 0 {
             event_head.set(i - 1);
         }

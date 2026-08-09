@@ -1,26 +1,23 @@
-use crate::log_display::InspectorDisplayPlugin;
 use bevy::prelude::*;
 use chrono::TimeDelta;
 use rb_logging::{LogData, LogEvent};
 use rb_pos::ChunkPos2d;
 use std::collections::{HashMap, HashSet};
 use std::iter::Rev;
-use std::ops::{Deref, Range};
+use std::ops::Range;
 
 pub struct InspectorPlugin;
 
 impl Plugin for InspectorPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_plugins(InspectorDisplayPlugin)
-            .insert_resource(EventQueue::default())
+        app.insert_resource(EventQueue::default())
             .insert_resource(IsLive(true))
             .insert_resource(EventHead::default())
             .insert_resource(PlayerPos::default())
             .insert_resource(LiveLoadState::default())
             .insert_resource(LoadState::default())
             .insert_resource(MeshCount::default())
-            .add_systems(Update, on_log_event)
-            .add_systems(Update, on_head_change);
+            .add_systems(Update, (on_log_event, on_head_change).chain());
     }
 }
 
@@ -63,7 +60,7 @@ fn on_log_event(
     if !is_live.0 || event_queue.0.len() == 0 || !recieved_event {
         return;
     }
-    event_head.set(event_queue.0.len() - 1);
+    event_head.set(event_queue.0.len());
 }
 
 fn on_head_change(
@@ -76,10 +73,7 @@ fn on_head_change(
     if !event_head.is_changed() {
         return;
     }
-    if event_head.is_added() {
-        return;
-    }
-    if let Some(new_col) = event_queue.player_pos_at(**event_head) {
+    if let Some(new_col) = event_queue.player_pos_at(event_head.get()) {
         player_pos.0 = new_col;
     }
 
@@ -90,7 +84,6 @@ fn on_head_change(
                 LogData::ColUnloaded(col) => *load_state.0.get_mut(&col).unwrap() = false,
                 LogData::ChunkMeshed(chunk) => {
                     *mesh_count.0.entry(chunk.into()).or_insert(0) += 1;
-                    *load_state.0.entry(chunk.into()).or_insert(false) = true;
                 }
                 _ => (),
             }
@@ -102,7 +95,6 @@ fn on_head_change(
                 LogData::ColUnloaded(col) => *load_state.0.get_mut(&col).unwrap() = true,
                 LogData::ChunkMeshed(chunk) => {
                     *mesh_count.0.get_mut(&chunk.into()).unwrap() -= 1;
-                    *load_state.0.entry(chunk.into()).or_insert(false) = false;
                 }
                 _ => (),
             }
@@ -120,29 +112,48 @@ pub struct EventHead {
 }
 
 impl EventHead {
+    /// Returns the index of the event head, i.e. the index of the first event that is **not** applied.
+    pub fn get(&self) -> usize {
+        self.current
+    }
+
+    /// Returns the index of the last event that was applied, or None if no events have been applied.
+    pub fn last_applied(&self) -> Option<usize> {
+        if self.current == 0 {
+            None
+        } else {
+            Some(self.current - 1)
+        }
+    }
+
+    /// Sets the event head to event of index `i`.
+    /// Any events that are **strictly** before index `i` are considered "applied".
+    ///
+    /// Examples:
+    /// - if the event head is at index `0`, then no events are considered "applied" (not even the event at index 0)
+    /// - if the event head is at index `len` of the event queue, then all events are considered "applied"
     pub fn set(&mut self, i: usize) {
         self.previous = self.current;
         self.current = i;
     }
 
+    /// Returns true if the last movement of the event head was forward.
     pub fn moved_forward(&self) -> bool {
         self.current >= self.previous
     }
 
+    /// Returns the indices of the events that were "applied" by moving the head forwards.
+    ///
+    /// Not moving the head (current = previous) returns an empty iterator.
     pub fn forward_span(&self) -> Range<usize> {
-        self.previous..(self.current + 1)
+        self.previous..self.current
     }
 
+    /// Returns the indices of the events that were "undone" by moving the head backwards.
+    ///
+    /// Not moving the head (current = previous) returns an empty iterator.
     pub fn backward_span(&self) -> Rev<Range<usize>> {
         (self.current..self.previous).rev()
-    }
-}
-
-impl Deref for EventHead {
-    type Target = usize;
-
-    fn deref(&self) -> &Self::Target {
-        &self.current
     }
 }
 

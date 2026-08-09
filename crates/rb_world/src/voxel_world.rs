@@ -108,12 +108,22 @@ impl VoxelWorld {
         false
     }
 
+    fn all_neighbor_columns_loaded(&self, col_pos: ChunkPos2d) -> bool {
+        [(0, -1), (0, 1), (-1, 0), (1, 0)]
+            .iter()
+            .map(|(dx, dz)| ChunkPos2d {
+                x: col_pos.x + dx,
+                z: col_pos.z + dz,
+                realm: col_pos.realm,
+            })
+            .all(|neighbor_col| self.loaded_columns.contains(&neighbor_col))
+    }
+
     fn sync_padding_info(
         &self,
         chunk: &Entry<ChunkPos, RwLock<Chunk>>,
         chunk_pos: ChunkPos,
         face: Face,
-        send_change: bool,
     ) {
         let other_pos = ChunkPos {
             x: chunk_pos.x + face.n()[0],
@@ -124,23 +134,24 @@ impl VoxelWorld {
         let Some(other) = self.chunks.get(&other_pos) else {
             return;
         };
-        chunk
-            .value()
-            .write()
-            .copy_side_from(&other.value().read(), face);
-        other
-            .value()
-            .write()
-            .copy_side_from(&chunk.value().read(), face.opposite());
-        if send_change {
-            self.chunk_changes
-                .send(other_pos)
-                .expect("Failed to send chunk change");
+        // Lock both chunks in a fixed order (by position) regardless of which side calls
+        // this, otherwise two threads syncing the same pair from opposite ends can each
+        // hold one write lock while waiting on the other's read lock (AB-BA deadlock).
+        if chunk_pos < other_pos {
+            let mut chunk_guard = chunk.value().write();
+            let mut other_guard = other.value().write();
+            chunk_guard.copy_side_from(&other_guard, face);
+            other_guard.copy_side_from(&chunk_guard, face.opposite());
+        } else {
+            let mut other_guard = other.value().write();
+            let mut chunk_guard = chunk.value().write();
+            chunk_guard.copy_side_from(&other_guard, face);
+            other_guard.copy_side_from(&chunk_guard, face.opposite());
         }
     }
 
     pub fn add_column(&self, col_pos: ChunkPos2d, column: Column) {
-        // USE BY TERRAIN GEN
+        // USED BY TERRAIN GEN
         let mut cy = -1;
         for chunk in column.0 {
             cy += 1;
@@ -153,25 +164,33 @@ impl VoxelWorld {
                 z: col_pos.z,
                 realm: col_pos.realm,
             };
-            self.chunks.insert(chunk_pos, RwLock::new(chunk));
-            let Some(chunk) = self.chunks.get(&chunk_pos) else {
-                continue;
-            };
-            self.sync_padding_info(&chunk, chunk_pos, Face::Left, true);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Right, true);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Front, true);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Back, true);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Up, false);
+            let chunk = self.chunks.insert(chunk_pos, RwLock::new(chunk));
+            self.sync_padding_info(&chunk, chunk_pos, Face::Left);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Right);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Front);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Back);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Up);
             // no need to sync down because we're iterating over the column syncing up
         }
-        // send changes for all chunks in the column after every syncing is done
-        for chunk_pos in chunks_in_col(&col_pos) {
-            if !self.chunks.contains_key(&chunk_pos) {
+        self.loaded_columns.insert(col_pos);
+        // For each synced column (4 neighbors + self), send chunk changes if all neighbors are loaded
+        for (dx, dz) in [(0, -1), (0, 1), (-1, 0), (1, 0), (0, 0)] {
+            let changed_col = ChunkPos2d {
+                x: col_pos.x + dx,
+                z: col_pos.z + dz,
+                realm: col_pos.realm,
+            };
+            if !self.loaded_columns.contains(&changed_col)
+                || !self.all_neighbor_columns_loaded(changed_col)
+            {
                 continue;
             }
-            self.chunk_changes
-                .send(chunk_pos)
-                .expect("Failed to send chunk change");
+            // send changes for all chunks in the column after every syncing is done
+            for chunk_pos in chunks_in_col(&changed_col) {
+                self.chunk_changes
+                    .send(chunk_pos)
+                    .expect("Failed to send chunk change");
+            }
         }
     }
 
@@ -200,13 +219,6 @@ impl VoxelWorld {
 
     /// Mark a block change, reflecting in neighboring chunks if needed
     fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, block: Block) {
-        // If the chunk is not supposed to be loaded (can happen in structure generation acting into neighboring chunks),
-        // mark it for unloading straight away so the memory gets cleaned up
-        // and skip sending the change
-        if !self.loaded_columns.contains(&chunk_pos.into()) {
-            self.unloaded_columns.insert(chunk_pos.into());
-            return;
-        }
         if let Err(_) = self.chunk_changes.send(chunk_pos) {
             warn!("Chunk change channel closed.");
             return;

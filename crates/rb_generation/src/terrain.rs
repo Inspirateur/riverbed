@@ -25,7 +25,7 @@ pub(crate) const FREQ: f32 = 0.01;
 pub struct TerrainGenerator {
     pub biomes_points: BiomePoints<4>,
     pub plant_ranges: PlantRanges<4>,
-    pub seed: u32,
+    pub seed: u64,
     generator: Grid<2>,
     column_biome_weights: Box<[f32]>,
     layer_indexes: Box<[usize]>,
@@ -33,7 +33,7 @@ pub struct TerrainGenerator {
 }
 
 impl TerrainGenerator {
-    pub fn new(seed: u32, asset_path: &Path) -> Self {
+    pub fn new(seed: u64, asset_path: &Path) -> Self {
         let biomes_points = BiomePoints::from_csv(asset_path.join("gen").join("biomes.csv"));
         let plant_ranges = PlantRanges::from_csv(asset_path.join("gen").join("plants.csv"));
         TerrainGenerator {
@@ -248,7 +248,7 @@ impl TerrainGenerator {
         let continentalness = generator
             .builder::<Fbm, Perlin>()
             .octaves(3)
-            .frequency(FREQ * 0.0005)
+            .frequency(FREQ * 0.0002)
             .into_iter()
             .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
