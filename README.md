@@ -44,7 +44,7 @@ I'm the primary contributor for now but if you agree with the game vision you're
 
 ### Thanks
 - [@kokounet](https://github.com/kokounet): major contributions on rendering  
-*he's a big part of why Riverbed is able to reach 4km of render distance, many thanks!*
+*he's a big part of why Riverbed is able to reach 2km of render distance, many thanks!*
 - [Denis Périce](https://denis-perice.github.io/): helping me find the ideal water sim  
 *it's a work in progress but I'm very glad to have his help*
 - [@Involture](https://github.com/Involture): contributed to the efficient packing of chunk data in RAM  
