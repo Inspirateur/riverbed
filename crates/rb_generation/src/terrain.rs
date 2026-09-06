@@ -1,29 +1,25 @@
 use crate::{
-    biome_params::*,
-    biomes::Biome,
-    coverage::CoverageTrait,
-    layer::{Layer, LayerTag},
-    noise_samples::NoiseSamples,
-    plant_params::PlantRanges,
-    tree::TreeSeed,
+    biome_params::*, biomes::Biome, coverage::CoverageTrait, layer::LayerTag,
+    noise_samples::NoiseSamples, plant_params::PlantRanges, tree::TreeSeed,
 };
-use bevy::{ecs::system::IntoResult, log::info_span};
+use bevy::log::info_span;
 use quick_noise::{
     Fbm, Grid, Perlin, Ridged,
-    api::batch::interface::DimTuple,
     simd::{SimdSliceIterExt, StaticSimd},
 };
 use rb_block::Block;
 use rb_world::{
     BlockPos2d, CHUNK_S1, ChunkPos2d, ChunkedPos2d, Column, MAX_GEN_HEIGHT, StructureTrait,
 };
-use std::{collections::HashMap, ops::Div, path::Path};
+use std::{collections::HashMap, path::Path};
 const BIOME_SHARPENING: f32 = 100.;
-const BIOME_EXCLUSION_THRESHOLD: f32 = 0.1;
-pub(crate) const FREQ: f32 = 0.01;
+const BIOME_EXCLUSION_THRESHOLD: f32 = 1.;
+/// 0.5 will give an even distribution of land and water, but it is not linear.
+const LAND_BIAS: f32 = 0.4;
+pub(crate) const FREQ: f32 = 0.02;
 
 pub struct TerrainGenerator {
-    pub biomes_points: BiomePoints<4>,
+    pub biomes_points: BiomePoints<5>,
     pub plant_ranges: PlantRanges<4>,
     pub seed: u64,
     generator: Grid<2>,
@@ -65,12 +61,13 @@ impl TerrainGenerator {
         let biome_gen_span = info_span!("terrain", name = "biome layer gen").entered();
         let mut structures: Vec<Box<dyn StructureTrait>> = Vec::new();
         // The biomes that will be considered for blending in this chunk
-        let biomes: Vec<Biome> = self
-            .biomes_points
-            .closest_biomes(params.average(self.biomes_points.parameters), 1.);
+        let biomes: Vec<Biome> = self.biomes_points.closest_biomes(
+            params.average(self.biomes_points.parameters),
+            BIOME_EXCLUSION_THRESHOLD,
+        );
         let all_biome_layers = biomes
             .iter()
-            .map(|b| b.generate(generator, &mut self.noise_samples))
+            .map(|b| b.generate(generator, &mut self.noise_samples, &params))
             .collect::<Vec<_>>();
         biome_gen_span.exit();
         let biome_param_span = info_span!("terrain", name = "biome param gather").entered();
@@ -157,7 +154,7 @@ impl TerrainGenerator {
                         h_min * n_min + h_other * n_other
                     }
                     .round() as i32;
-                    if height < last_height {
+                    if height <= last_height {
                         continue; // Don't overwrite lower layers
                     }
                     let block = dominant_block.unwrap();
@@ -226,7 +223,7 @@ impl TerrainGenerator {
             let (tree, dist) = self.plant_ranges.closest([
                 params[BiomeParam::Temperature][i],
                 params[BiomeParam::Humidity][i],
-                params[BiomeParam::Ph][i],
+                params[BiomeParam::Erosion][i],
                 y as f32 / MAX_GEN_HEIGHT as f32,
             ]);
             if dist >= 0. {
@@ -245,45 +242,59 @@ impl TerrainGenerator {
 
     pub fn biome_params_at(&self, generator: Grid<2>) -> BiomeParameters {
         let simd_half = StaticSimd::splat(0.5);
-        let continentalness = generator
+        let simd_land = StaticSimd::splat(LAND_BIAS);
+        let continentalness: Vec<f32> = generator
             .builder::<Fbm, Perlin>()
+            .seed(1)
+            .octaves(6)
+            .frequency(FREQ * 0.01)
+            .into_iter()
+            .map(|v| v.mul_add(simd_half, simd_land))
+            .collect();
+        let mut mountainness: Vec<f32> = generator
+            .builder::<Ridged, Perlin>()
+            .seed(2)
             .octaves(3)
-            .frequency(FREQ * 0.0002)
+            .frequency(FREQ * 0.02)
             .into_iter()
             .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
-        let mountainness = generator
-            .builder::<Ridged, Perlin>()
+        // Mountains must only be on land
+        mountainness
+            .simd_iter_mut_static()
+            .zip(continentalness.simd_iter_static())
+            .for_each(|(mut m, c)| {
+                *m *= c;
+            });
+        let erosion = generator
+            .builder::<Fbm, Perlin>()
+            .seed(7)
             .octaves(3)
-            .frequency(FREQ * 0.01)
+            .frequency(FREQ * 0.02)
             .into_iter()
-            .map(|v| v * simd_half * v * simd_half)
+            .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
         let temperature = generator
             .builder::<Fbm, Perlin>()
-            .octaves(3)
-            .frequency(FREQ * 0.0005)
+            .seed(3)
+            .octaves(5)
+            .frequency(FREQ * 0.005)
             .into_iter()
             .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
         let humidity = generator
             .builder::<Fbm, Perlin>()
+            .seed(4)
             .octaves(3)
-            .frequency(FREQ * 0.002)
-            .into_iter()
-            .map(|v| v.mul_add(simd_half, simd_half))
-            .collect();
-        let ph = generator
-            .builder::<Fbm, Perlin>()
-            .octaves(3)
-            .frequency(FREQ * 0.005)
+            .frequency(FREQ * 0.01)
             .into_iter()
             .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
         let trees = generator
             .builder::<Fbm, Perlin>()
+            .seed(6)
             .octaves(3)
-            .frequency(FREQ * 0.01)
+            .frequency(FREQ * 0.1)
             .into_iter()
             .map(|v| v.mul_add(simd_half, simd_half))
             .collect();
@@ -292,7 +303,7 @@ impl TerrainGenerator {
             (BiomeParam::Mountainness, mountainness),
             (BiomeParam::Temperature, temperature),
             (BiomeParam::Humidity, humidity),
-            (BiomeParam::Ph, ph),
+            (BiomeParam::Erosion, erosion),
             (BiomeParam::Trees, trees),
         ]))
     }

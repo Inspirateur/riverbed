@@ -38,9 +38,9 @@ mod tests {
     }
 
     /// Generates a vec of events starting with 1 PlayerMoved event
-    /// followed by 100 random events of type ColGenerated, ChunkMeshed, or ColUnloaded,
+    /// followed by n-1 random events of type ColGenerated, ChunkMeshed, or ColUnloaded,
     /// all acting on coordinates in [-3, 3].
-    fn random_events() -> Vec<LogEvent> {
+    fn random_events(n: usize) -> Vec<LogEvent> {
         let mut events = Vec::new();
         events.push(LogEvent {
             timestamp: chrono::Utc::now(),
@@ -54,7 +54,7 @@ mod tests {
             },
         });
         let now = Utc::now();
-        for t in 0..400 {
+        for t in 0..(n - 1) {
             let r = rand::random::<u8>() % 3;
             let x = (rand::random::<i32>() % 7) - 3;
             let z = (rand::random::<i32>() % 7) - 3;
@@ -77,7 +77,7 @@ mod tests {
                 }),
             };
             events.push(LogEvent {
-                timestamp: now + Duration::milliseconds(t * 100),
+                timestamp: now + Duration::milliseconds(t as i64 * 100),
                 data,
             });
         }
@@ -104,9 +104,11 @@ mod tests {
     /// results in all columns unloaded and all mesh counts to 0.
     #[test]
     fn test_back_and_forth_to_0() {
-        let mut app = setup_inspector(random_events());
+        const RANDOM_EVENTS: usize = 400;
+        const RANDOM_MOVES: usize = RANDOM_EVENTS * 2;
+        let mut app = setup_inspector(random_events(RANDOM_EVENTS));
         let len = app.world().get_resource::<EventQueue>().unwrap().0.len();
-        for _ in 0..800 {
+        for _ in 0..RANDOM_MOVES {
             let i = rand::random::<u32>() as usize % (len + 1);
             move_event_head(&mut app, i);
         }

@@ -2,7 +2,7 @@ use crate::{biomes::Biome, coverage::CoverageTrait};
 use std::{
     collections::{BTreeMap, HashMap},
     ops::Index,
-    path::{Path, PathBuf},
+    path::Path,
     str::FromStr,
 };
 use strum_macros::EnumString;
@@ -14,7 +14,7 @@ pub enum BiomeParam {
     Temperature,
     Humidity,
     Trees,
-    Ph,
+    Erosion,
 }
 
 pub struct BiomePoints<const D: usize> {
