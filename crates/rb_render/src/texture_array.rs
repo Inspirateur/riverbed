@@ -176,7 +176,6 @@ fn resize_image(image: &Image, size: u32) -> Image {
 }
 
 // Takes a full resolution image texture as a base and generates a chain of downsampled versions
-// Returned as one full image with mip level set
 fn build_mip_chain(base: &Image, target_size: u32) -> (Vec<Vec<u8>>, u32) {
     let frame_size = base.width();
     assert_eq!(
