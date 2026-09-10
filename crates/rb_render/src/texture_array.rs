@@ -92,7 +92,8 @@ fn downsample_image_by_half(image: &Image) -> Image {
 
     for y in 0..new_height {
         for x in 0..new_width {
-            let mut sum = [0u32; 4];
+            let mut premultiplied_rgb = [0.0; 3];
+            let mut alpha_sum = 0.0;
             let mut count = 0u32;
 
             let start_x = x * width / new_width;
@@ -103,20 +104,41 @@ fn downsample_image_by_half(image: &Image) -> Image {
             for source_y in start_y..end_y {
                 for source_x in start_x..end_x {
                     let source_index = ((source_y * width + source_x) * 4) as usize;
+                    let alpha = source[source_index + 3] as f32 / 255.0;
 
-                    for channel in 0..4 {
-                        sum[channel] += source[source_index + channel] as u32;
+                    for channel in 0..3 {
+                        let encoded = source[source_index + channel] as f32 / 255.0;
+                        let linear = if image.texture_descriptor.format.is_srgb() {
+                            Srgba::gamma_function(encoded)
+                        } else {
+                            encoded
+                        };
+                        premultiplied_rgb[channel] += linear * alpha;
                     }
 
+                    alpha_sum += alpha;
                     count += 1;
                 }
             }
 
             let destination_index = ((y * new_width + x) * 4) as usize;
+            let alpha = alpha_sum / count as f32;
 
-            for channel in 0..4 {
-                pixels[destination_index + channel] = (sum[channel] / count) as u8;
+            for channel in 0..3 {
+                let linear = if alpha_sum > 0.0 {
+                    premultiplied_rgb[channel] / alpha_sum
+                } else {
+                    0.0
+                };
+                let encoded = if image.texture_descriptor.format.is_srgb() {
+                    Srgba::gamma_function_inverse(linear)
+                } else {
+                    linear
+                };
+                pixels[destination_index + channel] =
+                    (encoded.clamp(0.0, 1.0) * 255.0).round() as u8;
             }
+            pixels[destination_index + 3] = (alpha * 255.0).round() as u8;
         }
     }
 
