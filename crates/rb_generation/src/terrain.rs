@@ -255,7 +255,7 @@ impl TerrainGenerator {
             .builder::<Ridged, Perlin>()
             .seed(2)
             .octaves(3)
-            .frequency(FREQ * 0.02)
+            .frequency(FREQ * 0.01)
             .into_iter()
             .map(|v| v.mul_add(simd_half, simd_half))
             .collect();

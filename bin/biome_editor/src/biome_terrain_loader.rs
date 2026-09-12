@@ -56,16 +56,7 @@ fn setup_load_thread(
                     break;
                 }
             }
-            // Deal with unloaded world columns that have data
-            // (happens when a structure generate blocks in a chunk that was not supposed to be loaded)
-            while let Some(col) = load_world.unloaded_columns.pop_back() {
-                load_world.unload_col(*col);
-                if unload_sender.send(*col).is_err() {
-                    // This means the game is shutting down, so we break the loop
-                    warn!("ColUnloadsReciever channel is closed, stopping terrain thread");
-                    break;
-                }
-            }
+
             // load new terrain
             let mut terrain_gen = TerrainGenerator::new(seed_value, Path::new("assets"));
             let generator =

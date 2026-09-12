@@ -27,20 +27,16 @@ impl PartialEq for BlockRayCastHit {
 pub struct VoxelWorld {
     pub chunks: Arc<SkipMap<ChunkPos, RwLock<Chunk>>>,
     /// Mark columns that eventually should have data
-    /// (they may not having it yet because of async loading)
+    /// (they may not have it yet because of async loading)
     pub loaded_columns: Arc<SkipSet<ChunkPos2d>>,
-    /// Mark columns that eventually shouldn't have data
-    /// (they may have it because of structure generation writing to neighboring chunks)
-    pub unloaded_columns: Arc<SkipSet<ChunkPos2d>>,
-    chunk_changes: Sender<ChunkPos>,
+    chunk_changes: Sender<(ChunkEvent, ChunkPos)>,
 }
 
 impl VoxelWorld {
-    pub fn new(chunk_changes: Sender<ChunkPos>) -> Self {
+    pub fn new(chunk_changes: Sender<(ChunkEvent, ChunkPos)>) -> Self {
         VoxelWorld {
             chunks: Arc::new(SkipMap::new()),
             loaded_columns: Arc::new(SkipSet::new()),
-            unloaded_columns: Arc::new(SkipSet::new()),
             chunk_changes,
         }
     }
@@ -188,14 +184,13 @@ impl VoxelWorld {
             // send changes for all chunks in the column after every syncing is done
             for chunk_pos in chunks_in_col(&changed_col) {
                 self.chunk_changes
-                    .send(chunk_pos)
+                    .send((ChunkEvent::Added, chunk_pos))
                     .expect("Failed to send chunk change");
             }
         }
     }
 
     pub fn unload_col(&self, col: ChunkPos2d) {
-        self.unloaded_columns.remove(&col);
         for y in 0..Y_CHUNKS as i32 {
             let chunk_pos = ChunkPos {
                 x: col.x,
@@ -219,7 +214,7 @@ impl VoxelWorld {
 
     /// Mark a block change, reflecting in neighboring chunks if needed
     fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, block: Block) {
-        if let Err(_) = self.chunk_changes.send(chunk_pos) {
+        if let Err(_) = self.chunk_changes.send((ChunkEvent::Edited, chunk_pos)) {
             warn!("Chunk change channel closed.");
             return;
         }
@@ -243,7 +238,7 @@ impl VoxelWorld {
                 .write()
                 .set_unpadded(neighbor_chunked_pos, block);
 
-            if let Err(_) = self.chunk_changes.send(neighbor) {
+            if let Err(_) = self.chunk_changes.send((ChunkEvent::Edited, neighbor)) {
                 warn!("Chunk change channel closed.");
                 return;
             }
@@ -367,4 +362,11 @@ impl VoxelWorld {
             }
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ChunkEvent {
+    Added,
+    Edited,
+    LODChanged,
 }

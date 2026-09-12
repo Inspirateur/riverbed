@@ -6,7 +6,7 @@ use crossbeam::channel::{Receiver, Sender, unbounded};
 use parking_lot::RwLock;
 use rb_block::Face;
 use rb_camera::PlayerControlled;
-use rb_world::{ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
+use rb_world::{ChunkEvent, ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
@@ -42,7 +42,7 @@ pub fn setup_mesh_thread(
                     info_span!("mesher", name = "waiting for mesh order").entered();
                 loop {
                     // If mesh_orders is empty, we block on mesh order updates to not waste resources
-                    let chunk_pos = if mesh_orders.len() == 0 {
+                    let (_chunk_event, chunk_pos) = if mesh_orders.len() == 0 {
                         let Ok(pos) = mesh_order_receiver.recv() else {
                             warn!("MeshOrder channel is closed, stopping mesh thread");
                             break 'outer;
@@ -106,10 +106,10 @@ pub fn setup_mesh_thread(
 pub struct MeshReciever(pub Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
 
 #[derive(Resource)]
-pub struct MeshOrderSender(pub Sender<ChunkPos>);
+pub struct MeshOrderSender(pub Sender<(ChunkEvent, ChunkPos)>);
 
 #[derive(Resource)]
-pub struct MeshOrderReceiver(pub Receiver<ChunkPos>);
+pub struct MeshOrderReceiver(pub Receiver<(ChunkEvent, ChunkPos)>);
 
 #[derive(Default, Resource, Clone)]
 pub struct SharedPlayerCol(pub Arc<RwLock<ChunkPos2d>>);

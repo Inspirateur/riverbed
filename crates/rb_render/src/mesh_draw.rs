@@ -13,6 +13,7 @@ use itertools::Itertools;
 use rb_block::Face;
 use rb_camera::PlayerControlled;
 use rb_logging::LogData;
+use rb_world::ChunkEvent;
 use rb_world::chunks_in_col;
 use rb_world::{CHUNK_S1, ChunkPos, ColUnloadEvent, PlayerCol, VoxelWorld};
 use std::collections::HashMap;
@@ -61,7 +62,7 @@ fn mark_lod_remesh(
             chunk_lods.0.insert(chunk_pos, new_lod);
             mesh_order_sender
                 .0
-                .send(chunk_pos)
+                .send((ChunkEvent::LODChanged, chunk_pos))
                 .expect("MeshOrderSender channel is closed");
         }
     }

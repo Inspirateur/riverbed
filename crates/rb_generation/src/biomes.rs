@@ -124,7 +124,7 @@ impl Biome {
         generator
             .builder::<Fbm, Perlin>()
             .octaves(3)
-            .frequency(FREQ * 1.)
+            .frequency(FREQ * 0.6)
             .fill(plain);
         plain
             .simd_iter_mut_static()
@@ -132,7 +132,7 @@ impl Biome {
             .for_each(|(mut v, m)| {
                 *v = v.mul_add(simd_half, simd_half);
                 *v = v.mul_add(
-                    StaticSimd::splat(100.) * m * m * m,
+                    StaticSimd::splat(400.) * m * m * m * m * m,
                     StaticSimd::splat(WATER_H as f32 + 10.),
                 )
             });
@@ -160,13 +160,13 @@ impl Biome {
         let n = &mut noise_samples[i];
         generator
             .builder::<Fbm, Perlin>()
-            .octaves(5)
+            .octaves(6)
             .frequency(FREQ * 0.3)
             .fill(n);
         n.simd_iter_mut().for_each(|mut v| {
             *v = v.mul_add(simd_half, simd_half);
             *v = v.mul_add(
-                StaticSimd::splat(200.),
+                StaticSimd::splat(250.),
                 StaticSimd::splat(WATER_H as f32 + 5.),
             )
         });
