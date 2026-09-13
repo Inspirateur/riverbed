@@ -1,6 +1,6 @@
 use crate::{
     BlockPos, CHUNK_S1, CHUNKP_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos, Column, MAX_HEIGHT,
-    Realm, Y_CHUNKS, chunk, chunks_in_col,
+    Realm, StructureTrait, Y_CHUNKS, chunks_in_col,
 };
 use bevy::{
     log::warn,
@@ -26,9 +26,9 @@ impl PartialEq for BlockRayCastHit {
 #[derive(Resource, Clone)]
 pub struct VoxelWorld {
     pub chunks: Arc<SkipMap<ChunkPos, RwLock<Chunk>>>,
-    /// Mark columns that eventually should have data
-    /// (they may not have it yet because of async loading)
+    /// Mark columns that are currently loaded (meaning the terrain has been generated)
     pub loaded_columns: Arc<SkipSet<ChunkPos2d>>,
+    pub structure_map: Arc<SkipMap<ChunkPos2d, Vec<Box<dyn StructureTrait>>>>,
     chunk_changes: Sender<(ChunkEvent, ChunkPos)>,
 }
 
@@ -37,6 +37,7 @@ impl VoxelWorld {
         VoxelWorld {
             chunks: Arc::new(SkipMap::new()),
             loaded_columns: Arc::new(SkipSet::new()),
+            structure_map: Arc::new(SkipMap::new()),
             chunk_changes,
         }
     }

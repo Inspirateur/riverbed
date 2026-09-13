@@ -5,8 +5,8 @@ use crossbeam::channel::{Receiver, Sender, unbounded};
 use rb_generation::TerrainGenerator;
 use rb_logging::LogData;
 use rb_world::{
-    BlockEntities, ChunkPos2d, ColUnloadEvent, PlayerCol, Realm, VoxelWorld, WorldRng,
-    player_area_diff, unload_block_entities,
+    BlockEntities, ChunkPos2d, ColUnloadEvent, PlayerCol, Realm, StructureTrait, VoxelWorld,
+    WorldRng, player_area_diff, unload_block_entities,
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -99,6 +99,7 @@ fn generation_thread(
     let mut players_by_col: HashMap<ChunkPos2d, HashSet<EntityIndex>> = HashMap::new();
     // the list of all columns that must be generated
     let mut to_load: Vec<ChunkPos2d> = Vec::new();
+    let mut structure_map: HashMap<ChunkPos2d, Vec<Box<dyn StructureTrait>>> = HashMap::new();
     loop {
         let loader_span = info_span!("loader", name = "loading 1 column").entered();
         let update_span = info_span!("loader", name = "receiving player update").entered();
@@ -176,9 +177,9 @@ fn generation_thread(
             .unwrap();
         let col = to_load.remove(closest_idx);
         closest_span.exit();
-        // TODO: put the _structure somewhere to generate later, possibly in a separate thread
         let generation_span = info_span!("loader", name = "generating terrain").entered();
-        let (column, _structure) = terrain_gen.generate(col);
+        let (column, structures) = terrain_gen.generate(col);
+        structure_map.insert(col, structures);
         trace!("{}", LogData::ColGenerated(col));
         generation_span.exit();
         let adding_span = info_span!("loader", name = "adding column to world").entered();

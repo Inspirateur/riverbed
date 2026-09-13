@@ -4,16 +4,16 @@ use crate::{auto_camera::AutoCameraPlugin, biome_terrain_loader::BiomeTerrainLoa
 use bevy::{image::*, prelude::*, window::PresentMode};
 use crossbeam::channel::unbounded;
 use rand_chacha::{ChaCha8Rng, rand_core::SeedableRng};
-use rb_render::{MeshOrderReceiver, MeshOrderSender, RenderPlugin, TextureLoadPlugin};
-use rb_world::{VoxelWorld, WorldRng};
+use rb_render::{RenderPlugin, TextureLoadPlugin};
+use rb_world::{ChunkEventReceiver, ChunkEventSender, VoxelWorld, WorldRng};
 const SEED: u64 = 42;
 
 fn main() {
     let mut app = App::new();
     let (mesh_order_sender, mesh_order_receiver) = unbounded();
     app.insert_resource(VoxelWorld::new(mesh_order_sender.clone()))
-        .insert_resource(MeshOrderReceiver(mesh_order_receiver))
-        .insert_resource(MeshOrderSender(mesh_order_sender))
+        .insert_resource(ChunkEventReceiver(mesh_order_receiver))
+        .insert_resource(ChunkEventSender(mesh_order_sender))
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {

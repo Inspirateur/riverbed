@@ -6,7 +6,7 @@ use crossbeam::channel::{Receiver, Sender, unbounded};
 use parking_lot::RwLock;
 use rb_block::Face;
 use rb_camera::PlayerControlled;
-use rb_world::{ChunkEvent, ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
+use rb_world::{ChunkEvent, ChunkEventReceiver, ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
@@ -18,7 +18,7 @@ pub fn setup_mesh_thread(
     voxel_world: Res<VoxelWorld>,
     texture_map: Res<TextureMap>,
     shared_load_area: Res<SharedPlayerCol>,
-    mesh_order_receiver: Res<MeshOrderReceiver>,
+    mesh_order_receiver: Res<ChunkEventReceiver>,
 ) {
     let (mesh_sender, mesh_reciever) = unbounded();
     commands.insert_resource(MeshReciever(mesh_reciever));
@@ -104,12 +104,6 @@ pub fn setup_mesh_thread(
 
 #[derive(Resource)]
 pub struct MeshReciever(pub Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
-
-#[derive(Resource)]
-pub struct MeshOrderSender(pub Sender<(ChunkEvent, ChunkPos)>);
-
-#[derive(Resource)]
-pub struct MeshOrderReceiver(pub Receiver<(ChunkEvent, ChunkPos)>);
 
 #[derive(Default, Resource, Clone)]
 pub struct SharedPlayerCol(pub Arc<RwLock<ChunkPos2d>>);

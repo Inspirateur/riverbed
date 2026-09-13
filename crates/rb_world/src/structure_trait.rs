@@ -3,7 +3,7 @@ use rb_pos::BlockPos;
 use crate::VoxelWorld;
 
 /// A trait to handle generating structures.
-pub trait StructureTrait {
+pub trait StructureTrait: Send + Sync {
     fn origin(&self) -> BlockPos;
     /// Returns the maximum width of the structure in blocks.
     /// This is used to determine how many columns must be loaded around the position before generating the structure.

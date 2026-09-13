@@ -10,6 +10,8 @@ pub use block_entities::BlockEntities;
 pub use block_entities::unload_block_entities;
 pub use chunk::*;
 pub use column::*;
+use crossbeam::channel::Receiver;
+use crossbeam::channel::Sender;
 pub use load_area::*;
 use rand_chacha::ChaCha8Rng;
 pub use rb_pos::*;
@@ -24,6 +26,12 @@ pub const Y_CHUNKS: usize = MAX_HEIGHT / CHUNK_S1;
 
 #[derive(Component, Default)]
 pub struct PlayerCol(pub ChunkPos2d);
+
+#[derive(Resource)]
+pub struct ChunkEventSender(pub Sender<(ChunkEvent, ChunkPos)>);
+
+#[derive(Resource)]
+pub struct ChunkEventReceiver(pub Receiver<(ChunkEvent, ChunkPos)>);
 
 #[derive(Message)]
 pub struct ColUnloadEvent(pub ChunkPos2d);

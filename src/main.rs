@@ -11,10 +11,10 @@ use rb_agents::{PlayerPlugin, TerrainLoadPlugin};
 use rb_camera::Camera3dPlugin;
 use rb_logging::RiverbedLogPlugin;
 use rb_physics::MovementPlugin;
-use rb_render::{MeshOrderReceiver, MeshOrderSender, RenderPlugin, TextureLoadPlugin};
+use rb_render::{RenderPlugin, TextureLoadPlugin};
 use rb_sounds::SoundPlugin;
 use rb_ui::UIPlugin;
-use rb_world::{VoxelWorld, WorldRng};
+use rb_world::{ChunkEventReceiver, ChunkEventSender, VoxelWorld, WorldRng};
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
@@ -24,8 +24,8 @@ fn main() {
     let mut app = App::new();
     let (mesh_order_sender, mesh_order_receiver) = unbounded();
     app.insert_resource(VoxelWorld::new(mesh_order_sender.clone()))
-        .insert_resource(MeshOrderReceiver(mesh_order_receiver))
-        .insert_resource(MeshOrderSender(mesh_order_sender))
+        .insert_resource(ChunkEventReceiver(mesh_order_receiver))
+        .insert_resource(ChunkEventSender(mesh_order_sender))
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
