@@ -99,7 +99,6 @@ fn generation_thread(
     let mut players_by_col: HashMap<ChunkPos2d, HashSet<EntityIndex>> = HashMap::new();
     // the list of all columns that must be generated
     let mut to_load: Vec<ChunkPos2d> = Vec::new();
-    let mut structure_map: HashMap<ChunkPos2d, Vec<Box<dyn StructureTrait>>> = HashMap::new();
     loop {
         let loader_span = info_span!("loader", name = "loading 1 column").entered();
         let update_span = info_span!("loader", name = "receiving player update").entered();
@@ -179,11 +178,10 @@ fn generation_thread(
         closest_span.exit();
         let generation_span = info_span!("loader", name = "generating terrain").entered();
         let (column, structures) = terrain_gen.generate(col);
-        structure_map.insert(col, structures);
         trace!("{}", LogData::ColGenerated(col));
         generation_span.exit();
         let adding_span = info_span!("loader", name = "adding column to world").entered();
-        load_world.add_column(col, column);
+        load_world.add_column(col, column, structures, seed);
         adding_span.exit();
         loader_span.exit();
     }

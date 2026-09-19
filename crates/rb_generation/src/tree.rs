@@ -30,7 +30,7 @@ impl StructureTrait for TreeSeed {
         self.pos
     }
 
-    fn grow(&self, world: &VoxelWorld, seed: i32) {
+    fn grow(&self, world: &VoxelWorld, seed: u64) {
         if !world.get_block_safe(self.pos).is_fertile_soil() {
             return;
         }
@@ -48,7 +48,7 @@ impl StructureTrait for TreeSeed {
         }
     }
 
-    fn max_block_width(&self) -> i32 {
-        30
+    fn max_block_dist(&self) -> usize {
+        15
     }
 }

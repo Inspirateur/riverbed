@@ -47,7 +47,7 @@ impl<const U: usize> Pos3d<U> {
             .wrapping_mul(K)
     }
 
-    pub fn prng(&self, seed: i32) -> usize {
+    pub fn prng(&self, seed: u64) -> usize {
         let n = self._prng(seed as usize);
         self._prng(n)
     }

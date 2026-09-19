@@ -91,9 +91,9 @@ fn setup_load_thread(
                         .for_each(|v| *v += bias_params[i]);
                 }
                 load_world.loaded_columns.insert(col_pos);
-                let (column, _structures) =
+                let (column, structures) =
                     terrain_gen.generate_with_params(generator, col_pos.into(), col_params);
-                load_world.add_column(col_pos, column);
+                load_world.add_column(col_pos, column, structures, seed_value);
             }
         })
         .detach();
