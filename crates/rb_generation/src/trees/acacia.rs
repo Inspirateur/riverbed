@@ -6,7 +6,7 @@ pub fn grow_acacia(world: &VoxelWorld, pos: BlockPos, _seed: u64, dist: f32) {
     let height = 10 - (dist * 7.) as i32;
     let mut pos = pos;
     for _ in 0..height {
-        world.set_block(pos, Block::AcaciaLog);
+        world.set_block(pos, Block::AcaciaLog, false);
         pos.y += 1;
     }
 

@@ -47,25 +47,27 @@ impl VoxelWorld {
         }
     }
 
-    pub fn set_block(&self, pos: BlockPos, block: Block) {
+    pub fn set_block(&self, pos: BlockPos, block: Block, mark_change: bool) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         self.chunks
             .get_or_insert_with(chunk_pos, || RwLock::new(Chunk::new()))
             .value()
             .write()
             .set(chunked_pos, block);
-        self.mark_change(chunk_pos, chunked_pos, block);
+        if mark_change {
+            self.mark_change(chunk_pos, chunked_pos, block);
+        }
     }
 
     pub fn set_block_safe(&self, pos: BlockPos, block: Block) -> bool {
         if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 {
             return false;
         }
-        self.set_block(pos, block);
+        self.set_block(pos, block, true);
         true
     }
 
-    pub fn set_if_empty(&self, pos: BlockPos, block: Block) {
+    pub fn set_if_empty(&self, pos: BlockPos, block: Block, mark_change: bool) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         if self
             .chunks
@@ -73,6 +75,7 @@ impl VoxelWorld {
             .value()
             .write()
             .set_if_empty(chunked_pos, block)
+            && mark_change
         {
             self.mark_change(chunk_pos, chunked_pos, block);
         }

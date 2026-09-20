@@ -19,7 +19,7 @@ fn sequoia_leaves(world: &VoxelWorld, pos: BlockPos, dir_x: i32, dir_z: i32, siz
             0,
             if dir_z == 1 { 2 } else { -1 },
         );
-    world.set_block(pos, Block::SequoiaLog);
+    world.set_block(pos, Block::SequoiaLog, false);
     leaf_disk(world, pos + (0, -1, 0), 1, Block::SequoiaLeaves);
     leaf_disk(
         world,
@@ -41,11 +41,11 @@ pub fn grow_sequoia(world: &VoxelWorld, pos: BlockPos, seed: u64, dist: f32) {
                 sequoia_leaves(world, pos, -dir_x, -dir_z, (i / 4) as usize);
             }
         }
-        world.set_block(pos, Block::SequoiaLog);
-        world.set_block(pos + (1, 0, 0), Block::SequoiaLog);
-        world.set_block(pos + (0, 0, 1), Block::SequoiaLog);
-        world.set_block(pos + (1, 0, 1), Block::SequoiaLog);
+        world.set_block(pos, Block::SequoiaLog, false);
+        world.set_block(pos + (1, 0, 0), Block::SequoiaLog, false);
+        world.set_block(pos + (0, 0, 1), Block::SequoiaLog, false);
+        world.set_block(pos + (1, 0, 1), Block::SequoiaLog, false);
         pos.y += 1;
     }
-    world.set_block(pos, Block::SpruceLeaves);
+    world.set_block(pos, Block::SpruceLeaves, false);
 }

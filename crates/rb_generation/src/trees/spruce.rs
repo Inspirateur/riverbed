@@ -14,10 +14,10 @@ pub fn grow_spruce(world: &VoxelWorld, pos: BlockPos, _seed: u64, dist: f32) {
                 Block::SpruceLeaves,
             )
         }
-        world.set_block(pos, Block::SpruceLog);
+        world.set_block(pos, Block::SpruceLog, false);
         pos.y += 1;
     }
     leaf_disk(world, pos, 1, Block::SpruceLeaves);
     pos.y += 1;
-    world.set_block(pos, Block::SpruceLeaves);
+    world.set_block(pos, Block::SpruceLeaves, false);
 }

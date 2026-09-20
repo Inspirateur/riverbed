@@ -101,6 +101,7 @@ fn on_furnace_edit(
             voxel_world.set_block(
                 furnace.block_pos,
                 voxel_world.get_block(furnace.block_pos).off(),
+                true,
             );
             continue;
         };
@@ -115,6 +116,7 @@ fn on_furnace_edit(
         voxel_world.set_block(
             furnace.block_pos,
             voxel_world.get_block(furnace.block_pos).on(),
+            true,
         );
     }
 }

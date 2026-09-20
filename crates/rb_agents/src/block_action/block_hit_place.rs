@@ -209,7 +209,7 @@ fn break_action(
         };
         match looting.action_type {
             BlockActionType::Breaking => {
-                world.set_block(target_block.pos, Block::Air);
+                world.set_block(target_block.pos, Block::Air, true);
                 if let Some(entity) = col_entities.get(&target_block.pos) {
                     if let Ok(block_pos) = block_entt_query.get(entity) {
                         if block_pos.0 == target_block.pos {
@@ -220,7 +220,7 @@ fn break_action(
             }
             BlockActionType::Harvesting => {
                 let depleted = world.get_block(target_block.pos).depleted();
-                world.set_block(target_block.pos, depleted);
+                world.set_block(target_block.pos, depleted, true);
                 if let Some(renewal_minutes) = depleted.renewal_minutes() {
                     let renew_entt = commands
                         .spawn((
@@ -306,7 +306,7 @@ fn renew_block(
     let now = Instant::now();
     for (entity, renewable, pos) in renewables.iter() {
         if now >= renewable.renew_after {
-            world.set_block(pos.0, world.get_block(pos.0).renewed());
+            world.set_block(pos.0, world.get_block(pos.0).renewed(), true);
             commands.entity(entity).despawn();
         }
     }

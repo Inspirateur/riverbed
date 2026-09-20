@@ -6,7 +6,7 @@ pub fn grow_oak(world: &VoxelWorld, pos: BlockPos, _seed: u64, dist: f32) {
     let height = 12 - (dist * 7.) as i32;
     let mut pos = pos;
     for _ in 0..height {
-        world.set_block(pos, Block::OakLog);
+        world.set_block(pos, Block::OakLog, false);
         pos.y += 1;
     }
 

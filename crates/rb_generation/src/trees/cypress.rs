@@ -6,7 +6,7 @@ pub fn grow_cypress(world: &VoxelWorld, pos: BlockPos, _seed: u64, dist: f32) {
     let height = 11 - (dist * 3.) as i32;
     let mut pos = pos;
     for _ in 0..height {
-        world.set_block(pos, Block::SpruceLog);
+        world.set_block(pos, Block::SpruceLog, false);
         pos.y += 1;
     }
     pos.y -= height / 2;
@@ -19,5 +19,5 @@ pub fn grow_cypress(world: &VoxelWorld, pos: BlockPos, _seed: u64, dist: f32) {
         );
         pos.y += 1;
     }
-    world.set_block(pos, Block::SpruceLeaves);
+    world.set_block(pos, Block::SpruceLeaves, false);
 }
