@@ -14,11 +14,6 @@ pub const CHUNKP_S2: usize = CHUNKP_S1.pow(2);
 pub const CHUNKP_S3: usize = CHUNKP_S1.pow(3);
 pub const CHUNK_S1I: i32 = CHUNK_S1 as i32;
 
-pub const MAX_HEIGHT: usize = 496;
-pub const MAX_GEN_HEIGHT: usize = 400;
-pub const WATER_H: i32 = 61;
-pub const Y_CHUNKS: usize = MAX_HEIGHT / CHUNK_S1;
-
 const CHUNK_S1F: f32 = CHUNK_S1I as f32;
 
 pub fn chunked<const C: usize, const U: usize>(x: i32) -> (i32, usize) {

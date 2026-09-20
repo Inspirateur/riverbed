@@ -2,32 +2,34 @@ use crate::mesh_draw::{LOD, choose_lod_level};
 use crate::mesh_logic::ChunkMeshing;
 use crate::texture_array::TextureMap;
 use bevy::prelude::*;
-use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{Receiver, Sender, unbounded};
 use parking_lot::RwLock;
 use rb_block::Face;
 use rb_camera::PlayerControlled;
-use rb_world::{ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
+use rb_world::{ChunkEvent, ChunkEventReceiver, ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
+
+const MESH_THREAD_COUNT: usize = 2;
 
 pub fn setup_mesh_thread(
     mut commands: Commands,
     voxel_world: Res<VoxelWorld>,
     texture_map: Res<TextureMap>,
     shared_load_area: Res<SharedPlayerCol>,
-    mesh_order_receiver: Res<MeshOrderReceiver>,
+    mesh_order_receiver: Res<ChunkEventReceiver>,
 ) {
-    let thread_pool = AsyncComputeTaskPool::get();
-    let chunks = voxel_world.chunks.clone();
     let (mesh_sender, mesh_reciever) = unbounded();
     commands.insert_resource(MeshReciever(mesh_reciever));
-    let texture_map = texture_map.0.clone();
-    let mesh_order_receiver = mesh_order_receiver.0.clone();
-    let shared_load_area = shared_load_area.0.clone();
-    thread_pool
-        .spawn(async move {
+
+    for _ in 0..MESH_THREAD_COUNT {
+        let chunks = voxel_world.chunks.clone();
+        let mesh_sender = mesh_sender.clone();
+        let texture_map = texture_map.0.clone();
+        let mesh_order_receiver = mesh_order_receiver.0.clone();
+        let shared_load_area = shared_load_area.0.clone();
+        std::thread::spawn(move || {
             // Busy wait until the texture map is loaded (ugly but only costly on startup)
             while texture_map.len() == 0 {
                 yield_now()
@@ -35,9 +37,12 @@ pub fn setup_mesh_thread(
             let mut mesh_cache: HashSet<ChunkPos> = HashSet::new();
             let mut mesh_orders: Vec<ChunkPos> = Vec::new();
             'outer: loop {
+                let mesher_span = info_span!("mesher", name = "meshing 1 chunk").entered();
+                let mesh_order_span =
+                    info_span!("mesher", name = "waiting for mesh order").entered();
                 loop {
                     // If mesh_orders is empty, we block on mesh order updates to not waste resources
-                    let chunk_pos = if mesh_orders.len() == 0 {
+                    let (_chunk_event, chunk_pos) = if mesh_orders.len() == 0 {
                         let Ok(pos) = mesh_order_receiver.recv() else {
                             warn!("MeshOrder channel is closed, stopping mesh thread");
                             break 'outer;
@@ -53,6 +58,9 @@ pub fn setup_mesh_thread(
                         mesh_orders.push(chunk_pos);
                     }
                 }
+                mesh_order_span.exit();
+                let mesh_selection_span =
+                    info_span!("mesher", name = "selecting mesh to generate").entered();
                 let player_col = shared_load_area.read().clone();
                 // Pop the closest mesh order
                 let (i, (chunk_pos, dist)) = mesh_orders
@@ -67,6 +75,8 @@ pub fn setup_mesh_thread(
                 mesh_orders.remove(i);
                 mesh_cache.remove(&chunk_pos);
                 let lod = choose_lod_level(dist as u32);
+                mesh_selection_span.exit();
+                let meshing_span = info_span!("mesher", name = "meshing").entered();
                 let Some(chunk) = chunks.get(&chunk_pos) else {
                     continue;
                 };
@@ -85,19 +95,15 @@ pub fn setup_mesh_thread(
                         break 'outer;
                     };
                 }
+                meshing_span.exit();
+                mesher_span.exit();
             }
-        })
-        .detach();
+        });
+    }
 }
 
 #[derive(Resource)]
 pub struct MeshReciever(pub Receiver<(Option<Mesh>, ChunkPos, Face, LOD)>);
-
-#[derive(Resource)]
-pub struct MeshOrderSender(pub Sender<ChunkPos>);
-
-#[derive(Resource)]
-pub struct MeshOrderReceiver(pub Receiver<ChunkPos>);
 
 #[derive(Default, Resource, Clone)]
 pub struct SharedPlayerCol(pub Arc<RwLock<ChunkPos2d>>);

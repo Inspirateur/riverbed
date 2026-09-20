@@ -30,8 +30,11 @@ fn feed_logs(mut log_events: MessageWriter<LogEvent>) {
             continue;
         }
         let timestamp = DateTime::from_str(parts[0]).unwrap();
-        let data_str = parts[3..].join(" ");
+        let data_str = parts[parts.len() - 1].to_string();
         let data = ron::from_str(&data_str).unwrap_or(LogData::Message(data_str));
+        if let LogData::Message(msg) = &data {
+            println!("{}: {}", timestamp, msg);
+        }
         log_events.write(LogEvent { timestamp, data });
     }
 }

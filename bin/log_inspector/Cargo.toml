@@ -16,3 +16,6 @@ leafwing-input-manager = "*"
 ron = "0.8"
 serde = "1"
 rfd = "*"
+
+[dev-dependencies]
+rand = "*"

@@ -1,6 +1,6 @@
 use crate::{
-    BlockPos, BlockPos2d, CHUNK_S1, CHUNKP_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos,
-    ChunkedPos2d, MAX_HEIGHT, Realm, Y_CHUNKS, chunked, pos2d::chunks_in_col,
+    BlockPos, CHUNK_S1, CHUNKP_S1, Chunk, ChunkPos, ChunkPos2d, ChunkedPos, Column, MAX_HEIGHT,
+    Realm, StructureTrait, Y_CHUNKS, chunks_in_col,
 };
 use bevy::{
     log::warn,
@@ -8,6 +8,7 @@ use bevy::{
 };
 use crossbeam::channel::Sender;
 use crossbeam_skiplist::{SkipMap, SkipSet, map::Entry};
+use itertools::Itertools;
 use parking_lot::RwLock;
 use rb_block::{Block, Face};
 use std::sync::Arc;
@@ -26,81 +27,47 @@ impl PartialEq for BlockRayCastHit {
 #[derive(Resource, Clone)]
 pub struct VoxelWorld {
     pub chunks: Arc<SkipMap<ChunkPos, RwLock<Chunk>>>,
-    /// Mark columns that eventually should have data
-    /// (they may not having it yet because of async loading)
+    /// Mark columns that are currently loaded (meaning the terrain has been generated)
     pub loaded_columns: Arc<SkipSet<ChunkPos2d>>,
-    /// Mark columns that eventually shouldn't have data
-    /// (they may have it because of structure generation writing to neighboring chunks)
-    pub unloaded_columns: Arc<SkipSet<ChunkPos2d>>,
-    chunk_changes: Sender<ChunkPos>,
+    /// For each column, stores the structures that are yet to be generated
+    /// and the loaded distance needed for all structures to generate inside the column
+    ///
+    /// (loaded distance of 1 means that all 8 neigboring columns must be loaded before the structures can be generated)
+    pub structure_map: Arc<SkipMap<ChunkPos2d, (Vec<Box<dyn StructureTrait>>, usize)>>,
+    chunk_changes: Sender<(ChunkEvent, ChunkPos)>,
 }
 
 impl VoxelWorld {
-    pub fn new(chunk_changes: Sender<ChunkPos>) -> Self {
+    pub fn new(chunk_changes: Sender<(ChunkEvent, ChunkPos)>) -> Self {
         VoxelWorld {
             chunks: Arc::new(SkipMap::new()),
             loaded_columns: Arc::new(SkipSet::new()),
-            unloaded_columns: Arc::new(SkipSet::new()),
+            structure_map: Arc::new(SkipMap::new()),
             chunk_changes,
         }
     }
 
-    pub fn set_block(&self, pos: BlockPos, block: Block) {
+    pub fn set_block(&self, pos: BlockPos, block: Block, mark_change: bool) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         self.chunks
             .get_or_insert_with(chunk_pos, || RwLock::new(Chunk::new()))
             .value()
             .write()
             .set(chunked_pos, block);
-        self.mark_change(chunk_pos, chunked_pos, block);
+        if mark_change {
+            self.mark_change(chunk_pos, chunked_pos, block);
+        }
     }
 
     pub fn set_block_safe(&self, pos: BlockPos, block: Block) -> bool {
         if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 {
             return false;
         }
-        self.set_block(pos, block);
+        self.set_block(pos, block, true);
         true
     }
 
-    pub fn set_yrange(
-        &self,
-        col_pos: ChunkPos2d,
-        in_col_pos: ChunkedPos2d,
-        top: i32,
-        mut height: usize,
-        block: Block,
-    ) {
-        // USED BY TERRAIN GENERATION - bypasses change detection for efficiency
-        let (mut cy, mut dy) = chunked::<CHUNK_S1, 1>(top);
-        while height > 0 && cy >= 0 {
-            let chunk_pos = ChunkPos {
-                x: col_pos.x,
-                y: cy,
-                z: col_pos.z,
-                realm: col_pos.realm,
-            };
-            let h = height.min(dy);
-            self.chunks
-                .get_or_insert_with(chunk_pos, || RwLock::new(Chunk::new()))
-                .value()
-                .write()
-                .set_yrange(
-                    ChunkedPos {
-                        x: in_col_pos.x,
-                        y: dy,
-                        z: in_col_pos.z,
-                    },
-                    h,
-                    block,
-                );
-            height -= h;
-            cy -= 1;
-            dy = CHUNK_S1 - 1;
-        }
-    }
-
-    pub fn set_if_empty(&self, pos: BlockPos, block: Block) {
+    pub fn set_if_empty(&self, pos: BlockPos, block: Block, mark_change: bool) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         if self
             .chunks
@@ -108,6 +75,7 @@ impl VoxelWorld {
             .value()
             .write()
             .set_if_empty(chunked_pos, block)
+            && mark_change
         {
             self.mark_change(chunk_pos, chunked_pos, block);
         }
@@ -129,25 +97,6 @@ impl VoxelWorld {
         }
     }
 
-    pub fn top_block(&self, pos: BlockPos2d) -> (Block, i32) {
-        let (col_pos, pos2d) = pos.into();
-        for y in (0..Y_CHUNKS as i32).rev() {
-            let chunk_pos = ChunkPos {
-                x: col_pos.x,
-                y,
-                z: col_pos.z,
-                realm: col_pos.realm,
-            };
-            if let Some(chunk) = self.chunks.get(&chunk_pos) {
-                let (&block, block_y) = chunk.value().read().top(pos2d);
-                if block != Block::Air {
-                    return (block.clone(), y * CHUNK_S1 as i32 + block_y as i32);
-                }
-            }
-        }
-        (Block::Air, 0)
-    }
-
     pub fn is_col_loaded(&self, player_pos: Vec3, realm: Realm) -> bool {
         let (chunk_pos, _): (ChunkPos, _) = <BlockPos>::from((player_pos, realm)).into();
         for y in (0..Y_CHUNKS as i32).rev() {
@@ -164,12 +113,102 @@ impl VoxelWorld {
         false
     }
 
+    /// Checks if all columns within the given distance (Chebyshev) around the specified column are loaded.
+    fn has_distance_loaded_around(&self, col_pos: ChunkPos2d, dist: usize) -> bool {
+        (-(dist as i32)..(dist as i32))
+            .cartesian_product(-(dist as i32)..(dist as i32))
+            .map(|(dx, dz)| ChunkPos2d {
+                x: col_pos.x + dx,
+                z: col_pos.z + dz,
+                realm: col_pos.realm,
+            })
+            .all(|neighbor_col| self.loaded_columns.contains(&neighbor_col))
+    }
+
+    /// Add a column and its structure seeds to the world.
+    ///
+    /// Will grow any structures that have enough surrounding columns loaded.
+    pub fn add_column(
+        &self,
+        col_pos: ChunkPos2d,
+        column: Column,
+        structures: Vec<Box<dyn StructureTrait>>,
+        seed: u64,
+    ) {
+        // insert the new structures and compute their minimum loaded column distance
+        let has_structures = !structures.is_empty();
+        if has_structures {
+            let max_col_dist = structures
+                .iter()
+                .map(|s| s.required_load_distance())
+                .max()
+                .unwrap();
+            self.structure_map
+                .insert(col_pos, (structures, max_col_dist));
+        }
+        // Add the chunks of the column to the world
+        let mut cy = -1;
+        for chunk in column.0 {
+            cy += 1;
+            if chunk.is_empty() {
+                continue;
+            }
+            let chunk_pos = ChunkPos {
+                x: col_pos.x,
+                y: cy,
+                z: col_pos.z,
+                realm: col_pos.realm,
+            };
+            self.chunks.insert(chunk_pos, RwLock::new(chunk));
+            // no need to sync down because we're iterating over the column syncing up
+            self.loaded_columns.insert(col_pos);
+        }
+        // Attempt to load the structures
+        for entry in self.structure_map.iter() {
+            if self.has_distance_loaded_around(*entry.key(), entry.value().1) {
+                // Grow the structures of this column
+                for s in &self.structure_map.remove(entry.key()).unwrap().value().0 {
+                    s.grow(self, seed);
+                }
+                self.sync_column(*entry.key());
+                // send changes for all chunks in the column after every syncing is done
+                for chunk_pos in chunks_in_col(entry.key()) {
+                    self.chunk_changes
+                        .send((ChunkEvent::Added, chunk_pos))
+                        .expect("Failed to send chunk change");
+                }
+            }
+        }
+        if !has_structures {
+            // send changes for all chunks in the column after every syncing is done
+            for chunk_pos in chunks_in_col(&col_pos) {
+                self.chunk_changes
+                    .send((ChunkEvent::Added, chunk_pos))
+                    .expect("Failed to send chunk change");
+            }
+        }
+    }
+
+    /// Synchronize padding info between all chunks in a column with their neighbors
+    fn sync_column(&self, col_pos: ChunkPos2d) {
+        for chunk_pos in chunks_in_col(&col_pos) {
+            let Some(chunk) = self.chunks.get(&chunk_pos) else {
+                continue;
+            };
+            self.sync_padding_info(&chunk, chunk_pos, Face::Left);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Right);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Front);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Back);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Up);
+        }
+    }
+
+    /// Synchronizes the padding information between a chunk and one of its neighboring chunks.
     fn sync_padding_info(
         &self,
         chunk: &Entry<ChunkPos, RwLock<Chunk>>,
         chunk_pos: ChunkPos,
         face: Face,
-        send_change: bool,
     ) {
         let other_pos = ChunkPos {
             x: chunk_pos.x + face.n()[0],
@@ -180,47 +219,23 @@ impl VoxelWorld {
         let Some(other) = self.chunks.get(&other_pos) else {
             return;
         };
-        chunk
-            .value()
-            .write()
-            .copy_side_from(&other.value().read(), face);
-        other
-            .value()
-            .write()
-            .copy_side_from(&chunk.value().read(), face.opposite());
-        if send_change {
-            self.chunk_changes
-                .send(other_pos)
-                .expect("Failed to send chunk change");
-        }
-    }
-
-    pub fn mark_change_col(&self, col_pos: ChunkPos2d) {
-        // USE BY TERRAIN GEN to mass mark change on chunks for efficiency
-        for chunk_pos in chunks_in_col(&col_pos) {
-            let Some(chunk) = self.chunks.get(&chunk_pos) else {
-                continue;
-            };
-            self.sync_padding_info(&chunk, chunk_pos, Face::Left, true);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Right, true);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Front, true);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Back, true);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Up, false);
-            // no need to sync down because we're iterating over the column syncing up
-        }
-        // send changes for all chunks in the column after every syncing is done
-        for chunk_pos in chunks_in_col(&col_pos) {
-            if !self.chunks.contains_key(&chunk_pos) {
-                continue;
-            }
-            self.chunk_changes
-                .send(chunk_pos)
-                .expect("Failed to send chunk change");
+        // Lock both chunks in a fixed order (by position) regardless of which side calls
+        // this, otherwise two threads syncing the same pair from opposite ends can each
+        // hold one write lock while waiting on the other's read lock (AB-BA deadlock).
+        if chunk_pos < other_pos {
+            let mut chunk_guard = chunk.value().write();
+            let mut other_guard = other.value().write();
+            chunk_guard.copy_side_from(&other_guard, face);
+            other_guard.copy_side_from(&chunk_guard, face.opposite());
+        } else {
+            let mut other_guard = other.value().write();
+            let mut chunk_guard = chunk.value().write();
+            chunk_guard.copy_side_from(&other_guard, face);
+            other_guard.copy_side_from(&chunk_guard, face.opposite());
         }
     }
 
     pub fn unload_col(&self, col: ChunkPos2d) {
-        self.unloaded_columns.remove(&col);
         for y in 0..Y_CHUNKS as i32 {
             let chunk_pos = ChunkPos {
                 x: col.x,
@@ -244,14 +259,7 @@ impl VoxelWorld {
 
     /// Mark a block change, reflecting in neighboring chunks if needed
     fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, block: Block) {
-        // If the chunk is not supposed to be loaded (can happen in structure generation acting into neighboring chunks),
-        // mark it for unloading straight away so the memory gets cleaned up
-        // and skip sending the change
-        if !self.loaded_columns.contains(&chunk_pos.into()) {
-            self.unloaded_columns.insert(chunk_pos.into());
-            return;
-        }
-        if let Err(_) = self.chunk_changes.send(chunk_pos) {
+        if let Err(_) = self.chunk_changes.send((ChunkEvent::Edited, chunk_pos)) {
             warn!("Chunk change channel closed.");
             return;
         }
@@ -275,7 +283,7 @@ impl VoxelWorld {
                 .write()
                 .set_unpadded(neighbor_chunked_pos, block);
 
-            if let Err(_) = self.chunk_changes.send(neighbor) {
+            if let Err(_) = self.chunk_changes.send((ChunkEvent::Edited, neighbor)) {
                 warn!("Chunk change channel closed.");
                 return;
             }
@@ -399,4 +407,11 @@ impl VoxelWorld {
             }
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ChunkEvent {
+    Added,
+    Edited,
+    LODChanged,
 }

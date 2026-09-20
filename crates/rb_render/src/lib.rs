@@ -7,7 +7,6 @@ mod sky;
 mod texture_array;
 mod texture_load;
 use bevy::prelude::Plugin;
-pub use mesh_thread::{MeshOrderReceiver, MeshOrderSender};
 pub use texture_load::*;
 
 pub struct RenderPlugin;

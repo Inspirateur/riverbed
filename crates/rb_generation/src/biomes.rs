@@ -1,7 +1,16 @@
-use crate::{biome_params::BiomeParameters, layer::*};
+use crate::{
+    biome_params::{BiomeParam, BiomeParameters},
+    layer::*,
+    noise_samples::NoiseSamples,
+    terrain::FREQ,
+};
+use quick_noise::{
+    Billow, Fbm, Grid, GridGenerator, Octave, Perlin, Ridged, simd::SimdSliceIterExt,
+    simd::StaticSimd,
+};
 use rb_block::Block;
-use rb_noise::*;
-use rb_world::{CHUNK_S1, CHUNK_S2, ChunkPos2d, WATER_H, unchunked};
+use rb_world::{CHUNK_S1, ChunkPos2d, WATER_H};
+use std::ops::{Mul, MulAssign};
 use strum_macros::EnumString;
 const MOUNTAIN_H: f32 = 150.;
 
@@ -16,29 +25,50 @@ pub enum Biome {
     Tundra,
     Savannah,
     Jungle,
+    JunglePillars,
 }
 
 impl Biome {
-    pub fn generate(&self, seed: u32, col: ChunkPos2d, params: &BiomeParameters) -> Vec<Layer> {
+    pub fn generate(
+        &self,
+        generator: Grid<2>,
+        noise_samples: &mut NoiseSamples,
+        params: &BiomeParameters,
+    ) -> Vec<Layer> {
         match self {
-            Biome::PolarOcean => Biome::generate_polar_ocean(seed, col, params),
-            Biome::Ocean => Biome::generate_ocean(seed, col, params),
-            Biome::Mountain => Biome::generate_mountain(seed, col, params),
-            Biome::Desert => Biome::generate_desert(seed, col, params),
-            Biome::Jungle => Biome::generate_jungle(seed, col, params),
-            Biome::Canyon => Biome::generate_canyon(seed, col, params),
-            Biome::Tundra => Biome::generate_tundra(seed, col, params),
+            Biome::PolarOcean => Biome::generate_polar_ocean(generator, noise_samples, params),
+            Biome::Ocean => Biome::generate_ocean(generator, noise_samples, params),
+            Biome::Mountain => Biome::generate_mountain(generator, noise_samples, params),
+            Biome::Desert => Biome::generate_desert(generator, noise_samples, params),
+            Biome::Jungle => Biome::generate_jungle(generator, noise_samples, params),
+            Biome::Canyon => Biome::generate_canyon(generator, noise_samples, params),
+            Biome::Tundra => Biome::generate_tundra(generator, noise_samples, params),
+            Biome::JunglePillars => {
+                Biome::generate_jungle_pillars(generator, noise_samples, params)
+            }
             // Plain is the default for any not yet implemented biomes
-            _ => Biome::generate_plain(seed, col, params),
+            _ => Biome::generate_plain(generator, noise_samples, params),
         }
     }
 
-    fn generate_polar_ocean(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
-        let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed, 0.05);
-        powi(&mut n, 3);
-        mul_const(&mut n, -2.);
-        add_const(&mut n, WATER_H as f32);
+    fn generate_polar_ocean(
+        generator: Grid<2>,
+        noise_samples: &mut NoiseSamples,
+        _params: &BiomeParameters,
+    ) -> Vec<Layer> {
+        let i = noise_samples.get_slot();
+        let n = &mut noise_samples[i];
+        generator
+            .builder::<Ridged, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.05)
+            .fill(n);
+        n.simd_iter_mut().for_each(|mut v| {
+            *v = v
+                .mul(*v)
+                .mul(*v)
+                .mul_add(StaticSimd::splat(-2.), StaticSimd::splat(WATER_H as f32))
+        });
         vec![
             Layer {
                 block: Block::Sand,
@@ -54,7 +84,7 @@ impl Biome {
             },
             Layer {
                 block: Block::Ice,
-                height: Height::Noise(n),
+                height: Height::Noise(i),
                 tag: LayerTag::Fixed {
                     height: (WATER_H as usize) - 1,
                 },
@@ -62,7 +92,11 @@ impl Biome {
         ]
     }
 
-    fn generate_ocean(_seed: u32, _col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
+    fn generate_ocean(
+        _generator: Grid<2>,
+        _noise_samples: &mut NoiseSamples,
+        _params: &BiomeParameters,
+    ) -> Vec<Layer> {
         vec![
             Layer {
                 block: Block::Sand,
@@ -79,14 +113,29 @@ impl Biome {
         ]
     }
 
-    fn generate_plain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
-        let mut plain = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.08);
-        let mut mask: Vec<f32> = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 11, 0.005);
-        points_lerp(&mut mask, &[(0., 0.), (0.4, 0.1), (0.6, 0.9), (1., 1.)]);
-        mul(&mut plain, &mask);
-        mul_const(&mut plain, 30.);
-        add_const(&mut plain, WATER_H as f32 + 15.);
+    fn generate_plain(
+        generator: Grid<2>,
+        noise_samples: &mut NoiseSamples,
+        params: &BiomeParameters,
+    ) -> Vec<Layer> {
+        let plain_i = noise_samples.get_slot();
+        let plain = &mut noise_samples[plain_i];
+        let simd_half = StaticSimd::splat(0.5);
+        generator
+            .builder::<Fbm, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.6)
+            .fill(plain);
+        plain
+            .simd_iter_mut_static()
+            .zip(params.0[&BiomeParam::Mountainness].simd_iter_static())
+            .for_each(|(mut v, m)| {
+                *v = v.mul_add(simd_half, simd_half);
+                *v = v.mul_add(
+                    StaticSimd::splat(400.) * m * m * m * m * m,
+                    StaticSimd::splat(WATER_H as f32 + 10.),
+                )
+            });
         vec![
             Layer {
                 block: Block::Granite,
@@ -95,69 +144,57 @@ impl Biome {
             },
             Layer {
                 block: Block::GrassBlock,
-                height: Height::Noise(plain),
+                height: Height::Noise(plain_i),
                 tag: LayerTag::Soil,
             },
         ]
     }
 
-    fn generate_mountain(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
-        let mut n = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.03);
-        let mut top = n.clone();
-        let hills = fbm_scaled(
-            x,
-            CHUNK_S1,
-            z,
-            CHUNK_S1,
-            seed + 11,
-            0.05,
-            WATER_H as f32 + 5.,
-            WATER_H as f32 + 10.,
-        );
-        points_lerp(
-            &mut n,
-            &[
-                (0., WATER_H as f32),
-                (0.6, WATER_H as f32 + 5.),
-                (0.9, MOUNTAIN_H - 5.),
-                (1., MOUNTAIN_H),
-            ],
-        );
-        points_lerp(
-            &mut top,
-            &[
-                (0., 0.),
-                (0.6, 0.),
-                (0.9, MOUNTAIN_H - 5.),
-                (1., MOUNTAIN_H),
-            ],
-        );
-        vec![
-            Layer {
-                block: Block::Granite,
-                height: Height::Noise(n),
-                tag: LayerTag::Mantle,
-            },
-            Layer {
-                block: Block::GrassBlock,
-                height: Height::Noise(hills),
-                tag: LayerTag::Soil,
-            },
-            Layer {
-                block: Block::Snow,
-                height: Height::Noise(top),
-                tag: LayerTag::Deposit,
-            },
-        ]
+    fn generate_mountain(
+        generator: Grid<2>,
+        noise_samples: &mut NoiseSamples,
+        _params: &BiomeParameters,
+    ) -> Vec<Layer> {
+        let simd_half = StaticSimd::splat(0.5);
+        let i = noise_samples.get_slot();
+        let n = &mut noise_samples[i];
+        generator
+            .builder::<Fbm, Perlin>()
+            .octaves(6)
+            .frequency(FREQ * 0.3)
+            .fill(n);
+        n.simd_iter_mut().for_each(|mut v| {
+            *v = v.mul_add(simd_half, simd_half);
+            *v = v.mul_add(
+                StaticSimd::splat(250.),
+                StaticSimd::splat(WATER_H as f32 + 5.),
+            )
+        });
+        vec![Layer {
+            block: Block::Granite,
+            height: Height::Noise(i),
+            tag: LayerTag::Mantle,
+        }]
     }
 
-    fn generate_desert(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
-        let mut dunes = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.02);
-        powi(&mut dunes, 2);
-        mul_const(&mut dunes, 30.);
-        add_const(&mut dunes, WATER_H as f32 + 5.);
+    fn generate_desert(
+        generator: Grid<2>,
+        noise_samples: &mut NoiseSamples,
+        _params: &BiomeParameters,
+    ) -> Vec<Layer> {
+        let dunes_i = noise_samples.get_slot();
+        let dunes = &mut noise_samples[dunes_i];
+        generator
+            .builder::<Ridged, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.2)
+            .fill(dunes);
+        dunes.simd_iter_mut().for_each(|mut v| {
+            *v = v.sqrt().mul_add(
+                StaticSimd::splat(20.),
+                StaticSimd::splat(WATER_H as f32 + 15.),
+            )
+        });
         vec![
             Layer {
                 block: Block::Granite,
@@ -166,77 +203,85 @@ impl Biome {
             },
             Layer {
                 block: Block::Sand,
-                height: Height::Noise(dunes),
-                tag: LayerTag::Deposit,
+                height: Height::Noise(dunes_i),
+                tag: LayerTag::Soil,
             },
         ]
     }
 
-    fn generate_jungle(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
-        let mut n = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.1);
-        let mask = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 11, 0.1);
-        mul(&mut n, &mask);
-        mul_const(&mut n, 60.);
-        add_const(&mut n, WATER_H as f32 + 5.);
-        quantize(&mut n, 4.);
-        let mut granite = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 12, 0.1);
-        points_lerp(
-            &mut granite,
-            &[
-                (0., WATER_H as f32),
-                (0.8, WATER_H as f32),
-                (0.9, WATER_H as f32 + 20.),
-                (1., WATER_H as f32 + 25.),
-            ],
-        );
+    fn generate_jungle(
+        generator: Grid<2>,
+        noise_samples: &mut NoiseSamples,
+        _params: &BiomeParameters,
+    ) -> Vec<Layer> {
+        const TERRACE_H: f32 = 3.;
+        let step = StaticSimd::splat(TERRACE_H);
+        let i = noise_samples.get_slot();
+        let n = &mut noise_samples[i];
+        generator
+            .builder::<Fbm, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.2)
+            .fill(n);
+        n.simd_iter_mut().for_each(|mut v| {
+            *v = v.mul_add(
+                StaticSimd::splat(30.),
+                StaticSimd::splat(WATER_H as f32 + 20.),
+            );
+            *v = (*v / step).round() * step;
+        });
         vec![
             Layer {
-                block: Block::Granite,
-                height: Height::Noise(granite),
-                tag: LayerTag::Mantle,
-            },
-            Layer {
-                block: Block::Podzol,
-                height: Height::Constant(WATER_H as f32 + 15.),
+                block: Block::GrassBlock,
+                height: Height::Noise(i),
                 tag: LayerTag::Soil,
             },
             Layer {
-                block: Block::GrassBlock,
-                height: Height::Noise(n),
+                block: Block::Podzol,
+                height: Height::Constant(WATER_H as f32 + 16.),
                 tag: LayerTag::Deposit,
             },
         ]
     }
 
-    fn generate_canyon(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
-        let mut n = ridge(x, CHUNK_S1, z, CHUNK_S1, seed + 10, 0.01);
-        mul_const(&mut n, -1.);
-        add_const(&mut n, 1.);
-        let mut top = n.clone();
-        points_lerp(
-            &mut n,
-            &[
-                (0., WATER_H as f32 + 5.),
-                (0.35, WATER_H as f32 + 10.),
-                (0.45, MOUNTAIN_H - 5.),
-                (1., MOUNTAIN_H),
-            ],
-        );
-        points_lerp(
-            &mut top,
-            &[
-                (0., 0.),
-                (0.4, 0.),
-                (0.45, MOUNTAIN_H - 5.),
-                (1., MOUNTAIN_H),
-            ],
-        );
+    fn generate_canyon(
+        generator: Grid<2>,
+        noise_samples: &mut NoiseSamples,
+        _params: &BiomeParameters,
+    ) -> Vec<Layer> {
+        let simd_half = StaticSimd::splat(0.5);
+        let simd_one = StaticSimd::splat(1.0);
+        let i = noise_samples.get_slot();
+        let n = &mut noise_samples[i];
+        let points = [
+            (
+                StaticSimd::splat(0.),
+                StaticSimd::splat(WATER_H as f32 + 20.),
+            ),
+            (
+                StaticSimd::splat(0.4),
+                StaticSimd::splat(WATER_H as f32 + 25.),
+            ),
+            (
+                StaticSimd::splat(0.45),
+                StaticSimd::splat(WATER_H as f32 + 70.),
+            ),
+            (
+                StaticSimd::splat(1.0),
+                StaticSimd::splat(WATER_H as f32 + 73.),
+            ),
+        ];
+        generator
+            .builder::<Ridged, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.2)
+            .fill(n);
+        n.simd_iter_mut_static()
+            .for_each(|mut v| *v = points_lerp_simd(v.mul_add(-simd_half, simd_one), &points));
         vec![
             Layer {
                 block: Block::CoarseDirt,
-                height: Height::Noise(n),
+                height: Height::Noise(i),
                 tag: LayerTag::Mantle,
             },
             Layer {
@@ -244,30 +289,94 @@ impl Biome {
                 height: Height::Constant(WATER_H as f32 + 8.),
                 tag: LayerTag::Soil,
             },
+        ]
+    }
+
+    fn generate_jungle_pillars(
+        generator: Grid<2>,
+        noise_samples: &mut NoiseSamples,
+        _params: &BiomeParameters,
+    ) -> Vec<Layer> {
+        let simd_half = StaticSimd::splat(0.5);
+        let i = noise_samples.get_slot();
+        let n = &mut noise_samples[i];
+        let points = [
+            (StaticSimd::splat(0.), StaticSimd::splat(WATER_H as f32)),
+            (StaticSimd::splat(0.6), StaticSimd::splat(WATER_H as f32)),
+            (
+                StaticSimd::splat(0.65),
+                StaticSimd::splat(WATER_H as f32 + 70.),
+            ),
+            (
+                StaticSimd::splat(1.0),
+                StaticSimd::splat(WATER_H as f32 + 80.),
+            ),
+        ];
+        generator
+            .builder::<Fbm, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.2)
+            .fill(n);
+        n.simd_iter_mut_static()
+            .for_each(|mut v| *v = points_lerp_simd(v.mul_add(simd_half, simd_half), &points));
+        vec![
             Layer {
-                block: Block::GrassBlock,
-                height: Height::Noise(top),
-                tag: LayerTag::Deposit,
+                block: Block::Granite,
+                height: Height::Noise(i),
+                tag: LayerTag::Mantle,
+            },
+            Layer {
+                block: Block::Podzol,
+                height: Height::Constant(WATER_H as f32 + 20.),
+                tag: LayerTag::Soil,
             },
         ]
     }
 
-    fn generate_tundra(seed: u32, col: ChunkPos2d, _params: &BiomeParameters) -> Vec<Layer> {
-        let (x, z) = col.to_real_pos();
-        let n = fbm_scaled(
-            x,
-            CHUNK_S1,
-            z,
-            CHUNK_S1,
-            seed + 10,
-            0.04,
-            WATER_H as f32 + 15.,
-            WATER_H as f32 + 30.,
-        );
-        let mut icicles = fbm(x, CHUNK_S1, z, CHUNK_S1, seed + 11, 0.1);
-        powi(&mut icicles, 6);
-        mul_const(&mut icicles, 60.);
-        add_const(&mut icicles, WATER_H as f32 + 5.);
+    fn generate_tundra(
+        generator: Grid<2>,
+        noise_samples: &mut NoiseSamples,
+        params: &BiomeParameters,
+    ) -> Vec<Layer> {
+        const ICICLES_MAX_TEMP: f32 = 0.4;
+        const ICICLES_MIN_CONT: f32 = 0.55;
+        const ICICLES_OFFSET: f32 = 0.3;
+        let icicles_max_temp_simd = StaticSimd::splat(ICICLES_MAX_TEMP);
+        let icicles_min_cont_simd = StaticSimd::splat(ICICLES_MIN_CONT);
+        let icicles_offset_simd = StaticSimd::splat(ICICLES_OFFSET);
+        let simd_zero = StaticSimd::splat(0.);
+        let simd_icicles_height = StaticSimd::splat(140.);
+        let i = noise_samples.get_slot();
+        let n = &mut noise_samples[i];
+        generator
+            .builder::<Billow, Perlin>()
+            .octaves(3)
+            .frequency(FREQ * 0.1)
+            .fill(n);
+        n.simd_iter_mut().for_each(|mut v| {
+            *v = v.mul_add(
+                StaticSimd::splat(10.),
+                StaticSimd::splat(WATER_H as f32 + 20.),
+            )
+        });
+        let icicles_i = noise_samples.get_slot();
+        let icicles = &mut noise_samples[icicles_i];
+        generator
+            .builder::<Fbm, Perlin>()
+            .octaves(2)
+            .frequency(FREQ * 0.5)
+            .fill(icicles);
+        icicles
+            .simd_iter_mut_static()
+            .zip(params.0[&BiomeParam::Continentalness].simd_iter_static())
+            .zip(params.0[&BiomeParam::Temperature].simd_iter_static())
+            .for_each(|((mut v, c), t)| {
+                *v = (c.simd_gt(icicles_min_cont_simd) & t.simd_lt(icicles_max_temp_simd)).select(
+                    (*v - icicles_offset_simd)
+                        .mul_add(simd_icicles_height, StaticSimd::splat(WATER_H as f32)),
+                    simd_zero,
+                )
+            });
         vec![
             Layer {
                 block: Block::Granite,
@@ -276,14 +385,42 @@ impl Biome {
             },
             Layer {
                 block: Block::Snow,
-                height: Height::Noise(n),
+                height: Height::Noise(i),
                 tag: LayerTag::Soil,
             },
             Layer {
                 block: Block::Ice,
-                height: Height::Noise(icicles),
+                height: Height::Noise(icicles_i),
                 tag: LayerTag::Deposit,
             },
         ]
     }
+}
+
+fn points_lerp_simd(
+    a: StaticSimd<f32>,
+    points: &[(StaticSimd<f32>, StaticSimd<f32>)],
+) -> StaticSimd<f32> {
+    let (min_p, min_v) = points[0];
+    let (max_p, max_v) = points[points.len() - 1];
+
+    // Clamp to the boundary values first; everything else gets overwritten below for
+    // whichever lanes actually land inside a segment.
+    let below_mask = a.simd_lt(min_p);
+    let above_mask = a.simd_ge(max_p);
+    let mut result = below_mask.select(min_v, a);
+    result = above_mask.select(max_v, result);
+
+    for w in points.windows(2) {
+        let (p1, v1) = w[0];
+        let (p2, v2) = w[1];
+        let slope = (v2 - v1) / (p2 - p1);
+
+        // p1 <= a && a < p2, mirroring the scalar version's segment check.
+        let seg_mask = a.simd_ge(p1) & a.simd_lt(p2);
+        let candidate = (a - p1).mul_add(slope, v1); // v1 + (a - p1) * slope
+        result = seg_mask.select(candidate, result);
+    }
+
+    result
 }

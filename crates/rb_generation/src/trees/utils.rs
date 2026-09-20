@@ -26,6 +26,7 @@ pub fn leaf_disk(world: &VoxelWorld, center: BlockPos, dist: u32, leaf: Block) {
                         z: center.z + dz,
                     },
                     leaf,
+                    false,
                 )
             }
         }

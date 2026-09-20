@@ -2,7 +2,6 @@ use super::BlockTexState;
 use super::chunk_culling::chunk_culling;
 use super::texture_array::BlockTextureArray;
 use super::texture_array::TextureArrayPlugin;
-use crate::MeshOrderSender;
 use crate::mesh_thread::{
     MeshReciever, SharedPlayerCol, setup_mesh_thread, update_shared_load_area,
 };
@@ -13,7 +12,9 @@ use itertools::Itertools;
 use rb_block::Face;
 use rb_camera::PlayerControlled;
 use rb_logging::LogData;
-use rb_world::pos2d::chunks_in_col;
+use rb_world::ChunkEvent;
+use rb_world::ChunkEventSender;
+use rb_world::chunks_in_col;
 use rb_world::{CHUNK_S1, ChunkPos, ColUnloadEvent, PlayerCol, VoxelWorld};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
@@ -49,7 +50,7 @@ fn mark_lod_remesh(
     player_query: Single<&PlayerCol, (With<PlayerControlled>, Changed<PlayerCol>)>,
     blocks: Res<VoxelWorld>,
     mut chunk_lods: ResMut<ChunkLods>,
-    mesh_order_sender: Res<MeshOrderSender>,
+    mesh_order_sender: Res<ChunkEventSender>,
 ) {
     let player_col = player_query.0;
     for chunk in blocks.chunks.iter() {
@@ -61,7 +62,7 @@ fn mark_lod_remesh(
             chunk_lods.0.insert(chunk_pos, new_lod);
             mesh_order_sender
                 .0
-                .send(chunk_pos)
+                .send((ChunkEvent::LODChanged, chunk_pos))
                 .expect("MeshOrderSender channel is closed");
         }
     }

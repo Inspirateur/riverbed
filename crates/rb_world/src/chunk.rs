@@ -18,7 +18,26 @@ pub fn pad_linearize(x: usize, y: usize, z: usize) -> usize {
     z + 1 + (x + 1) * CHUNKP_S1 + (y + 1) * CHUNKP_S2
 }
 
+impl Default for Chunk {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Chunk {
+    pub fn new() -> Self {
+        let mut palette = Palette::new();
+        palette.index(Block::Air);
+        Chunk {
+            data: PackedUints::new(CHUNKP_S3),
+            palette: palette,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.palette.len() == 0
+    }
+
     pub fn get(&self, chunked_pos: ChunkedPos) -> &Block {
         &self.palette[self
             .data
@@ -118,17 +137,6 @@ impl From<&[Block]> for Chunk {
             .collect_vec();
         let data = PackedUints::from(values.as_slice());
         Chunk { data, palette }
-    }
-}
-
-impl Chunk {
-    pub fn new() -> Self {
-        let mut palette = Palette::new();
-        palette.index(Block::Air);
-        Chunk {
-            data: PackedUints::new(CHUNKP_S3),
-            palette: palette,
-        }
     }
 }
 

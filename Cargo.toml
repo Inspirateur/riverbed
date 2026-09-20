@@ -19,6 +19,7 @@ rb_agents = { path = "crates/rb_agents" }
 rb_sounds = { path = "crates/rb_sounds" }
 rb_render = { path = "crates/rb_render" }
 rb_ui = { path = "crates/rb_ui" }
+mimalloc = "*"
 
 [features]
 logging = ["rb_logging/logging"]

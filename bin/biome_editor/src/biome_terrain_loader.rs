@@ -1,8 +1,11 @@
+use std::path::Path;
+
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use crossbeam::channel::{Receiver, Sender, unbounded};
+use quick_noise::Grid;
 use rb_generation::{Biome, TerrainGenerator};
-use rb_pos::{ChunkPos2d, Pos2d};
+use rb_pos::{CHUNK_S1, ChunkPos2d, Pos2d};
 use rb_world::{ColUnloadEvent, VoxelWorld, WorldRng, chunk_area};
 const LOAD_RADIUS: u32 = 6;
 
@@ -11,7 +14,7 @@ pub struct BiomeTerrainLoaderPlugin;
 impl Plugin for BiomeTerrainLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ColUnloadEvent>()
-            .insert_resource(TargetBiome(Biome::Desert))
+            .insert_resource(TargetBiome(Biome::Jungle))
             .add_systems(Startup, setup_recievers)
             .add_systems(Update, setup_load_thread)
             .add_systems(Update, on_unload_col);
@@ -53,20 +56,13 @@ fn setup_load_thread(
                     break;
                 }
             }
-            // Deal with unloaded world columns that have data
-            // (happens when a structure generate blocks in a chunk that was not supposed to be loaded)
-            while let Some(col) = load_world.unloaded_columns.pop_back() {
-                load_world.unload_col(*col);
-                if unload_sender.send(*col).is_err() {
-                    // This means the game is shutting down, so we break the loop
-                    warn!("ColUnloadsReciever channel is closed, stopping terrain thread");
-                    break;
-                }
-            }
+
             // load new terrain
-            let terrain_gen = TerrainGenerator::new(seed_value as u32);
+            let mut terrain_gen = TerrainGenerator::new(seed_value, Path::new("assets"));
+            let generator =
+                Grid::<2>::new(CHUNK_S1 as usize, CHUNK_S1 as usize).grid_position(0, 0);
             let avg_params = terrain_gen
-                .biome_params_at(Pos2d::default())
+                .biome_params_at(generator)
                 .average(terrain_gen.biomes_points.parameters);
             let ideal_biome_params = terrain_gen
                 .biomes_points
@@ -83,8 +79,9 @@ fn setup_load_thread(
             let mut col_to_load =
                 chunk_area(&Pos2d::default(), LOAD_RADIUS as i32).collect::<Vec<_>>();
             col_to_load.sort_by_key(|pos| pos.dist(Pos2d::default()));
-            for col in col_to_load {
-                let mut col_params = terrain_gen.biome_params_at(col);
+            for col_pos in col_to_load {
+                let generator = generator.grid_position(col_pos.x, col_pos.z);
+                let mut col_params = terrain_gen.biome_params_at(generator);
                 for (i, param) in terrain_gen.biomes_points.parameters.iter().enumerate() {
                     col_params
                         .0
@@ -93,9 +90,10 @@ fn setup_load_thread(
                         .iter_mut()
                         .for_each(|v| *v += bias_params[i]);
                 }
-                load_world.loaded_columns.insert(col);
-                terrain_gen.generate_with_params(&load_world, col.into(), col_params);
-                load_world.mark_change_col(col);
+                load_world.loaded_columns.insert(col_pos);
+                let (column, structures) =
+                    terrain_gen.generate_with_params(generator, col_pos.into(), col_params);
+                load_world.add_column(col_pos, column, structures, seed_value);
             }
         })
         .detach();
