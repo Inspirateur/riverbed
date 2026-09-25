@@ -1,5 +1,8 @@
 use bevy::{
-    light::{Atmosphere, atmosphere::ScatteringMedium},
+    light::{
+        Atmosphere, CascadeShadowConfigBuilder, DirectionalLightShadowMap,
+        atmosphere::ScatteringMedium,
+    },
     pbr::AtmosphereSettings,
     prelude::*,
 };
@@ -17,6 +20,7 @@ impl Plugin for SkyPlugin {
             brightness: 1000.0,
             ..Default::default()
         })
+        .insert_resource(DirectionalLightShadowMap { size: 4096 })
         .insert_resource(CycleTimer(Timer::new(
             // Update our atmosphere every 500ms
             Duration::from_millis(500),
@@ -50,6 +54,13 @@ fn spawn_sun(
             shadow_maps_enabled: true,
             ..Default::default()
         },
+        CascadeShadowConfigBuilder {
+            num_cascades: 4,
+            first_cascade_far_bound: 100.0,
+            maximum_distance: 1000.0,
+            ..default()
+        }
+        .build(),
     ));
 }
 

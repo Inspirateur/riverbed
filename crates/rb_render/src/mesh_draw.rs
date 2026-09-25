@@ -139,7 +139,7 @@ pub fn on_col_unload(
     mut chunk_lods: ResMut<ChunkLods>,
 ) {
     for col_ev in ev_unload.read() {
-        for chunk_pos in chunks_in_col(&col_ev.0) {
+        for chunk_pos in chunks_in_col(col_ev.0) {
             chunk_lods.0.remove(&chunk_pos);
             for face in Face::iter() {
                 if let Some(ent) = chunk_ents.0.remove(&(chunk_pos, face)) {

@@ -42,7 +42,8 @@ pub struct WorldRng {
     pub rng: ChaCha8Rng,
 }
 
-pub fn chunks_in_col(col_pos: &ChunkPos2d) -> [ChunkPos; Y_CHUNKS] {
+/// Enumerates the chunk positions in a given column from the bottom to the top.
+pub fn chunks_in_col(col_pos: ChunkPos2d) -> [ChunkPos; Y_CHUNKS] {
     std::array::from_fn(|y| ChunkPos {
         x: col_pos.x,
         y: y as i32,

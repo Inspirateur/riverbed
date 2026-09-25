@@ -4,6 +4,7 @@ use crate::{
     sound_components::{BlockSoundCD, FootstepCD},
 };
 use bevy::{
+    anti_alias::taa::TemporalAntiAliasing,
     math::Vec3,
     prelude::*,
     window::{CursorGrabMode, CursorOptions},
@@ -129,8 +130,11 @@ pub fn spawn_player(
                 fov: FRAC_PI_2 * 9. / 16.,
                 ..Default::default()
             }),
+            // TAA works best when MSAA is turned off
+            Msaa::Off,
+            // Add the TAA component to the camera
+            TemporalAntiAliasing::default(),
         ))
-        .insert(Msaa::default())
         .insert(input_map)
         .insert(FpsCam::default())
         .id();

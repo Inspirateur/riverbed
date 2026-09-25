@@ -6,7 +6,7 @@ use bevy::{
     log::warn,
     prelude::{Resource, Vec3},
 };
-use crossbeam::channel::Sender;
+use crossbeam::channel::{SendError, Sender};
 use crossbeam_skiplist::{SkipMap, SkipSet, map::Entry};
 use itertools::Itertools;
 use parking_lot::RwLock;
@@ -35,6 +35,7 @@ pub struct VoxelWorld {
     /// (loaded distance of 1 means that all 8 neigboring columns must be loaded before the structures can be generated)
     pub structure_map: Arc<SkipMap<ChunkPos2d, (Vec<Box<dyn StructureTrait>>, usize)>>,
     chunk_changes: Sender<(ChunkEvent, ChunkPos)>,
+    chunk_change_buffer: Arc<SkipMap<ChunkPos, ChunkEvent>>,
 }
 
 impl VoxelWorld {
@@ -44,19 +45,18 @@ impl VoxelWorld {
             loaded_columns: Arc::new(SkipSet::new()),
             structure_map: Arc::new(SkipMap::new()),
             chunk_changes,
+            chunk_change_buffer: Arc::new(SkipMap::new()),
         }
     }
 
-    pub fn set_block(&self, pos: BlockPos, block: Block, mark_change: bool) {
+    pub fn set_block(&self, pos: BlockPos, block: Block, notify_instant: bool) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         self.chunks
             .get_or_insert_with(chunk_pos, || RwLock::new(Chunk::new()))
             .value()
             .write()
             .set(chunked_pos, block);
-        if mark_change {
-            self.mark_change(chunk_pos, chunked_pos, block);
-        }
+        self.mark_change(chunk_pos, chunked_pos, block, notify_instant);
     }
 
     pub fn set_block_safe(&self, pos: BlockPos, block: Block) -> bool {
@@ -67,7 +67,7 @@ impl VoxelWorld {
         true
     }
 
-    pub fn set_if_empty(&self, pos: BlockPos, block: Block, mark_change: bool) {
+    pub fn set_if_empty(&self, pos: BlockPos, block: Block, notify_instant: bool) {
         let (chunk_pos, chunked_pos) = <(ChunkPos, ChunkedPos)>::from(pos);
         if self
             .chunks
@@ -75,9 +75,8 @@ impl VoxelWorld {
             .value()
             .write()
             .set_if_empty(chunked_pos, block)
-            && mark_change
         {
-            self.mark_change(chunk_pos, chunked_pos, block);
+            self.mark_change(chunk_pos, chunked_pos, block, notify_instant);
         }
     }
 
@@ -135,6 +134,7 @@ impl VoxelWorld {
         structures: Vec<Box<dyn StructureTrait>>,
         seed: u64,
     ) {
+        self.loaded_columns.insert(col_pos);
         // insert the new structures and compute their minimum loaded column distance
         let has_structures = !structures.is_empty();
         if has_structures {
@@ -160,8 +160,6 @@ impl VoxelWorld {
                 realm: col_pos.realm,
             };
             self.chunks.insert(chunk_pos, RwLock::new(chunk));
-            // no need to sync down because we're iterating over the column syncing up
-            self.loaded_columns.insert(col_pos);
         }
         // Attempt to load the structures
         for entry in self.structure_map.iter() {
@@ -170,36 +168,30 @@ impl VoxelWorld {
                 for s in &self.structure_map.remove(entry.key()).unwrap().value().0 {
                     s.grow(self, seed);
                 }
-                self.sync_column(*entry.key());
-                // send changes for all chunks in the column after every syncing is done
-                for chunk_pos in chunks_in_col(entry.key()) {
-                    self.chunk_changes
-                        .send((ChunkEvent::Added, chunk_pos))
-                        .expect("Failed to send chunk change");
-                }
             }
         }
+        self.sync_column(col_pos);
         if !has_structures {
-            // send changes for all chunks in the column after every syncing is done
-            for chunk_pos in chunks_in_col(&col_pos) {
-                self.chunk_changes
-                    .send((ChunkEvent::Added, chunk_pos))
-                    .expect("Failed to send chunk change");
+            // register changes now if there's no structures to grow
+            for chunk_pos in chunks_in_col(col_pos) {
+                self.chunk_change_buffer
+                    .insert(chunk_pos, ChunkEvent::Added);
             }
         }
+        self.send_buffered_changes();
     }
 
     /// Synchronize padding info between all chunks in a column with their neighbors
     fn sync_column(&self, col_pos: ChunkPos2d) {
-        for chunk_pos in chunks_in_col(&col_pos) {
+        for chunk_pos in chunks_in_col(col_pos) {
             let Some(chunk) = self.chunks.get(&chunk_pos) else {
                 continue;
             };
-            self.sync_padding_info(&chunk, chunk_pos, Face::Left);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Right);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Front);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Back);
-            self.sync_padding_info(&chunk, chunk_pos, Face::Up);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Left, true);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Right, true);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Front, true);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Back, true);
+            self.sync_padding_info(&chunk, chunk_pos, Face::Up, false);
         }
     }
 
@@ -209,6 +201,7 @@ impl VoxelWorld {
         chunk: &Entry<ChunkPos, RwLock<Chunk>>,
         chunk_pos: ChunkPos,
         face: Face,
+        send_change: bool,
     ) {
         let other_pos = ChunkPos {
             x: chunk_pos.x + face.n()[0],
@@ -232,6 +225,11 @@ impl VoxelWorld {
             let mut chunk_guard = chunk.value().write();
             chunk_guard.copy_side_from(&other_guard, face);
             other_guard.copy_side_from(&chunk_guard, face.opposite());
+        }
+        if send_change {
+            self.chunk_changes
+                .send((ChunkEvent::Edited, chunk_pos))
+                .expect("Failed to send chunk change");
         }
     }
 
@@ -258,8 +256,14 @@ impl VoxelWorld {
     }
 
     /// Mark a block change, reflecting in neighboring chunks if needed
-    fn mark_change(&self, chunk_pos: ChunkPos, chunked_pos: ChunkedPos, block: Block) {
-        if let Err(_) = self.chunk_changes.send((ChunkEvent::Edited, chunk_pos)) {
+    fn mark_change(
+        &self,
+        chunk_pos: ChunkPos,
+        chunked_pos: ChunkedPos,
+        block: Block,
+        notify_instant: bool,
+    ) {
+        if let Err(_) = self.send_change(ChunkEvent::Edited, chunk_pos, notify_instant) {
             warn!("Chunk change channel closed.");
             return;
         }
@@ -283,7 +287,36 @@ impl VoxelWorld {
                 .write()
                 .set_unpadded(neighbor_chunked_pos, block);
 
-            if let Err(_) = self.chunk_changes.send((ChunkEvent::Edited, neighbor)) {
+            if let Err(_) = self.send_change(ChunkEvent::Edited, neighbor, notify_instant) {
+                warn!("Chunk change channel closed.");
+                return;
+            }
+        }
+    }
+
+    fn send_change(
+        &self,
+        chunk_change: ChunkEvent,
+        chunk_pos: ChunkPos,
+        notify_instant: bool,
+    ) -> Result<(), SendError<(ChunkEvent, ChunkPos)>> {
+        if notify_instant {
+            self.chunk_changes.send((chunk_change, chunk_pos))
+        } else {
+            self.chunk_change_buffer
+                .compare_insert(chunk_pos, chunk_change, |existing_change| {
+                    existing_change < &chunk_change
+                });
+            Ok(())
+        }
+    }
+
+    /// Sends all the changes that have been buffered in the chunk change buffer.
+    fn send_buffered_changes(&self) {
+        while let Some(entry) = self.chunk_change_buffer.pop_front() {
+            let chunk_pos = entry.key();
+            let chunk_change = entry.value();
+            if let Err(_) = self.chunk_changes.send((*chunk_change, *chunk_pos)) {
                 warn!("Chunk change channel closed.");
                 return;
             }
@@ -409,7 +442,8 @@ impl VoxelWorld {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// Chunk event ordered by importance
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ChunkEvent {
     Added,
     Edited,
