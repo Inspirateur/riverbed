@@ -40,10 +40,7 @@ impl Plugin for Draw3d {
 pub struct LOD(pub usize);
 
 pub fn choose_lod_level(chunk_dist: u32) -> usize {
-    if chunk_dist < 16 {
-        return 1;
-    }
-    return 2;
+    return (chunk_dist as usize / 4).clamp(1, CHUNK_S1);
 }
 
 fn mark_lod_remesh(

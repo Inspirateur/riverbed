@@ -8,6 +8,7 @@ use bevy::{
     render::render_resource::{PrimitiveTopology, VertexFormat},
 };
 use binary_greedy_meshing as bgm;
+use itertools::iproduct;
 
 use super::texture_array::TextureMapTrait;
 use rb_block::{Block, Face};
@@ -65,21 +66,65 @@ impl ChunkMeshing for Chunk {
             return voxels;
         }
         let mut res = vec![0; CHUNKP_S3];
-        for x in 0..CHUNK_S1 {
-            for y in 0..CHUNK_S1 {
-                for z in 0..CHUNK_S1 {
-                    let lod_i = pad_linearize(x / lod, y / lod, z / lod);
-                    if res[lod_i] == 0 {
-                        res[lod_i] = voxels[pad_linearize(x, y, z)];
-                    }
+        // will count the number of blocks of each type within the window of size `lod`
+        let mut block_counter = vec![0; self.palette.len()];
+        let neighbors = [
+            -(linearize(1, 0, 0) as i32),
+            linearize(1, 0, 0) as i32,
+            -(linearize(0, 1, 0) as i32),
+            linearize(0, 1, 0) as i32,
+            -(linearize(0, 0, 1) as i32),
+            linearize(0, 0, 1) as i32,
+        ];
+        for (x, y, z) in iproduct!(
+            (0..CHUNK_S1).step_by(lod),
+            (0..CHUNK_S1).step_by(lod),
+            (0..CHUNK_S1).step_by(lod)
+        ) {
+            // Count the block inside the window
+            block_counter.fill(0);
+            let (wx, wy, wz) = (
+                (x + lod).min(CHUNK_S1),
+                (y + lod).min(CHUNK_S1),
+                (z + lod).min(CHUNK_S1),
+            );
+            for (dx, dy, dz) in iproduct!(x..wx, y..wy, z..wz) {
+                let idx = pad_linearize(dx, dy, dz);
+                let is_exposed = neighbors
+                    .iter()
+                    .any(|&n| voxels[(idx as i32 + n) as usize] == 0);
+                if is_exposed {
+                    block_counter[voxels[idx] as usize] += 1;
                 }
+            }
+            // Determine the most frequent block type within the window that is not air
+            let mut max_count = 0;
+            let mut dominant_block = 0;
+            for (block, &count) in block_counter.iter().enumerate().skip(1) {
+                if count > max_count {
+                    max_count = count;
+                    dominant_block = block;
+                }
+            }
+            // If there's a significant amount of air within the window, consider it as air
+            let (sx, sy, sz) = (wx - x, wy - y, wz - z);
+            let volume = sx * sy * sz;
+            let surface = ((sx + sy + sz) / 3).pow(2);
+            if block_counter[0] > volume - surface {
+                dominant_block = 0;
+            }
+            // assign the dominant block the entire window
+            for (dx, dy, dz) in iproduct!(
+                x..(x + lod).min(CHUNK_S1),
+                y..(y + lod).min(CHUNK_S1),
+                z..(z + lod).min(CHUNK_S1)
+            ) {
+                res[pad_linearize(dx, dy, dz)] = dominant_block as u16;
             }
         }
         res
     }
 
-    /// Doesn't work with lod > 2, because chunks are of size 62 (to get to 64 with padding) and 62 = 2*31
-    /// TODO: make it work with lod > 2 if necessary (by truncating quads)
     fn create_face_meshes(
         &self,
         texture_map: impl TextureMapTrait,
@@ -134,7 +179,7 @@ impl ChunkMeshing for Chunk {
                     g *= (-dist_to_surface * 0.045).exp();
                     b *= (-dist_to_surface * 0.04).exp();
                 }
-                let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32, lod as u32);
+                let vertices = face.vertices_packed(xyz as u32, w as u32, h as u32, 1);
                 let quad_info = (color(r, g, b) << 15) | (layer << 3) | face_n as u32;
                 voxel_data.extend_from_slice(&[
                     [vertices[0], quad_info],
