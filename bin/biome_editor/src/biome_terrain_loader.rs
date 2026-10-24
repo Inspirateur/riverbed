@@ -60,7 +60,7 @@ fn setup_load_thread(
             // load new terrain
             let mut terrain_gen = TerrainGenerator::new(seed_value, Path::new("assets"));
             let generator =
-                Grid::<2>::new(CHUNK_S1 as usize, CHUNK_S1 as usize).grid_position(0, 0);
+                Grid::<2>::new(CHUNK_S1 as usize, CHUNK_S1 as usize).grid_position(0., 0.);
             let avg_params = terrain_gen
                 .biome_params_at(generator)
                 .average(terrain_gen.biomes_points.parameters);
@@ -80,7 +80,7 @@ fn setup_load_thread(
                 chunk_area(&Pos2d::default(), LOAD_RADIUS as i32).collect::<Vec<_>>();
             col_to_load.sort_by_key(|pos| pos.dist(Pos2d::default()));
             for col_pos in col_to_load {
-                let generator = generator.grid_position(col_pos.x, col_pos.z);
+                let generator = generator.grid_position(col_pos.x as f64, col_pos.z as f64);
                 let mut col_params = terrain_gen.biome_params_at(generator);
                 for (i, param) in terrain_gen.biomes_points.parameters.iter().enumerate() {
                     col_params

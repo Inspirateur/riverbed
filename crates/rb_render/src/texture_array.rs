@@ -335,21 +335,21 @@ pub struct ArrayTextureMaterial {
 
 impl MaterialExtension for ArrayTextureMaterial {
     fn vertex_shader() -> ShaderRef {
-        "shaders/chunk.wgsl".into()
+        "shaders/chunk.wesl".into()
     }
 
     fn fragment_shader() -> ShaderRef {
-        "shaders/chunk.wgsl".into()
+        "shaders/chunk.wesl".into()
     }
 
     // Used for the depth, normal, and motion-vector prepasses as well as
     // shadow map generation (Bevy uses the prepass shader for shadow depth).
     fn prepass_vertex_shader() -> ShaderRef {
-        "shaders/prepass_chunk.wgsl".into()
+        ("shaders/prepass_chunk.wesl").into()
     }
 
     fn prepass_fragment_shader() -> ShaderRef {
-        "shaders/prepass_chunk.wgsl".into()
+        ("shaders/prepass_chunk.wesl").into()
     }
 
     fn enable_prepass() -> bool {

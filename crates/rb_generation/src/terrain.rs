@@ -309,7 +309,7 @@ impl TerrainGenerator {
     }
 
     pub fn generate(&mut self, col: ChunkPos2d) -> (Column, Vec<Box<dyn StructureTrait>>) {
-        let generator = self.generator.grid_position(col.x, col.z);
+        let generator = self.generator.grid_position(col.x as f64, col.z as f64);
         let params = self.biome_params_at(generator);
         self.generate_with_params(generator, col, params)
     }

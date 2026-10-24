@@ -1,22 +1,32 @@
-#import bevy_pbr::{
-    pbr_fragment::pbr_input_from_standard_material,
-    mesh_view_bindings::{view, globals},
-    pbr_types::{STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND, PbrInput, pbr_input_new},
-    pbr_functions as fns,
-    mesh_functions::{get_world_from_local, mesh_position_local_to_clip, mesh_position_local_to_world},
-}
-#import bevy_core_pipeline::tonemapping::tone_mapping
+import bevy_pbr::{
+    render::{
+        pbr_functions as fns,
+        forward_io::{FragmentOutput, VertexOutput},
+        mesh_functions::{
+            get_world_from_local,
+            mesh_position_local_to_clip,
+            mesh_position_local_to_world
+        },
+        mesh_view_bindings::{globals, view},
+        pbr_fragment::pbr_input_from_standard_material,
+        pbr_types::{
+            PbrInput,
+            STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND,
+            STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT,
+            pbr_input_new
+        }
+    }
+};
+import bevy_core_pipeline::tonemapping::tone_mapping;
 
-#import bevy_pbr::{
-    forward_io::{VertexOutput, FragmentOutput},
-    pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing},
-}
-
-
-@group(#{MATERIAL_BIND_GROUP}) @binding(100) var texture_pack: texture_2d_array<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(101) var texture_sampler: sampler;
-@group(#{MATERIAL_BIND_GROUP}) @binding(102) var<storage, read> anim_offsets: array<u32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(103) var<uniform> water_layer: u32;
+@group(constants::MATERIAL_BIND_GROUP) @binding(100)
+var texture_pack: texture_2d_array<f32>;
+@group(constants::MATERIAL_BIND_GROUP) @binding(101)
+var texture_sampler: sampler;
+@group(constants::MATERIAL_BIND_GROUP) @binding(102)
+var<storage, read> anim_offsets: array<u32>;
+@group(constants::MATERIAL_BIND_GROUP) @binding(103)
+var<uniform> water_layer: u32;
 
 const MASK2: u32 = 3;
 const MASK3: u32 = 7;
@@ -29,7 +39,7 @@ const MASK12: u32 = 4095;
 struct VertexInput {
     @builtin(instance_index) instance_index: u32,
     @location(0) voxel_data: vec2<u32>,
-};
+}
 
 struct CustomVertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -37,41 +47,27 @@ struct CustomVertexOutput {
     @location(1) world_normal: vec3<f32>,
     @location(2) uv: vec2<f32>,
     @location(3) color: vec4<f32>,
-    @location(4) texture_layer: u32,
-};
+    @location(4) @interpolate(flat) texture_layer: u32,
+}
 
 fn normal_from_id(id: u32) -> vec3<f32> {
     var n: vec3<f32>;
     switch id {
-        case 0u {
-            n = vec3(0.0, 1.0, 0.0);
-        }
-        case 1u {
-            n = vec3(0.0, -1.0, 0.0);
-        }
-        case 2u {
-            n = vec3(1.0, 0.0, 0.0);
-        }
-        case 3u {
-            n = vec3(-1.0, 0.0, 0.0);
-        }
-        case 4u {
-            n = vec3(0.0, 0.0, 1.0);
-        }
-        case 5u {
-            n = vec3(0.0, 0.0, -1.0);
-        }
-        default {
-            n = vec3(0.0);
-        }
+        case 0u { n = vec3(0.0, 1.0, 0.0); }
+        case 1u { n = vec3(0.0, -1.0, 0.0); }
+        case 2u { n = vec3(1.0, 0.0, 0.0); }
+        case 3u { n = vec3(-1.0, 0.0, 0.0); }
+        case 4u { n = vec3(0.0, 0.0, 1.0); }
+        case 5u { n = vec3(0.0, 0.0, -1.0); }
+        default { n = vec3(0.0); }
     }
     return n;
 }
 
 fn color_from_id(id: u32) -> vec4<f32> {
-    var b = f32(id & MASK5)/f32(MASK5);
-    var g = f32((id >> 5) & MASK6)/f32(MASK6);
-    var r = f32((id >> 11) & MASK6)/f32(MASK6);
+    var b = f32(id & MASK5) / f32(MASK5);
+    var g = f32((id >> 5) & MASK6) / f32(MASK6);
+    var r = f32((id >> 11) & MASK6) / f32(MASK6);
     return vec4(r, g, b, 1.0);
 }
 
@@ -87,7 +83,7 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
     var u = f32((vertex_info >> 18) & MASK6);
     var v = f32((vertex_info >> 24) & MASK6);
     var position = vec4(x, y, z, 1.0);
-    
+
     // Quad specific information
     var quad_info = vertex.voxel_data.y;
     var n_id = quad_info & MASK3;
@@ -95,17 +91,17 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
     var texture_layer = (quad_info >> 3) & MASK12;
     var c_id = quad_info >> 15;
     var face_color = color_from_id(c_id);
-    if (texture_layer == water_layer) {
+    if texture_layer == water_layer {
         position.y = min(position.y, 61.8);
     }
     out.position = mesh_position_local_to_clip(
-        get_world_from_local(vertex.instance_index),
-        position,
-    );
+            get_world_from_local(vertex.instance_index),
+            position,
+        );
     out.world_position = mesh_position_local_to_world(
-        get_world_from_local(vertex.instance_index),
-        position,
-    );
+            get_world_from_local(vertex.instance_index),
+            position,
+        );
 
     out.world_normal = normal;
     out.uv = vec2(u, v);
@@ -115,31 +111,35 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
 }
 
 @fragment
-fn fragment(
-    in: CustomVertexOutput,
-    @builtin(front_facing) is_front: bool,
-) -> FragmentOutput {
+fn fragment(in: CustomVertexOutput, @builtin(front_facing) is_front: bool) -> FragmentOutput {
     var vertex_output: VertexOutput;
     vertex_output.position = in.position;
     vertex_output.world_position = in.world_position;
     vertex_output.world_normal = in.world_normal;
-#ifdef VERTEX_UVS_A
+    @if(VERTEX_UVS_A)
     vertex_output.uv = in.uv;
-#endif
-#ifdef VERTEX_UVS_B
+    @if(VERTEX_UVS_B)
     vertex_output.uv_b = in.uv;
-#endif
-#ifdef VERTEX_COLORS
+    @if(VERTEX_COLORS)
     vertex_output.color = in.color;
-#endif
     var pbr_input = pbr_input_from_standard_material(vertex_output, is_front);
-    
+
     // sample texture
-    pbr_input.material.base_color = in.color * textureSampleBias(texture_pack, texture_sampler, in.uv, in.texture_layer + (u32(globals.time*2.0) % anim_offsets[in.texture_layer]), view.mip_bias);
-    
+    pbr_input.material.base_color = in.color * textureSampleBias(
+            texture_pack,
+            texture_sampler,
+            in.uv,
+            in.texture_layer + (u32(globals.time * 2.0) % anim_offsets[in.texture_layer]),
+            view.mip_bias,
+        );
+
     // alpha discard
-    pbr_input.material.base_color = fns::alpha_discard(pbr_input.material, pbr_input.material.base_color);
-    if (in.texture_layer == water_layer) {
+    pbr_input.material.base_color = fns::alpha_discard(
+            pbr_input.material.flags,
+            pbr_input.material.alpha_cutoff,
+            pbr_input.material.base_color,
+        );
+    if in.texture_layer == water_layer {
         pbr_input.material.ior = 1.33;
         pbr_input.material.perceptual_roughness = 0.2;
         pbr_input.material.reflectance *= 2.0;
@@ -147,11 +147,11 @@ fn fragment(
     }
     var out: FragmentOutput;
     // apply lighting
-    out.color = apply_pbr_lighting(pbr_input);
+    out.color = fns::apply_pbr_lighting(pbr_input);
 
     // apply in-shader post processing (fog, alpha-premultiply, and also tonemapping, debanding if the camera is non-hdr)
     // note this does not include fullscreen postprocessing effects like bloom.
-    out.color = main_pass_post_lighting_processing(pbr_input, out.color);
+    out.color = fns::main_pass_post_lighting_processing(pbr_input, out.color);
 
     return out;
 }

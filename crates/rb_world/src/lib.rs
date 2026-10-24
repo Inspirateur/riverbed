@@ -18,7 +18,7 @@ pub use rb_pos::*;
 pub use structure_trait::StructureTrait;
 pub use voxel_world::*;
 
-pub const RENDER_DISTANCE: i32 = 32;
+pub const RENDER_DISTANCE: i32 = 64;
 pub const MAX_HEIGHT: usize = 496;
 pub const MAX_GEN_HEIGHT: usize = 400;
 pub const WATER_H: i32 = 61;
