@@ -61,10 +61,13 @@ pub trait ChunkMeshing {
 
 impl ChunkMeshing for Chunk {
     fn voxel_data_lod(&self, lod: usize) -> Vec<u16> {
+        let unpack_span = info_span!("mesher", name = "unpacking voxels").entered();
         let voxels = self.data.unpack_u16();
         if lod == 1 {
             return voxels;
         }
+        unpack_span.exit();
+        let lod_span = info_span!("mesher", name = "lod computation").entered();
         let mut res = vec![0; CHUNKP_S3];
         // will count the number of blocks of each type within the window of size `lod`
         let mut block_counter = vec![0; self.palette.len()];
@@ -122,6 +125,7 @@ impl ChunkMeshing for Chunk {
                 res[pad_linearize(dx, dy, dz)] = dominant_block as u16;
             }
         }
+        lod_span.exit();
         res
     }
 
