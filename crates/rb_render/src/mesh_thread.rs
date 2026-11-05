@@ -11,7 +11,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
 
-const MESH_THREAD_COUNT: usize = 2;
+const MESH_THREAD_COUNT: usize = 3;
 
 pub fn setup_mesh_thread(
     mut commands: Commands,

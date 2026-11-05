@@ -8,25 +8,13 @@ use bevy::{
     render::render_resource::{PrimitiveTopology, VertexFormat},
 };
 use binary_greedy_meshing as bgm;
-use itertools::iproduct;
 
 use super::texture_array::TextureMapTrait;
 use rb_block::{Block, Face};
 use rb_world::CHUNK_S1;
-use rb_world::{CHUNKP_S3, Chunk, ChunkPos, WATER_H, linearize, pad_linearize};
+use rb_world::{Chunk, ChunkPos, WATER_H, linearize};
 
 const MASK_XYZ: u64 = 0b111111_111111_111111;
-/// TODO: Switch to 16-chunks region instanced quads
-/// first u32:
-///    - quad-in-chunk position: 3x6 bits (18)
-///    - chunk-in-region position: 3x4 bits (12)
-///    - 2 bits leftover
-///
-/// second u32:
-///    - quad width and height: 2x6 bits (12)
-///    - texture layer: 12 bits
-///    - light/color: 8 bits (4 r, 4 g, 4 b)
-
 /// ## Compressed voxel vertex data
 /// first u32 (vertex dependant):
 ///     - in-chunk position: 3x6 bits (18)
@@ -50,7 +38,6 @@ fn color(r: f32, g: f32, b: f32) -> u32 {
 }
 
 pub trait ChunkMeshing {
-    fn voxel_data_lod(&self, lod: usize) -> Vec<u16>;
     fn create_face_meshes(
         &self,
         texture_map: impl TextureMapTrait,
@@ -60,75 +47,6 @@ pub trait ChunkMeshing {
 }
 
 impl ChunkMeshing for Chunk {
-    fn voxel_data_lod(&self, lod: usize) -> Vec<u16> {
-        let unpack_span = info_span!("mesher", name = "unpacking voxels").entered();
-        let voxels = self.data.unpack_u16();
-        if lod == 1 {
-            return voxels;
-        }
-        unpack_span.exit();
-        let lod_span = info_span!("mesher", name = "lod computation").entered();
-        let mut res = vec![0; CHUNKP_S3];
-        // will count the number of blocks of each type within the window of size `lod`
-        let mut block_counter = vec![0; self.palette.len()];
-        let neighbors = [
-            -(linearize(1, 0, 0) as i32),
-            linearize(1, 0, 0) as i32,
-            -(linearize(0, 1, 0) as i32),
-            linearize(0, 1, 0) as i32,
-            -(linearize(0, 0, 1) as i32),
-            linearize(0, 0, 1) as i32,
-        ];
-        for (x, y, z) in iproduct!(
-            (0..CHUNK_S1).step_by(lod),
-            (0..CHUNK_S1).step_by(lod),
-            (0..CHUNK_S1).step_by(lod)
-        ) {
-            // Count the block inside the window
-            block_counter.fill(0);
-            let (wx, wy, wz) = (
-                (x + lod).min(CHUNK_S1),
-                (y + lod).min(CHUNK_S1),
-                (z + lod).min(CHUNK_S1),
-            );
-            for (dx, dy, dz) in iproduct!(x..wx, y..wy, z..wz) {
-                let idx = pad_linearize(dx, dy, dz);
-                let is_exposed = neighbors
-                    .iter()
-                    .any(|&n| voxels[(idx as i32 + n) as usize] == 0);
-                if is_exposed {
-                    block_counter[voxels[idx] as usize] += 1;
-                }
-            }
-            // Determine the most frequent block type within the window that is not air
-            let mut max_count = 0;
-            let mut dominant_block = 0;
-            for (block, &count) in block_counter.iter().enumerate().skip(1) {
-                if count > max_count {
-                    max_count = count;
-                    dominant_block = block;
-                }
-            }
-            // If there's a significant amount of air within the window, consider it as air
-            let (sx, sy, sz) = (wx - x, wy - y, wz - z);
-            let volume = sx * sy * sz;
-            let surface = ((sx + sy + sz) / 3).pow(2);
-            if block_counter[0] > volume - surface {
-                dominant_block = 0;
-            }
-            // assign the dominant block the entire window
-            for (dx, dy, dz) in iproduct!(
-                x..(x + lod).min(CHUNK_S1),
-                y..(y + lod).min(CHUNK_S1),
-                z..(z + lod).min(CHUNK_S1)
-            ) {
-                res[pad_linearize(dx, dy, dz)] = dominant_block as u16;
-            }
-        }
-        lod_span.exit();
-        res
-    }
-
     fn create_face_meshes(
         &self,
         texture_map: impl TextureMapTrait,
@@ -138,7 +56,7 @@ impl ChunkMeshing for Chunk {
         let cy = chunk_pos.y as usize * CHUNK_S1 as usize;
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("meshing", name = "mesh voxel data").entered();
-        let voxels = self.voxel_data_lod(lod);
+        let mut voxels = self.data.unpack_u16();
         let mut mesher: bgm::Mesher<CHUNK_S1> = bgm::Mesher::new();
         mesh_data_span.exit();
         let mesh_build_span = info_span!("meshing", name = "mesh build").entered();
@@ -150,7 +68,12 @@ impl ChunkMeshing for Chunk {
                     None
                 }
             }));
-        mesher.mesh(&voxels, &transparents);
+        mesher.mesh_lod(
+            &mut voxels,
+            &transparents,
+            lod,
+            Some(self.palette.len() as u16 - 1),
+        );
         let mut meshes = core::array::from_fn(|_| None);
         for (face_n, quads) in mesher.quads.iter().enumerate() {
             let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(quads.len() * 4);
