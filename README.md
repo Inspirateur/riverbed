@@ -3,7 +3,7 @@ Open source Minecraft-inspired game made with [Bevy](https://bevyengine.org/) in
 
 ## Current state
 ![riverbed_new_pic](https://raw.githubusercontent.com/Inspirateur/riverbed/refs/heads/main/assets/screenshot.png)
-*featured on this screenshot is an infinitely generated, editable terrain, and a 2km render distance (128 in Minecraft)*  
+*featured on this screenshot is an infinitely generated, editable terrain, and a 4km render distance (250 in Minecraft)*  
 Single-player for now but it will be multi-player eventually ...
 
 ## Hopes and dreams
