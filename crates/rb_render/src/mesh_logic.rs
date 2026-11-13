@@ -53,7 +53,6 @@ impl ChunkMeshing for Chunk {
         lod: usize,
         chunk_pos: ChunkPos,
     ) -> [Option<Mesh>; 6] {
-        let lod = 4; // a test
         // palette always has Air at index 0,
         // if the chunk is Air, we can skip it
         if self.palette.len() == 1 {
