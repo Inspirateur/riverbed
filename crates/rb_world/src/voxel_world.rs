@@ -3,7 +3,7 @@ use crate::{
     Realm, StructureTrait, Y_CHUNKS, chunks_in_col,
 };
 use bevy::{
-    log::warn,
+    log::{warn, warn_once},
     prelude::{Resource, Vec3},
 };
 use crossbeam::channel::{SendError, Sender};
@@ -227,9 +227,9 @@ impl VoxelWorld {
             other_guard.copy_side_from(&chunk_guard, face.opposite());
         }
         if send_change {
-            self.chunk_changes
-                .send((ChunkEvent::Edited, chunk_pos))
-                .expect("Failed to send chunk change");
+            if let Err(_) = self.chunk_changes.send((ChunkEvent::Edited, chunk_pos)) {
+                warn_once!("Failed to send chunk change, game is probably shutting down.");
+            }
         }
     }
 
@@ -264,7 +264,7 @@ impl VoxelWorld {
         notify_instant: bool,
     ) {
         if let Err(_) = self.send_change(ChunkEvent::Edited, chunk_pos, notify_instant) {
-            warn!("Chunk change channel closed.");
+            warn_once!("Chunk change channel closed.");
             return;
         }
         // iterates over x, y, z
@@ -288,7 +288,7 @@ impl VoxelWorld {
                 .set_unpadded(neighbor_chunked_pos, block);
 
             if let Err(_) = self.send_change(ChunkEvent::Edited, neighbor, notify_instant) {
-                warn!("Chunk change channel closed.");
+                warn_once!("Chunk change channel closed.");
                 return;
             }
         }
@@ -317,7 +317,7 @@ impl VoxelWorld {
             let chunk_pos = entry.key();
             let chunk_change = entry.value();
             if let Err(_) = self.chunk_changes.send((*chunk_change, *chunk_pos)) {
-                warn!("Chunk change channel closed.");
+                warn_once!("Chunk change channel closed.");
                 return;
             }
         }

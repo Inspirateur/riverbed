@@ -53,13 +53,16 @@ impl ChunkMeshing for Chunk {
         lod: usize,
         chunk_pos: ChunkPos,
     ) -> [Option<Mesh>; 6] {
+        // palette always has Air at index 0,
+        // if the chunk is Air, we can skip it
+        if self.palette.len() == 1 {
+            return [const { None }; 6];
+        }
         let cy = chunk_pos.y as usize * CHUNK_S1 as usize;
         // Gathering binary greedy meshing input data
         let mesh_data_span = info_span!("meshing", name = "mesh voxel data").entered();
         let mut voxels = self.data.unpack_u16();
         let mut mesher: bgm::Mesher<CHUNK_S1> = bgm::Mesher::new();
-        mesh_data_span.exit();
-        let mesh_build_span = info_span!("meshing", name = "mesh build").entered();
         let transparents =
             BTreeSet::from_iter(self.palette.iter().enumerate().filter_map(|(i, block)| {
                 if i != 0 && !block.is_opaque() {
@@ -68,12 +71,11 @@ impl ChunkMeshing for Chunk {
                     None
                 }
             }));
-        mesher.mesh_lod(
-            &mut voxels,
-            &transparents,
-            lod,
-            Some(self.palette.len() as u16 - 1),
-        );
+        mesh_data_span.exit();
+        let bgm_mesh_span = info_span!("meshing", name = format!("bgm::mesh_lod({lod})")).entered();
+        mesher.mesh_lod(&mut voxels, &transparents, lod);
+        bgm_mesh_span.exit();
+        let mesh_build_span = info_span!("meshing", name = "mesh build").entered();
         let mut meshes = core::array::from_fn(|_| None);
         for (face_n, quads) in mesher.quads.iter().enumerate() {
             let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(quads.len() * 4);

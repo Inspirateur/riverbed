@@ -11,7 +11,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
 
-const MESH_THREAD_COUNT: usize = 3;
+const MESH_THREAD_COUNT: usize = 2;
 
 pub fn setup_mesh_thread(
     mut commands: Commands,
@@ -59,9 +59,12 @@ pub fn setup_mesh_thread(
                     }
                 }
                 mesh_order_span.exit();
+                let reading_player_col_span =
+                    info_span!("mesher", name = "reading player col").entered();
+                let player_col = shared_load_area.read().clone();
+                reading_player_col_span.exit();
                 let mesh_selection_span =
                     info_span!("mesher", name = "selecting mesh to generate").entered();
-                let player_col = shared_load_area.read().clone();
                 // Pop the closest mesh order
                 let (i, (chunk_pos, dist)) = mesh_orders
                     .iter()
