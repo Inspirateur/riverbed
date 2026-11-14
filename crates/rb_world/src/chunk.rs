@@ -1,6 +1,7 @@
+use std::collections::BTreeSet;
+
 use crate::CHUNK_S1I;
 use crate::{CHUNK_S1, CHUNKP_S1, CHUNKP_S2, CHUNKP_S3, ChunkedPos, ChunkedPos2d, utils::Palette};
-use itertools::Itertools;
 use packed_uints::PackedUints;
 use rb_block::{Block, Face};
 
@@ -8,6 +9,8 @@ use rb_block::{Block, Face};
 pub struct Chunk {
     pub data: PackedUints,
     pub palette: Palette<Block>,
+    /// Keeps track of the transparent blocks palette indices in the chunk for meshing
+    pub transparents: BTreeSet<u16>,
 }
 
 pub fn linearize(x: usize, y: usize, z: usize) -> usize {
@@ -31,6 +34,7 @@ impl Chunk {
         Chunk {
             data: PackedUints::new(CHUNKP_S3),
             palette: palette,
+            transparents: BTreeSet::new(),
         }
     }
 
@@ -44,18 +48,29 @@ impl Chunk {
             .get(pad_linearize(chunked_pos.x, chunked_pos.y, chunked_pos.z))]
     }
 
+    /// Get the palette index of the block, adding to the palette and updating the transparents set if necessary
+    fn index(&mut self, block: Block) -> usize {
+        let idx = self.palette.index(block);
+        if !block.is_opaque() {
+            self.transparents.insert(idx as u16);
+        }
+        idx
+    }
+
     pub fn set(&mut self, chunked_pos: ChunkedPos, block: Block) {
         let idx = pad_linearize(chunked_pos.x, chunked_pos.y, chunked_pos.z);
-        self.data.set(idx, self.palette.index(block));
+        let block_id = self.index(block);
+        self.data.set(idx, block_id);
     }
 
     pub fn set_unpadded(&mut self, chunked_pos: ChunkedPos, block: Block) {
         let idx = linearize(chunked_pos.x, chunked_pos.y, chunked_pos.z);
-        self.data.set(idx, self.palette.index(block));
+        let block_id = self.index(block);
+        self.data.set(idx, block_id);
     }
 
     pub fn set_yrange(&mut self, chunked_pos: ChunkedPos, height: usize, block: Block) {
-        let value = self.palette.index(block);
+        let value = self.index(block);
         self.data.set_range_step(
             pad_linearize(chunked_pos.x, chunked_pos.y - height, chunked_pos.z),
             pad_linearize(chunked_pos.x, chunked_pos.y, chunked_pos.z) + 1,
@@ -81,7 +96,8 @@ impl Chunk {
         if self.palette[self.data.get(idx)] != Block::Air {
             return false;
         }
-        self.data.set(idx, self.palette.index(block));
+        let block_id = self.index(block);
+        self.data.set(idx, block_id);
         true
     }
 
@@ -115,7 +131,7 @@ impl Chunk {
                 let value = if let Some(val) = translation[other_value] {
                     val
                 } else {
-                    self.palette.index(other.palette[other_value].clone())
+                    self.index(other.palette[other_value].clone())
                 };
                 self.data.set(self_i, value);
                 self_i += row_step;
@@ -124,19 +140,6 @@ impl Chunk {
             self_i += col_step;
             other_i += col_step;
         }
-    }
-}
-
-impl From<&[Block]> for Chunk {
-    fn from(values: &[Block]) -> Self {
-        let mut palette = Palette::new();
-        palette.index(Block::Air);
-        let values = values
-            .iter()
-            .map(|v| palette.index(v.clone()))
-            .collect_vec();
-        let data = PackedUints::from(values.as_slice());
-        Chunk { data, palette }
     }
 }
 

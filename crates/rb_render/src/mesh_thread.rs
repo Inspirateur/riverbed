@@ -2,15 +2,16 @@ use crate::mesh_draw::{LOD, choose_lod_level};
 use crate::mesh_logic::ChunkMeshing;
 use crate::texture_array::TextureMap;
 use bevy::prelude::*;
+use binary_greedy_meshing as bgm;
 use crossbeam::channel::{Receiver, unbounded};
 use parking_lot::RwLock;
 use rb_block::Face;
 use rb_camera::PlayerControlled;
+use rb_world::CHUNK_S1;
 use rb_world::{ChunkEventReceiver, ChunkPos, ChunkPos2d, PlayerCol, VoxelWorld};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread::yield_now;
-
 const MESH_THREAD_COUNT: usize = 2;
 
 pub fn setup_mesh_thread(
@@ -36,10 +37,12 @@ pub fn setup_mesh_thread(
             }
             let mut mesh_cache: HashSet<ChunkPos> = HashSet::new();
             let mut mesh_orders: Vec<ChunkPos> = Vec::new();
+            let mut mesher = bgm::Mesher::<CHUNK_S1>::new();
+            let mut voxel_buffer = vec![0u16; bgm::Mesher::<CHUNK_S1>::CS_P3];
             'outer: loop {
-                let mesher_span = info_span!("mesher", name = "meshing 1 chunk").entered();
+                let mesher_span = info_span!("mesh_thread", name = "meshing 1 chunk").entered();
                 let mesh_order_span =
-                    info_span!("mesher", name = "waiting for mesh order").entered();
+                    info_span!("mesh_thread", name = "waiting for mesh order").entered();
                 loop {
                     // If mesh_orders is empty, we block on mesh order updates to not waste resources
                     let (_chunk_event, chunk_pos) = if mesh_orders.len() == 0 {
@@ -60,11 +63,11 @@ pub fn setup_mesh_thread(
                 }
                 mesh_order_span.exit();
                 let reading_player_col_span =
-                    info_span!("mesher", name = "reading player col").entered();
+                    info_span!("mesh_thread", name = "reading player col").entered();
                 let player_col = shared_load_area.read().clone();
                 reading_player_col_span.exit();
                 let mesh_selection_span =
-                    info_span!("mesher", name = "selecting mesh to generate").entered();
+                    info_span!("mesh_thread", name = "selecting mesh to generate").entered();
                 // Pop the closest mesh order
                 let (i, (chunk_pos, dist)) = mesh_orders
                     .iter()
@@ -79,15 +82,17 @@ pub fn setup_mesh_thread(
                 mesh_cache.remove(&chunk_pos);
                 let lod = choose_lod_level(dist as u32);
                 mesh_selection_span.exit();
-                let meshing_span = info_span!("mesher", name = "meshing").entered();
+                let meshing_span = info_span!("mesh_thread", name = "meshing").entered();
                 let Some(chunk) = chunks.get(&chunk_pos) else {
                     continue;
                 };
-                let face_meshes =
-                    chunk
-                        .value()
-                        .read()
-                        .create_face_meshes(&texture_map, lod, chunk_pos);
+                let face_meshes = chunk.value().read().create_face_meshes(
+                    &texture_map,
+                    &mut mesher,
+                    &mut voxel_buffer,
+                    lod,
+                    chunk_pos,
+                );
                 for (i, face_mesh) in face_meshes.into_iter().enumerate() {
                     let face = i.into();
                     if mesh_sender

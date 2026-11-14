@@ -20,6 +20,7 @@ impl<E: Hash + Eq + PartialEq + Clone> Palette<E> {
         }
     }
 
+    /// Returns the index of the element in the palette, adding it if it doesn't exist.
     pub fn index(&mut self, elem: E) -> usize {
         *self.leftmap.entry(elem.clone()).or_insert_with(|| {
             self.rightmap.push(elem);

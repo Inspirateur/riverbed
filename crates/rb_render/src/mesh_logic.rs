@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use bevy::{
     asset::RenderAssetUsages,
     log::info_span,
@@ -41,6 +39,8 @@ pub trait ChunkMeshing {
     fn create_face_meshes(
         &self,
         texture_map: impl TextureMapTrait,
+        mesher: &mut bgm::Mesher<CHUNK_S1>,
+        voxel_buffer: &mut [u16],
         lod: usize,
         chunk_pos: ChunkPos,
     ) -> [Option<Mesh>; 6];
@@ -50,6 +50,8 @@ impl ChunkMeshing for Chunk {
     fn create_face_meshes(
         &self,
         texture_map: impl TextureMapTrait,
+        mesher: &mut bgm::Mesher<CHUNK_S1>,
+        voxel_buffer: &mut [u16],
         lod: usize,
         chunk_pos: ChunkPos,
     ) -> [Option<Mesh>; 6] {
@@ -60,22 +62,15 @@ impl ChunkMeshing for Chunk {
         }
         let cy = chunk_pos.y as usize * CHUNK_S1 as usize;
         // Gathering binary greedy meshing input data
-        let mesh_data_span = info_span!("meshing", name = "mesh voxel data").entered();
-        let mut voxels = self.data.unpack_u16();
-        let mut mesher: bgm::Mesher<CHUNK_S1> = bgm::Mesher::new();
-        let transparents =
-            BTreeSet::from_iter(self.palette.iter().enumerate().filter_map(|(i, block)| {
-                if i != 0 && !block.is_opaque() {
-                    Some(i as u16)
-                } else {
-                    None
-                }
-            }));
+        let mesh_data_span = info_span!("mesh_logic", name = "mesh voxel data").entered();
+        self.data.unpack_u16_into(voxel_buffer);
         mesh_data_span.exit();
-        let bgm_mesh_span = info_span!("meshing", name = format!("bgm::mesh_lod({lod})")).entered();
-        mesher.mesh_lod(&mut voxels, &transparents, lod);
+        let bgm_mesh_span =
+            info_span!("mesh_logic", name = format!("bgm::mesh_lod({lod})")).entered();
+        mesher.clear();
+        mesher.mesh_lod(voxel_buffer, &self.transparents, lod);
         bgm_mesh_span.exit();
-        let mesh_build_span = info_span!("meshing", name = "mesh build").entered();
+        let mesh_build_span = info_span!("mesh_logic", name = "mesh build").entered();
         let mut meshes = core::array::from_fn(|_| None);
         for (face_n, quads) in mesher.quads.iter().enumerate() {
             let mut voxel_data: Vec<[u32; 2]> = Vec::with_capacity(quads.len() * 4);
@@ -89,7 +84,7 @@ impl ChunkMeshing for Chunk {
                 let xyz = MASK_XYZ & quad.0;
                 let [x, y, z] = quad.xyz();
                 let block = self.palette[voxel_i];
-                let neighbor_block = self.palette[voxels[linearize(
+                let neighbor_block = self.palette[voxel_buffer[linearize(
                     (offset[0] + x as i32 + 1) as usize,
                     (offset[1] + y as i32 + 1) as usize,
                     (offset[2] + z as i32 + 1) as usize,
