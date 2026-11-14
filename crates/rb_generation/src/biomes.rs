@@ -4,15 +4,14 @@ use crate::{
     noise_samples::NoiseSamples,
     terrain::FREQ,
 };
-use quick_noise::{
-    Billow, Fbm, Grid, GridGenerator, Octave, Perlin, Ridged, simd::SimdSliceIterExt,
-    simd::StaticSimd,
-};
+use quick_noise::{Billow, Fbm, Grid, Perlin, Ridged, simd::SimdSliceIterExt, simd::StaticSimd};
 use rb_block::Block;
-use rb_world::{CHUNK_S1, ChunkPos2d, WATER_H};
-use std::ops::{Mul, MulAssign};
+use rb_world::{CHUNK_S1, WATER_H};
+use std::ops::Mul;
 use strum_macros::EnumString;
 const MOUNTAIN_H: f32 = 150.;
+const MOUNTAIN_GRASS_H: f32 = 2.;
+const MOUNTAIN_GRASS_MAX_SLOPE: f32 = 0.8;
 
 #[derive(Debug, Clone, Copy, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Biome {
@@ -132,7 +131,7 @@ impl Biome {
             .for_each(|(mut v, m)| {
                 *v = v.mul_add(simd_half, simd_half);
                 *v = v.mul_add(
-                    StaticSimd::splat(400.) * m * m * m * m * m,
+                    StaticSimd::splat(300.) * m * m * m * m,
                     StaticSimd::splat(WATER_H as f32 + 10.),
                 )
             });
@@ -160,7 +159,7 @@ impl Biome {
         let n = &mut noise_samples[i];
         generator
             .builder::<Fbm, Perlin>()
-            .octaves(6)
+            .octaves(4)
             .frequency(FREQ * 0.3)
             .fill(n);
         n.simd_iter_mut().for_each(|mut v| {
@@ -170,11 +169,31 @@ impl Biome {
                 StaticSimd::splat(WATER_H as f32 + 5.),
             )
         });
-        vec![Layer {
-            block: Block::Granite,
-            height: Height::Noise(i),
-            tag: LayerTag::Mantle,
-        }]
+        let grass_i = noise_samples.get_slot();
+        // The grass slot first holds the slope, then the grass top height
+        let (mountain, grass) = noise_samples.pair_mut(i, grass_i);
+        slope_simd(mountain, grass);
+        // Grass thickness goes from MOUNTAIN_GRASS_H on flat ground to 0 at MOUNTAIN_GRASS_MAX_SLOPE
+        let grass_h = StaticSimd::splat(MOUNTAIN_GRASS_H);
+        let grass_falloff = StaticSimd::splat(-MOUNTAIN_GRASS_H / MOUNTAIN_GRASS_MAX_SLOPE);
+        grass
+            .simd_iter_mut_static()
+            .zip(mountain.simd_iter_static())
+            .for_each(|(mut s, m)| {
+                *s = m + s.mul_add(grass_falloff, grass_h).max(StaticSimd::splat(0.));
+            });
+        vec![
+            Layer {
+                block: Block::Granite,
+                height: Height::Noise(i),
+                tag: LayerTag::Mantle,
+            },
+            Layer {
+                block: Block::GrassBlock,
+                height: Height::Noise(grass_i),
+                tag: LayerTag::Soil,
+            },
+        ]
     }
 
     fn generate_desert(
@@ -423,4 +442,40 @@ fn points_lerp_simd(
     }
 
     result
+}
+
+/// Slope (gradient magnitude, in height units per block) of a `CHUNK_S1 x CHUNK_S1` height map
+/// laid out as `x + z * CHUNK_S1`, using central finite differences on the 4 neighbors.
+/// Border cells use clamped neighbors (one-sided difference).
+pub fn slope_simd(h: &[f32; CHUNK_S1 * CHUNK_S1], out: &mut [f32; CHUNK_S1 * CHUNK_S1]) {
+    const S: usize = CHUNK_S1;
+    let lanes = StaticSimd::<f32>::LANES;
+    let half = StaticSimd::splat(0.5);
+
+    for z in 1..S - 1 {
+        let row = z * S;
+        for x in (1..S - 1).step_by(lanes) {
+            let len = lanes.min(S - 1 - x);
+            let i = row + x;
+            let load = |start: usize| StaticSimd::<f32>::from_slice(&h[start..start + len]);
+            let dx = (load(i + 1) - load(i - 1)) * half;
+            let dz = (load(i + S) - load(i - S)) * half;
+            dx.mul_add(dx, dz * dz)
+                .sqrt()
+                .copy_to_slice(&mut out[i..i + len]);
+        }
+    }
+
+    // Border cells (scalar, clamped neighbors)
+    let at = |x: usize, z: usize| h[x + z * S];
+    for z in 0..S {
+        let step = if z == 0 || z == S - 1 { 1 } else { S - 1 };
+        for x in (0..S).step_by(step) {
+            let (x0, x1) = (x.saturating_sub(1), (x + 1).min(S - 1));
+            let (z0, z1) = (z.saturating_sub(1), (z + 1).min(S - 1));
+            let dx = (at(x1, z) - at(x0, z)) / (x1 - x0) as f32;
+            let dz = (at(x, z1) - at(x, z0)) / (z1 - z0) as f32;
+            out[x + z * S] = dx.hypot(dz);
+        }
+    }
 }

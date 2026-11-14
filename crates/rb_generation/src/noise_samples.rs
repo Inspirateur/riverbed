@@ -21,6 +21,22 @@ impl NoiseSamples {
         self.i - 1
     }
 
+    /// Borrows slot `src` immutably and a different slot `dst` mutably.
+    pub fn pair_mut(
+        &mut self,
+        src: usize,
+        dst: usize,
+    ) -> (&[f32; CHUNK_S1 * CHUNK_S1], &mut [f32; CHUNK_S1 * CHUNK_S1]) {
+        assert_ne!(src, dst);
+        if src < dst {
+            let (a, b) = self.slots.split_at_mut(dst);
+            (&a[src], &mut b[0])
+        } else {
+            let (a, b) = self.slots.split_at_mut(src);
+            (&b[0], &mut a[dst])
+        }
+    }
+
     pub fn clear(&mut self) {
         self.i = 0;
     }

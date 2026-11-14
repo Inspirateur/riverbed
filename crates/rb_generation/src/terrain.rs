@@ -212,7 +212,7 @@ impl TerrainGenerator {
             let dz = spot.1 + ((rng >> 3) & 0b111);
             let i = dx * CHUNK_S1 + dz;
             let tree = params[BiomeParam::Trees][i];
-            if tree < 0.2 {
+            if tree < 0.5 {
                 continue;
             }
             let h = (rng >> 6) & 0b11;

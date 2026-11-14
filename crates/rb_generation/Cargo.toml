@@ -6,11 +6,11 @@ edition = "2024"
 [dependencies]
 rb_block = { path = "../rb_block", version = "*" }
 rb_world = { path = "../rb_world", version = "*" }
-bevy = { version = "*" }
+bevy = "*"
 serde = "*"
 strum = "0.28"
 strum_macros = "0.28"
 anyhow = "*"
 itertools = "*"
 csv = "*"
-quick-noise = { version = "*" }
+quick-noise = "*"
